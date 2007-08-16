@@ -323,8 +323,16 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 	
 	xmlFreeDoc(idoc);
 
-	// FIXME: remove this later?
+	// FIXME: remove this later by adding in a pre-sorted way?
 	osync_xmlformat_sort(out_xmlformat);
+	if(oxf_name)
+		osync_xmlfield_sort(oxf_name);
+	if(oxf_organisation)
+		osync_xmlfield_sort(oxf_organisation);
+	if(oxf_homeaddress)
+		osync_xmlfield_sort(oxf_homeaddress);
+	if(oxf_workaddress)
+		osync_xmlfield_sort(oxf_workaddress);
 	
 	unsigned int size;
 	char *str;
@@ -633,13 +641,13 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 							status = "NEEDS-ACTION";
 					}
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Status", error);
-					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", status);
 				}
 				else if(!strcasecmp(iprop->name, "StartDate"))
 				{
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "DateStarted", error);
 					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
-					osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE"); /* FIXME I doubt this is still valid */
+					osync_xmlfield_set_attr(out_xmlfield, "Value", "DATE");
 				}
 				else if(!strcasecmp(iprop->name, "Categories"))
 				{
@@ -664,7 +672,7 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 					osync_xmlfield_set_key_value(out_xmlfield, "Content", completeDate);
 					// RFC2445 says the default value type is DATE-TIME. But Opie only
 					// stores DATE as completed date => alter VALUE to DATE
-					osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE"); /* FIXME I doubt this is still valid */
+					osync_xmlfield_set_attr(out_xmlfield, "Value", "DATE");
 					xmlFree(completeDate);
 				}
 			}
@@ -686,11 +694,11 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 					int dateday = atoi(datedaystr);
 					duedatestr = g_strdup_printf("%04d%02d%02d", dateyear, datemonth, dateday);
 					duedate = g_date_new_dmy(dateday, datemonth, dateyear);
-					out_xmlfield = osync_xmlfield_new(out_xmlformat, "DateDue", error);
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Due", error);
 					osync_xmlfield_set_key_value(out_xmlfield, "Content", duedatestr);
 					// RFC2445 says the default value type is DATE-TIME. But Opie only
 					// stores DATE as due date => alter VALUE to DATE
-					osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE"); /* FIXME I doubt this is still valid */
+					osync_xmlfield_set_attr(out_xmlfield, "Value", "DATE");
 				}
 				if(datedaystr)   xmlFree(datedaystr);
 				if(datemonthstr) xmlFree(datemonthstr);
@@ -725,7 +733,7 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 	
 	xmlFreeDoc(idoc);
 
-	// FIXME: remove this later?
+	// FIXME: remove this later by adding in a pre-sorted way?
 	osync_xmlformat_sort(out_xmlformat);
 	
 	unsigned int size;
@@ -826,7 +834,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(char *input, unsigned int inpsi
 				g_free(started);
 			}
 		}
-		else if(!strcmp("DateDue", fieldname)) {
+		else if(!strcmp("Due", fieldname)) {
 			duestr = osync_xmlfield_get_key_value(in_xmlfield, "Content");
 			if(duestr) {
 				struct tm *due = osync_time_vtime2tm(duestr);
@@ -977,7 +985,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 						localtime_r(&starttime, localtm);
 						char *startvdate = g_strdup_printf("%04d%02d%02d", localtm->tm_year + 1900, (localtm->tm_mon + 1), localtm->tm_mday);
 						osync_xmlfield_set_key_value(out_xmlfield, "Content", startvdate);
-						osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE");
+						osync_xmlfield_set_attr(out_xmlfield, "Value", "DATE");
 						g_free(startvdate);
 						g_free(localtm);
 					}
@@ -1008,7 +1016,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 						localtime_r(&endtime, localtm);
 						char *endvdate = g_strdup_printf("%04d%02d%02d", localtm->tm_year + 1900, (localtm->tm_mon + 1), localtm->tm_mday);
 						osync_xmlfield_set_key_value(out_xmlfield, "Content", endvdate);
-						osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE");
+						osync_xmlfield_set_attr(out_xmlfield, "Value", "DATE");
 						g_free(endvdate);
 						g_free(localtm);
 					}
@@ -1073,7 +1081,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 	
 	xmlFreeDoc(idoc);
 
-	// FIXME: remove this later?
+	// FIXME: remove this later by adding in a pre-sorted way?
 	osync_xmlformat_sort(out_xmlformat);
 	
 	unsigned int size;
@@ -1238,7 +1246,7 @@ static osync_bool conv_opie_xml_note_to_xml_note(char *input, unsigned int inpsi
 	
 	xmlFreeDoc(idoc);
 
-	// FIXME: remove this later?
+	// FIXME: remove this later by adding in a pre-sorted way?
 	osync_xmlformat_sort(out_xmlformat);
 	
 	unsigned int size;
@@ -1418,7 +1426,7 @@ time_t xmlfield_vtime_to_attr_time_t(OSyncXMLField *xmlfield, xmlNode *node_to, 
 	const char *vtime = osync_xmlfield_get_key_value(xmlfield, "Content");
 	time_t utime = 0;
 	if(vtime) {
-		const char *vtimetype = osync_xmlfield_get_key_value(xmlfield, "Value");
+		const char *vtimetype = osync_xmlfield_get_attr(xmlfield, "Value");
 		if(vtimetype && !strcasecmp(vtimetype, "DATE")) {
 			/* vtime has date but no time, so we treat it as midnight local time */
 			struct tm *localtm = osync_time_vtime2tm(vtime);
@@ -1722,9 +1730,11 @@ void xml_todo_alarm_attr_to_xmlfield(const char *alarmstr, OSyncXMLFormat *out_x
 			gchar** alarmargs = g_strsplit(alarmentries[j], ":", 0);
 			for(i=0; alarmargs[i]!=NULL; i++) {
 				if(i==0) {
-					char *dateonly = g_strndup(alarmargs[i], 8);
-					alarmdatestr = g_strdup_printf("%sT%s", dateonly, alarmargs[8]);
-					g_free(dateonly);
+					if(strlen(alarmargs[i]) == 14) {
+						char *dateonly = g_strndup(alarmargs[i], 8);
+						alarmdatestr = g_strdup_printf("%sT%s", dateonly, alarmargs[i] + 8);
+						g_free(dateonly);
+					}
 				}
 				else if(i==2)
 					alarmsound = atoi(alarmargs[i]);
