@@ -29,6 +29,9 @@ void xmlfield_key_to_attr(OSyncXMLField *xmlfield, const char *key, xmlNode *nod
 void xmlfield_uid_to_attr(OSyncXMLField *xmlfield, xmlNode *node_to);
 void xml_uid_attr_to_xmlfield(const char *uid, const char *nodename, OSyncXMLFormat *out_xmlformat, OSyncError **error);
 time_t xmlfield_vtime_to_attr_time_t(OSyncXMLField *xmlfield, xmlNode *node_to, const char *attrname);
+OSyncXMLField *xml_attrs_to_xmlfield_keys(xmlNode *node, OSyncXMLFormat *out_xmlformat, const char *fieldname, GSList *attrs, GSList *keys, OSyncError **error);
+void dual_list_append(GSList **list1, void *item1, GSList **list2, void *item2);
+void dual_list_clear(GSList **list1, GSList **list2);
 void xmlfield_categories_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to, const char *category_attr);
 void xml_recur_attr_to_xmlfield(xmlNode *item_node, OSyncXMLFormat *out_xmlformat, GDate *startdate, OSyncError **error);
 void xmlfield_recur_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to);
@@ -37,7 +40,4 @@ void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_t
 void xmlformat_cal_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to, time_t *starttime);
 
 #endif /* _OPIE_FORMAT_H */
-
-
-
 

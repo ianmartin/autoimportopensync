@@ -51,10 +51,6 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 //	anon_data* anon;
 	gchar** emailtokens;
 	struct _xmlAttr *iprop;
-	OSyncXMLField *oxf_name = NULL;
-	OSyncXMLField *oxf_organisation = NULL;
-	OSyncXMLField *oxf_homeaddress = NULL;
-	OSyncXMLField *oxf_workaddress = NULL;
 	OSyncXMLField *out_xmlfield = NULL;
 		
 	/* Get the root node of the input document */
@@ -80,38 +76,7 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 		{
 			if (iprop->children && iprop->children->content)
 			{
-				if ( (!strcasecmp(iprop->name, "FirstName"))
-					|| (!strcasecmp(iprop->name, "MiddleName"))
-					|| (!strcasecmp(iprop->name, "LastName"))
-					|| (!strcasecmp(iprop->name,"Suffix")) )
-				{
-					if (!oxf_name)
-						oxf_name = osync_xmlfield_new(out_xmlformat, "Name", error);
-					
-					if (!strcasecmp(iprop->name, "FirstName"))
-						osync_xmlfield_set_key_value(oxf_name, "FirstName", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "MiddleName"))
-						osync_xmlfield_set_key_value(oxf_name, "Additional", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "LastName"))
-						osync_xmlfield_set_key_value(oxf_name, "LastName", iprop->children->content);
-					else if (!strcasecmp(iprop->name,"Suffix"))
-						osync_xmlfield_set_key_value(oxf_name, "Suffix", iprop->children->content);
-				}
-				else if ( (!strcasecmp(iprop->name, "Company"))
-					|| (!strcasecmp(iprop->name, "Department"))
-					|| (!strcasecmp(iprop->name, "Office")) )
-				{
-					if (!oxf_organisation)
-						oxf_organisation = osync_xmlfield_new(out_xmlformat, "Organization", error);
-					
-					if (!strcasecmp(iprop->name, "Company"))
-						osync_xmlfield_set_key_value(oxf_organisation, "Name", iprop->children->content);
-					if (!strcasecmp(iprop->name, "Department"))
-						osync_xmlfield_set_key_value(oxf_organisation, "Department", iprop->children->content);
-					if (!strcasecmp(iprop->name, "Office"))
-						osync_xmlfield_set_key_value(oxf_organisation, "Unit", iprop->children->content);
-				}
-				else if(!strcasecmp(iprop->name, "FileAs"))
+				if (!strcasecmp(iprop->name, "FileAs"))
 				{
 					/* File-as. This is what the Evo plugin does, so copy it. */
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "FormattedName", error);
@@ -197,48 +162,6 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 					osync_xmlfield_set_attr(out_xmlfield, "Location", "Work");
 					osync_xmlfield_set_attr(out_xmlfield, "Type", "Pager"); /* FIXME is this still supported? */
 				}
-				else if ( (!strcasecmp(iprop->name, "HomeStreet"))
-					|| (!strcasecmp(iprop->name, "HomeCity"))
-					|| (!strcasecmp(iprop->name, "HomeState"))
-					|| (!strcasecmp(iprop->name,"HomeZip"))
-					|| (!strcasecmp(iprop->name,"HomeCountry")) )
-				{
-					if (!oxf_homeaddress)
-						oxf_homeaddress = osync_xmlfield_new(out_xmlformat, "Address", error);
-					
-					if (!strcasecmp(iprop->name, "HomeStreet"))
-						osync_xmlfield_set_key_value(oxf_homeaddress, "Street", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "HomeCity"))
-						osync_xmlfield_set_key_value(oxf_homeaddress, "Locality", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "HomeState"))
-						osync_xmlfield_set_key_value(oxf_homeaddress, "Region", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "HomeZip"))
-						osync_xmlfield_set_key_value(oxf_homeaddress, "PostalCode", iprop->children->content);
-					else if (!strcasecmp(iprop->name,"HomeCountry"))
-						osync_xmlfield_set_key_value(oxf_homeaddress, "Country", iprop->children->content);
-					osync_xmlfield_set_attr(oxf_homeaddress, "Location", "Home");
-				}
-				else if ( (!strcasecmp(iprop->name, "BusinessStreet"))
-					|| (!strcasecmp(iprop->name, "BusinessCity"))
-					|| (!strcasecmp(iprop->name, "BusinessState"))
-					|| (!strcasecmp(iprop->name,"BusinessZip"))
-					|| (!strcasecmp(iprop->name,"BusinessCountry")) )
-				{
-					if (!oxf_workaddress)
-						oxf_workaddress = osync_xmlfield_new(out_xmlformat, "Address", error);
-					
-					if (!strcasecmp(iprop->name, "BusinessStreet"))
-						osync_xmlfield_set_key_value(oxf_workaddress, "Street", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "BusinessCity"))
-						osync_xmlfield_set_key_value(oxf_workaddress, "Locality", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "BusinessState"))
-						osync_xmlfield_set_key_value(oxf_workaddress, "Region", iprop->children->content);
-					else if (!strcasecmp(iprop->name, "BusinessZip"))
-						osync_xmlfield_set_key_value(oxf_workaddress, "PostalCode", iprop->children->content);
-					else if (!strcasecmp(iprop->name,"BusinessCountry"))
-						osync_xmlfield_set_key_value(oxf_workaddress, "Country", iprop->children->content);
-					osync_xmlfield_set_attr(oxf_workaddress, "Location", "Work");
-				}
 				else if(!strcasecmp(iprop->name, "HomeWebPage"))
 				{
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Url", error);
@@ -317,6 +240,47 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 		}
 	}
 
+	GSList *attrs = NULL;
+	GSList *keys = NULL;
+	
+	/* Name */
+	dual_list_append(&attrs, "LastName",   &keys, "LastName");
+	dual_list_append(&attrs, "FirstName",  &keys, "FirstName");
+	dual_list_append(&attrs, "MiddleName", &keys, "Additional");
+	dual_list_append(&attrs, "Suffix",     &keys, "Suffix");
+	out_xmlfield = xml_attrs_to_xmlfield_keys(icur, out_xmlformat, "Name", attrs, keys, error);
+	dual_list_clear(&attrs, &keys);
+	
+	/* Organization */
+	dual_list_append(&attrs, "Company",    &keys, "Name");
+	dual_list_append(&attrs, "Department", &keys, "Department");
+	dual_list_append(&attrs, "Office",     &keys, "Unit");
+	out_xmlfield = xml_attrs_to_xmlfield_keys(icur, out_xmlformat, "Organization", attrs, keys, error);
+	dual_list_clear(&attrs, &keys);
+	
+	/* Home Address */
+	dual_list_append(&attrs, "HomeStreet",  &keys, "Street");
+	dual_list_append(&attrs, "HomeCity",    &keys, "Locality");
+	dual_list_append(&attrs, "HomeState",   &keys, "Region");
+	dual_list_append(&attrs, "HomeZip",     &keys, "PostalCode");
+	dual_list_append(&attrs, "HomeCountry", &keys, "Country");
+	out_xmlfield = xml_attrs_to_xmlfield_keys(icur, out_xmlformat, "Address", attrs, keys, error);
+	if(out_xmlfield)
+		osync_xmlfield_set_attr(out_xmlfield, "Location", "Home");
+	dual_list_clear(&attrs, &keys);
+	
+	/* Work Address */
+	dual_list_append(&attrs, "BusinessStreet",  &keys, "Street");
+	dual_list_append(&attrs, "BusinessCity",    &keys, "Locality");
+	dual_list_append(&attrs, "BusinessState",   &keys, "Region");
+	dual_list_append(&attrs, "BusinessZip",     &keys, "PostalCode");
+	dual_list_append(&attrs, "BusinessCountry", &keys, "Country");
+	out_xmlfield = xml_attrs_to_xmlfield_keys(icur, out_xmlformat, "Address", attrs, keys, error);
+	if(out_xmlfield)
+		osync_xmlfield_set_attr(out_xmlfield, "Location", "Work");
+	dual_list_clear(&attrs, &keys);
+	
+	
 	*free_input = TRUE;
 	*output = (char *)out_xmlformat;
 	*outpsize = sizeof(out_xmlformat);
@@ -325,14 +289,6 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 
 	// FIXME: remove this later by adding in a pre-sorted way?
 	osync_xmlformat_sort(out_xmlformat);
-	if(oxf_name)
-		osync_xmlfield_sort(oxf_name);
-	if(oxf_organisation)
-		osync_xmlfield_sort(oxf_organisation);
-	if(oxf_homeaddress)
-		osync_xmlfield_sort(oxf_homeaddress);
-	if(oxf_workaddress)
-		osync_xmlfield_sort(oxf_workaddress);
 	
 	unsigned int size;
 	char *str;
@@ -1441,6 +1397,40 @@ time_t xmlfield_vtime_to_attr_time_t(OSyncXMLField *xmlfield, xmlNode *node_to, 
 		g_free(timestr);
 	}
 	return utime;
+}
+
+OSyncXMLField *xml_attrs_to_xmlfield_keys(xmlNode *node, OSyncXMLFormat *out_xmlformat, const char *fieldname, GSList *attrs, GSList *keys, OSyncError **error) {
+	GSList *attrsptr = attrs;
+	GSList *keysptr = keys;
+	OSyncXMLField *out_xmlfield = NULL;
+	
+	while(attrsptr) {
+		char *attr = ((char *)(attrsptr->data));
+		char *value = xmlGetProp(node, attr);
+		if(value) {
+			char *key = (char *)(keysptr->data);
+			if(!out_xmlfield)
+				out_xmlfield = osync_xmlfield_new(out_xmlformat, fieldname, error);
+			osync_xmlfield_set_key_value(out_xmlfield, key, value);
+		}
+		
+		attrsptr = g_slist_next(attrsptr);
+		keysptr = g_slist_next(keysptr);
+	}
+	
+	return out_xmlfield;
+}
+
+void dual_list_append(GSList **list1, void *item1, GSList **list2, void *item2) {
+	*list1 = g_slist_append(*list1, item1);
+	*list2 = g_slist_append(*list2, item2);
+}
+
+void dual_list_clear(GSList **list1, GSList **list2) {
+	g_slist_free(*list1);
+	*list1 = NULL;
+	g_slist_free(*list2);
+	*list2 = NULL;
 }
 
 void xmlfield_categories_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to, const char *category_attr) {
