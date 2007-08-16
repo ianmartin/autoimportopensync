@@ -1412,6 +1412,7 @@ OSyncXMLField *xml_attrs_to_xmlfield_keys(xmlNode *node, OSyncXMLFormat *out_xml
 			if(!out_xmlfield)
 				out_xmlfield = osync_xmlfield_new(out_xmlformat, fieldname, error);
 			osync_xmlfield_set_key_value(out_xmlfield, key, value);
+			xmlFree(value);
 		}
 		
 		attrsptr = g_slist_next(attrsptr);
