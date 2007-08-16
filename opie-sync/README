@@ -126,15 +126,12 @@ SCP support
 
 Qtopia testing / support
 
-  No testing has yet been done with Qtopia on Zaurus devices.
+  No testing has yet been done with Qtopia on Zaurus devices, only Opie 
+  (version 1.2.0+).
 
 Opie SQLite PIM backend support
 
   Only Opie's XML (default) backend is currently supported.
 
-UID mapping
 
-  The plugin maps external UIDs from other plugins to Opie UIDs by writing
-  an internal map to an XML file. In the future this should be taken care of
-  by the OpenSync engine itself.
 
