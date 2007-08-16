@@ -238,12 +238,11 @@ static void create_note(char **data, unsigned int *size)
 		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 }
 
-
-static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
+static time_t get_revision(const char *data, unsigned int size, const char *attribute, OSyncError **error)
 {	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
 	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "Revision", error, NULL);
+	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, attribute, error, NULL);
 	if (!fieldlist)
 		goto error;
 
@@ -270,6 +269,25 @@ error:
 	return -1;
 }
 
+static time_t get_contact_revision(const char *data, unsigned int size, OSyncError **error)
+{
+	return get_revision(data, size, "Revision", error);
+}
+
+static time_t get_event_revision(const char *data, unsigned int size, OSyncError **error)
+{
+	return get_revision(data, size, "LastModified", error);
+}
+
+static time_t get_note_revision(const char *data, unsigned int size, OSyncError **error)
+{
+	return get_revision(data, size, "LastModified", error);
+}
+
+static time_t get_todo_revision(const char *data, unsigned int size, OSyncError **error)
+{
+	return get_revision(data, size, "LastModified", error);
+}
 
 osync_bool get_format_info(OSyncFormatEnv *env)
 {
@@ -291,7 +309,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_contact);
 	
-	osync_objformat_set_revision_func(format, get_revision);
+	osync_objformat_set_revision_func(format, get_contact_revision);
 	
 	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
@@ -316,7 +334,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_event);
 	
-	osync_objformat_set_revision_func(format, get_revision);
+	osync_objformat_set_revision_func(format, get_event_revision);
 	
 	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
@@ -341,7 +359,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_todo);
 
-	osync_objformat_set_revision_func(format, get_revision);
+	osync_objformat_set_revision_func(format, get_todo_revision);
 
 //	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
@@ -366,7 +384,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_note);
 
-	osync_objformat_set_revision_func(format, get_revision);
+	osync_objformat_set_revision_func(format, get_note_revision);
 
 //	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
