@@ -378,9 +378,9 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int
 				}
 			}
 			const char *telloc = osync_xmlfield_get_attr(in_xmlfield, "Location");
-			if ( !strcmp( telloc, "Home" ) == 0 )
+			if ( !strcmp( telloc, "Home" ) )
 				type |= PT_HOME;
-			else if ( !strcmp( telloc, "Work") == 0 )
+			else if ( !strcmp( telloc, "Work") )
 				type |= PT_WORK;
 		
 			const char *number = osync_xmlfield_get_key_value(in_xmlfield, "Content");
