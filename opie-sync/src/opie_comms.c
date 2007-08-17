@@ -37,32 +37,20 @@
 
 #include <opensync/opensync.h>
 #include <opensync/opensync-plugin.h>
+#include <opensync/opensync_xml.h>
 
 #include "opie_comms.h"
 #include "opie_xml.h"
 #include "opie_qcop.h"
 
-typedef struct {
-	char *remote_filename;
-	char *local_filename; /* use fd instead where possible */
-	int local_fd;
-} RemoteData;
-
-enum temp_file_type {
-	TT_STANDARD = 1,
-	TT_VISIBLE = 2,
-	TT_DEBUG = 3,
-	TT_DEBUG_CREATE = 4
-};
-
 int opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
 int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream);
 int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream);
 int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream);
-gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data);
-gboolean scp_fetch_file(OpiePluginEnv* env, RemoteData *data);
-gboolean ftp_put_file(OpiePluginEnv* env, RemoteData *data);
-gboolean scp_put_file(OpiePluginEnv* env, RemoteData *data);
+gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
+gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
+gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data);
+gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data);
 gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc);
 
 int m_totalwritten;
@@ -87,79 +75,16 @@ void comms_shutdown()
 
 
 /*
- * Set up a temporary file
+ * create a backup file from a string
  */
-RemoteData *create_temp_file(const char *remote_file, int tmpfilemode) {
-	osync_trace(TRACE_ENTRY, "%s(%s, %i)", __func__, remote_file, tmpfilemode);
-	
-	RemoteData *pair = g_malloc(sizeof(RemoteData));
-	pair->remote_filename = g_strdup(remote_file);
-	if(tmpfilemode == TT_DEBUG || tmpfilemode == TT_DEBUG_CREATE) {
-		/* Bypass normal temporary file handling (for debugging purposes) */
-		char *basename = g_path_get_basename(remote_file);
-		pair->local_filename = g_strdup_printf("/tmp/%s", basename);
-		g_free(basename);
-		if(tmpfilemode == TT_DEBUG_CREATE)
-			pair->local_fd = open(pair->local_filename, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		else
-			pair->local_fd = open(pair->local_filename, O_RDWR | O_EXCL);
-		if(pair->local_fd == -1) {
-			osync_trace( TRACE_INTERNAL, "failed to open local file %s", pair->local_filename );
-		}
-	}
-	else {
-		char *template = g_strdup("/tmp/opie-sync.XXXXXX");
-		pair->local_fd = mkstemp(template);
-		if(pair->local_fd == -1) {
-			osync_trace( TRACE_INTERNAL, "failed to create temporary file" );
-			g_free(template);
-			return NULL;
-		}
-		pair->local_filename = template;
-		if(tmpfilemode != TT_VISIBLE) {
-			if(unlink(template) == -1) {
-				osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
-			}
-		}
-	}
-	
-	osync_trace(TRACE_EXIT, "%s(%p)", __func__, pair);
-	return pair;
-}
-
-
-/*
- * Clean up and free a RemoteData temp file as built by create_temp_file 
- */
-void cleanup_temp_file(RemoteData *data, int tmpfilemode) {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, tmpfilemode);
-	
-	if(tmpfilemode == TT_VISIBLE) {
-		if(unlink(data->local_filename) == -1) {
-			osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
-		}
-	}
-	if(data->local_fd > 0)
-		close(data->local_fd);
-	
-	g_free(data->local_filename);
-	g_free(data);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-
-/*
- * backup data from an fd to a file
- */
-int backup_file(const char *backupfile, int fd) {
-	osync_trace(TRACE_ENTRY, "%s(%s, %i)", __func__, backupfile, fd);
+int backup_file(const char *backupfile, const char *str, int len) {
+	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i)", __func__, backupfile, str, len);
 	
 	int destfd = 0;
 	int rc = FALSE;
 	int bufsize = 1024;
-	int rbytes, wbytes;
-	char *buf = NULL;
+	int wbytes;
+	int pos = 0;
 	
 	destfd = open(backupfile, O_CREAT | O_WRONLY | O_EXCL, 0600);
 	if(destfd == -1) {
@@ -168,41 +93,29 @@ int backup_file(const char *backupfile, int fd) {
 		goto error;
 	}
 	
-	/* Rewind to start */
-	lseek(fd, 0, SEEK_SET);
-	
-	buf = g_malloc0(bufsize);
 	while(TRUE) {
-		rbytes = read(fd, buf, bufsize);
-		if(rbytes == -1) {
-			osync_trace( TRACE_INTERNAL, "error reading during backup" );
-			perror("error reading during backup");
+		if(len - pos < bufsize)
+			bufsize = len - pos;
+		
+		wbytes = write(destfd, str + pos, bufsize);
+		if(wbytes == -1) {
+			osync_trace( TRACE_INTERNAL, "error writing to backup file" );
+			perror("error writing to backup file");
 			close(destfd);
 			goto error;
 		}
-		else if(rbytes > 0) {
-			wbytes = write(destfd, buf, rbytes);
-			if(wbytes == -1) {
-				osync_trace( TRACE_INTERNAL, "error writing to backup file" );
-				perror("error writing to backup file");
-				close(destfd);
-				goto error;
-			}
-		}
-		else  {
+		
+		pos += bufsize;
+		if(pos == len)  {
 			/* finished */
 			close(destfd);
 			break;
 		}
 	}
 	
-	/* Rewind to start */
-	lseek(fd, 0, SEEK_SET);
-	
 	rc = TRUE;
 
 error:
-	g_free(buf);
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc);
 	return rc;
@@ -260,21 +173,8 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %p)", __func__, env, objtype, remotefile, doc, sink);
 	
 	gboolean rc = TRUE;
-	int tmpfilemode;
 	
-	if(env->conn_type == OPIE_CONN_NONE) {
-		tmpfilemode = TT_DEBUG;
-	}
-	else if (env->conn_type == OPIE_CONN_SCP) {
-		tmpfilemode = TT_VISIBLE;
-	}
-	else {
-		tmpfilemode = TT_STANDARD;
-	}
-	
-	RemoteData *data = NULL;
-	if(objtype != OPIE_OBJECT_TYPE_NOTE)
-		data = create_temp_file(remotefile, tmpfilemode);
+	GString *data = NULL;
 	
 	/* check which connection method was requested */
 	osync_trace( TRACE_INTERNAL, "conn_type = %d", env->conn_type );
@@ -296,7 +196,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 					rc = FALSE;
 			}
 			else
-				rc = ftp_fetch_file(env, data);
+				rc = ftp_fetch_file(env, remotefile, &data);
 			break;
 			
 		case OPIE_CONN_SCP:
@@ -307,8 +207,11 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 				osync_trace( TRACE_INTERNAL, "SCP not supported for notes." );
 				rc = FALSE;
 			}
-			else
-				rc = scp_fetch_file(env, data);
+			else {
+//				rc = scp_fetch_file(env, data);
+				osync_trace( TRACE_INTERNAL, "SCP currently not supported." );
+				rc = FALSE;
+			}
 			break;
 			
 		default:
@@ -319,17 +222,17 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 
 	if(rc && (objtype != OPIE_OBJECT_TYPE_NOTE))
 	{
-		if(env->backupdir) 
+		if(env->backupdir && data) 
 		{
 			if(env->backuppath == NULL)
 				env->backuppath = create_backup_dir(env->backupdir);
 			
 			if(env->backuppath) {
 				/* Build full path to file */
-				char *basename = g_path_get_basename(data->remote_filename);
+				char *basename = g_path_get_basename(remotefile);
 				char *backupfile = g_build_filename(env->backuppath, basename, NULL);
 				/* Run the backup */
-				rc = backup_file(backupfile, data->local_fd);
+				rc = backup_file(backupfile, data->str, data->len);
 				g_free(backupfile);
 				g_free(basename);
 			}
@@ -337,7 +240,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 		
 		if(rc)
 		{
-			if(data->local_fd <= 0) {
+			if(!data) {
 				/* File didn't exist on the handheld (ie, clean device) */
 				if(sink)
 					osync_objtype_sink_set_slowsync(sink, TRUE);
@@ -346,17 +249,15 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 					rc = FALSE;
 			}
 			else {
-				*doc = opie_xml_fd_open(data->local_fd);
+				*doc = opie_xml_string_read(data->str, data->len);
 				/* Flag document as unchanged */
 				(*doc)->_private = (void *)1;
-				close(data->local_fd);
-				data->local_fd = -1;
 			}
 		}
 	}
 	
 	if(data)
-		cleanup_temp_file(data, tmpfilemode);
+		g_string_free(data, TRUE);
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
 	return rc;
@@ -366,7 +267,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 /*
  * ftp_fetch_file
  */
-gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data)
+gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
@@ -374,7 +275,6 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 	char* ftpurl = NULL;
 	CURL *curl = NULL;
 	CURLcode res;
-	FILE* fd;
 
 	if (env->url && env->username && env->password )
 	{
@@ -401,22 +301,15 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 		                          env->url,
 		                          env->device_port,
 		                          separator_path,
-		                          data->remote_filename);
-		
-		fd = fdopen(data->local_fd, "w+"); 
-		if(!fd)
-		{
-			osync_trace(TRACE_EXIT_ERROR, "failed to open temporary file");
-			g_free(ftpurl);
-			return FALSE;
-		}
+		                          remotefile);
 
 		/* curl init */
 		curl = curl_easy_init();
 		
+		*data = g_string_new("");
 		curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fd);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_fwrite);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, *data);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_strwrite);
 		
 #ifdef _OPIE_PRINT_DEBUG
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, TRUE);
@@ -432,8 +325,9 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 			/* This is not unlikely (eg. blank device). Note that Opie's FTP
 				server returns "access denied" on non-existent directory. */
 			osync_trace( TRACE_INTERNAL, "FTP file doesn't exist, ignoring" );
-			/* Close the fd and set it to -1 to indicate the file wasn't there */
-			data->local_fd = -1;
+			/* Free and null the string to indicate the file wasn't there */
+			g_string_free(*data, TRUE);
+			*data = NULL;
 		}
 		else if(res != CURLE_OK) 
 		{
@@ -445,15 +339,6 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 		else
 		{
 			osync_trace( TRACE_INTERNAL, "FTP ok" );
-		}
-
-		fflush(fd);
-		if(data->local_fd > 0) {
-			free(fd);   /* don't fclose, we still need it */
-			lseek(data->local_fd, 0, SEEK_SET);
-		}
-		else {
-			fclose(fd);
 		}
 
 		g_free(ftpurl);
@@ -711,28 +596,13 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 	osync_trace(TRACE_ENTRY, "%s", __func__ );
 	
 	gboolean rc = TRUE;
-	int tmpfilemode;
 
 	if(doc && doc->_private == 0) {
-		if(env->conn_type == OPIE_CONN_NONE) {
-			tmpfilemode = TT_DEBUG_CREATE;
-		}
-		else if (env->conn_type == OPIE_CONN_SCP) {
-			tmpfilemode = TT_VISIBLE;
-		}
-		else {
-			tmpfilemode = TT_STANDARD;
-		}
-	
-		RemoteData *data = NULL;
+		char *data = NULL;
 		if(objtype != OPIE_OBJECT_TYPE_NOTE) {
-			data = create_temp_file(remotefile, tmpfilemode);
-			if(opie_xml_save_to_fd(doc, data->local_fd) == -1) {
-				osync_trace(TRACE_EXIT_ERROR, "failed to write data to temporary file"); /* FIXME actually say what data we failed to write */
+			data = osxml_write_to_string(doc);
+			if(!data)
 				goto error;
-			}
-			fsync(data->local_fd);
-			lseek(data->local_fd, 0, SEEK_SET);
 		}
 
 		/* check which connection method was requested */
@@ -750,7 +620,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 					rc = ftp_put_notes(env, doc);
 				}
 				else {
-					rc = ftp_put_file(env, data);
+					rc = ftp_put_file(env, remotefile, data);
 				}
 				break;
 				
@@ -762,8 +632,11 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 					osync_trace( TRACE_INTERNAL, "SCP not supported for notes." );
 					rc = FALSE;
 				}
-				else
-					rc = scp_put_file(env, data);
+				else {
+//					rc = scp_put_file(env, data);
+					osync_trace( TRACE_INTERNAL, "SCP currently not supported." );
+					rc = FALSE;
+				}
 				break;
 				
 			default:
@@ -780,19 +653,19 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 			
 			if(env->backuppath) {
 				/* Build full path to file */
-				char *basename = g_path_get_basename(data->remote_filename);
+				char *basename = g_path_get_basename(remotefile);
 				char *backupfile = g_build_filename(env->backuppath, "upload_failures", basename, NULL);
 				/* Run the backup */
 				fprintf(stderr, "Error during upload to device, writing file to %s", backupfile); 
 				osync_trace( TRACE_INTERNAL, "Error during upload to device, writing file to %s", backupfile );
-				rc = backup_file(backupfile, data->local_fd);
+//X				rc = backup_file(backupfile, data->str, data->len);
 				g_free(backupfile);
 				g_free(basename);
 			}
 		}
 		
 		if(data)
-			cleanup_temp_file(data, tmpfilemode);
+			free(data);
 	}
 	else {
 		osync_trace(TRACE_INTERNAL, "No address/todo/calendar changes to write", __func__, rc );
@@ -809,15 +682,13 @@ error:
 /*
  * ftp_put_file
  */
-gboolean ftp_put_file(OpiePluginEnv* env, RemoteData *data) 
+gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data) 
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
 	gboolean rc = TRUE;
-	struct stat file_info;
 	CURL *curl;
 	CURLcode res;
-	FILE *hd_src;
 	char* separator_path;
 	
 	if (env->url && env->username && env->password )
@@ -843,49 +714,38 @@ gboolean ftp_put_file(OpiePluginEnv* env, RemoteData *data)
 		                          env->url,
 		                          env->device_port,
 		                          separator_path,
-		                          data->remote_filename);
+		                          remotefile);
 
-		/* get the file size of the local file */
-		fstat(data->local_fd, &file_info);
-	
-		hd_src = fdopen(data->local_fd, "rb+");
 		curl = curl_easy_init();
 		
-		if(hd_src)
-		{
-			curl_easy_setopt(curl, CURLOPT_UPLOAD, TRUE) ;
-			curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
-			curl_easy_setopt(curl, CURLOPT_INFILE, hd_src);
-			curl_easy_setopt(curl, CURLOPT_INFILESIZE, file_info.st_size);
-			curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1);
-			
+		curl_easy_setopt(curl, CURLOPT_UPLOAD, TRUE) ;
+		curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
+		curl_easy_setopt(curl, CURLOPT_READDATA, data);
+		curl_easy_setopt(curl, CURLOPT_READFUNCTION, opie_curl_strread);
+		
+		
+		curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1);
+		
 #ifdef _OPIE_PRINT_DEBUG
-			curl_easy_setopt(curl, CURLOPT_VERBOSE, TRUE);
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, TRUE);
 #endif
 				
-			res = curl_easy_perform(curl);
-			
-			if(res != CURLE_OK) 
-			{
-				fprintf(stderr, "FTP upload failed (error %d)\n", res);
-				osync_trace( TRACE_INTERNAL, "FTP upload failed (error %d)", res );
-				rc = FALSE;
-			} 
-			else
-			{
-				osync_trace( TRACE_INTERNAL, "FTP upload ok" );
-				rc = TRUE;
-			}
-			
-			/* cleanup */
-			free(hd_src);   /* don't fclose, we still need it */
-			curl_easy_cleanup(curl);
-		}
-		else
-		{ 
-			/* fopen of local file failed */
+		res = curl_easy_perform(curl);
+		
+		if(res != CURLE_OK) 
+		{
+			fprintf(stderr, "FTP upload failed (error %d)\n", res);
+			osync_trace( TRACE_INTERNAL, "FTP upload failed (error %d)", res );
 			rc = FALSE;
+		} 
+		else
+		{
+			osync_trace( TRACE_INTERNAL, "FTP upload ok" );
+			rc = TRUE;
 		}
+		
+		/* cleanup */
+		curl_easy_cleanup(curl);
 		
 		g_free(ftpurl);
 		
@@ -905,7 +765,7 @@ gboolean ftp_put_file(OpiePluginEnv* env, RemoteData *data)
 /*
  * scp_fetch_file
  */
-gboolean scp_fetch_file(OpiePluginEnv* env, RemoteData *data)
+gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
@@ -919,15 +779,17 @@ gboolean scp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 		/* fetch each of the requested files */
 		/* We have to close the temp file, because we want 
 				sftp to be able to write to it */
-		close(data->local_fd);
+//		close(data->local_fd);
 		
 		/* not keeping it quiet for the moment */
+		char *localfile = NULL;
+		
 		scpcommand = g_strdup_printf("sftp -o Port=%d -o BatchMode=yes %s@%s:%s %s",
 		                            env->device_port,
 		                            env->username,
 		                            env->url,
-		                            data->remote_filename,
-		                            data->local_filename);
+		                            remotefile,
+		                            localfile);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
 		
@@ -943,7 +805,7 @@ gboolean scp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 		
 		g_free(scpcommand);
 		/* reopen the temp file */ 
-		data->local_fd = open(data->local_filename, O_RDWR | O_EXCL);
+//		data->local_fd = open(data->local_filename, O_RDWR | O_EXCL);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
@@ -954,7 +816,7 @@ gboolean scp_fetch_file(OpiePluginEnv* env, RemoteData *data)
 /*
  * scp_put_file
  */
-gboolean scp_put_file(OpiePluginEnv* env, RemoteData *data)
+gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
@@ -980,7 +842,10 @@ gboolean scp_put_file(OpiePluginEnv* env, RemoteData *data)
 	{
 		/* ok - print the commands to the file */
 		GString *batchbuf = g_string_new("");
-		g_string_append_printf(batchbuf, "put %s %s\n", data->local_filename, data->remote_filename);
+		
+		char *localfile = NULL; // FIXME
+		
+		g_string_append_printf(batchbuf, "put %s %s\n", localfile, remotefile);
 		g_string_append_printf(batchbuf, "bye\n");
 		
 		if(write(batchfd, (void *)batchbuf->str, batchbuf->len) < 0)

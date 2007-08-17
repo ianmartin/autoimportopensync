@@ -28,7 +28,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "opie_sync.h"
 
-xmlDoc *opie_xml_fd_open(int fd);
+xmlDoc *opie_xml_string_read(const char *str, int len);
 xmlDoc *opie_xml_file_open(const gchar *xml_file);
 xmlNode *opie_xml_get_collection(xmlDoc *doc, const char *listelement);
 xmlNode *opie_xml_get_first(xmlDoc *doc, const char *listelement, const char *itemelement);

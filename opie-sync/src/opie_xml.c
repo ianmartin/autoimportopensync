@@ -44,8 +44,8 @@ gint gslist_sort_attr(gconstpointer a, gconstpointer b) {
 }
 
 
-xmlDoc *opie_xml_fd_open(int fd) {
-	xmlDoc *doc = xmlReadFd(fd, "/", NULL, 0);
+xmlDoc *opie_xml_string_read(const char *str, int len) {
+	xmlDoc *doc = xmlReadMemory(str, len, "/", NULL, 0);
 	if (!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to parse XML data");
 		goto error;
