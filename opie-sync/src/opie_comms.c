@@ -31,6 +31,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <glib.h>
+#include <glib/gstdio.h>
+
 #include <curl/curl.h>
 #include <curl/types.h>
 #include <curl/easy.h>
@@ -47,8 +50,10 @@ int opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
 int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream);
 int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream);
 int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream);
+gboolean local_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
 gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
 gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
+gboolean local_put_file(OpiePluginEnv* env, const char *remotefile, const char *data);
 gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data);
 gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data);
 gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc);
@@ -181,8 +186,14 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 	switch (env->conn_type)
 	{
 		case OPIE_CONN_NONE:
-			/* no connection (useful for debugging) */
-			osync_trace( TRACE_INTERNAL, "Skipping Connection" );
+			/* Read from local file (for debugging) */
+			osync_trace( TRACE_INTERNAL, "Fetching local file" );
+			if(objtype == OPIE_OBJECT_TYPE_NOTE) {
+				/* FIXME enable notes debugging */
+			}
+			else
+				rc = local_fetch_file(env, remotefile, &data);
+			
 			break;
 			
 		case OPIE_CONN_FTP:
@@ -258,6 +269,52 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 	
 	if(data)
 		g_string_free(data, TRUE);
+	
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
+	return rc;
+}
+
+/*
+ * Fetch a file from disk (don't fail if file doesn't exist)
+ */
+gboolean local_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	
+	char *basename = g_path_get_basename(remotefile);
+	char *localfile = g_strdup_printf("/tmp/%s", basename);
+	gboolean rc;
+	
+	if(g_access(localfile, F_OK) == 0) {
+		OSyncError *error = NULL;
+		int len = 0;
+		char *str = NULL; 
+		rc = osync_file_read(localfile, &str, &len, &error);
+		*data = g_string_new_len(str, len);
+		free(str);
+	}
+	else {
+		*data = NULL;
+		rc = TRUE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
+	return rc;
+}
+
+/*
+ * Write a file to disk
+ */
+gboolean local_put_file(OpiePluginEnv* env, const char *remotefile, const char *data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	
+	char *basename = g_path_get_basename(remotefile);
+	char *localfile = g_strdup_printf("/tmp/%s", basename);
+	gboolean rc;
+	
+	OSyncError *error = NULL;
+	rc = osync_file_write(localfile, data, strlen(data), 0660, &error);
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
 	return rc;
@@ -609,8 +666,14 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 		switch (env->conn_type)
 		{
 			case OPIE_CONN_NONE:
-				/* Do nothing */
-				osync_trace(TRACE_INTERNAL, "Skipping Put" );
+				/* Write to local file (for debugging) */
+				osync_trace(TRACE_INTERNAL, "Writing local file" );
+				if(objtype == OPIE_OBJECT_TYPE_NOTE) {
+					/* FIXME enable notes debugging */
+				}
+				else 
+					local_put_file(env, remotefile, data);
+			
 				break;
 			
 			case OPIE_CONN_FTP:
