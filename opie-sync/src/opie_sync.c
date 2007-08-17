@@ -292,14 +292,17 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	xmlNode *item_node = opie_xml_get_first(env->doc, env->listelement, env->itemelement);
 	while(item_node)
 	{
+		char *uid = opie_xml_get_tagged_uid(item_node);
+		unsigned char *hash = hash_xml_node(env->doc, item_node);
+		
 		/* Convert category IDs to names that other systems can use */
+		g_mutex_lock(env->plugin_env->plugin_mutex);
 		char *categories_bkup = opie_xml_get_categories(item_node);
 		if(env->plugin_env->categories_doc && categories_bkup)
 			opie_xml_category_ids_to_names(env->plugin_env->categories_doc, item_node);
+		g_mutex_unlock(env->plugin_env->plugin_mutex);
 		
-		char *uid = opie_xml_get_tagged_uid(item_node);
 		char *data = xml_node_to_text(env->doc, item_node);
-		unsigned char *hash = hash_xml_node(env->doc, item_node);
 
 		/* Restore old categories value as we don't want to save this back to our XML file */
 		if(categories_bkup) {
@@ -433,9 +436,11 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 			else
 				opie_uid = opie_xml_set_ext_uid(change_node, env->doc, env->listelement, env->itemelement, ext_uid);
 			
-			/* Convert categories into names that other systems can use */
+			/* Convert category names to category IDs that Opie can use */
+			g_mutex_lock(env->plugin_env->plugin_mutex);
 			if(env->plugin_env->categories_doc)
 				opie_xml_category_names_to_ids(env->plugin_env->categories_doc, change_node);
+			g_mutex_unlock(env->plugin_env->plugin_mutex);
 			
 			/* Get hash */
 			hash = hash_xml_node(env->doc, change_node);
