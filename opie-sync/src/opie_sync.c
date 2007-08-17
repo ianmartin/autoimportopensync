@@ -137,70 +137,87 @@ error:
 	return FALSE;
 }
 
-static osync_bool _connectDevice(OpiePluginEnv *env, OSyncError **error)
+
+/**
+ * If QCop is enabled, connect to the the QCop bridge on the remote device and
+ * signal that a sync is starting
+ */
+static osync_bool device_connect(OpiePluginEnv *env, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
-	char* errmsg = NULL;
 	
-	if (env->qcopconn)
-	{
+	if (env->qcopconn) {
 		osync_trace(TRACE_EXIT, "%s: Already connected", __func__);
 		return TRUE;
 	}
 
-	/* Connect to QCopBridgeServer to lock GUI and get root path */
-	if ( env->use_qcop ) 
-	{
+	if ( env->use_qcop ) {
+		/* Connect to QCopBridgeServer to lock GUI and get root path */
 		osync_trace(TRACE_INTERNAL, "qcop_connect");
 		env->qcopconn = qcop_connect(env->url,
 		                             env->username,
 		                             env->password);
-		if (env->qcopconn->result)
-		{
-			qcop_start_sync(env->qcopconn, &sync_cancelled);
-			if (!env->qcopconn->result)
-			{
-				osync_trace(TRACE_INTERNAL, "qcop_start_sync_failed");
-				errmsg = g_strdup(env->qcopconn->resultmsg);
-				qcop_stop_sync(env->qcopconn);
-				qcop_freeqconn(env->qcopconn);
-				env->qcopconn = NULL;
-				osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
-				goto error;
-			}
-		}
-		else
-		{
-			osync_trace(TRACE_INTERNAL, "QCop connection failed");
-			errmsg = g_strdup(env->qcopconn->resultmsg);
-			qcop_freeqconn(env->qcopconn);
-			env->qcopconn = NULL;
+		if(!env->qcopconn->result) {
+			char *errmsg = g_strdup_printf("qcop_connect failed: %s", env->qcopconn->resultmsg);
 			osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+			g_free(errmsg);
 			goto error;
 		}
+		
+		qcop_start_sync(env->qcopconn, &sync_cancelled);
+		if(!env->qcopconn->result) {
+			char *errmsg = g_strdup_printf("qcop_start_sync_failed: %s", env->qcopconn->resultmsg);
+			osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+			g_free(errmsg);
+			qcop_stop_sync(env->qcopconn);
+			goto error;
+		}
+		
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
+	if(env->qcopconn) {
+		qcop_freeqconn(env->qcopconn);
+		env->qcopconn = NULL;
+	}
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
-void _disconnectDevice(OpiePluginEnv *env)
+/**
+ * If QCop is enabled & connected, signal that syncing has finished
+ */
+static osync_bool device_disconnect(OpiePluginEnv *env, OSyncError **error)
 {
-	if(env->qcopconn) 
-	{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
+	
+	if(env->qcopconn) {
 		qcop_stop_sync(env->qcopconn);
-		if (!env->qcopconn->result)
-		{
-			osync_trace(TRACE_INTERNAL, env->qcopconn->resultmsg);
+		if (!env->qcopconn->result) {
+			char *errmsg = g_strdup_printf("qcop_stop_sync_failed: %s", env->qcopconn->resultmsg);
+			osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+			g_free(errmsg);
+			qcop_disconnect(env->qcopconn); /* frees qcopconn */
+			env->qcopconn = NULL;
+			goto error;
 		}
-		qcop_disconnect(env->qcopconn); /* frees qcopconn */
-		env->qcopconn = NULL;
+		else {
+			qcop_disconnect(env->qcopconn); /* frees qcopconn */
+			env->qcopconn = NULL;
+		}
 	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
+
 
 static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
@@ -214,7 +231,8 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	
 	if(!env->plugin_env->connected) {
 		/* We only want to connect once per session */
-		if (!_connectDevice(env->plugin_env, &error)) {
+		
+		if (!device_connect(env->plugin_env, &error)) {
 			g_mutex_unlock(env->plugin_env->plugin_mutex);
 			goto error;
 		}
@@ -233,21 +251,7 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	{
 		/* failed */
 		char *errmsg;
-		if(env->plugin_env->qcopconn)
-		{
-			qcop_stop_sync(env->plugin_env->qcopconn);
-			if(!env->plugin_env->qcopconn->result)
-			{
-				osync_trace(TRACE_INTERNAL, "qcop_stop_sync_failed");
-				char *errmsg = g_strdup(env->plugin_env->qcopconn->resultmsg);
-				qcop_freeqconn(env->plugin_env->qcopconn);
-				env->plugin_env->qcopconn = NULL;
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
-				goto error;
-			} 
-			qcop_disconnect(env->plugin_env->qcopconn);
-			env->plugin_env->qcopconn = NULL;
-		}
+		device_disconnect(env->plugin_env, &error);
 		errmsg = g_strdup_printf("Failed to load data from device %s", env->plugin_env->url);
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
 		g_free(errmsg);
@@ -642,7 +646,8 @@ static void opie_sync_finalize( void* userdata )
 		opie_put_file(env, OPIE_OBJECT_TYPE_CATEGORY, OPIE_CATEGORY_FILE, env->categories_doc);
 	}
 	
-	_disconnectDevice(env);
+	OSyncError *error = NULL;
+	device_disconnect(env, &error);
 
 	comms_shutdown();
 	
