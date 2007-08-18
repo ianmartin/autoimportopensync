@@ -31,7 +31,8 @@ password
 device
   Device type being connected to:
     opie    - Opie or compatible OS (default)
-    qtopia2 - Qtopia 2.0 or compatible OS (eg. Zaurus with original ROM).
+    qtopia2 - Qtopia 2.0 or compatible OS (eg. Zaurus with original ROM)
+              Note: Qtopia support has not been tested.
 
 port
   TCP port on the device to use for file transfers. Default is 4242.
@@ -39,7 +40,7 @@ port
 conntype
   Connection type to use:
     ftp  - use FTP (default)
-    scp  - use SFTP - currently broken
+    scp  - use scp command
     none - don't connect. Useful for debugging only - will expect the device 
            files to sync with to be in /tmp.
 
@@ -119,10 +120,6 @@ Support for Notes application in Opie 1.2.2+
 
   Opie 1.2.2 and later have a dedicated notes application. The plugin should
   support this as a notes target instead of plain text files.
-
-SCP support
-
-  SCP support is currently broken.
 
 Qtopia testing / support
 
