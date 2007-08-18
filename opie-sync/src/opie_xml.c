@@ -217,12 +217,22 @@ xmlDoc *opie_xml_change_parse(const char *change_data, xmlNode **node) {
 }
 
 char *hash_str(const char *str) {
-	unsigned char* t_hash;
+	unsigned char* hash;
+	GString *hash_printable;
+	int i;
 	
-	t_hash = g_malloc0(MD5_DIGEST_LENGTH + 1);
+	hash = g_malloc0(MD5_DIGEST_LENGTH + 1);
 	
-	md5(str, strlen(str), t_hash);
-	return t_hash;
+	md5(str, strlen(str), hash);
+	
+	hash_printable = g_string_sized_new((MD5_DIGEST_LENGTH * 2) + 1);
+	for(i=0; i<MD5_DIGEST_LENGTH; i++)
+		g_string_append_printf(hash_printable, "%02x", hash[i]);
+		
+	char *hash_str = hash_printable->str;
+	g_string_free(hash_printable, FALSE);
+	g_free(hash);
+	return hash_str;
 }
 
 char *hash_xml_node(xmlDoc *doc, xmlNode *node) {
