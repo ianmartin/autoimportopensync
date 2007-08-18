@@ -61,6 +61,12 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc);
 int m_totalwritten;
 
 
+typedef struct {
+	char *filename; /* use fd instead where possible */
+	int fd;
+} TempFile;
+
+
 /*
  * comms_init
  */
@@ -76,6 +82,33 @@ void comms_init()
 void comms_shutdown()
 {
 	curl_global_cleanup();
+}
+
+
+TempFile *create_temp_file(void) {
+	osync_trace(TRACE_ENTRY, "%s", __func__);
+	
+	TempFile *tmpfile = g_malloc(sizeof(TempFile));
+	char *template = g_strdup("/tmp/opie-sync.XXXXXX");
+	tmpfile->fd = mkstemp(template);
+	if(tmpfile->fd == -1) {
+		osync_trace( TRACE_EXIT_ERROR, "failed to create temporary file" );
+		g_free(template);
+		return NULL;
+	}
+	tmpfile->filename = template;
+	
+	osync_trace(TRACE_EXIT, "%s(%p)", __func__, tmpfile);
+	return tmpfile;
+}
+
+
+void cleanup_temp_file(TempFile *tempfile) {
+	if(tempfile->fd > -1)
+		close(tempfile->fd);
+	unlink(tempfile->filename); /* FIXME check the result of this */
+	g_free(tempfile->filename);
+	g_free(tempfile);
 }
 
 
@@ -110,7 +143,7 @@ int backup_file(const char *backupfile, const char *str, int len) {
 			goto error;
 		}
 		
-		pos += bufsize;
+		pos += wbytes;
 		if(pos == len)  {
 			/* finished */
 			close(destfd);
@@ -219,9 +252,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 				rc = FALSE;
 			}
 			else {
-//				rc = scp_fetch_file(env, data);
-				osync_trace( TRACE_INTERNAL, "SCP currently not supported." );
-				rc = FALSE;
+				rc = scp_fetch_file(env, remotefile, &data);
 			}
 			break;
 			
@@ -696,9 +727,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 					rc = FALSE;
 				}
 				else {
-//					rc = scp_put_file(env, data);
-					osync_trace( TRACE_INTERNAL, "SCP currently not supported." );
-					rc = FALSE;
+					rc = scp_put_file(env, remotefile, data);
 				}
 				break;
 				
@@ -721,7 +750,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 				/* Run the backup */
 				fprintf(stderr, "Error during upload to device, writing file to %s", backupfile); 
 				osync_trace( TRACE_INTERNAL, "Error during upload to device, writing file to %s", backupfile );
-//X				rc = backup_file(backupfile, data->str, data->len);
+				rc = backup_file(backupfile, data, strlen(data));
 				g_free(backupfile);
 				g_free(basename);
 			}
@@ -830,46 +859,74 @@ gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
  */
 gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
 	gboolean rc = TRUE;
 	char* scpcommand = NULL;
-
-	int scpretval;
+	int scpretval, scpexitstatus;
+	TempFile *tmpfile = NULL;
 	
-	if(env->url && env->device_port && env->username) 
-	{
-		/* fetch each of the requested files */
+	if(env->url && env->device_port && env->username) {
 		/* We have to close the temp file, because we want 
-				sftp to be able to write to it */
-//		close(data->local_fd);
+				scp to be able to write to it */
+		tmpfile = create_temp_file();
+		close(tmpfile->fd);
+		tmpfile->fd = -1;
 		
-		/* not keeping it quiet for the moment */
-		char *localfile = NULL;
-		
-		scpcommand = g_strdup_printf("sftp -o Port=%d -o BatchMode=yes %s@%s:%s %s",
-		                            env->device_port,
-		                            env->username,
-		                            env->url,
-		                            remotefile,
-		                            localfile);
+		/* A crude test to see if the file exists. You can't combine 
+		  this with scp unfortunately because scp seems to return 1 
+		  on any error */
+		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"ls %s > /dev/null\"",
+																env->username,
+																env->url,
+																remotefile);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
+		scpexitstatus = WEXITSTATUS(scpretval);
 		
-		if((scpretval == -1) || (WEXITSTATUS(scpretval) != 0))
-		{
-			osync_trace( TRACE_INTERNAL, "SFTP failed" );
-			rc = FALSE;
+		if(scpexitstatus != 1) {
+			if((scpretval == -1) || (scpexitstatus != 0)) {
+				rc = FALSE;
+				osync_trace( TRACE_INTERNAL, "ssh login failed" );
+				goto error;
+			}
+			g_free(scpcommand);
+			
+			/* Fetch the file */
+			scpcommand = g_strdup_printf("scp -q -B %s@%s:%s %s",
+																	env->username,
+																	env->url,
+																	remotefile,
+																	tmpfile->filename);
+			
+			scpretval = pclose(popen(scpcommand,"w"));
+			scpexitstatus = WEXITSTATUS(scpretval);
+			
+			if((scpretval == -1) || (scpexitstatus != 0)) {
+				osync_trace( TRACE_INTERNAL, "scp transfer failed" );
+				rc = FALSE;
+				goto error;
+			}
+			else {
+				osync_trace( TRACE_INTERNAL, "scp ok" );
+			}
+			
+			/* read the temp file */ 
+			OSyncError *error = NULL;
+			int len = 0;
+			char *str = NULL; 
+			rc = osync_file_read(tmpfile->filename, &str, &len, &error);
+			*data = g_string_new_len(str, len);
+			free(str);
 		}
-		else 
-		{
-			osync_trace( TRACE_INTERNAL, "SFTP ok" );
-		}
-		
-		g_free(scpcommand);
-		/* reopen the temp file */ 
-//		data->local_fd = open(data->local_filename, O_RDWR | O_EXCL);
 	}
+	
+error:	
+	
+	if(tmpfile)
+		cleanup_temp_file(tmpfile);
+	if(scpcommand);
+		g_free(scpcommand);
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
 	return rc;
@@ -881,85 +938,90 @@ gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
  */
 gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
 	gboolean rc = TRUE;
 	char* scpcommand = NULL;
 	int scpretval = 0;
-	char batchfile[] = "/tmp/opie_syncXXXXXX";
-	int batchfd = 0;
+	int scpexitstatus = 0;
 
-	/* to use SFTP to upload we'll have to create a batch file with all of
-		the commands we want to execute */
-	if((batchfd = mkstemp(batchfile)) < 0)   
-	{
-		/* could not create temp batch file */
-		char* errmsg = g_strdup_printf("SFTP could not create batch file: %s\n",
-																	strerror(errno));
-		osync_trace( TRACE_INTERNAL, "%s", errmsg );
-		g_free(errmsg);
+	TempFile *tmpfile = create_temp_file();
+	if(!tmpfile) {
+		/* could not create temp file - error message has already been sent to trace */
 		rc = FALSE;
-																	
 	}
-	else
-	{
-		/* ok - print the commands to the file */
-		GString *batchbuf = g_string_new("");
+	else {
+		int bufsize = 1024;
+		int wbytes;
+		int pos = 0;
+		int len = strlen(data);
 		
-		char *localfile = NULL; // FIXME
-		
-		g_string_append_printf(batchbuf, "put %s %s\n", localfile, remotefile);
-		g_string_append_printf(batchbuf, "bye\n");
-		
-		if(write(batchfd, (void *)batchbuf->str, batchbuf->len) < 0)
-		{
-			/* could not write to temp file */
-			char* errmsg = g_strdup_printf("SFTP could not write to batch file: %s\n",
-																		strerror(errno));
-			osync_trace( TRACE_INTERNAL, "%s", errmsg );
-			g_free(errmsg);
-			rc = FALSE;
-			close(batchfd);
-		}
-		else
-		{ 
-			fsync(batchfd);
-			close(batchfd);
+		while(TRUE) {
+			if(len - pos < bufsize)
+				bufsize = len - pos;
 			
-			/* transfer the file */ 
-			scpcommand = g_strdup_printf("sftp -o Port=%d -o BatchMode=yes -b %s %s@%s",
-			                            env->device_port,
-			                            batchfile,
-			                            env->username,
-			                            env->url);
-			
-			scpretval = pclose(popen(scpcommand,"w"));
-
-			if((scpretval == -1) || (WEXITSTATUS(scpretval) != 0))
-			{
+			wbytes = write(tmpfile->fd, data + pos, bufsize);
+			if(wbytes == -1) {
+				osync_trace( TRACE_INTERNAL, "error writing to backup file" );
+				perror("error writing to backup file");
 				rc = FALSE;
-				osync_trace( TRACE_INTERNAL, "SFTP upload failed" );
+				goto error;
 			}
-			else
-			{
-				rc = TRUE;
-				osync_trace( TRACE_INTERNAL, "SFTP upload ok" );
+			
+			pos += wbytes;
+			if(pos == len)  {
+				/* finished */
+				break;
 			}
-
-			/* remove the temporary file we created */
-			if(unlink(batchfile) < 0)
-			{
-				char* errmsg = g_strdup_printf("SFTP could not remove batch file: %s\n",
-				                               strerror(errno));
-				osync_trace( TRACE_INTERNAL, "%s", errmsg );
-				g_free(errmsg);
-			}
-
-			g_free(scpcommand);
 		}
 		
-		g_string_free(batchbuf, TRUE);
+		/* We have to close now */
+		close(tmpfile->fd);
+		tmpfile->fd = -1;
+		
+		/* create path */
+		char *dirname = g_path_get_dirname(remotefile);
+		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"mkdir -p %s\"",
+																env->username,
+																env->url,
+																dirname);
+		g_free(dirname);
+		
+		scpretval = pclose(popen(scpcommand,"w"));
+		scpexitstatus = WEXITSTATUS(scpretval);
+		
+		if((scpretval == -1) || (scpexitstatus != 0)) {
+			rc = FALSE;
+			osync_trace( TRACE_INTERNAL, "ssh create path failed" );
+		}
+		g_free(scpcommand);
+		
+		/* transfer the file */ 
+		scpcommand = g_strdup_printf("scp -q -B %s %s@%s:%s",
+																tmpfile->filename,
+																env->username,
+																env->url,
+																remotefile);
+		
+		scpretval = pclose(popen(scpcommand,"w"));
+		scpexitstatus = WEXITSTATUS(scpretval);
+
+		if((scpretval == -1) || (scpexitstatus != 0)) {
+			rc = FALSE;
+			osync_trace( TRACE_INTERNAL, "scp upload failed" );
+		}
+		else {
+			rc = TRUE;
+			osync_trace( TRACE_INTERNAL, "scp upload ok" );
+		}
+
+		g_free(scpcommand);
 	}
+	
+error:
+
+	if(tmpfile)
+		cleanup_temp_file(tmpfile);
 	
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
 	return rc;
