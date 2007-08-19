@@ -57,6 +57,11 @@ gboolean local_put_file(OpiePluginEnv* env, const char *remotefile, const char *
 gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data);
 gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data);
 gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc);
+gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc);
+gboolean local_fetch_notes(OpiePluginEnv* env, xmlDoc *doc, const char *tempsourcepath);
+gboolean local_put_notes(OpiePluginEnv* env, xmlDoc *doc, const char *tempdestpath, gboolean delete_files);
+gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc);
+gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc);
 
 int m_totalwritten;
 
@@ -106,9 +111,44 @@ TempFile *create_temp_file(void) {
 void cleanup_temp_file(TempFile *tempfile) {
 	if(tempfile->fd > -1)
 		close(tempfile->fd);
-	unlink(tempfile->filename); /* FIXME check the result of this */
+	if(g_unlink(tempfile->filename)) {
+		osync_trace(TRACE_INTERNAL, "%s: failed to delete temp file %s: %s", __func__, tempfile->filename, strerror(errno));
+	}
 	g_free(tempfile->filename);
 	g_free(tempfile);
+}
+
+
+gboolean delete_directory(const char *path) {
+	GError *gerror = NULL;
+	GDir *dir = g_dir_open(path, 0, &gerror);
+	if(!dir) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: failed to open local directory %s: %s", __func__, path, gerror->message);
+		return FALSE;
+	}
+	else {
+		while(TRUE) {
+			const char *localfile = g_dir_read_name(dir);
+			if(!localfile)
+				break;
+			char *localpath = g_build_filename(path, localfile, NULL);
+		
+			if(g_unlink(localpath)) {
+				osync_trace(TRACE_EXIT_ERROR, "error deleting temp file %s: %s", localpath, strerror(errno));
+				g_free(localpath);
+				g_dir_close(dir);
+				return FALSE;
+			}
+			g_free(localpath);
+		}
+		g_dir_close(dir);
+		if(g_rmdir(path)) {
+			osync_trace(TRACE_EXIT_ERROR, "error deleting temp directory %s: %s", path, strerror(errno));
+			return FALSE;
+		}
+	}
+	
+	return TRUE;
 }
 
 
@@ -219,7 +259,8 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 			/* Read from local file (for debugging) */
 			osync_trace( TRACE_INTERNAL, "Fetching local file" );
 			if(objtype == OPIE_OBJECT_TYPE_NOTE) {
-				/* FIXME enable notes debugging */
+				*doc = opie_xml_create_notes_doc();
+				rc = local_fetch_notes(env, *doc, NULL);
 			}
 			else
 				rc = local_fetch_file(env, remotefile, &data);
@@ -244,9 +285,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 			/* attempt an scp connection */
 			osync_trace( TRACE_INTERNAL, "Attempting scp Connection." );
 			if(objtype == OPIE_OBJECT_TYPE_NOTE) {
-				/* FIXME support SCP for notes */
-				osync_trace( TRACE_INTERNAL, "SCP not supported for notes." );
-				rc = FALSE;
+				rc = scp_fetch_notes(env, *doc);
 			}
 			else {
 				rc = scp_fetch_file(env, remotefile, &data);
@@ -309,7 +348,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
  */
 gboolean local_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
 	char *basename = g_path_get_basename(remotefile);
 	char *localfile = g_build_filename(env->localdir, basename, NULL);
@@ -337,17 +376,168 @@ gboolean local_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **
  */
 gboolean local_put_file(OpiePluginEnv* env, const char *remotefile, const char *data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
 	char *basename = g_path_get_basename(remotefile);
 	char *localfile = g_build_filename(env->localdir, basename, NULL);
+	g_free(basename);
 	gboolean rc;
 	
 	OSyncError *error = NULL;
 	rc = osync_file_write(localfile, data, strlen(data), 0660, &error);
+	g_free(localfile);
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
 	return rc;
+}
+
+/*
+ * Fetch notes from disk (from the notes subdirectory of localdir)
+ */
+gboolean local_fetch_notes(OpiePluginEnv* env, xmlDoc *doc, const char *tempsourcepath)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s)", __func__, env, doc, tempsourcepath);
+	gboolean rc = TRUE;
+	char *notesdir = NULL;
+	
+	if(tempsourcepath) {
+		notesdir = g_strdup(tempsourcepath);
+	}
+	else {
+		notesdir = g_build_filename(env->localdir, "notes", NULL);
+		if(g_mkdir_with_parents(notesdir, 0700)) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: failed to create path %s: %s", __func__, notesdir, strerror(errno));
+			g_free(notesdir);
+			return FALSE;
+		}
+	}
+	
+	GError *gerror = NULL;
+	GDir *dir = g_dir_open(notesdir, 0, &gerror);
+	if(!dir) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: failed to open local directory %s: %s", __func__, notesdir, gerror->message);
+		g_free(notesdir);
+		return FALSE;
+	}
+	else {
+		GPatternSpec *pspec = g_pattern_spec_new("*.txt");
+		while(TRUE) {
+			const char *localfile = g_dir_read_name(dir);
+			if(!localfile)
+				break;
+			
+			if(g_pattern_match_string(pspec, localfile)) {
+				char *localpath = g_build_filename(notesdir, localfile, NULL);
+				int len = 0;
+				char *str = NULL;
+				OSyncError *error = NULL;
+				rc = osync_file_read(localpath, &str, &len, &error);
+				g_free(localpath);
+				if(rc) {
+					/* FIXME this is probably not correct for calling opie_xml_add_note_node() */
+					char *filename = g_strdup(localfile);
+					int namelen = strlen(filename);
+					if(namelen > 4)
+						filename[namelen-4] = 0;
+					
+					opie_xml_add_note_node(doc, filename, filename, str);
+					g_free(filename);
+					g_free(str);
+				}
+				else {
+					osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+					g_dir_close(dir);
+					g_free(notesdir);
+					g_pattern_spec_free(pspec);
+					return FALSE;
+				}
+			}
+		}
+		g_pattern_spec_free(pspec);
+	}
+	g_dir_close(dir);
+	
+  g_free(notesdir);
+	
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
+	return rc;
+}
+
+/*
+ * Write note changes to disk (into the notes subdirectory of localdir)
+ */
+gboolean local_put_notes(OpiePluginEnv* env, xmlDoc *doc, const char *tempdestpath, gboolean delete_files)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %i)", __func__, env, doc, tempdestpath, delete_files);
+	gboolean rc = TRUE;
+	char *notesdir = NULL;
+	
+	if(tempdestpath) {
+		notesdir = g_strdup(tempdestpath);
+	}
+	else {
+		notesdir = g_build_filename(env->localdir, "notes", NULL);
+		if(g_mkdir_with_parents(notesdir, 0700)) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: failed to create local path %s: %s", __func__, notesdir, strerror(errno));
+			g_free(notesdir);
+			return FALSE;
+		}
+	}
+	
+	xmlNode *node = opie_xml_get_first(doc, "notes", "note");
+	while(node) {
+		char *changedflag = xmlGetProp(node, "changed");
+		if(changedflag) {
+			xmlFree(changedflag);
+			
+			char *notename = xmlGetProp(node, "name");
+			if(notename) {
+				char *notefile = g_strdup_printf("%s.txt", notename);
+				char *notepath = g_build_filename(notesdir, notefile, NULL);
+				g_free(notefile);
+				
+				char *deletedflag = xmlGetProp(node, "deleted");
+				if(deletedflag) {
+					/* This note has been marked deleted, so delete it */
+					xmlFree(deletedflag);
+					
+					if(delete_files) {
+						if(g_unlink(notepath)) {
+							osync_trace(TRACE_EXIT_ERROR, "%s: failed to create local path %s: %s", __func__, notesdir, strerror(errno));
+							g_free(notesdir);
+							xmlFree(notename);
+							return FALSE;
+						}
+					}
+				}
+				else {
+					/* Changed note, write it */
+					char *content = xmlNodeGetContent(node);
+					if(content) {
+						OSyncError *error = NULL;
+						osync_bool rc = osync_file_write(notepath, content, strlen(content), 0660, &error);
+						xmlFree(content);
+						if(!rc) {
+							osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+							g_free(notepath);
+							g_free(notesdir);
+							xmlFree(notename);
+							return FALSE;
+						}
+					}
+				}
+				
+				g_free(notepath);
+				xmlFree(notename);
+			}
+		}
+		node = opie_xml_get_next(node);
+	}
+	
+  g_free(notesdir);
+	
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
+	return TRUE;
 }
 
 
@@ -356,7 +546,7 @@ gboolean local_put_file(OpiePluginEnv* env, const char *remotefile, const char *
  */
 gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
 	gboolean rc = TRUE;
 	char* ftpurl = NULL;
@@ -680,7 +870,7 @@ gboolean opie_put_sink(OpieSinkEnv *env)
  */
 gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char *remotefile, xmlDoc *doc)
 {
-	osync_trace(TRACE_ENTRY, "%s", __func__ );
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p)", __func__, env, objtype, remotefile, doc);
 	
 	gboolean rc = TRUE;
 
@@ -699,10 +889,10 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 				/* Write to local file (for debugging) */
 				osync_trace(TRACE_INTERNAL, "Writing local file" );
 				if(objtype == OPIE_OBJECT_TYPE_NOTE) {
-					/* FIXME enable notes debugging */
+					rc = local_put_notes(env, doc, NULL, TRUE);
 				}
 				else 
-					local_put_file(env, remotefile, data);
+					rc = local_put_file(env, remotefile, data);
 			
 				break;
 			
@@ -721,9 +911,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 				/* attempt and scp connection */
 				osync_trace( TRACE_INTERNAL, "Attempting scp Put File." );
 				if(objtype == OPIE_OBJECT_TYPE_NOTE) {
-					/* FIXME support SCP for notes */
-					osync_trace( TRACE_INTERNAL, "SCP not supported for notes." );
-					rc = FALSE;
+					rc = scp_put_notes(env, doc);
 				}
 				else {
 					rc = scp_put_file(env, remotefile, data);
@@ -759,7 +947,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 			free(data);
 	}
 	else {
-		osync_trace(TRACE_INTERNAL, "No address/todo/calendar changes to write", __func__, rc );
+		osync_trace(TRACE_INTERNAL, "No address/todo/calendar changes to write");
 	}
 	
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
@@ -775,7 +963,7 @@ error:
  */
 gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data) 
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
 	gboolean rc = TRUE;
 	CURL *curl;
@@ -1031,6 +1219,248 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg );
 	return FALSE;
 }
+
+
+
+/*
+ * scp_fetch_notes
+ */
+gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, doc);
+	
+	gboolean rc = TRUE;
+	char* scpcommand = NULL;
+	int scpretval, scpexitstatus;
+	
+	if(env->url && env->device_port && env->username) {
+		char* separator_path;
+		if ( env->use_qcop ) 
+		{
+			char* root_path = qcop_get_root(env->qcopconn);
+			if(!root_path) {
+				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
+				return FALSE;
+			}
+			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
+			separator_path = g_strdup_printf("%s/", root_path);
+			g_free(root_path);
+		} else {
+			separator_path = g_strdup( "/" );
+		}
+		
+		/* Create a temp directory */
+		char *randstr = g_strdup_printf("opie-sync-%i", g_random_int_range(0, G_MAXUINT32));
+		char *temppath = g_build_filename(g_get_tmp_dir(), randstr);
+		g_free(randstr);
+		
+		if(g_mkdir(temppath, 0700)) {
+			/* Create failed */
+			osync_trace(TRACE_INTERNAL, "failed to create temp dir %s: %s", temppath, strerror(errno));
+			g_free(temppath);
+			goto error;
+		}
+		
+		/* A crude test to see if files exist. You can't combine 
+		  this with scp unfortunately because scp seems to return 1 
+		  on any error */
+		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"ls %s*.txt > /dev/null\"",
+																env->username,
+																env->url,
+																separator_path);
+		
+		scpretval = pclose(popen(scpcommand,"w"));
+		scpexitstatus = WEXITSTATUS(scpretval);
+		
+		if(scpexitstatus != 1) {
+			if((scpretval == -1) || (scpexitstatus != 0)) {
+				rc = FALSE;
+				osync_trace( TRACE_INTERNAL, "ssh login failed" );
+				goto error;
+			}
+			g_free(scpcommand);
+			
+			/* Fetch all text files from the remote path into the temp directory */
+			scpcommand = g_strdup_printf("scp -p -q -B %s@%s:%s*.txt %s",
+																	env->username,
+																	env->url,
+																	separator_path,
+																	temppath);
+			
+			scpretval = pclose(popen(scpcommand,"w"));
+			scpexitstatus = WEXITSTATUS(scpretval);
+			
+			if((scpretval == -1) || (scpexitstatus != 0)) {
+				osync_trace( TRACE_INTERNAL, "scp transfer failed" );
+				rc = FALSE;
+				goto error;
+			}
+			else {
+				osync_trace( TRACE_INTERNAL, "scp ok" );
+			}
+			
+			/* Now fetch the docs from the local temp dir */
+			rc = local_fetch_notes(env, doc, temppath);
+		}
+		
+		/* Delete temp dir (regardless of whether preceding code succeeded) */
+		if(!delete_directory(temppath))
+			rc = FALSE;
+		g_free(temppath);
+	}
+	
+error:	
+	
+	if(scpcommand);
+		g_free(scpcommand);
+	
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
+	return rc;
+}
+
+/*
+ * scp_put_notes
+ */
+gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, doc);
+	
+	gboolean rc = TRUE;
+	char* scpcommand = NULL;
+	int scpretval, scpexitstatus;
+	char *temppath = NULL;
+	char *separator_path = NULL;
+	
+	if(env->url && env->device_port && env->username) {
+		if ( env->use_qcop ) 
+		{
+			char* root_path = qcop_get_root(env->qcopconn);
+			if(!root_path) {
+				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
+				return FALSE;
+			}
+			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
+			separator_path = g_strdup_printf("%s/", root_path);
+			g_free(root_path);
+		} else {
+			separator_path = g_strdup( "/" );
+		}
+		
+		/* Create a temp directory */
+		char *randstr = g_strdup_printf("opie-sync-%i", g_random_int_range(0, G_MAXUINT32));
+		temppath = g_build_filename(g_get_tmp_dir(), randstr);
+		g_free(randstr);
+		
+		if(g_mkdir(temppath, 0700)) {
+			/* Create failed */
+			osync_trace(TRACE_INTERNAL, "failed to create temp dir %s: %s", temppath, strerror(errno));
+			goto error;
+		}
+		
+		/* Write notes to temp dir */
+		rc = local_put_notes(env, doc, temppath, FALSE);
+		if(!rc) {
+			osync_trace(TRACE_INTERNAL, "failed to write notes to temp dir");
+			goto error;
+		}
+		
+		/* create remote path */
+		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"mkdir -p %s\"",
+																env->username,
+																env->url,
+																separator_path);
+		
+		scpretval = pclose(popen(scpcommand,"w"));
+		scpexitstatus = WEXITSTATUS(scpretval);
+		
+		if((scpretval == -1) || (scpexitstatus != 0)) {
+			osync_trace( TRACE_INTERNAL, "failed to create remote path" );
+			rc = FALSE;
+			goto error;
+		}
+		g_free(scpcommand);
+		
+		/* Copy all text files from the temp path into the remote path */
+		scpcommand = g_strdup_printf("scp -q -B %s/* %s@%s:%s",
+																temppath,
+																env->username,
+																env->url,
+																separator_path);
+		
+		scpretval = pclose(popen(scpcommand,"w"));
+		scpexitstatus = WEXITSTATUS(scpretval);
+		
+		if((scpretval == -1) || (scpexitstatus != 0)) {
+			osync_trace( TRACE_INTERNAL, "scp transfer failed" );
+			rc = FALSE;
+			goto error;
+		}
+		else {
+			osync_trace( TRACE_INTERNAL, "scp transfer ok" );
+		}
+		
+		/* Delete files that have been deleted */
+	
+		GString *deletedfiles = g_string_new("");
+		xmlNode *node = opie_xml_get_first(doc, "notes", "note");
+		while(node) {
+			char *deletedflag = xmlGetProp(node, "deleted");
+			if(deletedflag) {
+				/* This note has been marked deleted, so delete it */
+				xmlFree(deletedflag);
+				
+				char *notename = xmlGetProp(node, "name");
+				if(notename) {
+					g_string_append_printf(deletedfiles, "%s.txt ", notename);
+					xmlFree(notename);
+				}
+			}
+			node = opie_xml_get_next(node);
+		}
+		
+		if(deletedfiles->len > 0) {
+			g_free(scpcommand);
+			scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"cd %s && rm -f %s\"",
+																	env->username,
+																	env->url,
+																	separator_path,
+																	deletedfiles->str);
+			
+			scpretval = pclose(popen(scpcommand,"w"));
+			scpexitstatus = WEXITSTATUS(scpretval);
+			
+			if((scpretval == -1) || (scpexitstatus != 0)) {
+				osync_trace( TRACE_INTERNAL, "ssh delete note files failed" );
+				rc = FALSE;
+				goto error;
+			}
+		}
+		
+		g_string_free(deletedfiles, TRUE);
+	}
+	
+error:
+	
+	if(temppath) {
+		/* Delete temp dir (regardless of whether preceding code succeeded) */
+		if(!delete_directory(temppath))
+			rc = FALSE;
+		g_free(temppath);
+	}
+	
+	if(separator_path)
+		g_free(separator_path);
+	
+	if(scpcommand);
+		g_free(scpcommand);
+	
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
+	return rc;
+}
+
+
 
 
 /*
