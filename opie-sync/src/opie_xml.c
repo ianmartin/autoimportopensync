@@ -415,19 +415,6 @@ void opie_xml_set_uid(xmlNode *node, const char *uid) {
 	xmlSetProp(node, uidattr, uid);
 }
 
-int opie_xml_save_to_fd(xmlDoc *doc, int fd) {
-	if (ftruncate(fd, 0) == -1) {
-		perror("ftruncate");
-	}
-
-	xmlOutputBuffer *buf = xmlOutputBufferCreateFd(fd, NULL);
-	/* Prevent the fd from being closed after writing */
-	buf->closecallback = NULL;
-	/* Write the XML */
-	int bytes = xmlSaveFormatFileTo(buf, doc, NULL, 1);
-	return bytes;
-}
-
 char *opie_xml_category_name_to_id(xmlDoc *categories_doc, xmlNode *categories_node, const char *name) {
 	xmlNode *category_node = categories_node->xmlChildrenNode;
 	int count = 0;
