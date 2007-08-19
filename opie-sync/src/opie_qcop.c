@@ -163,20 +163,20 @@ gboolean expect(qcop_conn* qconn, char* str, char* failstr, char* errmsg)
     else
     {
       if (failstr && (strlen(failstr) > 0) && (strstr(pc, failstr))) {
-				qconn->resultmsg = g_strdup(errmsg);
-				return FALSE;
-			}
+        qconn->resultmsg = g_strdup(errmsg);
+        return FALSE;
+      }
       
-			if (strstr(pc,"cancelSync"))
+      if (strstr(pc,"cancelSync"))
       {
-	g_free(pc);
-	qconn->resultmsg = g_strdup("User cancelled sync");
-	return FALSE;
+        g_free(pc);
+        qconn->resultmsg = g_strdup("User cancelled sync");
+        return FALSE;
       }
       else
       {
-	g_free(pc);
-	return expect(qconn, str, failstr, errmsg);
+        g_free(pc);
+        return expect(qconn, str, failstr, errmsg);
       }
     }
   }
@@ -202,27 +202,29 @@ gboolean expect_special(qcop_conn* qconn, char* errmsg, gboolean flushing)
     {
       if(strstr(pc,"200") && flushing)
       {
-	g_free(pc);
-	return expect(qconn, "flushDone", NULL, errmsg);
+        g_free(pc);
+        return expect(qconn, "flushDone", NULL, errmsg);
       }
       else
       {
-	g_free(pc);
-	return TRUE;
+        g_free(pc);
+        return TRUE;
       }
     }
     else
+    {
       if (strstr(pc,"cancelSync"))
       {
-	g_free(pc);
-	qconn->resultmsg = g_strdup("User cancelled sync");
-	return FALSE;
+        g_free(pc);
+        qconn->resultmsg = g_strdup("User cancelled sync");
+        return FALSE;
       }
       else
       {
-	g_free(pc);
-	return expect_special(qconn, errmsg, flushing);
+        g_free(pc);
+        return expect_special(qconn, errmsg, flushing);
       }
+    }
   }
   else
   {
@@ -497,17 +499,17 @@ void monitor_thread_main(qcop_monitor_data* data)
       mon_pc = get_line(data->qconn);
       if ( mon_pc )
       {
-	if (strstr(mon_pc,"cancelSync()"))
+        if (strstr(mon_pc,"cancelSync()"))
         {
-	  g_free(mon_pc);	
-	  data->qconn->syncing = FALSE;
-	  (data->cancel_routine)();             
-	}
-	else 
-	{
-	  perror("Error on select() call or no data");
-	  g_free(mon_pc);
-	}
+          g_free(mon_pc);
+          data->qconn->syncing = FALSE;
+          (data->cancel_routine)();
+        }
+        else 
+        {
+          perror("Error on select() call or no data");
+          g_free(mon_pc);
+        }
       }
     }
     
