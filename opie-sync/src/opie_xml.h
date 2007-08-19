@@ -60,6 +60,6 @@ xmlDoc *opie_xml_create_calendar_doc(void);
 xmlDoc *opie_xml_create_categories_doc(void);
 xmlDoc *opie_xml_create_notes_doc(void);
 xmlDoc *opie_xml_create_doc(OPIE_OBJECT_TYPE objtype);
-xmlNode *opie_xml_add_note_node(xmlDoc *doc, char *name, char *direntry, char *content);
+xmlNode *opie_xml_add_note_node(xmlDoc *doc, const char *name, const char *direntry, const char *content);
 
 #endif

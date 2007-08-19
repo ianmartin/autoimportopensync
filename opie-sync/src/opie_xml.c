@@ -647,7 +647,7 @@ xmlDoc *opie_xml_create_doc(OPIE_OBJECT_TYPE objtype) {
 	/* Does not handle categories, since they aren't an objtype */
 }
 
-xmlNode *opie_xml_add_note_node(xmlDoc *doc, char *name, char *direntry, char *content) {
+xmlNode *opie_xml_add_note_node(xmlDoc *doc, const char *name, const char *direntry, const char *content) {
 	xmlNode *notes_node = opie_xml_get_collection(doc, "notes");
 	if(!notes_node) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
