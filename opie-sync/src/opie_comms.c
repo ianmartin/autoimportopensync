@@ -115,19 +115,18 @@ void cleanup_temp_file(TempFile *tempfile) {
 /*
  * create a backup file from a string
  */
-int backup_file(const char *backupfile, const char *str, int len) {
+gboolean backup_file(const char *backupfile, const char *str, int len) {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i)", __func__, backupfile, str, len);
 	
 	int destfd = 0;
-	int rc = FALSE;
 	int bufsize = 1024;
 	int wbytes;
 	int pos = 0;
+	char *errmsg = NULL;
 	
 	destfd = open(backupfile, O_CREAT | O_WRONLY | O_EXCL, 0600);
 	if(destfd == -1) {
-		osync_trace( TRACE_INTERNAL, "error creating backup file" );
-		perror("error creating backup file");
+		errmsg = g_strdup_printf("error creating backup file: %s", strerror(errno));
 		goto error;
 	}
 	
@@ -137,9 +136,7 @@ int backup_file(const char *backupfile, const char *str, int len) {
 		
 		wbytes = write(destfd, str + pos, bufsize);
 		if(wbytes == -1) {
-			osync_trace( TRACE_INTERNAL, "error writing to backup file" );
-			perror("error writing to backup file");
-			close(destfd);
+			errmsg = g_strdup_printf("error writing to backup file: %s", strerror(errno));
 			goto error;
 		}
 		
@@ -151,12 +148,13 @@ int backup_file(const char *backupfile, const char *str, int len) {
 		}
 	}
 	
-	rc = TRUE;
-
-error:
+	osync_trace(TRACE_EXIT, "%s(%i)", __func__, TRUE);
+	return TRUE;
 	
-	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc);
-	return rc;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg);
+	g_free(errmsg);
+	return FALSE;
 }
 
 /*
@@ -178,8 +176,7 @@ char *create_backup_dir(const char *backupdir)
 	                            tm_ptr->tm_hour, tm_ptr->tm_min, tm_ptr->tm_sec);
 	backuppath = g_build_filename(backupdir, datestamp, NULL);
 	if(g_mkdir_with_parents(backuppath, 0700)) {
-		perror("error creating backup directory");
-		osync_trace(TRACE_EXIT_ERROR, "error creating backup directory");
+		osync_trace(TRACE_EXIT_ERROR, "error creating backup directory: %s", strerror(errno));
 		goto error;
 	}
 	
@@ -278,6 +275,8 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 				g_free(backupfile);
 				g_free(basename);
 			}
+			else
+				rc = FALSE;
 		}
 		
 		if(rc)
@@ -940,15 +939,16 @@ gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, remotefile, data);
 	
-	gboolean rc = TRUE;
 	char* scpcommand = NULL;
 	int scpretval = 0;
 	int scpexitstatus = 0;
+	char *errmsg = NULL;
 
 	TempFile *tmpfile = create_temp_file();
 	if(!tmpfile) {
-		/* could not create temp file - error message has already been sent to trace */
-		rc = FALSE;
+		/* could not create temp file */
+		errmsg = g_strdup("failed to create temp file"); 
+		goto error;
 	}
 	else {
 		int bufsize = 1024;
@@ -962,9 +962,7 @@ gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 			
 			wbytes = write(tmpfile->fd, data + pos, bufsize);
 			if(wbytes == -1) {
-				osync_trace( TRACE_INTERNAL, "error writing to backup file" );
-				perror("error writing to backup file");
-				rc = FALSE;
+				errmsg = g_strdup_printf("error writing to temp file: %s", strerror(errno));
 				goto error;
 			}
 			
@@ -991,8 +989,8 @@ gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 		scpexitstatus = WEXITSTATUS(scpretval);
 		
 		if((scpretval == -1) || (scpexitstatus != 0)) {
-			rc = FALSE;
-			osync_trace( TRACE_INTERNAL, "ssh create path failed" );
+			errmsg = g_strdup("ssh create path failed");
+			goto error;
 		}
 		g_free(scpcommand);
 		
@@ -1007,24 +1005,31 @@ gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 		scpexitstatus = WEXITSTATUS(scpretval);
 
 		if((scpretval == -1) || (scpexitstatus != 0)) {
-			rc = FALSE;
-			osync_trace( TRACE_INTERNAL, "scp upload failed" );
+			errmsg = g_strdup("scp upload failed");
+			goto error;
 		}
 		else {
-			rc = TRUE;
 			osync_trace( TRACE_INTERNAL, "scp upload ok" );
 		}
 
 		g_free(scpcommand);
 	}
 	
+	if(tmpfile)
+		cleanup_temp_file(tmpfile);
+	
+	osync_trace(TRACE_EXIT, "%s(%d)", __func__, TRUE );
+	return TRUE;
+	
 error:
 
 	if(tmpfile)
 		cleanup_temp_file(tmpfile);
+	if(scpcommand)
+		g_free(scpcommand);
 	
-	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
-	return rc;
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg );
+	return FALSE;
 }
 
 
