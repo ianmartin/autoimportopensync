@@ -19,8 +19,8 @@ or corrections to the opensync users list
 Configuration Options
 ---------------------
 
-url
-  IP address or hostname (not actually a URL) eg. 192.168.0.2
+hostname
+  Hostname or IP address of the handheld device eg. 192.168.0.2
 
 username
   User name to log into the device as (default root).
@@ -35,19 +35,15 @@ device
               Note: Qtopia support has not been tested.
 
 port
-  TCP port on the device to use for file transfers. Default is 4242.
+  TCP port on the device to use for file transfers. Default is 4242 (which
+  Opie's built-in FTP server listens on).
 
 conntype
   Connection type to use:
-    ftp  - use FTP (default)
-    scp  - use scp command
-    none - don't connect. Useful for debugging only - will expect the device 
-           files to sync with to be in /tmp.
-
-use_qcop
-  Control the use of QCOP to notify the device of syncing:
-    true  - enable QCOP (default)
-    false - disable QCOP. Only really useful for debugging.
+    ftp  - use FTP (default). Uses Opie's built-in FTP server to transfer
+           data without encryption.
+    scp  - use scp/ssh commands to transfer data securely. Note: this will 
+           require you to set up key-based ssh authentication.
 
 backupdir
   (Optional) If you want the files from your device backed up prior to every 
@@ -57,6 +53,22 @@ backupdir
   the device fails.
   Note that old backups are not purged - you will need to do this yourself.
 
+
+Additional options for debugging purposes only:
+
+conntype
+    none - don't connect, instead read/write files in the directory specified 
+           by the localdir parameter (see below).
+
+use_qcop
+  Control the use of QCOP to notify the device of syncing:
+    true  - enable QCOP (default)
+    false - disable QCOP. You will likely want to set this if you use
+            conntype = none.
+
+localdir
+  If conntype = none, you can use localdir to specify where the Opie data 
+  files should be read from / written to. If not specified, the default is /tmp.
 
 
 Troubleshooting
