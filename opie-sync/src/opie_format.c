@@ -1001,9 +1001,6 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 		/* Alarm */
 		char *alarmminsstr = xmlGetProp(icur, "alarm");
 		if(alarmminsstr) {
-			/* FIXME since alarm support is not complete in the OpenSync xmlformat code, the code 
-			   below is not finished */
-/*
 			out_xmlfield = osync_xmlfield_new(out_xmlformat, "Alarm", error);
 			
 			int alarmsound = 0;
@@ -1020,11 +1017,9 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 			
 			int alarmseconds = -(atoi(alarmminsstr) * 60);
 			char *alarmdu = osync_time_sec2alarmdu(alarmseconds);
-			xmlNode *on_atrigger = xmlNewTextChild( on_alarm, NULL, (xmlChar*)"AlarmTrigger", NULL);
-			xmlNewTextChild( on_atrigger, NULL, (xmlChar*)"Content", (xmlChar*)alarmdu);
-			xmlNewTextChild( on_atrigger, NULL, (xmlChar*)"Value", (xmlChar*)"DURATION");
+			osync_xmlfield_set_key_value(out_xmlfield, "AlarmTrigger", alarmdu);
+			g_free(alarmdu);
 			xmlFree(alarmminsstr);
-*/
 		}
 		
 		/* Recurrence */
