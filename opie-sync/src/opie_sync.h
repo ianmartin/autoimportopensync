@@ -61,7 +61,7 @@ typedef enum {
 struct OpiePluginEnv {
 	gchar*            username;
 	gchar*            password;
-	gchar*            url;
+	gchar*            host;
 	unsigned int      device_port;
 	OPIE_CONN_TYPE    conn_type;
 	OPIE_DEVICE_TYPE  device_type;

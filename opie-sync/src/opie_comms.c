@@ -553,7 +553,7 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
 	CURL *curl = NULL;
 	CURLcode res;
 
-	if (env->url && env->username && env->password )
+	if (env->host && env->username && env->password )
 	{
 		char* separator_path;
 		if ( env->use_qcop ) 
@@ -575,7 +575,7 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
 		ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s",
 		                          env->username,
 		                          env->password,
-		                          env->url,
+		                          env->host,
 		                          env->device_port,
 		                          separator_path,
 		                          remotefile);
@@ -644,7 +644,7 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 	int i;
 	gchar **direntries;
 
-	if (env->url && env->username && env->password )
+	if (env->host && env->username && env->password )
 	{
 		char* separator_path;
 		if ( env->use_qcop ) 
@@ -665,7 +665,7 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 		ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s",
 			                         env->username,
 			                         env->password,
-			                         env->url,
+			                         env->host,
 			                         env->device_port,
 			                         separator_path);
 			
@@ -752,7 +752,7 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 	char* separator_path;
 	char *ftpurl;
 	
-	if (env->url && env->username && env->password )
+	if (env->host && env->username && env->password )
 	{
 		if ( env->use_qcop ) 
 		{
@@ -787,7 +787,7 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 						ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s",
 						                        env->username,
 						                        env->password,
-						                        env->url,
+						                        env->host,
 						                        env->device_port,
 						                        separator_path);
 						
@@ -802,7 +802,7 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 						ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s.txt",
 						                        env->username,
 						                        env->password,
-						                        env->url,
+						                        env->host,
 						                        env->device_port,
 						                        separator_path,
 						                        notename);
@@ -970,7 +970,7 @@ gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 	CURLcode res;
 	char* separator_path;
 	
-	if (env->url && env->username && env->password )
+	if (env->host && env->username && env->password )
 	{
 		if ( env->use_qcop ) 
 		{
@@ -990,7 +990,7 @@ gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 		char *ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s",
 		                          env->username,
 		                          env->password,
-		                          env->url,
+		                          env->host,
 		                          env->device_port,
 		                          separator_path,
 		                          remotefile);
@@ -1053,7 +1053,7 @@ gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
 	int scpretval, scpexitstatus;
 	TempFile *tmpfile = NULL;
 	
-	if(env->url && env->device_port && env->username) {
+	if(env->host && env->device_port && env->username) {
 		/* We have to close the temp file, because we want 
 				scp to be able to write to it */
 		tmpfile = create_temp_file();
@@ -1065,7 +1065,7 @@ gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
 		  on any error */
 		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"ls %s > /dev/null\"",
 																env->username,
-																env->url,
+																env->host,
 																remotefile);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
@@ -1082,7 +1082,7 @@ gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
 			/* Fetch the file */
 			scpcommand = g_strdup_printf("scp -q -B %s@%s:%s %s",
 																	env->username,
-																	env->url,
+																	env->host,
 																	remotefile,
 																	tmpfile->filename);
 			
@@ -1169,7 +1169,7 @@ gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 		char *dirname = g_path_get_dirname(remotefile);
 		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"mkdir -p %s\"",
 																env->username,
-																env->url,
+																env->host,
 																dirname);
 		g_free(dirname);
 		
@@ -1186,7 +1186,7 @@ gboolean scp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 		scpcommand = g_strdup_printf("scp -q -B %s %s@%s:%s",
 																tmpfile->filename,
 																env->username,
-																env->url,
+																env->host,
 																remotefile);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
@@ -1233,7 +1233,7 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 	char* scpcommand = NULL;
 	int scpretval, scpexitstatus;
 	
-	if(env->url && env->device_port && env->username) {
+	if(env->host && env->device_port && env->username) {
 		char* separator_path;
 		if ( env->use_qcop ) 
 		{
@@ -1267,7 +1267,7 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 		  on any error */
 		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"ls %s*.txt > /dev/null\"",
 																env->username,
-																env->url,
+																env->host,
 																separator_path);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
@@ -1284,7 +1284,7 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 			/* Fetch all text files from the remote path into the temp directory */
 			scpcommand = g_strdup_printf("scp -p -q -B %s@%s:%s*.txt %s",
 																	env->username,
-																	env->url,
+																	env->host,
 																	separator_path,
 																	temppath);
 			
@@ -1332,7 +1332,7 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 	char *temppath = NULL;
 	char *separator_path = NULL;
 	
-	if(env->url && env->device_port && env->username) {
+	if(env->host && env->device_port && env->username) {
 		if ( env->use_qcop ) 
 		{
 			char* root_path = qcop_get_root(env->qcopconn);
@@ -1369,7 +1369,7 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 		/* create remote path */
 		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"mkdir -p %s\"",
 																env->username,
-																env->url,
+																env->host,
 																separator_path);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
@@ -1386,7 +1386,7 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 		scpcommand = g_strdup_printf("scp -q -B %s/* %s@%s:%s",
 																temppath,
 																env->username,
-																env->url,
+																env->host,
 																separator_path);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
@@ -1424,7 +1424,7 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 			g_free(scpcommand);
 			scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"cd %s && rm -f %s\"",
 																	env->username,
-																	env->url,
+																	env->host,
 																	separator_path,
 																	deletedfiles->str);
 			

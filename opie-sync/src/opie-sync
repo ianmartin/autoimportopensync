@@ -2,7 +2,7 @@
 <config>
   <username>root</username>
   <password>rootme</password>
-  <url>192.168.0.202</url>
+  <hostname>192.168.0.202</hostname>
   <device>opie</device>
   <port>4242</port>
   <conntype>ftp</conntype>

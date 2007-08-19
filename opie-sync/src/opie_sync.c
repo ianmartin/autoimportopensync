@@ -53,7 +53,7 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 	/* Set defaults */
 	env->username = g_strdup("root");
 	env->password = g_strdup("rootme");
-	env->url = g_strdup("192.168.0.202");
+	env->host = g_strdup("192.168.0.202");
 	env->device_type = OPIE_SYNC_OPIE;
 	env->conn_type = OPIE_CONN_FTP;
 	env->device_port = 4242;
@@ -92,9 +92,13 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
 					g_free(env->password);
 					env->password = g_strdup(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"hostname")) {
+					g_free(env->host);
+					env->host = g_strdup(str);
 				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {
-					g_free(env->url);
-					env->url = g_strdup(str);
+					osync_trace(TRACE_INTERNAL, "The 'url' configuration parameter is deprecated - please use 'hostname' instead");
+					g_free(env->host);
+					env->host = g_strdup(str);
 				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
 					env->device_port = atoi(str);
 				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"device")) {
@@ -158,7 +162,7 @@ static osync_bool device_connect(OpiePluginEnv *env, OSyncError **error)
 	if ( env->use_qcop ) {
 		/* Connect to QCopBridgeServer to lock GUI and get root path */
 		osync_trace(TRACE_INTERNAL, "qcop_connect");
-		env->qcopconn = qcop_connect(env->url,
+		env->qcopconn = qcop_connect(env->host,
 		                             env->username,
 		                             env->password);
 		if(!env->qcopconn->result) {
@@ -256,7 +260,7 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 		/* failed */
 		char *errmsg;
 		device_disconnect(env->plugin_env, &error);
-		errmsg = g_strdup_printf("Failed to load data from device %s", env->plugin_env->url);
+		errmsg = g_strdup_printf("Failed to load data from device %s", env->plugin_env->host);
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
 		g_free(errmsg);
 		goto error;
@@ -521,7 +525,7 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	
 	if ( !opie_put_sink(env) ) {
 		osync_trace( TRACE_INTERNAL, "opie_connect_and_put failed" );
-		char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->plugin_env->url ); /* FIXME specify which data */
+		char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->plugin_env->host ); /* FIXME specify which data */
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
 		g_free(errmsg);
 		goto error;
@@ -668,7 +672,7 @@ static void opie_sync_finalize( void* userdata )
 	g_free(env->note_env);
 	g_free(env->username);
 	g_free(env->password);
-	g_free(env->url);
+	g_free(env->host);
 	g_free(env->localdir);
 	g_free(env);
 	
