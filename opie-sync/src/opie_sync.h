@@ -67,6 +67,7 @@ struct OpiePluginEnv {
 	OPIE_DEVICE_TYPE  device_type;
 	gchar*            backupdir;    /* location to create backup dirs */
 	gchar*            backuppath;   /* the full path to the backup dir for this session */
+	gchar*            localdir;     /* path to local files if conntype = OPIE_CONN_NONE (for debugging) */
 
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;

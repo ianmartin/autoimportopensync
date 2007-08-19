@@ -312,7 +312,7 @@ gboolean local_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
 	char *basename = g_path_get_basename(remotefile);
-	char *localfile = g_strdup_printf("/tmp/%s", basename);
+	char *localfile = g_build_filename(env->localdir, basename, NULL);
 	gboolean rc;
 	
 	if(g_access(localfile, F_OK) == 0) {
@@ -340,7 +340,7 @@ gboolean local_put_file(OpiePluginEnv* env, const char *remotefile, const char *
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
 	char *basename = g_path_get_basename(remotefile);
-	char *localfile = g_strdup_printf("/tmp/%s", basename);
+	char *localfile = g_build_filename(env->localdir, basename, NULL);
 	gboolean rc;
 	
 	OSyncError *error = NULL;

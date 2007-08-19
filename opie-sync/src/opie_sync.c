@@ -59,6 +59,7 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 	env->device_port = 4242;
 	env->use_qcop = TRUE;
 	env->backupdir = NULL;
+	env->localdir = g_strdup("/tmp");
 
 	doc = xmlParseMemory(config, strlen(config));
 
@@ -116,6 +117,9 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
 					if(strlen(str) > 0)
 						env->backupdir = g_strdup(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"localdir")) {
+					g_free(env->localdir);
+					env->localdir = g_strdup(str);
 				} else {
 					osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file option \"%s\"", cur->name);
 					goto error_free_doc;
@@ -653,7 +657,7 @@ static void opie_sync_finalize( void* userdata )
 	
 	OSyncError *error = NULL;
 	device_disconnect(env, &error);
-
+	
 	comms_shutdown();
 	
 	g_mutex_free(env->plugin_mutex);
@@ -662,6 +666,10 @@ static void opie_sync_finalize( void* userdata )
 	g_free(env->todo_env);
 	g_free(env->event_env);
 	g_free(env->note_env);
+	g_free(env->username);
+	g_free(env->password);
+	g_free(env->url);
+	g_free(env->localdir);
 	g_free(env);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
