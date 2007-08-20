@@ -7,9 +7,9 @@ support some versions of Qtopia as found on the Sharp Zaurus, but no testing
 of this has been done.
 
 This plugin is a work in progress but should be able to sync contacts, 
-calendar events and todo list entries, minus a few fields. Basic support for 
-notes is also provided by syncing with .txt files on the handheld. However, 
-use is entirely at your own risk - back up your data on both sides first!
+calendar events and todo list entries, minus a few fields, as well as support
+for syncing notes. However, use is entirely at your own risk - back up your 
+data on both sides first!
 
 If you'd like to help, please try the plugin and send any questions, patches 
 or corrections to the opensync users list 
@@ -52,6 +52,11 @@ backupdir
   Files will also be written to this directory in the event that uploading to 
   the device fails.
   Note that old backups are not purged - you will need to do this yourself.
+
+notestype
+  Destination for notes on the device:
+    basic       - Sync with .txt files in the user's home directory (default)
+    opie-notes  - Sync with Opie-Notes
 
 
 Additional options for debugging purposes only:
@@ -128,11 +133,6 @@ Missing fields on contacts
   not currently handled since OpenSync's internal XML format does not
   currently support them.
 
-Support for Notes application in Opie 1.2.2+
-
-  Opie 1.2.2 and later have a dedicated notes application. The plugin should
-  support this as a notes target instead of plain text files.
-
 Qtopia testing / support
 
   No testing has yet been done with Qtopia on Zaurus devices, only Opie 
@@ -140,7 +140,7 @@ Qtopia testing / support
 
 Opie SQLite PIM backend support
 
-  Only Opie's XML (default) backend is currently supported.
-
-
+  Only Opie's XML (default) backend is currently supported. Supporting the 
+  SQLite backend will require adding support for querying the database 
+  remotely in Opie so this is not a trivial task.
 
