@@ -60,6 +60,7 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 	env->use_qcop = TRUE;
 	env->backupdir = NULL;
 	env->localdir = g_strdup("/tmp");
+	env->notes_type = NOTES_TYPE_BASIC;
 
 	doc = xmlParseMemory(config, strlen(config));
 
@@ -124,6 +125,15 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"localdir")) {
 					g_free(env->localdir);
 					env->localdir = g_strdup(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"notestype")) {
+					if ( (!strcasecmp(str, "opie-notes")) || (!strcasecmp(str, "opie_notes")) )
+						env->notes_type = NOTES_TYPE_OPIE_NOTES;
+					else if ( strcasecmp(str, "basic") == 0 )
+						env->notes_type = NOTES_TYPE_BASIC;
+					else {
+						osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid value \"%s\" for configuration option \"%s\"", str, cur->name);
+						goto error_free_doc;
+					}
 				} else {
 					osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file option \"%s\"", cur->name);
 					goto error_free_doc;
@@ -274,6 +284,16 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	if (!env->hashtable)
 		goto error;
 
+	if(env->objtype == OPIE_OBJECT_TYPE_NOTE) {
+		/* Check if the notestype config option has changed since the last sync */
+		char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+		char *notes_type_str = g_strdup_printf("%d", env->plugin_env->notes_type);
+		if (!osync_anchor_compare(anchorpath, "notestype", notes_type_str))
+			osync_objtype_sink_set_slowsync(sink, TRUE);
+		g_free(notes_type_str);
+		g_free(anchorpath);
+	}
+	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -529,6 +549,14 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
 		g_free(errmsg);
 		goto error;
+	}
+	
+	if(env->objtype == OPIE_OBJECT_TYPE_NOTE) {
+		char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+		char *notes_type_str = g_strdup_printf("%d", env->plugin_env->notes_type);
+ 		osync_anchor_update(anchorpath, "notestype", notes_type_str);
+		g_free(notes_type_str);
+		g_free(anchorpath);
 	}
 	
 	osync_context_report_success(ctx);

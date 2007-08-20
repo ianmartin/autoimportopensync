@@ -6,4 +6,5 @@
   <device>opie</device>
   <port>4242</port>
   <conntype>ftp</conntype>
+  <notestype>basic</notestype>
 </config>

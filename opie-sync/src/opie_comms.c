@@ -231,6 +231,37 @@ error:
 }
 
 
+char *get_remote_notes_path(OpiePluginEnv *env)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	char* root_path;
+	
+	if ( env->use_qcop ) {
+		root_path = qcop_get_root(env->qcopconn);
+		if(!root_path) {
+			fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+			osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
+			return NULL;
+		}
+		osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
+	}
+	else
+		root_path = g_strdup( "" );
+	
+	char *notes_path;
+	if(env->notes_type == NOTES_TYPE_OPIE_NOTES)
+		notes_path = g_build_filename(root_path, "Documents/text/plain", NULL);
+	else
+		notes_path = g_strdup(root_path);
+	
+	g_free(root_path);
+	
+	osync_trace(TRACE_EXIT, "%s(%s)", __func__, notes_path);
+	return notes_path;
+}
+
+
+
 /*
  * opie_fetch_sink
  */
@@ -646,28 +677,18 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 
 	if (env->host && env->username && env->password )
 	{
-		char* separator_path;
-		if ( env->use_qcop ) 
-		{
-			char* root_path = qcop_get_root(env->qcopconn);
-			if(!root_path) {
-				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-				return FALSE;
-			}
-			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-			separator_path = g_strdup_printf("%s/", root_path);
-			g_free(root_path);
-		} else {
-			separator_path = g_strdup( "/" );
+		char *remotepath = get_remote_notes_path(env);
+		if(!remotepath) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: failed to get remote notes path", __func__);
+			return FALSE;
 		}
 
-		ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s",
+		ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s/",
 			                         env->username,
 			                         env->password,
 			                         env->host,
 			                         env->device_port,
-			                         separator_path);
+			                         remotepath);
 			
 		/* curl init */
 		curl = curl_easy_init();
@@ -676,6 +697,8 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 		curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, bufstr);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_strwrite);
+		
+		osync_trace(TRACE_INTERNAL, "retrieving directory: %s", ftpurl);
 		
 		/* get the dir listing */
 		res = curl_easy_perform(curl);
@@ -693,9 +716,11 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 						if(g_pattern_match_string(pspec, ptr)) {
 							GString *bufstr = g_string_new("");
 							char *ftpfileurl = g_strdup_printf("%s/%s", ftpurl, ptr);
+							osync_trace(TRACE_INTERNAL, "retrieving file: %s", ftpfileurl);
 							curl_easy_setopt(curl, CURLOPT_URL, ftpfileurl);
 							curl_easy_setopt(curl, CURLOPT_WRITEDATA, bufstr);
 							res = curl_easy_perform(curl);
+							osync_trace(TRACE_INTERNAL, "done retrieving, result = %i", res);
 							g_free(ftpfileurl);
 							/* Remove .txt from end of file name */
 							int len = strlen(ptr);
@@ -730,7 +755,7 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 
 		g_free(ftpurl);
 		curl_easy_cleanup(curl);
-		g_free(separator_path);
+		g_free(remotepath);
 	}
 	else
 	{
@@ -749,26 +774,16 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 	gboolean rc = TRUE;
 	CURL *curl;
 	CURLcode res;
-	char* separator_path;
 	char *ftpurl;
 	
 	if (env->host && env->username && env->password )
 	{
-		if ( env->use_qcop ) 
-		{
-			char* root_path = qcop_get_root(env->qcopconn);
-			if(!root_path) {
-				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-				return FALSE;
-			}
-			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-			separator_path = g_strdup_printf("%s/", root_path);
-			g_free(root_path);
-		} else {
-			separator_path = g_strdup( "/" );
+		char *remotepath = get_remote_notes_path(env);
+		if(!remotepath) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: failed to get remote notes path", __func__);
+			return FALSE;
 		}
-		
+
 		xmlNode *node = opie_xml_get_first(doc, "notes", "note");
 		while(node) {
 			char *changedflag = xmlGetProp(node, "changed");
@@ -789,22 +804,22 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 						                        env->password,
 						                        env->host,
 						                        env->device_port,
-						                        separator_path);
+						                        remotepath);
 						
 						struct curl_slist *cmdlist = NULL;
-						char *command = g_strdup_printf("DELE %s%s.txt", separator_path, notename);
+						char *command = g_strdup_printf("DELE %s/%s.txt", remotepath, notename);
 						cmdlist = curl_slist_append(cmdlist, command);
 						curl_easy_setopt(curl, CURLOPT_QUOTE, cmdlist);
 						curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_nullwrite);
 					}
 					else {
 						/* Changed note, upload it */
-						ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s.txt",
+						ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s/%s.txt",
 						                        env->username,
 						                        env->password,
 						                        env->host,
 						                        env->device_port,
-						                        separator_path,
+						                        remotepath,
 						                        notename);
 						
 						curl_easy_setopt(curl, CURLOPT_UPLOAD, TRUE);
@@ -844,7 +859,7 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 			node = opie_xml_get_next(node);
 		}
 		
-		g_free(separator_path);
+		g_free(remotepath);
 	}
 	else
 	{
@@ -1001,7 +1016,7 @@ gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 		curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
 		curl_easy_setopt(curl, CURLOPT_READDATA, data);
 		curl_easy_setopt(curl, CURLOPT_READFUNCTION, opie_curl_strread);
-		
+		m_totalwritten = 0;
 		
 		curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1);
 		
@@ -1232,26 +1247,17 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 	gboolean rc = TRUE;
 	char* scpcommand = NULL;
 	int scpretval, scpexitstatus;
+	char *remotepath = NULL;
 	
 	if(env->host && env->device_port && env->username) {
-		char* separator_path;
-		if ( env->use_qcop ) 
-		{
-			char* root_path = qcop_get_root(env->qcopconn);
-			if(!root_path) {
-				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-				return FALSE;
-			}
-			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-			separator_path = g_strdup_printf("%s/", root_path);
-			g_free(root_path);
-		} else {
-			separator_path = g_strdup( "/" );
+		remotepath = get_remote_notes_path(env);
+		if(!remotepath) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: failed to get remote notes path", __func__);
+			return FALSE;
 		}
 		
 		/* Create a temp directory */
-		char *randstr = g_strdup_printf("opie-sync-%i", g_random_int_range(0, G_MAXUINT32));
+		char *randstr = g_strdup_printf("opie-sync-%i", g_random_int_range(0, 2000000000));
 		char *temppath = g_build_filename(g_get_tmp_dir(), randstr);
 		g_free(randstr);
 		
@@ -1265,10 +1271,10 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 		/* A crude test to see if files exist. You can't combine 
 		  this with scp unfortunately because scp seems to return 1 
 		  on any error */
-		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"ls %s*.txt > /dev/null\"",
+		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"ls %s/*.txt > /dev/null\"",
 																env->username,
 																env->host,
-																separator_path);
+																remotepath);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
 		scpexitstatus = WEXITSTATUS(scpretval);
@@ -1282,10 +1288,10 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 			g_free(scpcommand);
 			
 			/* Fetch all text files from the remote path into the temp directory */
-			scpcommand = g_strdup_printf("scp -p -q -B %s@%s:%s*.txt %s",
+			scpcommand = g_strdup_printf("scp -p -q -B %s@%s:%s/*.txt %s",
 																	env->username,
 																	env->host,
-																	separator_path,
+																	remotepath,
 																	temppath);
 			
 			scpretval = pclose(popen(scpcommand,"w"));
@@ -1314,6 +1320,9 @@ error:
 	
 	if(scpcommand);
 		g_free(scpcommand);
+		
+	if(remotepath)
+		g_free(remotepath);
 	
 	osync_trace(TRACE_EXIT, "%s(%i)", __func__, rc );
 	return rc;
@@ -1330,22 +1339,13 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 	char* scpcommand = NULL;
 	int scpretval, scpexitstatus;
 	char *temppath = NULL;
-	char *separator_path = NULL;
+	char *remotepath = NULL;
 	
 	if(env->host && env->device_port && env->username) {
-		if ( env->use_qcop ) 
-		{
-			char* root_path = qcop_get_root(env->qcopconn);
-			if(!root_path) {
-				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-				return FALSE;
-			}
-			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-			separator_path = g_strdup_printf("%s/", root_path);
-			g_free(root_path);
-		} else {
-			separator_path = g_strdup( "/" );
+		remotepath = get_remote_notes_path(env);
+		if(!remotepath) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: failed to get remote notes path", __func__);
+			return FALSE;
 		}
 		
 		/* Create a temp directory */
@@ -1367,10 +1367,10 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 		}
 		
 		/* create remote path */
-		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"mkdir -p %s\"",
+		scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"mkdir -p %s/\"",
 																env->username,
 																env->host,
-																separator_path);
+																remotepath);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
 		scpexitstatus = WEXITSTATUS(scpretval);
@@ -1387,7 +1387,7 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 																temppath,
 																env->username,
 																env->host,
-																separator_path);
+																remotepath);
 		
 		scpretval = pclose(popen(scpcommand,"w"));
 		scpexitstatus = WEXITSTATUS(scpretval);
@@ -1422,10 +1422,10 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 		
 		if(deletedfiles->len > 0) {
 			g_free(scpcommand);
-			scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"cd %s && rm -f %s\"",
+			scpcommand = g_strdup_printf("ssh -o BatchMode=yes %s@%s \"cd %s/ && rm -f %s\"",
 																	env->username,
 																	env->host,
-																	separator_path,
+																	remotepath,
 																	deletedfiles->str);
 			
 			scpretval = pclose(popen(scpcommand,"w"));
@@ -1450,8 +1450,8 @@ error:
 		g_free(temppath);
 	}
 	
-	if(separator_path)
-		g_free(separator_path);
+	if(remotepath)
+		g_free(remotepath);
 	
 	if(scpcommand);
 		g_free(scpcommand);

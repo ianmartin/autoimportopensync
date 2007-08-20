@@ -49,6 +49,11 @@ typedef enum {
 } OPIE_CONN_TYPE;
 
 typedef enum {
+    NOTES_TYPE_OPIE_NOTES,
+    NOTES_TYPE_BASIC
+} OPIE_NOTES_TYPE;
+
+typedef enum {
   OPIE_OBJECT_TYPE_UNKNOWN,
   OPIE_OBJECT_TYPE_CONTACT,
   OPIE_OBJECT_TYPE_EVENT,
@@ -68,6 +73,7 @@ struct OpiePluginEnv {
 	gchar*            backupdir;    /* location to create backup dirs */
 	gchar*            backuppath;   /* the full path to the backup dir for this session */
 	gchar*            localdir;     /* path to local files if conntype = OPIE_CONN_NONE (for debugging) */
+	OPIE_NOTES_TYPE   notes_type;
 
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;
