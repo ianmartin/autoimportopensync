@@ -1252,7 +1252,9 @@ static osync_bool conv_xml_note_to_opie_xml_note(char *input, unsigned int inpsi
 			xmlfield_key_to_attr(in_xmlfield, "Content", on_note, "name");
 		}
 		else if(!strcmp("Body", fieldname)) {
-			xmlfield_key_to_attr(in_xmlfield, "Content", on_note, "content");
+			const char *value = osync_xmlfield_get_key_value(in_xmlfield, "Content");
+			if(value)
+				osxml_node_add(on_note, "content", value);
 		}
 		
 		in_xmlfield = osync_xmlfield_get_next(in_xmlfield);
