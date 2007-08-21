@@ -516,7 +516,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		}
 	}
 	
-	xmlSaveFile(filename, doc);
+	xmlSaveFormatFile(filename, doc, 1);
 	xmlFreeDoc(doc);
 	g_free(filename);
 	

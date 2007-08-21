@@ -547,7 +547,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	xmlNewChild(doc->children, NULL, (xmlChar*)"enable_converter", (xmlChar*) (group->use_converter ? "true" : "false"));
 
 
-	xmlSaveFile(filename, doc);
+	xmlSaveFormatFile(filename, doc, 1);
 	xmlFreeDoc(doc);
 	g_free(filename);
 
