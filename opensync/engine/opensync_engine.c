@@ -151,7 +151,7 @@ static osync_bool _osync_engine_receive_change_detect_data(OSyncEngine *engine, 
 			goto error;
 
 		/* Convert from plain/file to the detected format to avoid shortcuts within the converter path */
-		if (osync_engine_get_use_converter(engine) && detectedFormat != osync_data_get_objformat(data)) {
+		if (osync_group_get_converter_enabled(engine->group) && detectedFormat != osync_data_get_objformat(data)) {
 			OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), detectedFormat, &error);
 			if (!path)
 				goto error;
@@ -205,7 +205,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 
 	/* Only convert if the engine is allowed to convert and if a internal format is available. 
 	   The reason that the engine isn't allowed to convert could be backup. dumping the changes. */
-	if (internalFormat && osync_engine_get_use_converter(engine)) {
+	if (internalFormat && osync_group_get_converter_enabled(engine->group)) {
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 	
 		OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), internalFormat, &error);
@@ -221,8 +221,8 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	}
 	
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
-	if( osync_engine_get_use_merger(engine) &&
-		osync_engine_get_use_converter(engine) &&	
+	if( osync_group_get_merger_enabled(engine->group) &&
+		osync_group_get_converter_enabled(engine->group) &&	
 		(osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) &&
 		/* only use the merger if the objformat name starts with "xmlformat-" (10 chars) */
 		( !strncmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-", 10)))
@@ -543,69 +543,6 @@ void osync_engine_unref(OSyncEngine *engine)
 		g_free(engine);
 		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
-}
-
-/*! @brief This return the status of the merger/demerger.
- * 
- * This returns TRUE if the merger/demerger will be used. 
- * 
- * @param engine A pointer to the engine, which will be used to sync
- * @returns TRUE if the merger is active. FALSE otherwise. 
- * 
- */
-osync_bool osync_engine_get_use_merger(OSyncEngine *engine)
-{
-	osync_assert(engine);
-	osync_assert(engine->group);
-	return osync_group_get_use_converter(engine->group);
-}
-
-/*! @brief Enables or Disables the Merger. 
- *
- * If the Merger is enable the capability differents got demerged and merged. 
- * The Merger avoids dataloss for a different capabiltiy set of different membres.
- * 
- * @param engine A pointer to the engine, which will be used to sync
- * @param use_merger Expression if the merger should be actived (TRUE) or not (FALSE). 
- * 
- */
-void osync_engine_set_use_merger(OSyncEngine *engine, osync_bool use_merger)
-{
-	osync_assert(engine);
-	osync_assert(engine->group);
-	osync_group_set_use_merger(engine->group, use_merger);
-}
-
-/*! @brief Returns the status if the Converters get used. 
- * 
- * This returns TRUE if the Converters will be used. FALSE nothing 
- * gets converted by the engine.
- * 
- * @param engine A pointer to the engine, which will be used to sync
- * @returns TRUE if the Converters get used. FALSE otherwise. 
- * 
- */
-osync_bool osync_engine_get_use_converter(OSyncEngine *engine)
-{
-	osync_assert(engine);
-	osync_assert(engine->group);
-	return osync_group_get_use_converter(engine->group);
-}
-
-/*! @brief Enables or Disables the Converters. 
- *
- * If the Converters got disabled nothing will be converted. 
- * This is very useful for creating/restoring backups.
- * 
- * @param engine A pointer to the engine, which will be used to sync
- * @param use_converter Expression if the Converters should be actived (TRUE) or not (FALSE). 
- * 
- */
-void osync_engine_set_use_converter(OSyncEngine *engine, osync_bool use_converter) 
-{
-	osync_assert(engine);
-	osync_assert(engine->group);
-	osync_group_set_use_converter(engine->group, use_converter);
 }
 
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir)

@@ -20,9 +20,9 @@ struct OSyncGroup {
 	/** The winning side if the select resolution is choosen */
 	int conflict_winner;
 	/** The configured merger status of this group */
-	osync_bool use_merger;
+	osync_bool merger_enabled;
 	/** The configured converter status of this group */
-	osync_bool use_converter;
+	osync_bool converter_enabled;
 	
 	int ref_count;
 };

@@ -1677,8 +1677,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 					/* Merger - Save the entire xml and demerge */
 					/* TODO: is here the right place to save the xml???? */
-					if (osync_engine_get_use_merger(engine->parent) &&
-						osync_engine_get_use_converter(engine->parent) &&	
+					if (osync_group_get_merger_enabled(osync_engine_get_group(engine->parent)) &&
+						osync_group_get_converter_enabled(osync_engine_get_group(engine->parent)) &&	
 						entry_engine->change &&
 						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
 						!strncmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-", 10) )
@@ -1715,7 +1715,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						OSyncChange *change = entry_engine->change;
 
 						/* Convert to requested target format */
-						if (osync_engine_get_use_converter(engine->parent)) {
+						if (osync_group_get_converter_enabled(osync_engine_get_group(engine->parent))) {
 
 							
 							osync_trace(TRACE_INTERNAL, "Starting to convert from objtype %s and format %s", osync_change_get_objtype(entry_engine->change), osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));

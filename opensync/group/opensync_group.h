@@ -78,10 +78,10 @@ OSYNC_EXPORT time_t osync_group_get_last_synchronization(OSyncGroup *group);
 OSYNC_EXPORT void osync_group_set_conflict_resolution(OSyncGroup *group, OSyncConflictResolution res, int num);
 OSYNC_EXPORT void osync_group_get_conflict_resolution(OSyncGroup *group, OSyncConflictResolution *res, int *num);
 
-OSYNC_EXPORT osync_bool osync_group_get_use_merger(OSyncGroup *group);
-OSYNC_EXPORT void osync_group_set_use_merger(OSyncGroup *group, osync_bool enable_merger);
+OSYNC_EXPORT osync_bool osync_group_get_merger_enabled(OSyncGroup *group);
+OSYNC_EXPORT void osync_group_set_merger_enabled(OSyncGroup *group, osync_bool enable_merger);
 
-OSYNC_EXPORT osync_bool osync_group_get_use_converter(OSyncGroup *group);
-OSYNC_EXPORT void osync_group_set_use_converter(OSyncGroup *group, osync_bool enable_converter);
+OSYNC_EXPORT osync_bool osync_group_get_converter_enabled(OSyncGroup *group);
+OSYNC_EXPORT void osync_group_set_converter_enabled(OSyncGroup *group, osync_bool enable_converter);
 
 #endif /* _OPENSYNC_GROUP_H_ */
