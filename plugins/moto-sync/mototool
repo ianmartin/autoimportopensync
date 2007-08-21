@@ -113,7 +113,7 @@ def main():
     if options.mode == 'list':
         pa = motosync.PhoneAccess(pc)
         for objtype in options.objtype:
-            for change in pa.list_changes(objtype):
+            for change in pa.list_changes(objtype, None):
                 print change.uid
                 print change.data
 
