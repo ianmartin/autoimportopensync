@@ -216,28 +216,28 @@ typedef struct {} Group;
 		osync_group_get_conflict_resolution(self, res, num);
 	}
 
-	bool get_use_merger() {
-		return osync_group_get_use_merger(self);
+	bool get_merger_enabled() {
+		return osync_group_get_merger_enabled(self);
 	}
 
-	void set_use_merger(bool enable_merger) {
-		osync_group_set_use_merger(self, enable_merger);
+	void set_merger_enabled(bool enable_merger) {
+		osync_group_set_merger_enabled(self, enable_merger);
 	}
 
-	bool get_use_converter() {
-		return osync_group_get_use_converter(self);
+	bool get_converter_enabled() {
+		return osync_group_get_converter_enabled(self);
 	}
 
-	void set_use_converter(bool enable_converter) {
-		osync_group_set_use_converter(self, enable_converter);
+	void set_converter_enabled(bool enable_converter) {
+		osync_group_set_converter_enabled(self, enable_converter);
 	}
 
 %pythoncode %{
 	name = property(get_name, set_name)
 	configdir = property(get_configdir, set_configdir)
 	last_synchronization = property(get_last_synchronization, set_last_synchronization)
-	use_merger = property(get_use_merger, set_use_merger)
-	use_converter = property(get_use_converter, set_use_converter)
+	merger_enabled = property(get_merger_enabled, set_merger_enabled)
+	converter_enabled = property(get_converter_enabled, set_converter_enabled)
 	
 	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
 	__oldinit = __init__

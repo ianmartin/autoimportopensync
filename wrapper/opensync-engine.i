@@ -69,14 +69,6 @@ typedef struct {} Engine;
 		osync_engine_unref(self);
 	}
 
-	bool get_use_merger() {
-		return osync_engine_get_use_merger(self);
-	}
-
-	void set_use_merger(bool use_merger) {
-		osync_engine_set_use_merger(self, use_merger);
-	}
-
 	void set_plugindir(const char *dir) {
 		osync_engine_set_plugindir(self, dir);
 	}
@@ -232,7 +224,6 @@ typedef struct {} Engine;
 	/* TODO: proxies, mappings */
 
 %pythoncode %{
-	use_meger = property(get_use_merger, set_use_merger)
 	group = property(get_group)
 	# archive = property(get_archive)
 	group_slowsync = property(get_group_slowsync, set_group_slowsync)
