@@ -1146,7 +1146,7 @@ class PhoneComms:
                 return '%d'
             elif t == types.StringType or val == '':
                 return '"%s"'
-            elif t == types.UnicodeType:
+            elif t == types.UnicodeType or val is None:
                 return '%s'
             else:
                 assert(False, 'unexpected type %s' % str(t))
@@ -1159,6 +1159,8 @@ class PhoneComms:
                 # they'll turn up in PIM data, and it's not clear what the phone
                 # actually does support as its character set
                 return val.encode('utf_16_be').encode('hex').upper()
+            elif val is None:
+                return ''
             else:
                 return val
 
@@ -1463,7 +1465,7 @@ class PhoneEventExtended(PhoneEventSimple):
         data = PhoneEventSimple.to_moto(self)
 
         # HACK: duration (field 6) is unused in the extended format
-        data[6] = ''
+        data[6] = None
 
         if isinstance(self.eventdt, datetime):
             enddatestr = format_time(self.eventdt + self.duration, PHONE_DATE)
@@ -1479,7 +1481,7 @@ class PhoneEventExtended(PhoneEventSimple):
 
         return data + [endtimestr, enddatestr, '', self.event_type,
                        self.location, self.note, 501, self.repeat_every,
-                       self.repeat_day, '', repeatendstr]
+                       self.repeat_day, None, repeatendstr]
 
     def to_xml(self):
         """Returns OpenSync XML representation of this event."""
