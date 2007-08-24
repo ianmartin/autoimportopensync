@@ -339,6 +339,7 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 			/* Convert to the configured store object format */
 			if (dir->objformat && strcmp("file", dir->objformat)) {
 
+				osync_bool ret;
 				OSyncFormatConverterPath *path = NULL;
 
 			        OSyncObjFormat *fileformat = osync_format_env_find_objformat(formatenv, "file");
@@ -365,7 +366,13 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 				*/
 				path = osync_format_env_find_path(formatenv, detectedFormat, targetformat, &error);
 
-				if (!osync_format_env_convert(formatenv, path, odata, &error)) {
+				if (!path)
+					goto error;
+
+				ret = osync_format_env_convert(formatenv, path, odata, &error);
+				osync_converter_path_unref(path);
+
+				if (!ret) {
 					osync_error_set(&error, OSYNC_ERROR_EXISTS, "Can't convert to customized objformat.");
                 			goto error;
         			}
@@ -374,10 +381,17 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 				/* Find converter path fromat $targetformat to fileFormat. */
 				path = osync_format_env_find_path(formatenv, targetformat, fileformat, &error);
 
-				if (!osync_format_env_convert(formatenv, path, odata, &error)) {
+				if (!path)
+					goto error;
+
+				ret = osync_format_env_convert(formatenv, path, odata, &error);
+				osync_converter_path_unref(path);
+
+				if (!ret) {
 					osync_error_set(&error, OSYNC_ERROR_EXISTS, "Can't convert to customized objformat.");
                 			goto error;
         			}
+
 
 			}
 
