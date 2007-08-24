@@ -478,7 +478,9 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && (existChangeType != OSYNC_CHANGE_TYPE_DELETED && existChangeType != OSYNC_CHANGE_TYPE_UNKNOWN)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to MODIFIED");
 			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_MODIFIED);
-		} else if (newChangeType == OSYNC_CHANGE_TYPE_MODIFIED && (existChangeType == OSYNC_CHANGE_TYPE_DELETED || existChangeType == OSYNC_CHANGE_TYPE_UNKNOWN)) {
+		/* Only adapt the change to ADDED if the existing Change got deleted. Don't update it to ADDED if existChangeType is UNKOWN.
+		   The exitChangeType is at least also UNKOWN if the file-sync has only one modified entry. */
+		} else if (newChangeType == OSYNC_CHANGE_TYPE_MODIFIED && (existChangeType == OSYNC_CHANGE_TYPE_DELETED)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to ADDED");
 			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_ADDED);
 		}
