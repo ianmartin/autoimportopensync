@@ -402,6 +402,8 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 					goto error_free_capabilities; 
  				if (!osync_member_save(member, &locerror)) /* TODO: Merger we have to save? */
  					goto error_free_capabilities;
+
+				osync_capabilities_unref(capabilities);
  			}
  		}
 		if (version)
