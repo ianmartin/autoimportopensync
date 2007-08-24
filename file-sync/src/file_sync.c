@@ -705,6 +705,7 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		if (!osync_format_env_find_objformat(formatenv, dir->objformat)) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Configured storage format \"%s\" for object type \"%s\" is unknown. Is the format plugin missing?",
 					dir->objformat, dir->objtype);
+			osync_objtype_sink_unref(sink);
 			goto error_free_env;
 		}
 	
