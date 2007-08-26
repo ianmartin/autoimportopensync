@@ -1257,6 +1257,10 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	env->num = 0;	
 	env->isConnected = FALSE;
 
+	/* Create the alert for the remote device */
+	if (!env->identifier)
+		env->identifier = g_strdup("LibSyncML Test Suite");
+
 	GList *o = env->databases;
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
@@ -1378,10 +1382,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		smlDevInfAddDataStore(devinf, datastore);
 	}
 
-	/* Create the alert for the remote device */
-	if (!env->identifier)
-		env->identifier = g_strdup("LibSyncML Test Suite");
-	
+
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
 	functions->prepare = _sessions_prepare;
 	functions->check = _sessions_check;
