@@ -1154,7 +1154,7 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 				env->interface = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"identifier")) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"identifier") && strlen(str)) {
 				env->identifier = g_strdup(str);
 			}
 			
