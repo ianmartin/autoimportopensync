@@ -115,14 +115,14 @@ double check_sync(OSyncEngine *engine, const char *name, int num)
 	printf(".");
 	fflush(stdout);
 	starttime = _second();
-	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" starting ++++++++++++++", name ? name : "nil", num);
+	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" starting ++++++++++++++", name, num);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	sync_now(engine);
 	osengine_set_enginestatus_callback(engine, NULL, NULL);
 	int wasted = 0;
 	int alldeciders = 0;
 	osengine_get_wasted(engine, &alldeciders, &wasted);
-	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" ended (%i / %i (%i%%)) ++++++++++++++", name ? name : "nil", num, wasted, alldeciders, (int)(((float)wasted / (float)alldeciders) * 100));
+	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" ended (%i / %i (%i%%)) ++++++++++++++", name, num, wasted, alldeciders, (int)(((float)wasted / (float)alldeciders) * 100));
 	double thistime = _second() - starttime;
 
 	printf(".");
@@ -132,7 +132,7 @@ double check_sync(OSyncEngine *engine, const char *name, int num)
 	if (!mkdtemp(tempdir))
 	{
 		g_free(tempdir);
-		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", g_strerror(errno) ? g_strerror(errno) : "nil");
+		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", g_strerror(errno));
 		abort();
 	}
 	char *command = g_strdup_printf("mv %s/* %s &> /dev/null", localdir, tempdir);
@@ -457,7 +457,7 @@ int main (int argc, char *argv[])
 
 	if (result == NULL)
 	{
-		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", g_strerror(errno) ? g_strerror(errno) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", g_strerror(errno));
 		return 1;
 	}
 
@@ -486,7 +486,7 @@ int main (int argc, char *argv[])
 
 	if (result == NULL)
 	{
-		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", g_strerror(errno) ? g_strerror(errno) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", g_strerror(errno));
 		return 1;
 	}
 
