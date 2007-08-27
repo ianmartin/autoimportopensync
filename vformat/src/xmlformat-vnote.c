@@ -166,7 +166,7 @@ static osync_bool conv_xmlformat_to_vnotememo(char *input, unsigned int inpsize,
 
 	*free_input = TRUE;
 	*output = vformat_to_string (vnote, target);
-	*outpsize = strlen(*output) + 1;
+	*outpsize = strlen(*output);
 	
 	vformat_free(vnote);	
 	
