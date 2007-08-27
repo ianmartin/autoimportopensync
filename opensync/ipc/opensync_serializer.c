@@ -61,6 +61,11 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 			if (!osync_objformat_marshal(objformat, input_data, input_size, message, error))
 				goto error;
 		} else {
+			/* If the format is a plain format, then we have to add
+			 * one byte for \0 to the input_size. This extra byte will
+			 * be removed by the osync_demarshal_data funciton.
+			 */
+			input_size++;
 			osync_message_write_buffer(message, input_data, input_size);
 		}
 	} else {
@@ -107,6 +112,12 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 				goto error;
 		} else {
 			osync_message_read_buffer(message, (void *)&input_data, (int *)&input_size);
+
+                        /* If the format is a plain, then we have to remove
+                         * one from the input_size, since once one was added by 
+                         * osync_marshall_data() for trailing newline.
+                         */
+			input_size--;
 		}
 	}
 	
