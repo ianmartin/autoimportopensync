@@ -180,9 +180,9 @@ error:
 	return false;
 }
 
-bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx)
+bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx, OSyncObjFormat *objformat)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __PRETTY_FUNCTION__, info, ctx, objformat);
 	
 	int i;
 	OSyncError *error = NULL;
@@ -193,18 +193,19 @@ bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_trace(TRACE_INTERNAL, "going to delete entry with uid: %s", uids[i]);
 		
 		change = osync_change_new(&error);
-		if (!change) {
-			for (; uids[i]; i++)
-				g_free(uids[i]);
-			g_free(uids);
-			osync_context_report_osyncerror(ctx, error);
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
-			osync_error_unref(&error);
-			return false;
-		}
+		if (!change)
+			goto error;
 
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 		osync_change_set_uid(change, uids[i]);
+
+		OSyncData *data = osync_data_new(NULL, 0, objformat, &error); 
+		if (!data)
+			goto error_free_change;
+
+		osync_data_set_objtype(data, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, data);
+
 		osync_context_report_change(ctx, change);
 		osync_hashtable_update_hash(hashtable, OSYNC_CHANGE_TYPE_DELETED, uids[i], NULL);
 
@@ -214,6 +215,17 @@ bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx)
 	g_free(uids);
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 	return true;
+
+error_free_change:	
+	osync_change_unref(change);
+error:	
+	for (; uids[i]; i++)
+		g_free(uids[i]);
+	g_free(uids);
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
+	osync_error_unref(&error);
+	return false;
 }
 
 OSyncDataSource::~OSyncDataSource()

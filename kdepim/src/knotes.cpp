@@ -241,7 +241,7 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		hash_value.reset();
 	}
 
-	if (!report_deleted(info, ctx)) {
+	if (!report_deleted(info, ctx, objformat)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
 		return;
 	}

@@ -13,7 +13,7 @@ class OSyncDataSource
 
 		/* utility functions for subclasses */
 		bool report_change(OSyncPluginInfo *info, OSyncContext *ctx, QString uid, QString data, QString hash, OSyncObjFormat *objformat);
-		bool report_deleted(OSyncPluginInfo *info, OSyncContext *ctx);
+		bool report_deleted(OSyncPluginInfo *info, OSyncContext *ctx, OSyncObjFormat *objformat);
 
 	public:
 		OSyncDataSource(const char *objtype) : objtype(objtype) {}

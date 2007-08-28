@@ -293,6 +293,9 @@ void KCalEventDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vevent20");
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
 		osync_hashtable_reset(hashtable);
@@ -303,7 +306,7 @@ void KCalEventDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		return;
 	}
 
-	if (!report_deleted(info, ctx)) {
+	if (!report_deleted(info, ctx, objformat)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
 		return;
 	}
@@ -318,6 +321,9 @@ void KCalTodoDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vtodo20");
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
 		osync_hashtable_reset(hashtable);
@@ -328,7 +334,7 @@ void KCalTodoDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		return;
 	}
 
-	if (!report_deleted(info, ctx)) {
+	if (!report_deleted(info, ctx, objformat)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
 		return;
 	}

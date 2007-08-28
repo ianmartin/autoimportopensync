@@ -147,7 +147,7 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		}
 	}
 
-	if (!report_deleted(info, ctx)) {
+	if (!report_deleted(info, ctx, objformat)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
 		return;
 	}
