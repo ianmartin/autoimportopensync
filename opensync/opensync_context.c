@@ -135,12 +135,11 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	osync_assert_msg(osync_change_get_data(change) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED, "You need to report some data unless you report CHANGE_DELETED");
 	
 	OSyncData *data = osync_change_get_data(change);
-	osync_assert(data);
 	
-	osync_assert_msg((osync_data_get_objformat(data) != NULL) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED, "The reported change did not have a format set");
-	osync_assert_msg((osync_data_get_objtype(data) != NULL) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED, "The reported change did not have a objtype set");
+	osync_assert_msg(((data && osync_data_get_objformat(data) != NULL) ||  osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED), "The reported change did not have a format set");
+	osync_assert_msg(((data && osync_data_get_objtype(data) != NULL) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED), "The reported change did not have a objtype set");
 		
-	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, objtype %s and format %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_data_get_objtype(data), osync_data_get_objformat(data) ? osync_objformat_get_name(osync_data_get_objformat(data)) : "None");
+	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change));
 	
 	osync_assert_msg(context->changes_function, "The engine must set a callback to receive changes");
 	
