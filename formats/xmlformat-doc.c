@@ -129,7 +129,6 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 
 	OSyncObjFormat *fromformat = osync_format_env_find_objformat(env, fromname);
 	OSyncObjFormat *toformat = osync_format_env_find_objformat(env, toname);
-	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
 
 	if (!fromformat || !toformat) {
 		osync_trace(TRACE_ERROR, "Unable to register converter for %s->%s, format not found\n", fromname, toname);
@@ -155,16 +154,6 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 
-
-	/* Detector: plain as xmlformat */
-	conv = osync_converter_new_detector(plain, fromformat, detect_func, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register detector: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
 
 	return TRUE;
 }
