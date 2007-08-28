@@ -889,8 +889,11 @@ class PhoneEvent(PhoneEntry):
             alarm = doc.createElement('Alarm')
             appendXMLChild(doc, alarm, 'AlarmAction', 'DISPLAY')
             appendXMLChild(doc, alarm, 'AlarmDescription', self.name)
+            trigger = doc.createElement('AlarmTrigger')
             alarmtime = self.alarmdt.strftime(VCAL_DATETIME)
-            appendXMLChild(doc, alarm, 'AlarmTrigger', alarmtime)
+            appendXMLChild(doc, trigger, 'Content', alarmtime)
+            appendXMLChild(doc, trigger, 'Value', 'DATE-TIME')
+            alarm.appendChild(trigger)
             top.appendChild(alarm)
 
         e = doc.createElement('RecurrenceRule')
