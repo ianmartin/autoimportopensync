@@ -1545,7 +1545,8 @@ class PhoneAccess:
         ret = []
         for entry in entries:
             change = opensync.OSyncChange()
-            change.member = member
+            if member:
+                change.member = member
             change.objtype = objtype
             change.uid = self.__generate_uid(entry)
             change.format = "xml-%s-doc" % objtype
