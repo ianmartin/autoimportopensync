@@ -285,7 +285,8 @@ has_value:;
 	//We need to find the handler for this attribute
 	OSyncXMLField *(* attr_handler)(OSyncXMLFormat *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(attrtable, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
-	if (attr_handler == HANDLE_IGNORE) {
+	if (attr_handler == HANDLE_IGNORE ||
+		attr_handler == NULL) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
 		return;
 	}
