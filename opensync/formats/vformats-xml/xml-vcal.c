@@ -2027,22 +2027,26 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 	/* Duration */	
 	} else {
 		tmp = osxml_find_node(trigger, "Content");
+
 		duration = osync_time_alarmdu2sec(tmp);
 		g_free(tmp);
 
 		tmp = osxml_find_node(dtstart, "Content");
-		/* AlarmTrigger MUST be UTC (see rfc2445).
-		   So there is an offset to UTC of 0 seconds. */
-		if (osync_time_isutc(tmp))
-			osync_trace(TRACE_INTERNAL, "WARNNING: timestamp is not UTC: %s", tmp);
 
 		dtstarted = osync_time_vtime2unix(tmp, 0);
-
-		g_free(tmp);
 
 		dtstarted += duration;
 
 		runtime = osync_time_unix2vtime(&dtstarted);
+
+		if (!osync_time_isutc(tmp)) {
+			osync_trace(TRACE_INTERNAL, "WARNNING: timestamp is not UTC - converting reminder to localtime");
+			char *tmp = runtime;
+			runtime = osync_time_vtime2localtime(tmp, 0);
+			g_free(tmp);
+		}
+
+		g_free(tmp);
 	}
 
 	g_free(value);
