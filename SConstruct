@@ -29,7 +29,7 @@ env = Environment(
 		toolpath=['./', './build'])
 
 A = env.get_opts().add
-A('debug', 'Should debugging be enabled?', 1)
+A(BoolOption('debug', 'Should debugging be enabled?', 1))
 A('enable_trace', 'Should tracing be enabled?', 1)
 A(BoolOption('enable_tools', 'Should the developer tools be build', 1))
 A(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
