@@ -18,15 +18,13 @@ EXTRA_DIST = \
 	evolution2_ebook.h \
 	evolution2_ecal.h \
 	evolution2_etodo.h \
-	evolution2_xml.h \
 	evo2-sync
 	
 evo2_sync_la_SOURCES = \
 	evolution2_sync.c \
 	evolution2_ebook.c \
 	evolution2_ecal.c \
-	evolution2_etodo.c \
-	evolution2_xml.c
+	evolution2_etodo.c
 
 
 

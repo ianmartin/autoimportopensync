@@ -140,8 +140,11 @@ ESource *evo2_find_source(ESourceList *list, char *uri)
 		GSList *s;
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			ESource *source = E_SOURCE (s->data);
-			osync_trace(TRACE_INTERNAL, "Comparing %s and %s", e_source_get_uri(source), uri);
+			osync_trace(TRACE_INTERNAL, "Comparing source uri %s and %s", e_source_get_uri(source), uri);
 			if (!strcmp(e_source_get_uri(source), uri))
+				return source;
+			osync_trace(TRACE_INTERNAL, "Comparing source name %s and %s", e_source_peek_name(source), uri);
+			if (!strcmp(e_source_peek_name(source), uri))
 				return source;
 		}
 	}
