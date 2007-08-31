@@ -2018,6 +2018,8 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 			isruntime = TRUE;
 		}
 	}
+	
+	g_free(value);
 
 	startvtime = osxml_find_node(dtstart, "Content");
 
@@ -2041,15 +2043,13 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 
 		if (!osync_time_isutc(tmp)) {
 			osync_trace(TRACE_INTERNAL, "WARNNING: timestamp is not UTC - converting reminder to localtime");
-			char *tmp = runtime;
-			runtime = osync_time_vtime2localtime(tmp, 0);
-			g_free(tmp);
+			char *utc_runtime = runtime;
+			runtime = osync_time_vtime2localtime(utc_runtime, 0);
+			g_free(utc_runtime);
 		}
 
 		g_free(tmp);
 	}
-
-	g_free(value);
 
 	vformat_attribute_add_value(attr, runtime);
 	
