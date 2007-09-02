@@ -69,14 +69,14 @@ int main(int argc, char **argv)
 	if (!client)
 		goto error;
 	
-	if (!strcmp (argv[0], "-f")) {
+	if (!strcmp (argv[1], "-f")) {
 		usePipes = TRUE;
 		/* We cannot preserve the knowledge about the fds through the execve call.
 		 * Therefore, we pass the fd numbers through the args */
-		read_fd = atoi(argv[1]);
-		write_fd = atoi(argv[2]);
+		read_fd = atoi(argv[2]);
+		write_fd = atoi(argv[3]);
 	} else
-		pipe_path = argv[0];
+		pipe_path = argv[1];
 	
 	if (usePipes) {
 		/* We are using anonymous pipes. */
