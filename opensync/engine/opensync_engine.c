@@ -637,15 +637,16 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	const char *config = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
-	
+
+	OSyncPlugin *plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
+	if (!plugin) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", osync_member_get_pluginname(member));
+		goto error;
+	}
+		
 	/* If we dont have a config we have to ask the plugin if it needs a config */
 	if (!osync_member_has_config(member)) {
-		OSyncPlugin *plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
-		if (!plugin) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", osync_member_get_pluginname(member));
-			goto error;
-		}
-		
+
 		switch (osync_plugin_get_config_type(plugin)) {
 			case OSYNC_PLUGIN_NO_CONFIGURATION:
 				break;
@@ -673,7 +674,11 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	osync_client_proxy_set_context(proxy, engine->context);
 	osync_client_proxy_set_change_callback(proxy, _osync_engine_receive_change, engine);
 
-	if (!osync_client_proxy_spawn(proxy, osync_member_get_start_type(member), osync_member_get_configdir(member), error))
+	/* Set Member start type to his plugin start type. Redudant - isn't it?
+	   FIXME: get rid of osync_member_get_start_type() / osync_member_set_start_type() */
+	osync_member_set_start_type(member, osync_plugin_get_start_type(plugin));
+
+	if (!osync_client_proxy_spawn(proxy, osync_plugin_get_start_type(plugin), osync_member_get_configdir(member), error))
 		goto error_free_proxy;
 	
 	engine->busy = TRUE;
