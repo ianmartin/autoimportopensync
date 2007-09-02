@@ -34,6 +34,7 @@
 #include "opensync_client_proxy_internals.h"
 
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <signal.h>
 
 #ifdef _WIN32
@@ -77,6 +78,7 @@ typedef struct callContext {
 } callContext;
 
 //portable kill pid helper
+#if 0
 static int _osync_kill(pid_t pid, int sig) 
 {
 #ifndef _WIN32
@@ -105,13 +107,15 @@ end:
 	return (ret);
 #endif //_WIN32
 } 
+#endif
 
+#if 0
 static char *_osync_client_pid_filename(OSyncClientProxy *proxy)
 {
 	return g_strdup_printf("%s/osplugin.pid", proxy->path);
 }
 
-/*static osync_bool osync_client_remove_pidfile(OSyncClientProxy *proxy, OSyncError **error)
+static osync_bool osync_client_remove_pidfile(OSyncClientProxy *proxy, OSyncError **error)
 {
 	char *pidpath = _osync_client_pid_filename(proxy);
 
@@ -139,7 +143,7 @@ static osync_bool _osync_client_create_pidfile(OSyncClientProxy *proxy, OSyncErr
 	g_free(pidstr);
 	g_free(pidpath);
 	return TRUE;
-}*/
+}
 
 static osync_bool _osync_client_kill_old_osplugin(OSyncClientProxy *proxy, OSyncError **error)
 {
@@ -198,6 +202,7 @@ out_free_path:
 //out:
 	return ret;
 }
+#endif
 
 /** This function takes care of the messages received on the outgoing (sending)
  * queue. The only messages we can receive there, are HUPs or ERRORs. */
@@ -799,6 +804,9 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 		if (!osync_queue_new_pipes(&read2, &write2, error))
 			goto error_free_pipe1;
 		
+		proxy->outgoing = write1;
+		proxy->incoming = read2;
+
 		/* Now we either spawn a new process, or we create a new thread */
 		if (type == OSYNC_START_TYPE_THREAD) {
 			proxy->client = osync_client_new(error);
@@ -821,50 +829,56 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 				goto error_free_pipe2;
 		} else {
 			/* First lets see if the old plugin exists, and kill it if it does */
+#if 0			
 			if (!_osync_client_kill_old_osplugin(proxy, error))
 				goto error;
+#endif			
 			
-			/*todo*/
-			
-			
+			if (!proxy->outgoing || !osync_queue_exists(proxy->outgoing) || !osync_queue_is_alive(proxy->outgoing)) {
+				pid_t cpid = fork();
+				if (cpid == 0) {
+					osync_trace_reset_indent();
+
+					char *readfd = g_strdup_printf("%i", osync_queue_get_fd(read1));
+					char *writefd = g_strdup_printf("%i", osync_queue_get_fd(write2));
 		
-		/*if (!osync_queue_exists(proxy->outgoing) || !osync_queue_is_alive(proxy->outgoing)) {
-			pid_t cpid = fork();
-			if (cpid == 0) {
-				osync_trace_reset_indent();
-	
-				osync_trace(TRACE_INTERNAL, "About to exec osplugin");
-				char *memberstring = g_strdup_printf("%lli", osync_member_get_id(proxy->member));
-				execlp("osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
+					osync_trace(TRACE_INTERNAL, "About to exec osplugin");
+					execlp("osplugin", "osplugin", "-f", readfd, writefd,  NULL);
+					
+					if (errno == ENOENT) {
+						osync_trace(TRACE_INTERNAL, "Unable to find osplugin. Trying local path.");
+						execlp("./osplugin", "osplugin", "-f", readfd, writefd, NULL);
+					}
+					
+					g_free(readfd);
+					g_free(writefd);
+
+					osync_trace(TRACE_INTERNAL, "unable to exec");
+					exit(1);
+				}
+		
+				proxy->child_pid = cpid;
 				
-				if (errno == ENOENT) {
-					osync_trace(TRACE_INTERNAL, "Unable to find osplugin. Trying local path.");
-					execlp("./osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
+				/*
+				while (!proxy->outgoing || !osync_queue_exists(proxy->outgoing)) {
+					osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
+					g_usleep(500000);
 				}
 				
-				osync_trace(TRACE_INTERNAL, "unable to exec");
-				exit(1);
+				osync_trace(TRACE_INTERNAL, "Queue was created");
+
+				*/
+
 			}
-	
-			proxy->child_pid = cpid;
-			
-			while (!osync_queue_exists(proxy->outgoing)) {
-				osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
-				g_usleep(500000);
+		
+			/*
+			if (proxy->child_pid) {
+				if (!_osync_client_create_pidfile(proxy, error))
+					goto error;
 			}
-			
-			osync_trace(TRACE_INTERNAL, "Queue was created");
-		}
-	
-		if (proxy->child_pid) {
-			if (!_osync_client_create_pidfile(proxy, error))
-				goto error;
-		}*/
+			*/
 		}
 		
-		proxy->outgoing = write1;
-		proxy->incoming = read2;
-	
 		/* We now connect to our incoming queue */
 		if (!osync_queue_connect(proxy->incoming, OSYNC_QUEUE_RECEIVER, error))
 			goto error;
@@ -945,26 +959,32 @@ osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **err
 		
 		osync_client_unref(proxy->client);
 	} else if (proxy->type == OSYNC_START_TYPE_PROCESS) {
-		/*if (client->child_pid) {
-		int status;
-		if (waitpid(client->child_pid, &status, 0) == -1) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error waiting for osplugin process: %s", g_strerror(errno));
-			goto error;
+
+		if (proxy->child_pid) {
+			int status;
+			if (waitpid(proxy->child_pid, &status, 0) == -1) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Error waiting for osplugin process: %s", g_strerror(errno));
+				goto error;
+			}
+
+			if (!WIFEXITED(status))
+				osync_trace(TRACE_INTERNAL, "Child has exited abnormally");
+			else if (WEXITSTATUS(status) != 0)
+				osync_trace(TRACE_INTERNAL, "Child has returned non-zero exit status (%d)", WEXITSTATUS(status));
+
+#if 0
+			if (!osync_client_remove_pidfile(proxy, error))
+				goto error;
+#endif			
 		}
 
-		if (!WIFEXITED(status))
-			osync_trace(TRACE_INTERNAL, "Child has exited abnormally");
-		else if (WEXITSTATUS(status) != 0)
-			osync_trace(TRACE_INTERNAL, "Child has returned non-zero exit status (%d)", WEXITSTATUS(status));
-
-		if (!osync_client_remove_pidfile(client, error))
-			goto error;
-	}*/
 		
 		
 		/* First lets see if the old plugin exists, and kill it if it does */
+#if 0
 		if (!_osync_client_kill_old_osplugin(proxy, error))
 			goto error;
+#endif		
 	}
 			
 	osync_queue_free(proxy->incoming);
