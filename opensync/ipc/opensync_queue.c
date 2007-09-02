@@ -952,8 +952,30 @@ osync_bool osync_queue_is_alive(OSyncQueue *queue)
 	return TRUE;
 }
 
+/*! @brief Get the path of the fifo for the Queue
+ * 
+ * Get the full path of the fifo for this Queue if fifos used.
+ *
+ * @param queue The queue to get the file descriptor
+ * @returns The full path of the fifo or NULL if no fifos used 
+ * 
+ */
 const char *osync_queue_get_path(OSyncQueue *queue)
 {
 	osync_assert(queue);
 	return queue->name;
+}
+
+/*! @brief Get the pipe file descriptor of the Queue
+ * 
+ * Get the pipe file descriptor of this Queue if pipes are used.
+ *
+ * @param queue The queue to get the file descriptor
+ * @returns The pipe file descriptor of the queue or -1 if no pipes used or set
+ * 
+ */
+int osync_queue_get_fd(OSyncQueue *queue)
+{
+	osync_assert(queue);
+	return queue->fd;
 }
