@@ -110,6 +110,7 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	osync_plugin_set_longname(plugin, "KDE Desktop");
 	osync_plugin_set_description(plugin, "Plugin for the KDE 3.5 Desktop");
 	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_NO_CONFIGURATION);
+	osync_plugin_set_start_type(plugin, OSYNC_START_TYPE_PROCESS); 
 
 	osync_plugin_set_initialize(plugin, kde_initialize);
 	osync_plugin_set_finalize(plugin, kde_finalize);
