@@ -16,8 +16,8 @@ except ImportError:
     libdir = child.fromchild.readline().rstrip('\n')
     if child.wait() != 0 or not os.path.isdir(libdir):
         # no pkgconfig, try standard install path
-        libdir = '/usr/lib/opensync'
-        if not os.path.isdir(libdir):
+        libdir = '/usr/lib'
+        if not os.path.isdir(os.path.join(libdir, 'opensync')):
             sys.stderr.write("Error: couldn't locate OpenSync library directory\n")
             sys.exit(1)
     sys.path.append(os.path.join(libdir, 'opensync', 'python-plugins'))
