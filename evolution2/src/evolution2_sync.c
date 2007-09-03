@@ -245,6 +245,15 @@ static void evo2_finalize(void *data)
 {
 	OSyncEvoEnv *env = data;
 
+	if (env->contact_sink)
+		osync_objtype_sink_unref(env->contact_sink);
+
+	if (env->calendar_sink)
+		osync_objtype_sink_unref(env->calendar_sink);
+
+	if (env->tasks_sink)
+		osync_objtype_sink_unref(env->tasks_sink);
+
 	free_env(env);
 }
 
