@@ -1,0 +1,43 @@
+Basic Installation
+==================
+
+   These are generic installation instructions.
+
+   Like most of Opensync, the GPE plugin now uses scons for building.
+
+The simplest way to compile this package is:
+
+  1. `cd' to the directory containing the package's source code and type
+     `scons' to build the package for your system.  
+
+  2. Optionally, type `scons check' to run any self-tests that come with
+     the package.
+
+  3. Type `scons install' to install the programs and any data files and
+     documentation.
+
+  4. You can remove the program binaries and object files from the
+     source code directory by typing `scons -c'.
+
+Compilers and Options
+=====================
+
+   Type `scons -h' to see the options that can be specified for the build.
+
+   If other changes are required, type `man scons' to see the detail on
+modifying the SConstruct and SConscript files which control the build.
+
+Installation Names
+==================
+
+   By default, `scons install' will install the package's files in
+`/usr/local/bin', `/usr/local/man', etc.  You can specify an
+installation prefix other than `/usr/local' by giving `scons' the
+option `prefix=PATH'.
+
+Optional Features
+=================
+
+   Type `scons -h' to see the options that can be specified for the build.
+
+   Type `scons -H' to see the options for scons itself.

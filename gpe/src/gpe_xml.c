@@ -1,0 +1,88 @@
+/*
+ * gpe-sync - A plugin for the opensync framework
+ * Copyright (C) 2005  Martin Felis <martin@silef.de>
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * 
+ */
+
+#include "gpe_sync.h"
+
+/*This just opens the config file and returns the settings in the env */
+osync_bool gpe_parse_settings(gpe_environment *env, const char *data)
+{
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+
+	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p)", __func__, env, data);
+
+	// Set the defaults
+	env->device_addr = (char*)malloc(sizeof(char)*10);
+	strcpy(env->device_addr, "127.0.0.1");
+	env->device_port = 6446;
+	env->username = (char*)malloc(sizeof(char)*9);
+	strcpy(env->username, "gpeuser");
+	env->use_ssh = 1;
+
+	doc = xmlParseMemory(data, strlen(data)+1);
+	
+	if(!doc) {
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: Could not parse data!", __func__);
+	  return FALSE;
+	}
+	
+	cur = xmlDocGetRootElement(doc);
+
+	if(!cur) {
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: Data seems to be empty", __func__);
+	  return FALSE;
+	}
+
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
+	  xmlFreeDoc(doc);
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s:  data seems not to be a valid configdata", __func__);
+	  return FALSE;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_ip")) {
+				// convert the string to an ip
+				env->device_addr = g_strdup(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_port")) {
+				env->device_port = atoi(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"use_ssh")) {
+				env->use_ssh = atoi(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"use_local")) {
+				env->use_local = atoi(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_user")) {
+				env->username = g_strdup(str);
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+
+	xmlFreeDoc(doc);
+	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
+	return TRUE;
+}
