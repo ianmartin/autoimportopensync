@@ -23,7 +23,7 @@ Each device has its own way of storing information and the purpose of OpenSync i
 extract this information and provide inconvertibility using an XML intermediate.
 OpenSync without any plugins is incapable of doing any synchronisation.
 
-You need also libvformat to sync vformat entries (vcard, vcal, ical ..) ! [4]
+You need also the vformat plugin to sync "vformat" entries (vcard, vcal, ical ..) ! [4]
 
 Each plugin can be thought of an interface to a device.
 Two plugins may also be interfaces to the same devices... only different in the way
