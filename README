@@ -47,7 +47,7 @@ scons install
 
 Next Steps
 ==========
-You need also libvformat [4], a frontend (msynctool, multisync-gui ...) and at least one plugin.
+You need also vformat plugin [4], a frontend (msynctool, multisync-gui ...) and at least one plugin.
 
 
 Links
@@ -56,5 +56,5 @@ Links
 [1] - http://www.opensync.org/wiki/DeviceCompatibilityList
 [2] - http://www.opensync.org/wiki/download
 [3] - http://cryptomilch.de/~dgollub/talks/OpenSync_FOSDEM_2007.pdf
-[4] - svn co http://svn.opensync.org/format-plugins/vformat  libvformat
-      or if you from [2] or your distribution
+[4] - svn co http://svn.opensync.org/format-plugins/vformat
+
