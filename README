@@ -39,6 +39,7 @@ Installation
 ============
 To build OpenSync you need scons, (check for unit tests - optional) and the devel packages
 of sqlite3, glib2, and libxml2. swig for python bindings (optional).
+To build the python bindings additional set "enable_python=1".
 
 svn co http://svn.opensync.org/trunk opensync
 cd opensync/
