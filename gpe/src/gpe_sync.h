@@ -38,6 +38,7 @@
 
 // this is needed for gpe_xml.c:
 #include <libxml/parser.h>
+#include <libxml/xpath.h>
 
 #include "gpesync_client.h"
 
@@ -61,9 +62,11 @@ typedef struct gpe_environment {
 	// configuration
 	char *device_addr; // the ip of the handheld;
 	char *username; // The user on the handheld
+	char *command; // Command to run
 	int device_port;
 	int use_ssh;
   	int use_local;
+	int use_remote;
 	
 	int debuglevel;
 } gpe_environment;

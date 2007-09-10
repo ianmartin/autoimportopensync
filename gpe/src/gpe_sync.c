@@ -38,12 +38,12 @@ static void gpe_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	} else {
 	  char *client_err;
 	  if (env->use_local) {
-	    env->client = gpesync_client_open_local(&client_err);
+	    env->client = gpesync_client_open_local(env->command, &client_err);
 	  }
 	  else if (env->use_ssh)
 	    {
 	      gchar *path = g_strdup_printf ("%s@%s", env->username, env->device_addr);
-	      env->client = gpesync_client_open_ssh (path, &client_err);
+	      env->client = gpesync_client_open_ssh (path, env->command, &client_err);
 	    }
 	  else
 	    env->client = gpesync_client_open (env->device_addr, env->device_port, &client_err);

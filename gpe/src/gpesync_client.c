@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Martin Felis <martin@silef.de>
+ * Copyright (C) 2007  Graham R. Cobb <g+opensync@cobb.uk.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -222,13 +223,16 @@ read_response (struct gpesync_client_query_context *query_ctx)
 }
 
 gpesync_client *
-gpesync_client_open_ssh (const char *addr, gchar **errmsg)
+gpesync_client_open_ssh (const char *addr, const char * command, gchar **errmsg)
 {
   gpesync_client *ctx;
   gchar *hostname = NULL;
   gchar *username = NULL;
-  gchar *str;
+  gchar *str, *str2;
   gchar *p;
+#define MAXARGS 20
+  char *argv[MAXARGS+1];
+  int i;
 
   int in_fds[2], out_fds[2];
   pid_t pid;
@@ -251,6 +255,23 @@ gpesync_client_open_ssh (const char *addr, gchar **errmsg)
   if (username == NULL)
     username = (gchar *) g_get_user_name ();
 
+  /* Assemble argument list for exec */
+  str2 = g_strdup(command);
+  argv[0] = "ssh";
+  argv[1] = "-l";
+  argv[2] = username;
+  argv[3] = hostname;
+  i=3; p=str2;
+  while (i++ < MAXARGS && p && *p != 0) {
+    argv[i] = p;
+    /* Look for the next space */
+    p = strchr(p, ' ');
+    if (!p) break;
+    p[0]=0; // Null terminate argument
+    while (*++p==' ') ; // Skip blanks
+  }
+  argv[i] = NULL;
+
   ctx = g_malloc0 (sizeof (gpesync_client));
 
   if (pipe (in_fds) && verbose)
@@ -267,9 +288,8 @@ gpesync_client_open_ssh (const char *addr, gchar **errmsg)
       close (out_fds[1]);
       close (in_fds[0]);
       if (verbose)
-        fprintf (stderr, "connecting as %s to %s filename: %s\n", username, hostname, "gpesyncd");
-      execlp ("ssh", "ssh", "-l", username, hostname, "gpesyncd", "--remote",
-	      NULL);
+        fprintf (stderr, "connecting as %s to %s with command %s (argc=%d)\n", username, hostname, command, i);
+      execvp ("ssh", argv);
       perror ("exec");
     }
 
@@ -283,17 +303,34 @@ gpesync_client_open_ssh (const char *addr, gchar **errmsg)
   ctx->username = g_strdup(username);
  
   g_free (str);
-  
+  g_free (str2);
+
   return ctx;
 }
 
 gpesync_client *
-gpesync_client_open_local (gchar **errmsg)
+gpesync_client_open_local (const char * command, gchar **errmsg)
 {
   gpesync_client *ctx;
+  gchar *str2, *p;
+  char *argv[MAXARGS+1];
+  int i;
 
   int in_fds[2], out_fds[2];
   pid_t pid;
+
+  /* Assemble argument list for exec */
+  str2 = g_strdup(command);
+  i=-1; p=str2;
+  while (i++ < MAXARGS && p && *p != 0) {
+    argv[i] = p;
+    /* Look for the next space */
+    p = strchr(p, ' ');
+    if (!p) {i++; break;}
+    p[0]=0; // Null terminate argument
+    while (*++p==' ') ; // Skip blanks
+  }
+  argv[i] = NULL;
 
   ctx = g_malloc0 (sizeof (gpesync_client));
 
@@ -312,13 +349,14 @@ gpesync_client_open_local (gchar **errmsg)
       close (in_fds[0]);
       if (verbose)
         fprintf (stderr, "connecting to gpesyncd locally");
-      execlp ("gpesyncd", "gpesyncd", "--remote",
-	      NULL);
+      execvp (argv[0], argv);
       perror ("exec");
     }
 
   close (out_fds[0]);
   close (in_fds[1]);
+
+  g_free (str2);
 
   ctx->outfd = out_fds[1];
   ctx->infd = in_fds[0];

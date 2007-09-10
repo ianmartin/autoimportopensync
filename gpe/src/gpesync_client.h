@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Martin Felis <martin@silef.de>
+ * Copyright (C) 2007  Graham R. Cobb <g+opensync@cobb.uk.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,8 +47,8 @@ typedef struct
  * \param errmsg	If an error occurs, the message will be written there.
  *
  */
-gpesync_client *gpesync_client_open_ssh(const char *addr, char **errmsg);
-gpesync_client *gpesync_client_open_local(char **errmsg);
+gpesync_client *gpesync_client_open_ssh(const char *addr, const char * command, char **errmsg);
+gpesync_client *gpesync_client_open_local(const char * command, char **errmsg);
 gpesync_client *gpesync_client_open(const char *addr, int port,  char **errmsg);
 
 /*! \brief Closes an exisiting connection and frees the memory.

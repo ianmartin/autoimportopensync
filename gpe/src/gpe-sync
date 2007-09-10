@@ -2,19 +2,18 @@
   <!-- There are three ways to connect to the GPE device:
 	
 	1) You can use gpesyncd locally (if opensync is running
-	on the same system) by specifying:
+	on the same system) by specifying the <local>...</local> option.
 
-	<use_local>1</use_local>
-	<use_ssh>0</use_ssh>
+	In this case you can specify <command>shell command</command>
+	to change the shell command which is invoked.
 
-	In this case, no other tags are used.
+	Specifying the <command> tag is not recommended.
 
-	2) You can use SSH to connect to the device by specifying:
+	2) You can use SSH to connect to the device by specifying the
+	<ssh>...<ssh> option.
 
-	<use_local>0</use_local>
-	<use_ssh>1</use_ssh>
-
-	In this case, the <handheld_ip> and <handheld_user> tags are used.
+	In this case, the <handheld_ip>, <handheld_user> and <command> 
+	tags can be used.
 
 	Note that the handheld_ip can be a name or an address and may be
 	associated with a particular identify file in the ~/.ssh/config
@@ -23,18 +22,35 @@
 	Also note that for the Nokia Internet Tablet, the handheld_user
 	should be specified as "user".
 
-	3) You can connect to a running gpesyncd daemon by specifying:
+	Specifying the <command> tag is not recommended.
 
-	<use_local>0</use_local>
-	<use_ssh>0</use_ssh>
+	3) You can connect to a running gpesyncd daemon by specifying the
+	<remote>...</remote> option.
 
 	In this case, the <handheld_ip> and <handheld_port> tags are used.
 
+  Either use the <ssh> configuration shown below or remove it and uncomment
+  one of the other sections.  Each section is configured to show the default values
+  used if the tags are not specified. 
   -->
-  <!-- All tags are set to their default values below -->
-  <use_local>0</use_local>
-  <use_ssh>1</use_ssh>
-  <handheld_ip>127.0.0.1</handheld_ip>
-  <handheld_port>6446</handheld_port>
-  <handheld_user>gpeuser</handheld_user>
+
+  <ssh>
+    <handheld_ip>127.0.0.1</handheld_ip>
+    <handheld_user>gpeuser</handheld_user>
+    <command>gpesyncd --remote</command>
+  </ssh>
+
+  <!--
+  <local>
+    <command>gpesyncd --remote</command>
+  </local>
+  -->
+
+  <!--
+  <remote>
+    <handheld_ip>127.0.0.1</handheld_ip>
+    <handheld_port>6446</handheld_port>
+  </remote>
+  -->
+
 </config>
