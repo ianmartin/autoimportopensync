@@ -266,9 +266,10 @@ gpesync_client_open_ssh (const char *addr, const char * command, gchar **errmsg)
     argv[i] = p;
     /* Look for the next space */
     p = strchr(p, ' ');
-    if (!p) break;
-    p[0]=0; // Null terminate argument
-    while (*++p==' ') ; // Skip blanks
+    if (p) {
+      p[0]=0; // Null terminate argument
+      while (*++p==' ') ; // Skip blanks
+    }
   }
   argv[i] = NULL;
 
@@ -326,9 +327,10 @@ gpesync_client_open_local (const char * command, gchar **errmsg)
     argv[i] = p;
     /* Look for the next space */
     p = strchr(p, ' ');
-    if (!p) {i++; break;}
-    p[0]=0; // Null terminate argument
-    while (*++p==' ') ; // Skip blanks
+    if (p) { 
+      p[0]=0; // Null terminate argument
+      while (*++p==' ') ; // Skip blanks
+    }
   }
   argv[i] = NULL;
 
