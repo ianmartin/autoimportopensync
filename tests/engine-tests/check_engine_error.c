@@ -402,7 +402,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
@@ -415,7 +415,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "mockobjtype1");
 	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");
@@ -485,7 +485,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
@@ -498,7 +498,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "mockobjtype1");
 	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");
@@ -568,7 +568,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	
@@ -580,7 +580,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "mockobjtype1");
 	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	
@@ -649,7 +649,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
@@ -662,7 +662,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	
@@ -730,7 +730,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
@@ -743,7 +743,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "mockobjtype1");
 	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");

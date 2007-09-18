@@ -209,7 +209,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	
 	debug->member2 = osync_member_new(&error);
@@ -220,7 +220,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	
 	debug->plugin = osync_plugin_new(&error);
@@ -517,7 +517,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	osync_member_add_objtype(debug->member1, "contact");
 	osync_member_add_objtype(debug->member1, "note");
@@ -530,7 +530,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	osync_member_add_objtype(debug->member2, "contact");
 	osync_member_add_objtype(debug->member2, "note");
@@ -902,7 +902,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	osync_member_add_objtype(debug->member1, "contact");
 	osync_member_add_objtype(debug->member1, "note");
@@ -915,7 +915,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	osync_member_add_objtype(debug->member2, "contact");
 	osync_member_add_objtype(debug->member2, "note");
@@ -1119,7 +1119,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	osync_member_add_objtype(debug->member1, "contact");
 	osync_member_add_objtype(debug->member1, "note");
@@ -1132,7 +1132,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	osync_member_add_objtype(debug->member2, "contact");
 	osync_member_add_objtype(debug->member2, "note");
@@ -1381,7 +1381,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	
 	debug->member2 = osync_member_new(&error);
@@ -1392,7 +1392,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	osync_member_add_objtype(debug->member2, "contact");
 	osync_member_add_objtype(debug->member2, "note");
@@ -1574,7 +1574,7 @@ static OSyncDebugGroup *_create_group6(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	
 	debug->member2 = osync_member_new(&error);
@@ -1585,7 +1585,7 @@ static OSyncDebugGroup *_create_group6(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	osync_member_add_objtype(debug->member2, "contact");
 	osync_member_add_objtype(debug->member2, "note");
@@ -1770,7 +1770,7 @@ static OSyncDebugGroup *_create_group7(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member1, "file");
 	
 	debug->member2 = osync_member_new(&error);
@@ -1781,7 +1781,7 @@ static OSyncDebugGroup *_create_group7(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
 	osync_member_add_objtype(debug->member2, "file");
 	osync_member_add_objtype(debug->member2, "contact");
 	osync_member_add_objtype(debug->member2, "note");

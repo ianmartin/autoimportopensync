@@ -734,29 +734,6 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-
-/** @brief Set the start type for this member
- * 
- * @param member The member
- * @param type The plugin start type
- */
-void osync_member_set_start_type(OSyncMember *member, OSyncStartType type)
-{
-	osync_assert(member);
-	member->starttype = type;
-}
-
-/** @brief Get the start type for this member
- * 
- * @param member The member
- * @returns Return the start type of this member
- */
-OSyncStartType osync_member_get_start_type(OSyncMember *member)
-{
-	osync_assert(member);
-	return member->starttype;
-}
-
 /** @brief Get the capabilities of the member 
  * 
  * @param member The member

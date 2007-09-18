@@ -674,10 +674,6 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	osync_client_proxy_set_context(proxy, engine->context);
 	osync_client_proxy_set_change_callback(proxy, _osync_engine_receive_change, engine);
 
-	/* Set Member start type to his plugin start type. Redudant - isn't it?
-	   FIXME: get rid of osync_member_get_start_type() / osync_member_set_start_type() */
-	osync_member_set_start_type(member, osync_plugin_get_start_type(plugin));
-
 	if (!osync_client_proxy_spawn(proxy, osync_plugin_get_start_type(plugin), osync_member_get_configdir(member), error))
 		goto error_free_proxy;
 	

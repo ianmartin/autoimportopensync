@@ -382,14 +382,6 @@ typedef struct {} Member;
 		osync_member_set_objtype_enabled(self, objtype, enabled);
 	}
 
-	void set_start_type(StartType type) {
-		osync_member_set_start_type(self, type);
-	}
-
-	StartType get_start_type() {
-		return osync_member_get_start_type(self);
-	}
-
 	Capabilities *get_capabilities() {
 		Capabilities *caps = osync_member_get_capabilities(self);
 		if (caps)
