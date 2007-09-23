@@ -837,6 +837,11 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 			if (!proxy->outgoing || !osync_queue_exists(proxy->outgoing) || !osync_queue_is_alive(proxy->outgoing)) {
 				pid_t cpid = fork();
 				if (cpid == 0) {
+
+					/* close the read and write ends of the pipes */
+					osync_queue_disconnect(write1, error);
+					osync_queue_disconnect(read2, error);
+
 					osync_trace_reset_indent();
 
 					char *readfd = g_strdup_printf("%i", osync_queue_get_fd(read1));
@@ -855,6 +860,10 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 
 					osync_trace(TRACE_INTERNAL, "unable to exec");
 					exit(1);
+				} else {
+					/* close the read and write ends of the pipes */
+					osync_queue_disconnect(write2, error);
+					osync_queue_disconnect(read1, error);
 				}
 		
 				proxy->child_pid = cpid;
