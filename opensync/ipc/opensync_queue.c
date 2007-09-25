@@ -1,6 +1,7 @@
 /*
  * libosengine - A synchronization engine for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2007  Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -66,7 +67,7 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 
 	while ((message = g_async_queue_try_pop(queue->incoming))) {
 		/* We check if the message is a reply to something */
-		osync_trace(TRACE_INTERNAL, "Dispatching %p:%i", message, osync_message_get_cmd(message));
+		osync_trace(TRACE_INTERNAL, "Dispatching %p:%i(%s)", message, osync_message_get_cmd(message), osync_message_get_commandstr(message));
 		
 		if (osync_message_get_cmd(message) == OSYNC_MESSAGE_REPLY || osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
 			
@@ -650,15 +651,16 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 			goto error;
 		}
 		queue->fd = fd;
-		int oldflags = fcntl(queue->fd, F_GETFD);
-		if (oldflags == -1) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get fifo flags");
-			goto error_close;
-		}
-		if (fcntl(queue->fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set fifo flags");
-			goto error_close;
-		}
+	}
+
+	int oldflags = fcntl(queue->fd, F_GETFD);
+	if (oldflags == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get fifo flags");
+		goto error_close;
+	}
+	if (fcntl(queue->fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set fifo flags");
+		goto error_close;
 	}
 
 	queue->connected = TRUE;

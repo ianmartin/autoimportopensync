@@ -1058,7 +1058,7 @@ static void _osync_client_message_handler(OSyncMessage *message, void *user_data
 
 	OSyncError *error = NULL;
 
-	osync_trace(TRACE_INTERNAL, "plugin received command %i", osync_message_get_command(message));
+	osync_trace(TRACE_INTERNAL, "plugin received command %i (%s)", osync_message_get_command(message), osync_message_get_commandstr(message));
 
 	switch (osync_message_get_command(message)) {
 		case OSYNC_MESSAGE_NOOP:
@@ -1262,7 +1262,7 @@ void osync_client_unref(OSyncClient *client)
 				osync_queue_disconnect(client->outgoing, NULL);
 			osync_queue_free(client->outgoing);
 		}
-	
+		
 		if (client->plugin)
 			osync_plugin_unref(client->plugin);
 		

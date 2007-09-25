@@ -117,9 +117,10 @@ int main(int argc, char **argv)
 	osync_client_run_and_block(client);
 	
 	osync_client_unref(client);
-	
-	osync_queue_free(incoming);
-	osync_queue_free(outgoing);
+
+	//queues are already freed with the client
+	//osync_queue_free(incoming);
+	//osync_queue_free(outgoing);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return 0;

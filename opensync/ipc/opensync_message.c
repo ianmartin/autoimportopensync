@@ -245,6 +245,61 @@ OSyncMessageCommand osync_message_get_command(OSyncMessage *message)
 
 /*@}*/
 
+char* osync_message_get_commandstr(OSyncMessage *message)
+{
+	char* cmdstr = "UNKNOWN";
+	
+	switch(message->cmd)
+	{
+		case OSYNC_MESSAGE_NOOP:
+			cmdstr = "OSYNC_MESSAGE_NOOP"; break;
+		case OSYNC_MESSAGE_CONNECT:
+			cmdstr = "OSYNC_MESSAGE_CONNECT"; break;
+		case OSYNC_MESSAGE_DISCONNECT:
+			cmdstr = "OSYNC_MESSAGE_DISCONNECT"; break;
+		case OSYNC_MESSAGE_GET_CHANGES:
+			cmdstr = "OSYNC_MESSAGE_GET_CHANGES"; break;
+		case OSYNC_MESSAGE_READ_CHANGE:
+			cmdstr = "OSYNC_MESSAGE_READ_CHANGE"; break;
+		case OSYNC_MESSAGE_COMMIT_CHANGE:
+			cmdstr = "OSYNC_MESSAGE_COMMIT_CHANGE"; break;
+		case OSYNC_MESSAGE_COMMITTED_ALL:
+			cmdstr = "OSYNC_MESSAGE_COMMITTED_ALL"; break;
+		case OSYNC_MESSAGE_SYNC_DONE:
+			cmdstr = "OSYNC_MESSAGE_SYNC_DONE"; break;
+		case OSYNC_MESSAGE_CALL_PLUGIN:
+			cmdstr = "OSYNC_MESSAGE_CALL_PLUGIN"; break;
+		case OSYNC_MESSAGE_NEW_CHANGE:
+			cmdstr = "OSYNC_MESSAGE_NEW_CHANGE"; break;
+		case OSYNC_MESSAGE_REPLY:
+			cmdstr = "OSYNC_MESSAGE_REPLY"; break;
+		case OSYNC_MESSAGE_ERRORREPLY:
+			cmdstr = "OSYNC_MESSAGE_ERRORREPLY"; break;
+		case OSYNC_MESSAGE_INITIALIZE:
+			cmdstr = "OSYNC_MESSAGE_INITIALIZE"; break;
+		case OSYNC_MESSAGE_FINALIZE:
+			cmdstr = "OSYNC_MESSAGE_FINALIZE"; break;
+		case OSYNC_MESSAGE_DISCOVER:
+			cmdstr = "OSYNC_MESSAGE_DISCOVER"; break;
+		case OSYNC_MESSAGE_SYNCHRONIZE:
+			cmdstr = "OSYNC_MESSAGE_SYNCHRONIZE"; break;
+		case OSYNC_MESSAGE_ENGINE_CHANGED:
+			cmdstr = "OSYNC_MESSAGE_ENGINE_CHANGED"; break;
+		case OSYNC_MESSAGE_MAPPING_CHANGED:
+			cmdstr = "OSYNC_MESSAGE_MAPPING_CHANGED"; break;
+		case OSYNC_MESSAGE_MAPPINGENTRY_CHANGED:
+			cmdstr = "OSYNC_MESSAGE_MAPPINGENTRY_CHANGED"; break;
+		case OSYNC_MESSAGE_ERROR:
+			cmdstr = "OSYNC_MESSAGE_ERROR"; break;
+		case OSYNC_MESSAGE_QUEUE_ERROR:
+			cmdstr = "OSYNC_MESSAGE_QUEUE_ERROR"; break;
+		case OSYNC_MESSAGE_QUEUE_HUP:
+			cmdstr = "OSYNC_MESSAGE_QUEUE_HUP"; break;
+	}
+	
+	return cmdstr;	
+}
+
 void osync_message_write_int(OSyncMessage *message, int value)
 {
 	g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( int ) );

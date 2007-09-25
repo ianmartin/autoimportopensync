@@ -71,6 +71,7 @@ gboolean osync_message_is_error(OSyncMessage *message);
 osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
 osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
 OSyncMessageCommand osync_message_get_command(OSyncMessage *message);
+char* osync_message_get_commandstr(OSyncMessage *message);
 void osync_message_reset_timeout(OSyncMessage *message);
 osync_bool osync_message_is_answered(OSyncMessage *message);
 void osync_message_set_answered(OSyncMessage *message);

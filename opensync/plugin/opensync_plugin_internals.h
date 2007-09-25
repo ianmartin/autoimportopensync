@@ -43,7 +43,7 @@ struct OSyncPlugin {
 	/** The start type of the plugin. Thread, Process or External. */
 	OSyncStartType start_type;
 	/** The pointer to the plugin (for internal use) */
-	OSyncModule *module;
+	//OSyncModule *module;
 	/** Plugin-specific data
 	 *
 	 * Can be used when a single module registers many plugins,

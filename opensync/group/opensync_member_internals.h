@@ -28,7 +28,7 @@ struct OSyncMember {
 	
 	char *configdata;
 	
-	OSyncGroup *group;
+	//OSyncGroup *group;
 
 	char *name;
 	char *pluginname;
