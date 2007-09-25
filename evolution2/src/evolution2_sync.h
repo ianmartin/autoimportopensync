@@ -1,7 +1,7 @@
 #ifndef EVO2_SYNC_H
 #define EVO2_SYNC_H
 
-#include "evo2_sync.h"
+//#include "evo2_sync.h"
 
 #include <opensync/opensync.h>
 #include <opensync/opensync-format.h>
@@ -22,6 +22,11 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <string.h>
+
+typedef struct evo2_location {
+	char *name;
+	char *uri;
+} evo2_location;
 
 typedef struct OSyncEvoEnv {
 	char *change_id;

@@ -9,8 +9,6 @@ AM_CFLAGS = -Wall -Werror -Wno-return-type
 
 config_DATA = evo2-sync
 
-opensyncheader_HEADERS = evo2_sync.h
-
 plugin_LTLIBRARIES = evo2_sync.la
 
 EXTRA_DIST = \

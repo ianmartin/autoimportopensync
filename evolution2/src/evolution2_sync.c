@@ -1,6 +1,7 @@
 /*
  * evolution2_sync - A plugin for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2007 Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -288,6 +289,13 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	osync_plugin_set_longname(plugin, "Evolution 2.x");
 	osync_plugin_set_description(plugin, "Address book, calendar and task list of Evolution 2");
 	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_OPTIONAL_CONFIGURATION);
+	/**
+	 * Bug 477227 – libebook isn't designed to be loaded and unloaded
+	 * see: http://bugzilla.gnome.org/show_bug.cgi?id=477227
+	 * see: http://mail.gnome.org/archives/evolution-hackers/2007-September/msg00027.html
+	 * also the other EDS client libraries; so we start the plugin in a own process.
+	 */
+	osync_plugin_set_start_type(plugin, OSYNC_START_TYPE_PROCESS);
 	
 	osync_plugin_set_initialize(plugin, evo2_initialize);
 	osync_plugin_set_finalize(plugin, evo2_finalize);
