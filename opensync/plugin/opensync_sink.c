@@ -525,24 +525,62 @@ void osync_objtype_sink_set_available(OSyncObjTypeSink *sink, osync_bool availab
 	sink->available = available;
 }
 
+/*! @brief Checks if sink is able to write (commit)
+ *
+ * If the sink is not able to write, then no changes will be commited to
+ * the sink.
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink is able to write (commit), FALSE otherwise
+ */
 osync_bool osync_objtype_sink_get_write(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->write;
 }
 
+/*! @brief Sets the write status of the sink (commit)
+ *
+ * This function should only called 
+ * See osync_objtype_sink_get_write()
+ *
+ * @param sink Pointer to sink
+ * @param write TRUE if the sink is available, FALSE otherwise
+ *
+ */
 void osync_objtype_sink_set_write(OSyncObjTypeSink *sink, osync_bool write)
 {
 	osync_assert(sink);
 	sink->write = write;
 }
 
+/*! @brief Checks if sink is able to read single entries
+ *
+ * "Read" means to request a single entry and does not mean to get the
+ * latest changes since last sink. See osync_objtype_sink_get_getchanges().
+ * The read function explicitly means to read a single entry without triggering
+ * a full sync. This is used for example to check if a conflict between entries
+ * could be ignored. Ignoring conflicts is only possible if the sink is able to
+ * read this conflicting entries on the next sync without triggering a SlowSync.
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink is able to read single entries, FALSE otherwise
+ *
+ */
 osync_bool osync_objtype_sink_get_read(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->read;
 }
 
+/*! @brief Sets the (single) read status of a sink 
+ *
+ * See osync_objtype_sink_get_read()
+ *
+ * @param sink Pointer to the sink
+ * @param read TRUE if the sink is able to read (single entries), FALSE otherwise
+ *
+ */
 void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read)
 {
 	osync_trace(TRACE_INTERNAL, "%s: %i", __func__, read);

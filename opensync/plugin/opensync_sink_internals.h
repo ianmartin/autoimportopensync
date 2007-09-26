@@ -28,11 +28,21 @@ struct OSyncObjTypeSink {
 	OSyncObjTypeSinkFunctions functions;
 	void *userdata;
 	
+	/** The objtype type of this sink */
 	char *objtype;
+
+	/** The status if this sink is able to write (commit) */
 	osync_bool write;
+
+	/** The status if this sink is able to read (single entries) */
 	osync_bool read;
+
+	/** The status of this sink */
 	osync_bool enabled;
+
+	/** The request status of a slow-sync of this sink */
 	osync_bool slowsync;
+
 	int ref_count;
 	/** List to pile up changes for batch commit */
 	GList *commit_changes;
