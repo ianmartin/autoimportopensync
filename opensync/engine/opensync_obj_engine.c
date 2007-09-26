@@ -464,8 +464,10 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		 * for odd plugins/protocolls which mark new entries as MODIFIED all the time.
 		 * Changetype MODIFIED of new entries has atleast the IrMC plugin and likely some
 		 * SE SyncML implementation...
+		 * 
+		 * ^^irmc hacks in the irmc plugin ;-)
 		 */
-		if ((newChangeType == OSYNC_CHANGE_TYPE_ADDED || newChangeType == OSYNC_CHANGE_TYPE_MODIFIED) && !osync_mapping_entry_get_uid(entry_engine->entry))
+		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && !osync_mapping_entry_get_uid(entry_engine->entry))
 			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
 		else
 			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
@@ -1441,10 +1443,7 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
-	if (osync_engine_get_group_slowsync(parent))
-		engine->slowsync = TRUE;
-	else
-		engine->slowsync = FALSE;
+	engine->slowsync = FALSE;
 	
 	/* we dont reference the parent to avoid circular dependencies. This object is completely
 	 * dependent on the engine anyways */
@@ -1477,11 +1476,6 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 		engine->sink_engines = g_list_append(engine->sink_engines, sinkengine);
 	}
 
-	if (engine->slowsync) {
-		osync_trace(TRACE_INTERNAL, "SlowSync - skip loading of mappings.");
-		goto end;
-	}
-	
 	if (!_create_mapping_engines(engine, error))
 		goto error_free_engine;
 	
@@ -1492,7 +1486,7 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 		if (!_inject_changelog_entries(engine, objtype, error))
 			goto error_free_engine;
 	}
-end:			
+		
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, engine);
 	return engine;
 
