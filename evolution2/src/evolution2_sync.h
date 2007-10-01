@@ -9,6 +9,8 @@
 #include <opensync/opensync-context.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-helper.h>
+#include <opensync/opensync-merger.h>
+#include <opensync/opensync-version.h>
 
 #include <libecal/e-cal.h>
 #include <libebook/e-book.h>

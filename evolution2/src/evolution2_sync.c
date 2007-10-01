@@ -264,6 +264,8 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
+	GError* gerror = NULL;
+	GList* fields = NULL;
 	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
 	
 	if (env->addressbook_path)
@@ -275,8 +277,54 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	if (env->tasks_path)
 		osync_objtype_sink_set_available(env->tasks_sink, TRUE);
 	
+	OSyncVersion *version = osync_version_new(error);
+	osync_version_set_plugin(version, "Evolution");
+	osync_version_set_modelversion(version, "2");
+	//osync_version_set_firmwareversion(version, "firmwareversion");
+	//osync_version_set_softwareversion(version, "softwareversion");
+	//osync_version_set_hardwareversion(version, "hardwareversion");
+	osync_plugin_info_set_version(info, version);
+	osync_version_unref(version);
+	
+	EBook* ebook;
+	if (!(ebook = e_book_new_default_addressbook(&gerror))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
+		goto error;
+	}
+	if (!e_book_open(ebook, TRUE, &gerror)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open addressbook: %s", gerror ? gerror->message : "None");
+	  	goto error_free_book;
+	}
+	if (!(e_book_get_supported_fields (ebook, &fields, &gerror))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to get supported fields: %s", gerror ? gerror->message : "None");
+		goto error_free_book;
+	}
+	
+	OSyncCapabilities* capabilities = osync_capabilities_new(error);
+	if(capabilities == NULL)
+		goto error;
+	
+	for(; fields; fields = g_list_next(fields))
+	{
+		osync_capability_new(capabilities, "contact", fields->data, error);
+		g_free(fields->data);	
+	}
+	g_list_free(fields);
+	
+	g_object_unref(ebook);
+	
+	osync_plugin_info_set_capabilities(info, capabilities);
+	osync_capabilities_unref(capabilities);
+	
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_free_book:
+		g_object_unref(env->addressbook);
+error:
+	osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
