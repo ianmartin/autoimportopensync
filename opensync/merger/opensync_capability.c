@@ -127,7 +127,7 @@ OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const cha
 		}
 	}
 	
-	xmlNodePtr node = xmlNewTextChild(xmlDocGetRootElement(capabilities->doc), NULL, (xmlChar *)name, NULL);
+	xmlNodePtr node = xmlNewTextChild(capabilitiesobjtype->node, NULL, (xmlChar *)name, NULL);
 	OSyncCapability *capability = _osync_capability_new(capabilitiesobjtype, node, error);
 	if(!capability) {
 		xmlUnlinkNode(node);
