@@ -917,10 +917,10 @@ static osync_bool _generate_disconnected_event(OSyncEngine *engine)
 	return FALSE;
 }
 
-static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, proxy, userdata, slowsync, error);
 	
 	int i = 0;
 	GList *e = NULL;
@@ -938,6 +938,11 @@ static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, OS
 	} else {
 		engine->proxy_connects = engine->proxy_connects | (0x1 << i);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_CONNECTED, NULL, NULL);
+	}
+
+	if (slowsync) {
+		osync_trace(TRACE_INTERNAL, "Group SlowSync requested by engine connect callback.");
+		osync_engine_set_group_slowsync(engine, TRUE);
 	}
 	
 	_generate_connected_event(engine);
@@ -1281,7 +1286,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			/* Now we read the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_get_changes(proxy, _engine_get_changes_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_get_changes(proxy, _engine_get_changes_callback, engine, NULL, FALSE, &engine->error))
 					goto error;
 			}
 			break;

@@ -86,10 +86,15 @@ static void _osync_client_connect_callback(void *data, OSyncError *error)
 	OSyncMessage *message = baton->message;
 	OSyncClient *client = baton->client;
 
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(client->plugin_info);
+	int slowsync = osync_objtype_sink_get_slowsync(sink);
+
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
 		//Send connect specific reply data
+		osync_message_write_int(reply, slowsync);
+
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
 	}
@@ -701,6 +706,9 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		if (!reply)
 			goto error;
 		
+		/* SlowSync dummy value for connect reply message handler. */
+		osync_message_write_int(reply, FALSE);
+
 		if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
 			goto error_free_reply;
 		
@@ -792,11 +800,13 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
+	int slowsync;
 	char *objtype = NULL;
 	OSyncMessage *reply = NULL;
 	
 	osync_message_read_string(message, &objtype);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	osync_message_read_int(message, &slowsync);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s (slowsync: %i", objtype, slowsync);
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {
@@ -822,6 +832,13 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 		
 		osync_message_unref(reply);
 	} else {
+		/* set slowsync (again) if the slow-sync got requested during the connect() call
+		   of a member - and not during frontend/engine itself (e.g. anchor mismatch). */
+		if (slowsync)
+			osync_objtype_sink_set_slowsync(sink, TRUE);
+		else
+			osync_objtype_sink_set_slowsync(sink, FALSE);
+
 		OSyncContext *context = _create_context(client, message, _osync_client_get_changes_callback, NULL, error);
 		if (!context)
 			goto error;

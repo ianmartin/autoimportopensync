@@ -949,13 +949,13 @@ error:
 	return FALSE;
 }
 
-static void _obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
 	OSyncError *locerror = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, proxy, userdata, slowsync, error);
 	
 	if (error) {
 		osync_trace(TRACE_INTERNAL, "Obj Engine received connect error: %s", osync_error_print(&error));
@@ -965,6 +965,11 @@ static void _obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata
 	} else {
 		engine->sink_connects = engine->sink_connects | (0x1 << sinkengine->position);
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_CONNECTED, engine->objtype, NULL);
+	}
+
+	if (slowsync) {
+		osync_obj_engine_set_slowsync(engine, TRUE);
+		osync_trace(TRACE_INTERNAL, "SlowSync requested during connect.");
 	}
 			
 	if (BitCount(engine->sink_errors | engine->sink_connects) == g_list_length(engine->sink_engines)) {
@@ -1633,7 +1638,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
-				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, sinkengine, engine->objtype, error))
+				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, sinkengine, engine->objtype, engine->slowsync, error))
 					goto error;
 			}
 

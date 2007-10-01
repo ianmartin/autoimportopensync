@@ -441,6 +441,7 @@ error:
 
 static void _osync_client_proxy_connect_handler(OSyncMessage *message, void *user_data)
 {
+	int slowsync;
 	callContext *ctx = user_data;
 	OSyncClientProxy *proxy = ctx->proxy;
 	OSyncError *error = NULL;
@@ -449,10 +450,12 @@ static void _osync_client_proxy_connect_handler(OSyncMessage *message, void *use
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
 	
 	if (osync_message_get_cmd(message) == OSYNC_MESSAGE_REPLY) {
-		ctx->connect_callback(proxy, ctx->connect_callback_data, NULL);
+		osync_message_read_int(message, &slowsync);
+		osync_trace(TRACE_INTERNAL, "XXX SLOW_SYNC requested: %i", slowsync);
+		ctx->connect_callback(proxy, ctx->connect_callback_data, slowsync, NULL);
 	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
 		osync_demarshal_error(message, &error);
-		ctx->connect_callback(proxy, ctx->connect_callback_data, error);
+		ctx->connect_callback(proxy, ctx->connect_callback_data, FALSE, error);
 		osync_error_unref(&error);
 	} else {
 		osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Unexpected reply");
@@ -1221,9 +1224,9 @@ error:
 	return FALSE;
 }
 
-osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, OSyncError **error)
+osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
@@ -1240,6 +1243,7 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 	osync_message_set_handler(message, _osync_client_proxy_get_changes_handler, ctx);
 
 	osync_message_write_string(message, objtype);
+	osync_message_write_int(message, slowsync);
 	
 	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
 		goto error_free_message;
