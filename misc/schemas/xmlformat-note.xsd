@@ -9,7 +9,7 @@
 	<xsd:element maxOccurs="1" minOccurs="1" name="Body" type="MultiText"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Categories" type="Categories"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Class" type="Class"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="DateCreated" type="DateTimeContent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Created" type="DateTimeContent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="LastModified" type="DateTimeContent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Summary" type="MultiText"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="XIrmcLuid" type="StringContent"/>
