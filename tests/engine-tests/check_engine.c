@@ -154,11 +154,11 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
-	osync_objtype_sink_add_objformat(sink, "file");
+	osync_objtype_sink_add_objformat(sink, "mockobjtype1");
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -209,8 +209,8 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
+
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -220,8 +220,8 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -416,11 +416,11 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
-	osync_objtype_sink_add_objformat(sink, "file");
+	osync_objtype_sink_add_objformat(sink, "mockformat1");
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -432,7 +432,7 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
-	sink = osync_objtype_sink_new("contact", error);
+	sink = osync_objtype_sink_new("mockobjtype2", error);
 	if (!sink)
 		goto error;
 	
@@ -447,7 +447,7 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
-	sink = osync_objtype_sink_new("note", error);
+	sink = osync_objtype_sink_new("mockobjtype3", error);
 	if (!sink)
 		goto error;
 	
@@ -517,10 +517,9 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
-	osync_member_add_objtype(debug->member1, "contact");
-	osync_member_add_objtype(debug->member1, "note");
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
+	osync_member_add_objtype(debug->member1, "mockobjtype2");
+	osync_member_add_objtype(debug->member1, "mockobjtype3");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -530,10 +529,10 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
-	osync_member_add_objtype(debug->member2, "contact");
-	osync_member_add_objtype(debug->member2, "note");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
+	osync_member_add_objtype(debug->member2, "mockobjtype2");
+	osync_member_add_objtype(debug->member2, "mockobjtype3");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -542,6 +541,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	osync_plugin_set_name(debug->plugin, "mock-sync");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
 	
 	osync_plugin_set_initialize(debug->plugin, initialize_multi);
 	osync_plugin_set_finalize(debug->plugin, finalize_multi);
@@ -564,12 +564,29 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	return debug;
 }
 
+static void discover_member(const char *testbed, OSyncDebugGroup *debug, OSyncMember *member)
+{
+	OSyncError *error = NULL;
+	
+	OSyncEngine *engine = osync_engine_new(debug->group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_engine_set_plugindir(engine, testbed);
+	
+	fail_unless(osync_engine_discover_and_block(engine, member, &error), NULL);
+	fail_unless(error == NULL, NULL);
+
+}
+
 START_TEST (engine_sync_multi_obj)
 {
 	char *testbed = setup_testbed("sync_setup");
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group2(testbed);
+
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -795,11 +812,11 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
-	osync_objtype_sink_add_objformat(sink, "file");
+	osync_objtype_sink_add_objformat(sink, "mockobjtype1");
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -812,7 +829,7 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
-	sink = osync_objtype_sink_new("contact", error);
+	sink = osync_objtype_sink_new("mockobjtype2", error);
 	if (!sink)
 		goto error;
 	
@@ -828,7 +845,7 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
-	sink = osync_objtype_sink_new("note", error);
+	sink = osync_objtype_sink_new("mockobjtype3", error);
 	if (!sink)
 		goto error;
 	
@@ -902,10 +919,9 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
-	osync_member_add_objtype(debug->member1, "contact");
-	osync_member_add_objtype(debug->member1, "note");
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
+	osync_member_add_objtype(debug->member1, "mockobjtype2");
+	osync_member_add_objtype(debug->member1, "mockobjtype3");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -915,10 +931,10 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
-	osync_member_add_objtype(debug->member2, "contact");
-	osync_member_add_objtype(debug->member2, "note");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
+	osync_member_add_objtype(debug->member2, "mockobjtype2");
+	osync_member_add_objtype(debug->member2, "mockobjtype3");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -927,9 +943,11 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	osync_plugin_set_name(debug->plugin, "mock-sync");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
 	
 	osync_plugin_set_initialize(debug->plugin, initialize_order);
 	osync_plugin_set_finalize(debug->plugin, finalize_order);
+
 	
 	debug->client1 = osync_client_new(&error);
 	fail_unless(debug->client1 != NULL, NULL);
@@ -955,6 +973,9 @@ START_TEST (engine_sync_out_of_order)
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group3(testbed);
+
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -1021,11 +1042,11 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
-	osync_objtype_sink_add_objformat(sink, "file");
+	osync_objtype_sink_add_objformat(sink, "mockobjtype1");
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -1038,7 +1059,7 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
-	sink = osync_objtype_sink_new("contact", error);
+	sink = osync_objtype_sink_new("mockobjtype2", error);
 	if (!sink)
 		goto error;
 	
@@ -1054,7 +1075,7 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
-	sink = osync_objtype_sink_new("note", error);
+	sink = osync_objtype_sink_new("mockobjtype3", error);
 	if (!sink)
 		goto error;
 	
@@ -1119,10 +1140,10 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
-	osync_member_add_objtype(debug->member1, "contact");
-	osync_member_add_objtype(debug->member1, "note");
+
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
+	osync_member_add_objtype(debug->member1, "mockobjtype2");
+	osync_member_add_objtype(debug->member1, "mockobjtype3");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -1132,10 +1153,10 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
-	osync_member_add_objtype(debug->member2, "contact");
-	osync_member_add_objtype(debug->member2, "note");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
+	osync_member_add_objtype(debug->member2, "mockobjtype2");
+	osync_member_add_objtype(debug->member2, "mockobjtype3");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -1144,7 +1165,8 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	osync_plugin_set_name(debug->plugin, "mock-sync");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
-	
+	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
+
 	osync_plugin_set_initialize(debug->plugin, initialize_reuse);
 	osync_plugin_set_finalize(debug->plugin, finalize_reuse);
 	
@@ -1172,6 +1194,9 @@ START_TEST (engine_sync_reuse)
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group4(testbed);
+
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -1210,6 +1235,9 @@ START_TEST (engine_sync_stress)
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group4(testbed);
+
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -1286,7 +1314,7 @@ static void get_changes5(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	file->size = strlen(file->data);
 		
 	OSyncData *changedata = osync_data_new((char *)file, sizeof(OSyncFileFormat), format, &error);
-	osync_data_set_objtype(changedata, "file");
+	osync_data_set_objtype(changedata, "mockobjtype1");
 
 	osync_assert(changedata != NULL);
 	osync_assert(error == NULL);
@@ -1322,7 +1350,7 @@ static void *initialize5(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError 
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
@@ -1381,8 +1409,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -1392,10 +1419,10 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
-	osync_member_add_objtype(debug->member2, "contact");
-	osync_member_add_objtype(debug->member2, "note");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
+	osync_member_add_objtype(debug->member2, "mockobjtype2");
+	osync_member_add_objtype(debug->member2, "mockobjtype3");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -1404,6 +1431,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	osync_plugin_set_name(debug->plugin, "mock-sync");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
 	
 	osync_plugin_set_initialize(debug->plugin, initialize5);
 	osync_plugin_set_finalize(debug->plugin, finalize5);
@@ -1432,6 +1460,9 @@ START_TEST (engine_sync_read_write)
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group5(testbed);
+
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -1490,7 +1521,7 @@ static void get_changes6(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		OSyncData *changedata = osync_data_new((char *)file, sizeof(OSyncFileFormat), format, &error);
 		osync_assert(changedata != NULL);
 
-		osync_data_set_objtype(changedata, "file");
+		osync_data_set_objtype(changedata, "mockobjtype1");
 		
 		osync_assert(changedata != NULL);
 		osync_assert(error == NULL);
@@ -1515,7 +1546,7 @@ static void *initialize6(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError 
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
@@ -1574,8 +1605,7 @@ static OSyncDebugGroup *_create_group6(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -1585,10 +1615,10 @@ static OSyncDebugGroup *_create_group6(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
-	osync_member_add_objtype(debug->member2, "contact");
-	osync_member_add_objtype(debug->member2, "note");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
+	osync_member_add_objtype(debug->member2, "mockobjtype2");
+	osync_member_add_objtype(debug->member2, "mockobjtype3");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -1597,6 +1627,7 @@ static OSyncDebugGroup *_create_group6(char *testbed)
 	osync_plugin_set_name(debug->plugin, "mock-sync");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
 	
 	osync_plugin_set_initialize(debug->plugin, initialize6);
 	osync_plugin_set_finalize(debug->plugin, finalize6);
@@ -1626,6 +1657,9 @@ START_TEST (engine_sync_read_write_stress)
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group6(testbed);
 	
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
+
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
@@ -1683,7 +1717,7 @@ static void get_changes7(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		OSyncData *changedata = osync_data_new((char *)file, sizeof(OSyncFileFormat), format, &error);
 		osync_assert(changedata != NULL);
 
-		osync_data_set_objtype(changedata, "file");
+		osync_data_set_objtype(changedata, "mockobjtype1");
 		
 		osync_assert(changedata != NULL);
 		osync_assert(error == NULL);
@@ -1711,7 +1745,7 @@ static void *initialize7(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError 
 	if (!env)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
 	if (!sink)
 		goto error;
 	
@@ -1770,8 +1804,8 @@ static OSyncDebugGroup *_create_group7(char *testbed)
 	char *path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member1, "file");
+
+	osync_member_add_objtype(debug->member1, "mockobjtype1");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -1781,10 +1815,10 @@ static OSyncDebugGroup *_create_group7(char *testbed)
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
-	//osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
-	osync_member_add_objtype(debug->member2, "file");
-	osync_member_add_objtype(debug->member2, "contact");
-	osync_member_add_objtype(debug->member2, "note");
+
+	osync_member_add_objtype(debug->member2, "mockobjtype1");
+	osync_member_add_objtype(debug->member2, "mockobjtype2");
+	osync_member_add_objtype(debug->member2, "mockobjtype3");
 	
 	debug->plugin = osync_plugin_new(&error);
 	fail_unless(debug->plugin != NULL, NULL);
@@ -1793,6 +1827,7 @@ static OSyncDebugGroup *_create_group7(char *testbed)
 	osync_plugin_set_name(debug->plugin, "mock-sync");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
 	
 	osync_plugin_set_initialize(debug->plugin, initialize7);
 	osync_plugin_set_finalize(debug->plugin, finalize7);
@@ -1821,6 +1856,10 @@ START_TEST (engine_sync_read_write_stress2)
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group7(testbed);
+
+	discover_member(testbed, debug, debug->member1);
+	discover_member(testbed, debug, debug->member2);
+
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -1860,9 +1899,9 @@ Suite *engine_suite(void)
 	// This test cases would timeout within 30seconds (default timeout) - at least if OSYNC_TRACE is enabled -> higher timeout
 	create_case_timeout(s, "engine_sync_stress", engine_sync_stress, 60);
 
-	create_case_timeout(s, "engine_sync_read_write_stress", engine_sync_read_write_stress, 300); // FIXME: Deadlocks 
-	create_case(s, "engine_sync_read_write", engine_sync_read_write); // FIXME: DEADlocks 
-	create_case(s, "engine_sync_read_write_stress2", engine_sync_read_write_stress2); // FIXME: DEADlocks 
+	create_case_timeout(s, "engine_sync_read_write_stress", engine_sync_read_write_stress, 300);
+	create_case(s, "engine_sync_read_write", engine_sync_read_write);
+	create_case(s, "engine_sync_read_write_stress2", engine_sync_read_write_stress2);
 	
 	//batch commit
 	//connect problem
