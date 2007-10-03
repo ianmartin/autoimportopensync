@@ -30,7 +30,7 @@ env = Environment(
 
 A = env.get_opts().add
 A(BoolOption('debug', 'Should debugging be enabled?', 1))
-A('enable_trace', 'Should tracing be enabled?', 1)
+A(BoolOption('enable_trace', 'Should tracing be enabled?', 1))
 A(BoolOption('enable_tools', 'Should the developer tools be build', 1))
 A(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
 A(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
