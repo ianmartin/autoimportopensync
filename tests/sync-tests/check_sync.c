@@ -2156,11 +2156,11 @@ START_TEST (sync_large)
 	system("rm -f data1/file7");
 	system("rm -f data2/file7");
 	//delete left, modify right
-	system("rm -f data2/file8");
-	create_random_file("data1/file8");
+	system("rm -f data1/file8");
+	create_random_file("data2/file8");
 	//modify left, delete right
-	create_random_file("data2/file9");
-	system("rm -f data1/file9");
+	create_random_file("data1/file9");
+	system("rm -f data2/file9");
 	
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
