@@ -70,7 +70,7 @@ static void discover_callback(OSyncClientProxy *proxy, void *userdata, OSyncErro
 	discover_replies++;
 }
 
-static void connect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
 	fail_unless(userdata == GINT_TO_POINTER(1), NULL);
 	fail_unless(error == NULL, NULL);
