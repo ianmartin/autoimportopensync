@@ -115,7 +115,7 @@ static OSyncHookTables *init_xmlformat_to_vnote(void)
 	insert_xml_attr_handler(hooks->attributes, "Class", (void *)handle_xml_class_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Categories", (void *)handle_xml_categories_attribute);
 	insert_xml_attr_handler(hooks->attributes, "LastModified", (void *)handle_xml_last_modified_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCreated", (void *)handle_xml_created_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Created", (void *)handle_xml_created_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Body", (void *)handle_xml_body_attribute);
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
