@@ -21,8 +21,6 @@
 #ifndef OPENSYNC_OBJ_ENGINE_H_
 #define OPENSYNC_OBJ_ENGINE_H_
 
-typedef struct OSyncObjEngine OSyncObjEngine;
-
 typedef void (* OSyncObjEngineEventCallback) (OSyncObjEngine *engine, OSyncEngineEvent event, OSyncError *error, void *userdata);
 
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *engine, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error);

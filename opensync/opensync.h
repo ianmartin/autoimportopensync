@@ -119,6 +119,7 @@ typedef struct OSyncModule OSyncModule;
 
 /* Engine component */
 typedef struct OSyncEngine OSyncEngine;
+typedef struct OSyncObjEngine OSyncObjEngine;
 typedef struct OSyncClient OSyncClient;
 typedef struct OSyncClientProxy OSyncClientProxy;
 
