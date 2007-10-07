@@ -1376,18 +1376,18 @@ error:
 	return FALSE;
 }
 
-static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, const char *objtype, OSyncError **error) {
+static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, OSyncError **error) {
 
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, engine, objtype);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
 	osync_assert(engine);
 	osync_assert(engine->archive);
-	osync_assert(objtype);
+	osync_assert(engine->objtype);
 	
 	OSyncList *ids = NULL;
 	OSyncList *changetypes = NULL;
 
-	if (!osync_archive_load_ignored_conflicts(engine->archive, objtype, &ids, &changetypes, error)) {
+	if (!osync_archive_load_ignored_conflicts(engine->archive, engine->objtype, &ids, &changetypes, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
@@ -1414,7 +1414,7 @@ static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, const char *
 					osync_change_set_changetype(ignored_change, changetype); 
 					osync_entry_engine_update(entry, ignored_change);
 
-					OSyncObjFormat *dummyformat = osync_objformat_new("plain", objtype, NULL);
+					OSyncObjFormat *dummyformat = osync_objformat_new("plain", engine->objtype, NULL);
 					OSyncData *data = osync_data_new(NULL, 0, dummyformat, NULL);
 					osync_change_set_data(ignored_change, data);
 					osync_objformat_unref(dummyformat);
@@ -1488,7 +1488,7 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 
 	if (engine->archive) {
 		/* inject ignored conflicts from previous syncs */
-		if (!_inject_changelog_entries(engine, objtype, error))
+		if (!_inject_changelog_entries(engine, error))
 			goto error_free_engine;
 	}
 		
