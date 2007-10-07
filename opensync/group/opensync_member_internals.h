@@ -38,8 +38,6 @@ struct OSyncMember {
 	GList *filters;
 	int ref_count;
 	
-	OSyncStartType starttype;
-	
 	OSyncCapabilities *capabilities;
 	OSyncMerger *merger;
 };

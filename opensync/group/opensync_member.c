@@ -115,7 +115,7 @@ OSyncMember *osync_member_new(OSyncError **error)
 	member = osync_try_malloc0(sizeof(OSyncMember), error);
 	if (!member)
 		goto error;
-	member->starttype = OSYNC_START_TYPE_THREAD;
+
 	member->ref_count = 1;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, member);
