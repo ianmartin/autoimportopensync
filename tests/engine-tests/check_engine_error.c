@@ -398,7 +398,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	fail_unless(debug->member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member1);
-	osync_member_set_pluginname(debug->member1, "mock-sync");
+	osync_member_set_pluginname(debug->member1, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
@@ -410,7 +410,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	fail_unless(debug->member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member2);
-	osync_member_set_pluginname(debug->member2, "mock-sync2");
+	osync_member_set_pluginname(debug->member2, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
@@ -425,7 +425,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	fail_unless(debug->plugin != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_name(debug->plugin, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
@@ -438,7 +438,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	fail_unless(debug->plugin2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin2, "mock-sync2");
+	osync_plugin_set_name(debug->plugin2, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin2, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin2, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin2, OSYNC_START_TYPE_EXTERNAL);
@@ -482,7 +482,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	fail_unless(debug->member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member1);
-	osync_member_set_pluginname(debug->member1, "mock-sync");
+	osync_member_set_pluginname(debug->member1, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
@@ -495,7 +495,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	fail_unless(debug->member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member2);
-	osync_member_set_pluginname(debug->member2, "mock-sync2");
+	osync_member_set_pluginname(debug->member2, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
@@ -510,7 +510,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	fail_unless(debug->plugin != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_name(debug->plugin, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
@@ -523,7 +523,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	fail_unless(debug->plugin2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin2, "mock-sync2");
+	osync_plugin_set_name(debug->plugin2, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin2, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin2, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin2, OSYNC_START_TYPE_EXTERNAL);
@@ -567,7 +567,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	fail_unless(debug->member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member1);
-	osync_member_set_pluginname(debug->member1, "mock-sync");
+	osync_member_set_pluginname(debug->member1, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
@@ -579,7 +579,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	fail_unless(debug->member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member2);
-	osync_member_set_pluginname(debug->member2, "mock-sync2");
+	osync_member_set_pluginname(debug->member2, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
@@ -593,7 +593,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	fail_unless(debug->plugin != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_name(debug->plugin, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
@@ -606,7 +606,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	fail_unless(debug->plugin2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin2, "mock-sync2");
+	osync_plugin_set_name(debug->plugin2, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin2, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin2, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin2, OSYNC_START_TYPE_EXTERNAL);
@@ -650,7 +650,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	fail_unless(debug->member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member1);
-	osync_member_set_pluginname(debug->member1, "mock-sync");
+	osync_member_set_pluginname(debug->member1, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
@@ -663,7 +663,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	fail_unless(debug->member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member2);
-	osync_member_set_pluginname(debug->member2, "mock-sync2");
+	osync_member_set_pluginname(debug->member2, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
@@ -676,7 +676,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	fail_unless(debug->plugin != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_name(debug->plugin, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
@@ -689,7 +689,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	fail_unless(debug->plugin2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin2, "mock-sync2");
+	osync_plugin_set_name(debug->plugin2, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin2, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin2, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin2, OSYNC_START_TYPE_EXTERNAL);
@@ -733,7 +733,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	fail_unless(debug->member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member1);
-	osync_member_set_pluginname(debug->member1, "mock-sync");
+	osync_member_set_pluginname(debug->member1, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
@@ -746,7 +746,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	fail_unless(debug->member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(debug->group, debug->member2);
-	osync_member_set_pluginname(debug->member2, "mock-sync2");
+	osync_member_set_pluginname(debug->member2, "mock-sync-external");
 	path = g_strdup_printf("%s/configs/group/2", testbed);
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
@@ -759,7 +759,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	fail_unless(debug->plugin != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_name(debug->plugin, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin, OSYNC_START_TYPE_EXTERNAL);
@@ -772,7 +772,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	fail_unless(debug->plugin2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_plugin_set_name(debug->plugin2, "mock-sync2");
+	osync_plugin_set_name(debug->plugin2, "mock-sync-external");
 	osync_plugin_set_longname(debug->plugin2, "Mock Sync Plugin");
 	osync_plugin_set_description(debug->plugin2, "This is a pseudo plugin");
 	osync_plugin_set_start_type(debug->plugin2, OSYNC_START_TYPE_EXTERNAL);
@@ -945,7 +945,7 @@ START_TEST (dual_connect_error)
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
-	
+
 	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
