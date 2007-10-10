@@ -1,6 +1,8 @@
 plugindir=@OPENSYNC_PLUGINDIR@
 configdir=@OPENSYNC_CONFIGDIR@
 formatsdir=@OPENSYNC_FORMATSDIR@
+descriptiondir=@OPENSYNC_DESCRIPTIONDIR@
+capabilitiesdir=@OPENSYNC_CAPABILITIESDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@
 
@@ -9,6 +11,8 @@ AM_CFLAGS = -Wall
 EXTRA_DIST = google-calendar google-cal-helper.py
 
 config_DATA = google-calendar
+description_DATA = google-calendar.xml
+capabilities_DATA = google-calendar-gcal-2005.xml
 
 plugin_LTLIBRARIES = gcalendar.la
 

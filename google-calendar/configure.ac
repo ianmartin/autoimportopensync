@@ -48,11 +48,15 @@ AC_PROG_LIBTOOL
 OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
 OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
 OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync-1.0)
+OPENSYNC_CAPABILITIESDIR=$(pkg-config --variable=capabilitiesdir opensync-1.0)
+OPENSYNC_DESCRIPTIONDIR=$(pkg-config --variable=descriptionsdir opensync-1.0)	
 OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync-1.0)
 
 AC_SUBST(OPENSYNC_CONFIGDIR)
 AC_SUBST(OPENSYNC_PLUGINDIR)
 AC_SUBST(OPENSYNC_FORMATSDIR)
+AC_SUBST(OPENSYNC_CAPABILITIESDIR)
+AC_SUBST(OPENSYNC_DESCRIPTIONDIR)
 AC_SUBST(OPENSYNC_HEADERDIR)
 
 AC_OUTPUT([
