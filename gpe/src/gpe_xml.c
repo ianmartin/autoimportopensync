@@ -40,6 +40,7 @@ osync_bool gpe_parse_settings(gpe_environment *env, const char *data)
 	env->use_local = 0;
 	env->use_remote = 0;
 	env->debuglevel = 0;
+	env->calendar = NULL;
 	
 	xmlInitParser();
 
@@ -52,7 +53,7 @@ osync_bool gpe_parse_settings(gpe_environment *env, const char *data)
 
 	ctx = xmlXPathNewContext(doc);
 
-	/* Work out which type connection to use */
+	/* Work out which type of connection to use */
 	obj = xmlXPathEval("/config/local", ctx);
 	if (obj && obj->nodesetval && obj->nodesetval->nodeNr) {
 	  env->use_local = 1;
@@ -145,6 +146,15 @@ osync_bool gpe_parse_settings(gpe_environment *env, const char *data)
 	  env->debuglevel = atoi(str);
 	  xmlFree(str);
 	  osync_trace(TRACE_INTERNAL, "GPE-SYNC %s: <debug> = %d", __func__, env->debuglevel);
+	}
+
+	if (obj) xmlXPathFreeObject(obj);
+	obj = xmlXPathEval("//calendar/text()", ctx);
+	if (obj && obj->nodesetval && obj->nodesetval->nodeNr) {
+	  xmlChar *str=xmlXPathCastToString(obj);
+	  env->calendar = g_strdup(str);
+	  xmlFree(str);
+	  osync_trace(TRACE_INTERNAL, "GPE-SYNC %s: <calendar> = %s", __func__, env->calendar);
 	}
 
 	if (obj) xmlXPathFreeObject(obj);

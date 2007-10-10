@@ -21,6 +21,33 @@
 
 #include "gpe_sync.h"
 
+/*! \brief Closes the connection to the databases
+ *
+ * \brief ctx		The context of the plugin
+ */
+static void gpe_disconnect_internal(gpe_environment *env)
+{
+	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p)", __func__, env);
+	
+	if (env->client) {
+		gpesync_client_close (env->client);
+		env->client = NULL;
+	}
+
+	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
+}
+static void gpe_disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
+	gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
+	
+	gpe_disconnect_internal(env);
+
+	//Answer the call
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
+}
+
 /*! \brief Connects to the databases of GPE
  *
  * \param ctx		The context of the plugin
@@ -65,6 +92,22 @@ static void gpe_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	  return;
 	}
 	
+	// Set calendar name
+	if (env->calendar) {
+	  gchar *response = NULL;
+	  gpesync_client_exec_printf(env->client, "path vevent %s", client_callback_string, &response, NULL, env->calendar);
+	  if (strncmp(response, "OK", 2) != 0) {
+	    osync_context_report_error(ctx, OSYNC_ERROR_MISCONFIGURATION, "calendar %s not found", 
+			  env->calendar);
+	    osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: calendar %s not found", 
+		      __func__, env->calendar);
+	    gpe_disconnect_internal(env);
+	    g_free(response);
+	    return;
+	  }
+	  g_free(response);
+	}
+
 	osync_context_report_success(ctx);
 
 	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
@@ -77,37 +120,10 @@ static void gpe_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
-	gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
+	//gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
 
         //If we use anchors we have to update it now.
 	
-	//Answer the call
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
-}
-
-/*! \brief Closes the connection to the databases
- *
- * \brief ctx		The context of the plugin
- */
-static void gpe_disconnect_internal(gpe_environment *env)
-{
-	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p)", __func__, env);
-	
-	if (env->client) {
-		gpesync_client_close (env->client);
-		env->client = NULL;
-	}
-
-	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
-}
-static void gpe_disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
-	gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
-	
-	gpe_disconnect_internal(env);
-
 	//Answer the call
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
@@ -240,6 +256,7 @@ static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **e
 			  v_major, v_minor, MIN_PROTOCOL_MAJOR, MIN_PROTOCOL_MINOR);
 	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: gpesyncd version %d.%d not supported -- require %d.%d", 
 		      __func__, v_major, v_minor, MIN_PROTOCOL_MAJOR, MIN_PROTOCOL_MINOR);
+	  g_free(response);
 	  return FALSE;
 	}
 
@@ -254,7 +271,31 @@ static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **e
         osync_version_unref(version);
 	g_free(version_string);
 
-        // Report avaliable sinks...
+	if (env->calendar) {
+	  // Calendar support requires at least version 1.2
+	  if (v_minor < 2) {
+	    osync_error_set(error, OSYNC_ERROR_NOT_SUPPORTED, "gpesyncd version %d.%d does not support <calendar> -- require %d.%d", 
+			  v_major, v_minor, MIN_PROTOCOL_MAJOR, 2);
+	    osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: gpesyncd version %d.%d does not support <calendar> -- require %d.%d", 
+		      __func__, v_major, v_minor, MIN_PROTOCOL_MAJOR, 2);
+	    gpe_disconnect_internal(env);
+	    g_free(response);
+	    return FALSE;
+	  }
+
+	  // Verify calendar name
+	  gpesync_client_exec_printf(env->client, "path vevent %s", client_callback_string, &response, NULL, env->calendar);
+	  if (strncmp(response, "OK", 2) != 0) {
+	    osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "calendar %s not found", 
+			  env->calendar);
+	    osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: calendar %s not found", 
+		      __func__, env->calendar);
+	    gpe_disconnect_internal(env);
+	    g_free(response);
+	  }
+	}
+
+        // Report available sinks...
 	// GPE always supports contacts, todos and events
 	if (env->contact_sink.sink) osync_objtype_sink_set_available(env->contact_sink.sink, TRUE);
 	if (env->todo_sink.sink) osync_objtype_sink_set_available(env->todo_sink.sink, TRUE);
@@ -263,6 +304,7 @@ static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **e
 
 	gpe_disconnect_internal(env);
 
+	g_free(response);
         osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
         return TRUE;
 }

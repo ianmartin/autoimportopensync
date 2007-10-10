@@ -67,6 +67,7 @@ typedef struct gpe_environment {
 	int use_ssh;
   	int use_local;
 	int use_remote;
+	char *calendar; // Name of GPE calendar to use or NULL
 	
 	int debuglevel;
 } gpe_environment;

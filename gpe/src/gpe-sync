@@ -5,12 +5,11 @@
 	on the same system) by specifying the <local>...</local> option.
 
 	In this case you can specify <command>shell command</command>
-	to change the shell command which is invoked.
-
-	Specifying the <command> tag is not recommended.
+	to change the shell command which is invoked.  However, specifying 
+	the <command> tag is not recommended.
 
 	2) You can use SSH to connect to the device by specifying the
-	<ssh>...<ssh> option.
+	<ssh>...</ssh> option.
 
 	In this case, the <handheld_ip>, <handheld_user> and <command> 
 	tags can be used.
@@ -27,25 +26,22 @@
 	3) You can connect to a running gpesyncd daemon by specifying the
 	<remote>...</remote> option.
 
-	In this case, the <handheld_ip> and <handheld_port> tags are used.
+	In this case, the <handheld_ip> and <handheld_port> tags can be used.
 
-  Either use the <ssh> configuration shown below or remove it and uncomment
+  Either customise the <ssh> configuration shown below or remove it and uncomment
   one of the other sections.  Each section is configured to show the default values
   used if the tags are not specified. 
   -->
-
   <ssh>
     <handheld_ip>127.0.0.1</handheld_ip>
     <handheld_user>gpeuser</handheld_user>
     <command>gpesyncd --remote</command>
   </ssh>
-
   <!--
   <local>
     <command>gpesyncd --remote</command>
   </local>
   -->
-
   <!--
   <remote>
     <handheld_ip>127.0.0.1</handheld_ip>
@@ -53,4 +49,18 @@
   </remote>
   -->
 
+  <!--
+  The <calendar> tag can be used to specify which GPE calendar
+  should be used for this synchronisation.  If the <calendar>
+  tag is specified then only the named calendar is considered
+  (only events in that calendar wil be sent from GPE and all
+  events sent to GPE will be stored in that calendar).  If the
+  <calendar> tag is not specified, then all events, from all
+  calendars, will be sent from GPE and new events will be created
+  in the default calendar.
+
+  Note that an error occurs if the named calendar does not exist
+  and calendar names are case-sensitive.
+  -->
+  <!-- <calendar>Some Calendar</calendar> -->
 </config>
