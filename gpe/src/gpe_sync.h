@@ -81,4 +81,18 @@ typedef struct gpe_environment {
 #define GPE_SQL_EXEC_ERROR 2
 #define GPE_HASH_LOAD_ERROR 3
 
+/*
+ * Minimum protocol version number supported
+ *
+ * Major number must be equal: increment this if we cannot even parse
+ * the protocol correctly any more
+ *
+ * Minor number must be less than or equal to the other end: increment 
+ * this if a new command is vital for correct operation
+ *
+ * Edit number ignored but reported in logs
+ */
+#define MIN_PROTOCOL_MAJOR 1
+#define MIN_PROTOCOL_MINOR 0
+
 #endif

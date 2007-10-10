@@ -25,34 +25,44 @@
  *
  * \param ctx		The context of the plugin
  */
+static void gpe_connect_internal(gpe_environment *env, char **client_err)
+{
+	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p)", __func__, env, client_err);
+
+	// Do nothing if already connected
+	if (env->client) {
+	  osync_trace(TRACE_INTERNAL, "GPE-SYNC %s: already connected", __func__);
+	} else {
+	  if (env->use_local) {
+	    env->client = gpesync_client_open_local(env->command, client_err);
+	  }
+	  else if (env->use_ssh)
+	    {
+	      gchar *path = g_strdup_printf ("%s@%s", env->username, env->device_addr);
+	      env->client = gpesync_client_open_ssh (path, env->command, client_err);
+	    }
+	  else
+	    env->client = gpesync_client_open (env->device_addr, env->device_port, client_err);
+	}
+
+	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
+}
 static void gpe_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
+	char *client_err = NULL;
+
 	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
 
 	// We need to get the context to load all our stuff.
 	gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
 	
-	// Do nothing if already connected
-	if (env->client) {
-	  osync_trace(TRACE_INTERNAL, "GPE-SYNC %s: already connected", __func__);
-	} else {
-	  char *client_err;
-	  if (env->use_local) {
-	    env->client = gpesync_client_open_local(env->command, &client_err);
-	  }
-	  else if (env->use_ssh)
-	    {
-	      gchar *path = g_strdup_printf ("%s@%s", env->username, env->device_addr);
-	      env->client = gpesync_client_open_ssh (path, env->command, &client_err);
-	    }
-	  else
-	    env->client = gpesync_client_open (env->device_addr, env->device_port, &client_err);
+	gpe_connect_internal(env, &client_err);
 
-	  if (env->client == NULL) {
-	    osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, client_err);
-	    osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: connect failed: %s", __func__, client_err);
-	    return;
-	  }
+	if (env->client == NULL) {
+	  osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, client_err);
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: connect failed: %s", __func__, client_err);
+	  if (client_err) g_free(client_err);
+	  return;
 	}
 	
 	osync_context_report_success(ctx);
@@ -80,15 +90,23 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
  *
  * \brief ctx		The context of the plugin
  */
-static void gpe_disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+static void gpe_disconnect_internal(gpe_environment *env)
 {
-	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
-	gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
+	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p)", __func__, env);
 	
 	if (env->client) {
 		gpesync_client_close (env->client);
 		env->client = NULL;
 	}
+
+	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
+}
+static void gpe_disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
+	gpe_environment *env = ((sink_environment *)userdata)->gpe_env;
+	
+	gpe_disconnect_internal(env);
 
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -191,25 +209,59 @@ error:
 /* Here we actually tell opensync which sinks are available. */
 static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **error)
 {
+	gchar *err_string = NULL;
+	gchar *response = NULL;
+	unsigned int v_major = 1, v_minor = 0, v_edit = 0; // Default version 1.0.0
+
         osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, error);
 
 	gpe_environment *env = (gpe_environment *)userdata;
 
-        // Report avaliable sinks...
-	// FIXME: one day this should connect to the device first and check its capabilities
-	if (env->contact_sink.sink) osync_objtype_sink_set_available(env->contact_sink.sink, TRUE);
-	if (env->todo_sink.sink) osync_objtype_sink_set_available(env->todo_sink.sink, TRUE);
-	if (env->calendar_sink.sink) osync_objtype_sink_set_available(env->calendar_sink.sink, TRUE);
+	// Try to connect
+	gpe_connect_internal(env, &err_string);
 
-	// FIXME: should get version info from the device
+	if (env->client == NULL) {
+	  osync_error_set(error, OSYNC_ERROR_NO_CONNECTION, err_string);
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: connect failed: %s", __func__, err_string);
+	  if (err_string) g_free(err_string);
+	  return FALSE;
+	}
+
+	// Get version info from the device
+	gpesync_client_exec(env->client, "version", client_callback_string, &response, NULL);
+
+	if (sscanf(response, "OK:%u:%u:%u", &v_major, &v_minor, &v_edit) != 3) {
+	  osync_trace(TRACE_INTERNAL, "version command error: %s", response);
+	}
+	osync_trace(TRACE_INTERNAL, "gpesyncd version = %d.%d.%d", v_major, v_minor, v_edit);
+
+	if (v_major != MIN_PROTOCOL_MAJOR || v_minor < MIN_PROTOCOL_MINOR) {
+	  osync_error_set(error, OSYNC_ERROR_NOT_SUPPORTED, "gpesyncd version %d.%d not supported -- require %d.%d", 
+			  v_major, v_minor, MIN_PROTOCOL_MAJOR, MIN_PROTOCOL_MINOR);
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: gpesyncd version %d.%d not supported -- require %d.%d", 
+		      __func__, v_major, v_minor, MIN_PROTOCOL_MAJOR, MIN_PROTOCOL_MINOR);
+	  return FALSE;
+	}
+
+	gchar *version_string = g_strdup_printf("%d.%d.%d", v_major, v_minor, v_edit);
         OSyncVersion *version = osync_version_new(error);
         osync_version_set_plugin(version, "gpe-sync");
         //osync_version_set_modelversion(version, "version");
         //osync_version_set_firmwareversion(version, "firmwareversion");
-        //osync_version_set_softwareversion(version, "softwareversion");
+        osync_version_set_softwareversion(version, version_string);
         //osync_version_set_hardwareversion(version, "hardwareversion");
         osync_plugin_info_set_version(info, version);
         osync_version_unref(version);
+	g_free(version_string);
+
+        // Report avaliable sinks...
+	// GPE always supports contacts, todos and events
+	if (env->contact_sink.sink) osync_objtype_sink_set_available(env->contact_sink.sink, TRUE);
+	if (env->todo_sink.sink) osync_objtype_sink_set_available(env->todo_sink.sink, TRUE);
+	if (env->calendar_sink.sink) osync_objtype_sink_set_available(env->calendar_sink.sink, TRUE);
+	// One day we may add notes...
+
+	gpe_disconnect_internal(env);
 
         osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
         return TRUE;

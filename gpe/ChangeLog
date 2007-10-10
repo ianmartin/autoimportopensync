@@ -1,3 +1,7 @@
+2007-10-09  Graham Cobb  <g+770@cobb.uk.net>
+
+	* src/gpe_sync.h, src/gpe_sync.c (discover): Add protocol version checking
+
 2007-09-11  Graham Cobb  <g+770@cobb.uk.net>
 
 	* src/gpesync_client.c (gpesync_client_open_ssh, gpesync_client_open_local): 
