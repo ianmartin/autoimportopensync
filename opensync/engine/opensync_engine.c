@@ -1490,11 +1490,37 @@ osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
 	return TRUE;
 }
 
+/*! @brief This function will discover the capabilities of a member
+ *
+ * This function discover a member of a given engine. The Engine has to be created
+ * from a OSyncGroup before by using osync_engine_new(). This function will not block
+ * The Engine MUST NOT be initilaized by osync_engine_initilize(), same for finalizing the engine.
+ * 
+ * @param engine A pointer to the engine, which to discover the member and wait for the discover end
+ * @param member A pointer to the member, which to discover
+ * @param error A pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise.
+ * 
+ */
 osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 	osync_assert(engine);
 	
+	if (engine->state == OSYNC_ENGINE_STATE_INITIALIZED) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was in state initialized: %i", engine->state);
+		goto error;
+	}
+	
+	if (!_osync_engine_start(engine, error))
+		goto error;
+	
+	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
+	
+	OSyncClientProxy *proxy = _osync_engine_initialize_member(engine, member, error);
+	if (!proxy)
+		goto error;
+
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd)
 		goto error;
@@ -1516,12 +1542,12 @@ error:
 	return FALSE;
 }
 
-/*! @brief This function will synchronize once and block until the sync has finished
+/*! @brief This function will discover the capabilities of a member and block until the discovery has finished
  *
- * This can be used to sync a group and wait for the synchronization end. DO NOT USE
- * osync_engine_wait_sync_end for this as this might introduce a race condition.
+ * This can be used to discover a member and wait for the synchronization end.
  * 
- * @param engine A pointer to the engine, which to sync and wait for the sync end
+ * @param engine A pointer to the engine, which to discover the member and wait for the discover end
+ * @param member A pointer to the member, which to discover
  * @param error A pointer to a error struct
  * @returns TRUE on success, FALSE otherwise.
  * 
@@ -1530,20 +1556,6 @@ osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *mem
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 	
-	if (engine->state == OSYNC_ENGINE_STATE_INITIALIZED) {
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was in state initialized: %i", engine->state);
-		goto error;
-	}
-	
-	if (!_osync_engine_start(engine, error))
-		goto error;
-	
-	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
-	
-	OSyncClientProxy *proxy = _osync_engine_initialize_member(engine, member, error);
-	if (!proxy)
-		goto error;
-		
 	g_mutex_lock(engine->syncing_mutex);
 	
 	if (!osync_engine_discover(engine, member, error)) {
