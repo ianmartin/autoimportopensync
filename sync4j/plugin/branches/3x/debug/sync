@@ -1,3 +1,0 @@
-#!/bin/sh
-msynctool  --sync evo2-syncml-sw --filter-objtype contact --filter-objtype todo
-
