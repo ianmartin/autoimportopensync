@@ -1,72 +1,35 @@
-The usual stuff
-================
+#### Requirements ####
 
-This plugin depends on the syncml-client package I have derived from
-the sources from http://www.funambol.org. At the time of writing, you
-should find it on the same place you found this. Download, build and
-install that package before you try this one.
- 
-Once syncml-client is in place the installation of this plugin is 
-(should be?) straightforward. 
-
-- autoreconf -sfi
-- configure
-- make 
-- make install
-
-Configure SyncML server
-=======================
-Gconf handles the this. You must at least set the server URI, user and
-password. This is done through the gconf GUI, find the items under:
-
-/apps/syncml-client/spds/syncml: server name, server URL, username, password.
-
-/apps/syncml-client/spds/sources/{the source you configure to opensync}:
-     Check the "dir" parameter (should exist) and the uri pararm - it should
-     conform to the server documentation. The installed uri is OK against
-     scheduleworld.com.
-    
-Configure sync group
-=====================
-
-This is handled by the normal msynctool procedures, something like this:
-
-$msynctool --listplugins
-  <check for syncml-client-plugin>
-$msynctool --listobjects
-  <check for an object you want to sync i. e., "contact">
-
-$msynctool --addgroup syncml-file
-  <a simple test case, sync the server to a directory>
-$msynctool --addmember syncml-file syncml-client-plugin
-$msynctool --addmember syncml-file  file-sync
-$msynctool --configure syncml-file 2 
-   < set the directory to sync with >
-$msynctool --configure syncml-file 1 
-   < set the three strings, see below>
-
-Syncml client configuration
-===========================
-
-The plugin  handles three configuration strings:
-
-gconf-uri:   The base for Gconf config. Leave this as the default 
-             /apps/syncml-client.
-
-object-type: Set to either "contact", "event", "todo" or "note" to sync the
-             corresponding items.
-
-sync-source-name:
-             Name of the database definition in SyncML API. Found in
-             gconf as one of the children of /apps/syncml-client/spds/sources.
-             The preconfigured ones are "card", "cal", "note" and "task",
-             choose one of them (or add your own).
-
-Running
-========
-
-See README
+- opensync >= 0.32
+- glib-2.0
+- libxml-2.0
+- libxslt
+- sync4j SDK 6.0.8
 
 
+#### Installation ####
+
+The sync4j SDK can be found in the sync4j-SDK folder.
+1) Extract the archive and apply the patch:
+$ unzip funambol-cpp-api-6.0.8.zip
+$ cd Funambol/
+$ patch -p0 < ../sync4j-6.0.8.patch
+
+2) Configure, build and install
+$ cd sdk/c++/build/autotools/
+$ chmod u+x autogen.sh
+$ ./autogen.sh
+$ ./configure --enable-xmlconfig=yes
+$ make
+$ make install
+
+Then configure, build and install the plugin
+$ ./autogen.sh
+$ ./configure 
+$ make
+$ make install
 
 
+#### Configuration ####
+
+see README
