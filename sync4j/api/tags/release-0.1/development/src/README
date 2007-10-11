@@ -1,0 +1,46 @@
+This is a Linux port of the SyncML C API found on www.sync4j.org. 
+
+Basic usage is to include the file syncml-client.h in the client source. The 
+resulting program should be linked against the syncml-client library. The 
+flags for this is defined by the pkg-config file syncml-client.pc
+
+Further information on how to use this API: http://www.funambol.com/opensource.
+
+This package contains some new routines to set log and error messages. See the 
+files include/common/Log.h and include/common/Error.h. Besides this, the port 
+is semantically identical to funambol's documentation.
+
+The configuration data is stored in the gnome GConf database. A schema is
+installed as a part of this installation. This schema has been tested against
+the www.scheduleworld.com server. At least the user and password must be 
+changed before actual testing.
+
+Major changes in the port:
+
+- A new LibCurl based TransportAgent is introduced in the http/linux
+  dir. This directory contains a GenericTransportAgent which might 
+  become a common base for all TransportAgents - these share a lot of code.
+
+- A new gconf-based ManagementNode is added in the spdm/gconf directory
+
+- Log.cpp and Error.cpp are rewritten. The code does not, as I understand it, 
+  contain any routines not present in the MS API.
+
+- The wsprintf functin present in Microsoft API does not exist in 
+  Unix/Linux/POSIX. Changed to swprintf. swprintf requires a length
+  parameter not used in wsprintf - this is handled from case to case.
+  Many template %s string placeholders changed to %ls
+
+- In order to comply with the opensync's idea of syncing, two actual
+  sync commands are sent from client to server (the first is just a poll
+  to get the changed items on server). 
+
+- All source files includes the file unixdefs.h. This defines various
+  Microsoft standard macros.
+
+- All #directives are now aligned with the # to the very left.If not,
+  gcc emits lot's ow warnigs.
+
+- A lot of support files are added for GNU autoconf stuff, RPM packaging
+  etc.
+
