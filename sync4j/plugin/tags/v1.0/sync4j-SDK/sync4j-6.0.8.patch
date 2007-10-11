@@ -1,0 +1,1485 @@
+Index: sdk/c++/build/autotools/sync4j.pc.in
+===================================================================
+--- sdk/c++/build/autotools/sync4j.pc.in	(.../Funambol-SDK-v6)	(revision 0)
++++ sdk/c++/build/autotools/sync4j.pc.in	(.../trunk/Funambol-SDK-v6)	(revision 204)
+@@ -0,0 +1,11 @@
++prefix= @prefix@
++exec_prefix= @exec_prefix@
++libdir= @libdir@
++includedir=@includedir@
++
++Name: sync4j
++Description: SyncML client API
++Version: @VERSION@
++Requires: 
++Libs: -lsync4j
++Cflags: -I@includedir@/sync4j/common
+
+Property changes on: sdk/c++/build/autotools/test
+___________________________________________________________________
+Name: svn:ignore
+   + test
+Makefile
+Makefile.in
+synccompare.pl
+synclog.txt
+.deps
+
+
+Index: sdk/c++/build/autotools/configure.ac
+===================================================================
+--- sdk/c++/build/autotools/configure.ac	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/build/autotools/configure.ac	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -1,6 +1,6 @@
+ dnl Process this file with autoconf to produce a configure script.
+ AC_INIT(../../src/c++/common/base/base64.cpp)
+-AM_INIT_AUTOMAKE(sync4j, 2.0)
++AM_INIT_AUTOMAKE(sync4j, 6.0.8)
+ AM_CONFIG_HEADER(config.h)
+ 
+ dnl Checks for programs.
+@@ -40,6 +40,16 @@
+         AC_DEFINE(NDEBUG, 1, [Define to 1 if assertions should be disabled.])
+ fi
+ 
++AC_ARG_ENABLE(xmlconfig,
++							AS_HELP_STRING([--enable-xmlconfig],
++														 [enables the configuration through an xml file]),
++							enable_xmlconfig="$enableval", enable_xmlconfig="no")
++							
++if test $enable_xmlconfig == "yes"; then
++				AC_DEFINE([___XML____], [], [enable configuration through an xml file.])
++fi
++
++
+ # Optionally use wchar_t for unicode strings
+ AC_ARG_ENABLE(wchar,
+               AS_HELP_STRING([--enable-wchar],
+@@ -69,5 +79,4 @@
+         AC_DEFINE(ENABLE_INTEGRATION_TESTS, 1, [enable unit tests outside of the library's source code])
+ fi
+ 
+-
+-AC_OUTPUT(Makefile src/Makefile include/Makefile test/Makefile)
++AC_OUTPUT(Makefile src/Makefile include/Makefile test/Makefile sync4j.pc)
+
+Property changes on: sdk/c++/build/autotools/include
+___________________________________________________________________
+Name: svn:ignore
+   + common
+posix
+Makefile
+Makefile.in
+
+
+Index: sdk/c++/build/autotools/src/Makefile.am
+===================================================================
+--- sdk/c++/build/autotools/src/Makefile.am	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/build/autotools/src/Makefile.am	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -194,7 +194,6 @@
+ SOURCES_LIBSYNC4J = $(SOURCES_BASE) $(SOURCES_EVENT) $(SOURCES_FRAMEWORK) $(SOURCES_HTTP) $(SOURCES_SPDM) $(SOURCES_SPDS) $(SOURCES_CLIENT) $(SOURCES_VOCL)
+ 
+ libsync4j_la_SOURCES = $(SOURCES_LIBSYNC4J)
+-libsync4j_la_LDFLAGS = -version-info 3:0
+ 
+ # client_SOURCES = client.cpp TestSyncSource.cpp TestSyncSource2.cpp
+ # client_LDADD = libsync4j.la
+@@ -231,6 +230,6 @@
+ 
+ vpath %.c   $(srcdir)/../../../src/c++/common/base
+ 
+-AM_LDFLAGS = @CURL_LDFLAGS@ @CPPUNIT_LDFLAGS@
+-AM_CXXFLAGS = @CURL_CFLAGS@ @CPPUNIT_CXXFLAGS@
+-AM_CPPFLAGS = -I$(srcdir)/../../../src/include/posix -I$(srcdir)/../../../src/include/common -DAUTOTOOLS
++AM_LDFLAGS = @CURL_LDFLAGS@ @CPPUNIT_LDFLAGS@ -version-info 3:0
++AM_CXXFLAGS = @CURL_CFLAGS@ @CPPUNIT_CXXFLAGS@ 
++AM_CPPFLAGS = -I$(srcdir)/../../../src/include/posix -I$(srcdir)/../../../src/include/common -DAUTOTOOLS -Wall -pedantic
+
+Property changes on: sdk/c++/build/autotools/src
+___________________________________________________________________
+Name: svn:ignore
+   + Makefile
+Makefile.in
+.deps
+.libs
+
+
+Index: sdk/c++/build/autotools/Makefile.am
+===================================================================
+--- sdk/c++/build/autotools/Makefile.am	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/build/autotools/Makefile.am	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -2,3 +2,7 @@
+ AUTOMAKE_OPTIONS = foreign
+ SUBDIRS = include src test
+ 
++EXTRA_DIST = sync4j.pc.in
++pkgconfigdir = $(libdir)/pkgconfig
++pkgconfig_DATA = sync4j.pc
++
+Index: sdk/c++/build/autotools/autogen.sh
+===================================================================
+--- sdk/c++/build/autotools/autogen.sh	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/build/autotools/autogen.sh	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -1,7 +1,7 @@
+-#!/bin/sh
+-
+-${LIBTOOLIZE:-libtoolize} -c -f
+-aclocal
+-autoheader
+-automake -a -c -f
+-autoconf -f
++#!/bin/sh
++
++${LIBTOOLIZE:-libtoolize} -c -f
++aclocal
++autoheader
++automake -a -c -f
++autoconf -f
+
+Property changes on: sdk/c++/build/autotools
+___________________________________________________________________
+Name: svn:ignore
+   + autom4te.cache
+aclocal.m4
+config.guess
+config.h
+config.status
+config.sub
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+Makefile
+Makefile.in
+missing
+stamp-h1
+sync4j.pc
+config.h.in
+
+
+Index: sdk/c++/src/include/posix/spdm/DeviceManagementNode.h
+===================================================================
+--- sdk/c++/src/include/posix/spdm/DeviceManagementNode.h	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/include/posix/spdm/DeviceManagementNode.h	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -20,11 +20,13 @@
+ #define INCL_POSIX_DEVICE_MANAGEMENT_NODE
+ /** @cond DEV */
+ 
++#include "spdm/ManagementNode.h"
++
++#ifndef ___XML____
++
+ #include "base/fscapi.h"
+ #include "base/util/ArrayElement.h"
+-#include "spdm/ManagementNode.h"
+ 
+-
+ /*
+  * File-based implementation of ManagementNode.
+  * Each node is mapped to one file, located in
+@@ -39,6 +41,7 @@
+     ArrayList *lines;
+     BOOL modified;
+     char *prefix;
++    static char *configdir;
+ 
+     class line : public ArrayElement {
+         char *str;
+@@ -85,6 +88,7 @@
+         DeviceManagementNode(const DeviceManagementNode &other);
+         virtual ~DeviceManagementNode();
+ 
++        static void setConfigDir(const char *directory);
+ 
+         // ----------------------------------------------------- Virtual methods
+ 
+@@ -124,5 +128,162 @@
+ 
+ };
+ 
++#else   // begin XML declaration
++
++#include "base/util/XMLProcessor.h"
++
++class DeviceManagementNode : public ManagementNode {
++	/* The text value of a node. Nodes with other nodes as children don't have
++	 * a text value 
++	 */
++	char* nodeTextValue;
++	
++	int numChildren;
++	
++	// List of Node objects representing the children of this node 
++	ArrayList childrenNamesList;
++	
++	// Depth of this node, used for formatting purposes
++	int depth;
++
++	// analyses the xmlconfig string according to the given path 
++	bool findContent(const char* path);
++	
++	// populates childrenNamesList
++	void countChildren(const char* content);
++	
++	
++	class Node : public ArrayElement {
++		char* name;
++		
++	public:
++		Node() { name = NULL; }
++		
++		~Node() { 
++			if(name) { 
++				delete [] name;
++				name = NULL;
++			}
++		}
++		
++		ArrayElement* clone() { 
++			Node* n = new Node(); 
++			n->setName(name); 
++			
++			return n; 
++		}
++		
++		const char* getName() { return name; }
++		
++		void setName(const char* newName) { 
++			if(name)
++				delete [] name;
++			name = stringdup(newName);
++		}
++		
++		const char* getBeginTag(int depth, int numChildren) {
++			StringBuffer ret;
++			
++			for(int i = 1; i < depth; i++)
++				ret.append("  ");
++			
++			ret.append("<");
++			ret.append(name);
++			
++			if(numChildren)
++				ret.append(">\n");
++			else
++				ret.append(">");
++						
++			return stringdup(ret.c_str());
++		}
++		
++		const char* getEndTag(int depth, int numChildren) {
++			StringBuffer ret;
++						
++			if(numChildren) {
++				for(int i = 1; i < depth; i++)
++					ret.append("  ");
++			}
++						
++			ret.append("</");
++			ret.append(name);
++						
++			ret.append(">\n");
++						
++			return stringdup(ret.c_str());
++		}
++	};
++	
++	Node* node;
++	
++    
++    public:
++    	
++    	static char* xmlconfig;
++
++        // ------------------------------------------ Constructors & destructors
++
++        /**
++         * Constructor.
++         *
++         * @param parent - a ManagementNode is usually under the context of a
++         *                 parent node.
++         * @param name - the node name
++         *
++         */
++        DeviceManagementNode(const char* parent, const char *leafName);
++        DeviceManagementNode(const char* fullName);
++        DeviceManagementNode(const DeviceManagementNode &other);
++
++        virtual ~DeviceManagementNode();
++        
++        /* Gets the nodes content (also children) as xml string. Result has to be
++         * freed by the caller
++         */
++        const char* getNodeContent();
++        void setNodeTextValue(const char* value);      
++
++        // ----------------------------------------------------- Virtual methods
++
++        /*
++         * Returns the value of the given property
++         *
++         * @param property - the property name
++         */
++        virtual char* readPropertyValue(const char* property);
++
++
++        /*
++         * Sets a property value.
++         *
++         * @param property - the property name
++         * @param value - the property value (zero terminated string)
++         */
++        virtual void setPropertyValue(const char* property, const char* value);
++
++        /*
++         * Returns the children's name of the parent node. 
++         */
++        char **getChildrenNames();
++
++        /*
++         * Find how many children are defined for this node in the underlying
++         * config system.
++         */
++        virtual int getChildrenMaxCount();
++
++        /*
++         * Creates a new ManagementNode with the exact content of this object.
++         * The new instance MUST be created with the C++ new opertator.
++         */
++        virtual ArrayElement* clone();
++
++
++};
++
++
++#endif	// end XML declaration
++
+ /** @endcond */
+ #endif
+Index: sdk/c++/src/include/common/spdm/errors.h
+===================================================================
+--- sdk/c++/src/include/common/spdm/errors.h	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/include/common/spdm/errors.h	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -24,12 +24,14 @@
+ #define ERR_DM_TREE_NOT_AVAILABLE       10002
+ #define ERR_NO_SOURCE_TO_SYNC           10003
+ #define ERR_ITEM_ERROR                  10004
++#define ERR_XMLCONFIGFILE_NOT_FOUND		10005
+ 
+ #define ERRMSG_INVALID_CONTEXT       "Invalid context: %s"
+ #define ERRMSG_DM_TREE_NOT_AVAILABLE "Unable to access the DM Tree"
+ #define ERRMSG_SOURCE_DEFINITION_NOT_FOUND "Configuration not found for source %s"
+ #define ERRMSG_NO_SOURCE_TO_SYNC "No sources to synchronize"
+ #define ERRMSG_ITEM_ERROR           "An error occurred on one or more items."
++#define ERRMSG_XMLCONFIGFILE_NOT_FOUND "XML configuration file '%s' not found."
+ 
+ /** @endcond */
+ #endif
+Index: sdk/c++/src/include/common/spdm/ManagementNode.h
+===================================================================
+--- sdk/c++/src/include/common/spdm/ManagementNode.h	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/include/common/spdm/ManagementNode.h	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -72,6 +72,9 @@
+          *
+          */
+         ManagementNode(const char*  fullcontext) EXTRA_SECTION_02;
++        
++        ManagementNode(const ManagementNode& other) EXTRA_SECTION_02;
++        
+ 
+         /* Base class destructor */
+         virtual ~ManagementNode() EXTRA_SECTION_02;
+Index: sdk/c++/src/include/common/spds/SyncSourceReport.h
+===================================================================
+--- sdk/c++/src/include/common/spds/SyncSourceReport.h	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/include/common/spds/SyncSourceReport.h	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -34,7 +34,7 @@
+ typedef enum SourceState{
+     SOURCE_ACTIVE       = 0,        /**< source is part of the current sync and in a sane state */
+     SOURCE_INACTIVE     = 1,        /**< source was excluded from the current sync before starting it */
+-    SOURCE_ERROR        = 2,        /**< source encountered and error sometime during the sync */
++    SOURCE_ERROR        = 2        /**< source encountered and error sometime during the sync */
+ } SourceState;
+ 
+ 
+Index: sdk/c++/src/include/common/spds/SyncSource.h
+===================================================================
+--- sdk/c++/src/include/common/spds/SyncSource.h	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/include/common/spds/SyncSource.h	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -77,6 +77,9 @@
+      *               will not make much sense.
+      */
+     SyncSource(const WCHAR* name, SyncSourceConfig* sc) EXTRA_SECTION_01;
++    
++    // Copy ctor
++    SyncSource(const SyncSource& other) EXTRA_SECTION_01;
+ 
+     // Destructor
+     virtual ~SyncSource() EXTRA_SECTION_01;
+@@ -188,6 +191,9 @@
+      *
+      */
+     void setFilter(SourceFilter* f);
++    
++    // Overloading assignment
++    SyncSource& operator=(const SyncSource& other);
+ 
+     /******************************************************
+      * The following methods are virtual because a
+Index: sdk/c++/src/include/common/client/DMTClientConfig.h
+===================================================================
+--- sdk/c++/src/include/common/client/DMTClientConfig.h	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/include/common/client/DMTClientConfig.h	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -30,6 +30,7 @@
+ #include "spds/SyncSourceConfig.h"
+ #include "spdm/ManagementNode.h"
+ 
++
+ class DMTree;
+ 
+ /**
+@@ -40,15 +41,29 @@
+  * additional device info, extended device info, etc.
+  */
+ class DMTClientConfig : public SyncManagerConfig {
+-
++	
+     protected:
+ 
+-        char*  rootContext;
++    	char*  rootContext;
+ 
+         DMTree* dmt;
+         ManagementNode* syncMLNode;
+-        ManagementNode* sourcesNode;
+-
++        ManagementNode* sourcesNode;	
++    
++        /* These two variables are needed by the ___XML____ code, but here I cannot
++         * check for the define, because this introduces a subtle bug:
++         * when space for the variables in this is allocated, ___XML____ is NOT defined,
++         * therefore no space in the data segment is allocated for those two variables.
++         * Later, ___XML____ seems to be defined and the compiler doesn't warn about
++         * undeclared variables, but puts them *outside* the data segment of the 
++         * class. Valgrind discovers an invalid read when accessing those variables.
++         */
++        ManagementNode* rootNode;
++        char* xmlconfigfile;
++       
++        
++        
++        
+         void initialize();
+         DMTClientConfig() EXTRA_SECTION_01;
+ 
+@@ -229,6 +244,13 @@
+     public:
+ 
+         DMTClientConfig(const char*  root) EXTRA_SECTION_01;
++        
++        /**
++         * Allows to specify a configuration located somewhere else than $HOME/.sync4j
++         * 
++         * @param dir	the directory where the DM tree is located
++         */
++        DMTClientConfig(const char* dir, const char* root) EXTRA_SECTION_01;
+ 
+         ~DMTClientConfig() EXTRA_SECTION_01;
+ 
+Index: sdk/c++/src/c++/posix/spdm/DeviceManagementNode.cpp
+===================================================================
+--- sdk/c++/src/c++/posix/spdm/DeviceManagementNode.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/posix/spdm/DeviceManagementNode.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -16,8 +16,6 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-
+-
+ #include "base/util/utils.h"
+ #include "base/fscapi.h"
+ #include "spdm/spdmutils.h"
+@@ -31,12 +29,16 @@
+ #include <fcntl.h>
+ #include <dirent.h>
+ 
++#ifndef ___XML____
++
+ static inline BOOL isNode(struct dirent *entry) {
+     struct stat buf;
+     return (!stat(entry->d_name, &buf) && S_ISDIR(buf.st_mode) &&
+         strcmp(entry->d_name, ".") && strcmp(entry->d_name, ".."));
+ }
+ 
++char* DeviceManagementNode::configdir = NULL;
++
+ DeviceManagementNode::DeviceManagementNode(const char* parent, const char *leafName) : ManagementNode(parent, leafName)  {
+     lines = new ArrayList;
+     modified = FALSE;
+@@ -69,19 +71,32 @@
+     }
+ }
+ 
++void DeviceManagementNode::setConfigDir(const char *directory)
++{
++	configdir = stringdup(directory);
++}
++
+ BOOL DeviceManagementNode::gotoDir(BOOL read) {
+     BOOL success = TRUE;
+ 
+     returnFromDir();
+     cwdfd = open(".", O_RDONLY);
+ 
+-    char *curr = getenv("HOME");
+-    if (curr) {
+-        chdir(curr);
++    char *curr;
++    char *dirs = new char[strlen(context) + strlen(name) + 30];
++    
++    if(configdir) {
++    	chdir(configdir);
++    	sprintf(dirs, "%s/%s", context, name);
+     }
+-    char *dirs = new char[strlen(context) + strlen(name) + 30];
+-    sprintf(dirs, ".sync4j/%s/%s", context, name);
++    else {
++    	curr = getenv("HOME");
++    	if(curr)
++    		chdir(curr);
++    	sprintf(dirs, ".sync4j/%s/%s", context, name);
++    }
+     curr = dirs;
++    
+     do {
+         char *nextdir = strchr(curr, '/');
+         if (nextdir) {
+@@ -326,3 +341,301 @@
+ 	return ret;
+ }
+ 
++#else //begin xml code
++
++#include "base/Log.h"
++
++/**
++ * Structure of the xml configuration:
++ * 	<sync4jconfig>
++ * 		<spds>
++ * 			<syncml>
++ * 				<Auth>
++ * 					<username>string</username>
++ *	 				<password>string</password>
++ * 					<serverID>string</serverID>
++ * 					<serverPWD>string</serverPWD>
++ * 					<serverNonce>string</serverNonce>
++ * 					<clientNonce>string</clientNonce>
++ *	 				<clientAuthType>string</clientAuthType>
++ * 					<serverAuthType>string</serverAuthType>
++ * 					<isServerAuthRequired>bool</isServerAuthRequired>
++ * 				</Auth>
++ * 				<Conn>
++ * 					<syncUrl>string</syncUrl>
++ * 					<useProxy>bool</useProxy>
++ * 					<proxyHost>string</proxyHost>
++ * 					<proxyPort>integer</proxyPort>
++ * 					<proxyUsername>string</proxyUsername>
++ * 					<proxyPassword>string</proxyPassword>
++ * 					<checkConn>bool</checkConn>
++ * 					<responseTimeout>integer</responseTimeout>
++ * 					<readBufferSize>integer</readBufferSize>
++ * 					<userAgent>string</userAgent>
++ * 				</Conn>
++ * 				<DevDetail>
++ * 					<devType>string</devType>
++ * 					<oem>string</oem>
++ * 					<fwv>string</fwv>
++ * 					<swv>string</swv>
++ * 					<hwv>string</hwv>
++ * 					<loSupport>bool</loSupport>
++ * 				</DevDetail>
++ * 				<DevInfo>
++ * 					<devID>string</devID>
++ * 					<man>string</man>
++ * 					<mod>string</mod>
++ * 					<dsV>string</dsV>
++ *	 			</DevInfo>
++ * 				<Ext>
++ * 					<firstTimeSyncMode>integer</firstTimeSyncMode>
++ * 					<maxMsgSize>integer</maxMsgSize>
++ * 					<begin>long</begin>
++ * 					<end>long</end>
++ * 					<maxModPerMsg>integer</maxModPerMsg>
++ * 					<verDTD>string</verDTD>
++ * 					<devInfHash>string<devInfHash>
++ * 					<utc>bool</utc>
++ * 					<nocSupport>bool</nocSupport>
++ * 					<logLevel>integer</logLevel>
++ * 					<maxObjSize>integer</maxObjSize>
++ * 				</Ext>
++ * 			</syncml>
++ * 			<sources>
++ * 				<card>
++ * 					<name>string</name>
++ *	 				<uri>string</uri>
++ * 					<sync>string</sync>
++ * 					<syncModes>string</syncModes>
++ * 					<type>string</type>
++ * 					<last>long</last>
++ *	 				<version>string</version>
++ * 					<encoding>string</encoding>
++ * 					<supportedTypes>string</supportedTypes>
++ * 					<encryption>string</encryption>
++ *	 			</card>
++ * 				<anothersource>
++ * 					...
++ * 				</anothersource>
++ *	 		</sources>
++ * 		</spds>
++ * 	</sync4jconfig>
++ */
++
++char* DeviceManagementNode::xmlconfig = NULL;
++
++DeviceManagementNode::DeviceManagementNode(const char* parent, const char *leafName) 
++	: ManagementNode(parent, leafName) {
++	
++	nodeTextValue = NULL;
++	numChildren = 0;
++	this->node = new Node();
++	depth = 0;
++		
++	char* path = createFullName();
++		
++	if(!findContent(path)) {
++		//TODO error handling
++	}
++	
++	//std::cout << node << "\n" << nodeContent << "\n\n\n";
++	delete [] path;
++}
++
++DeviceManagementNode::DeviceManagementNode(const char* node) : ManagementNode(node) {
++	nodeTextValue = NULL;
++	numChildren = 0;
++	this->node = new Node();
++	depth = 0;
++   	
++	if(!findContent(node)) {
++		//TODO error handling
++	}
++	//std::cout << node << "\n" << nodeContent << "\n\n\n";
++		
++}
++
++DeviceManagementNode::DeviceManagementNode(const DeviceManagementNode &other) : ManagementNode(other) {
++	node = (Node*) other.node->clone();
++    nodeTextValue = stringdup(other.nodeTextValue);
++    numChildren = other.numChildren;
++    childrenNamesList = other.childrenNamesList;
++    depth = other.depth;
++}
++
++
++DeviceManagementNode::~DeviceManagementNode() {
++	if(nodeTextValue) {
++		delete [] nodeTextValue;
++		nodeTextValue = NULL;
++	}
++	
++	
++	delete node;
++	node = NULL;
++}
++
++const char* DeviceManagementNode::getNodeContent() {
++	StringBuffer content;
++	
++	const char* beginTag = node->getBeginTag(depth, numChildren); 
++	content.append(beginTag);
++	delete [] beginTag;
++	
++	if(numChildren > 0) {
++		for(int i = 0; i < numChildren; i++) { 
++			const char* cont = ((DeviceManagementNode*)getChild(i))->getNodeContent();
++			content.append(cont);
++			delete [] cont;
++		}
++	}
++	else 
++		content.append(nodeTextValue);
++	
++	const char* endTag = node->getEndTag(depth, numChildren); 
++	content.append(endTag);
++	delete [] endTag;
++	
++	
++	
++	return stringdup(content.c_str());
++}
++
++void DeviceManagementNode::setNodeTextValue(const char* value) {
++	if(nodeTextValue) {
++		delete [] nodeTextValue;
++		nodeTextValue = NULL;
++	}
++	nodeTextValue = stringdup(value);
++}
++
++char* DeviceManagementNode::readPropertyValue(const char* property) {
++	int len = strlen(context) + strlen(name) + strlen(property) + 3;
++	char* node = new char[len];
++	sprintf(node, "%s/%s/%s", context, name, property);
++	
++	char* ret;
++	if(findContent(node))
++		ret =  stringdup(nodeTextValue);
++	else 
++		ret = stringdup("");
++	
++	delete [] node;
++	
++	return ret;
++		
++}
++
++void DeviceManagementNode::setPropertyValue(const char* property, const char* value) {
++	DeviceManagementNode* dn = (DeviceManagementNode*) getChild(property);
++	if(dn)
++		dn->setNodeTextValue(value);
++}
++
++char** DeviceManagementNode::getChildrenNames() {
++	char** childrenNames = 0;
++		
++	if(numChildren) {
++		childrenNames = new char*[numChildren];
++			
++		for(int i = 0; i < numChildren; i++) {
++			childrenNames[i] = stringdup(((Node*)childrenNamesList[i])->getName());
++		}
++	}
++		
++	return childrenNames;
++}
++
++int DeviceManagementNode::getChildrenMaxCount() {
++	return numChildren;
++}
++
++ArrayElement* DeviceManagementNode::clone() {
++	return new DeviceManagementNode(*this);
++}
++
++bool DeviceManagementNode::findContent(const char* path) {
++	int pathPos = 0;
++	int tagLen = 0;
++	bool leaf = false;
++	const char* oldcont = stringdup(xmlconfig);
++		
++	while(!leaf) {
++		tagLen = strcspn(&path[pathPos],"/");
++		depth++;
++		
++		if(!strchr(&path[pathPos], '/'))
++			leaf = true;
++				
++		/* only get tag if length of it is > 1
++		 * ex. /AA/BBB -> first tag would be '\0' -> here we skip it
++		 */
++		if(tagLen > 1) {
++			char* tag = new char[tagLen + 1]; 
++			snprintf(tag, tagLen + 1, "%s", &path[pathPos]);
++					
++			const char* cont = XMLProcessor::copyElementContent(oldcont, tag);
++			if(cont) {
++				delete [] oldcont;
++				oldcont = cont;
++			}
++			else {
++				delete [] oldcont;
++				delete [] tag;
++				return false;
++			}
++				
++						
++			if(leaf) {
++				node->setName(tag);
++				//check if content has children or text
++				int p = 0;
++				const char* nextTag = XMLProcessor::getNextTag(oldcont, &p);
++				if(!nextTag) {
++					//no child
++					if(nodeTextValue)
++						delete [] nodeTextValue;
++					nodeTextValue = stringdup(oldcont);
++				}
++				else {
++					//has children, so count them
++					countChildren(oldcont);
++					delete [] nextTag;
++				}				
++			}
++			delete [] tag;
++		}
++		
++		pathPos += tagLen + 1;
++	}
++	
++	delete [] oldcont;
++		
++	return true;
++}
++
++void DeviceManagementNode::countChildren(const char* content) {
++	int pos = 0;
++	unsigned int endpos = 0;
++	Node n;
++	
++	const char* tag = NULL;
++	while((tag = XMLProcessor::getNextTag(&content[pos], &pos)) != NULL) {
++		/* getNextTag() assigns to pos the ending position of the *open* tag,
++		 * therefore I have to use getElementContent() to get the position of
++		 * the *close* tag
++		 */
++		XMLProcessor::getElementContent(content, tag, NULL, NULL, &endpos);
++		pos = endpos + strlen(tag) + 3;
++		
++		n.setName(tag);
++		childrenNamesList.add(n);
++		
++		delete [] tag;
++	}
++				
++	numChildren = childrenNamesList.size();
++}
++
++#endif //end xml code
++
+Index: sdk/c++/src/c++/common/spdm/ManagementNode.cpp
+===================================================================
+--- sdk/c++/src/c++/common/spdm/ManagementNode.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/common/spdm/ManagementNode.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -46,6 +46,12 @@
+     }
+ }
+ 
++ManagementNode::ManagementNode(const ManagementNode& other) {
++	context = stringdup(other.context);
++	name = stringdup(other.name);
++	children = other.children;
++}
++
+ ManagementNode::~ManagementNode() {
+     if (context)
+         delete [] context;
+Index: sdk/c++/src/c++/common/spds/AccessConfig.cpp
+===================================================================
+--- sdk/c++/src/c++/common/spds/AccessConfig.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/common/spds/AccessConfig.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -274,7 +274,7 @@
+ 		
+ 		set(&syncURL, dest);
+ 
+-        delete dest;
++        delete [] dest;
+ 	}
+ 	
+     dirty |= DIRTY_SYNC_URL;
+Index: sdk/c++/src/c++/common/spds/SyncSourceReport.cpp
+===================================================================
+--- sdk/c++/src/c++/common/spds/SyncSourceReport.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/common/spds/SyncSourceReport.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -69,14 +69,13 @@
+         delete [] sourceName;
+         sourceName = NULL;
+     }
+-
+-    clientAddItems->clear();
+-    clientModItems->clear();
+-    clientDelItems->clear();
+-
+-    serverAddItems->clear();
+-    serverModItems->clear();
+-    serverDelItems->clear();
++    
++    delete clientAddItems;
++    delete clientModItems;
++    delete clientDelItems;
++    delete serverAddItems;
++    delete serverModItems;
++    delete serverDelItems;
+ }
+ 
+ 
+Index: sdk/c++/src/c++/common/spds/SyncSource.cpp
+===================================================================
+--- sdk/c++/src/c++/common/spds/SyncSource.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/common/spds/SyncSource.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -25,28 +25,50 @@
+ static SyncSourceConfig defaultConfig;
+ 
+ SyncSource::SyncSource(const WCHAR* sourceName, SyncSourceConfig *sc) :
+-    config(sc ? *sc : defaultConfig)
++    config(sc ? *sc : defaultConfig),
++    name(NULL),
++    report(NULL),
++    lastSync(0),
++    nextSync(0),
++    filter(NULL)
+ {
+-    name   = NULL;
+-    report = NULL;
+-
++	next[0] = '\0';
++	last[0] = '\0';
++	
+     setPreferredSyncMode(sc ? syncModeCode(sc->getSync()) : SYNC_NONE);
++    
+     if ((sourceName == NULL) || (*sourceName == 0)) {
+         lastErrorCode = ERR_PARAMETER_IS_EMPTY;
+         sprintf(lastErrorMsg, "name cannot be empty (NULL or 0-length)");
+-        goto finally;
+     }
+-    name = wstrdup(sourceName);
+-
+-  finally:
+-
+-    lastSync = 0;
+-	nextSync = 0;
++    else
++    	name = wstrdup(sourceName);
+     
+     //errorHandler = NULL;
+-    filter       = NULL;
++    
+ }
+ 
++/* Copy ctor
++ * config and report are shallow copies because this class is not the owner of
++ * these objects
++ */
++SyncSource::SyncSource(const SyncSource& other) : 	
++	syncMode(other.syncMode), 
++	lastSync(other.lastSync),
++	nextSync(other.nextSync),
++	name(stringdup(other.name)),
++	config(other.config),
++	report(other.report),
++	filter(NULL) /* otherwise filter points to invalid address when setFilter() 
++				  * is called, where filter is deleted!
++				  */
++{
++	
++	setNextAnchor(other.next);
++	setLastAnchor(other.last);
++	setFilter(other.filter);
++}
++
+ /**
+  * Release dynamically allocated resources
+  */
+@@ -221,6 +243,25 @@
+     }
+ }
+ 
++SyncSource& SyncSource::operator=(const SyncSource& other) {
++	if(this != &other) {
++		syncMode 	= other.syncMode;
++		lastSync 	= other.lastSync;
++		nextSync 	= other.nextSync;
++		report 		= other.report;
++		config 		= other.config;
++		
++		delete [] name;
++		name = stringdup(other.name);
++		
++		setNextAnchor	(other.next);
++		setLastAnchor	(other.last);
++		setFilter		(other.filter);
++	}
++	
++	return *this;
++}
++
+ void SyncSource::assign(SyncSource& s) {
+     setSyncMode(s.getSyncMode());
+     setLastSync(s.getLastSync());
+Index: sdk/c++/src/c++/common/base/util/BasicTime.cpp
+===================================================================
+--- sdk/c++/src/c++/common/base/util/BasicTime.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/common/base/util/BasicTime.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -254,7 +254,7 @@
+ 
+ ArrayElement *BasicTime::clone() {
+     return new BasicTime(*this);
+-};
++}
+ 
+ BasicTime& BasicTime::operator=(const BasicTime& o) {
+     year = o.year;
+Index: sdk/c++/src/c++/common/client/DMTClientConfig.cpp
+===================================================================
+--- sdk/c++/src/c++/common/client/DMTClientConfig.cpp	(.../Funambol-SDK-v6)	(revision 25)
++++ sdk/c++/src/c++/common/client/DMTClientConfig.cpp	(.../trunk/Funambol-SDK-v6)	(working copy)
+@@ -26,12 +26,17 @@
+ #include "spdm/DMTreeFactory.h"
+ #include "spdm/DMTree.h"
+ #include "spdm/ManagementNode.h"
++#include "spdm/DeviceManagementNode.h"
+ 
+ 
+ void DMTClientConfig::initialize() {
+     dmt = NULL;
+     syncMLNode = NULL;
+     sourcesNode = NULL;
++    xmlconfigfile = NULL;
++    rootNode = NULL;
++    
++
+ }
+ 
+ DMTClientConfig::DMTClientConfig() : SyncManagerConfig() {
+@@ -46,12 +51,37 @@
+     strcpy(rootContext, root);
+ }
+ 
++DMTClientConfig::DMTClientConfig(const char* dir, const char* root) : SyncManagerConfig() {
++	initialize();
++	rootContext = stringdup(root);
+ 
++#ifdef ___XML____
++
++	xmlconfigfile = stringdup(dir);
++
++#else
++	
++	DeviceManagementNode::setConfigDir(dir);
++
++#endif
++}
++
++
+ DMTClientConfig::~DMTClientConfig() {
+     if (rootContext) {
+         delete [] rootContext;
++        rootContext = NULL;
+     }
+     close();
++    
++#ifdef ___XML____
++
++    if(xmlconfigfile) {
++    	delete [] xmlconfigfile;
++    	xmlconfigfile = NULL;
++    }
++    
++#endif
+ }
+ 
+ SyncSourceConfig* DMTClientConfig::getSyncSourceConfig(const char* name, BOOL refresh) {
+@@ -181,13 +211,86 @@
+     }
+ 
+     ret = (lastErrorCode == ERR_NONE);
+-
++    
++#ifdef ___XML____
++        
++    char* rootPath = new char[strlen(rootContext) + 2];
++    sprintf(rootPath, "/%s", rootContext);
++    rootNode = (DeviceManagementNode*) dmt->readManagementNode(rootPath);
++    delete [] rootPath;
++    
++    if(rootNode) {
++    	DeviceManagementNode* spds = (DeviceManagementNode*) rootNode->getChild("spds");
++    	if(spds) {
++    		spds->addChild(*syncMLNode);
++    		spds->addChild(*sourcesNode);
++    		
++    		const char* cont = ((DeviceManagementNode*)rootNode)->getNodeContent();
++       
++    		FILE* file = fopen(xmlconfigfile, "w");
++    		if(file) {
++    			fprintf(file, "%s", cont);
++    		    fflush(file);
++    		    fclose(file);
++    		}
++    		
++    		delete [] cont;
++    	}
++    }
++    
++#endif
++    
+     close();
+     return ret;
+ }
+ 
+ BOOL DMTClientConfig::open() {
+-    char nodeName[DIM_MANAGEMENT_PATH];
++#ifdef ___XML____
++	
++	if(xmlconfigfile) {
++		FILE* file = fopen(xmlconfigfile, "r");
++		if(file) {
++			StringBuffer buf;
++			char* line = NULL;
++			size_t len = 0;
++			size_t read = 0;
++			while((read = getline(&line, &len, file)) != -1) {
++				char* nospace = new char[read + 1];
++				char* ptrS = nospace;
++				char* ptrL = line;
++				
++				while(*ptrL != '\0') {
++					if(isspace(*ptrL) == 0) {
++						*ptrS = *ptrL;
++						ptrS++;						
++					}
++					ptrL++;
++				}
++				*ptrS = *ptrL;
++				buf.append(nospace);
++				delete [] nospace;
++			}
++			
++			if(DeviceManagementNode::xmlconfig)
++				delete [] DeviceManagementNode::xmlconfig;
++			
++			DeviceManagementNode::xmlconfig = stringdup(buf.c_str());
++			
++			if(line)
++				free(line);
++			
++			fclose(file);
++		}
++		else {
++			lastErrorCode = ERR_XMLCONFIGFILE_NOT_FOUND;
++			sprintf(lastErrorMsg, ERRMSG_XMLCONFIGFILE_NOT_FOUND, xmlconfigfile);
++			return FALSE;
++		}
++	}
++	
++#endif
++    
++	char nodeName[DIM_MANAGEMENT_PATH];
+     nodeName[0] = 0;
+ 
+     dmt = DMTreeFactory::getDMTree(rootContext);
+@@ -236,6 +339,15 @@
+ }
+ 
+ void DMTClientConfig::close() {
++#ifdef ___XML____
++	
++	if(rootNode) {
++		delete rootNode;
++		rootNode = NULL;
++	}
++	
++#endif
++		
+     if (syncMLNode) {
+         delete syncMLNode;
+         syncMLNode = NULL;
+@@ -347,8 +459,10 @@
+     node = dmt->readManagementNode(nodeName);
+     if (node) {
+         saveAuthConfig(n, *node);
++                
+         delete node; 
+         node = NULL;
++        
+     }
+ 
+     //
+@@ -358,6 +472,7 @@
+     node = dmt->readManagementNode(nodeName);
+     if (node) {
+         saveConnConfig(n, *node);
++        
+         delete node; 
+         node = NULL;
+     }
+@@ -369,6 +484,7 @@
+     node = dmt->readManagementNode(nodeName);
+     if (node) {
+         saveExtAccessConfig(n, *node);
++                
+         delete node; 
+         node = NULL;
+     }
+@@ -469,7 +585,8 @@
+     sprintf(nodeName, "%s%s", syncMLContext, CONTEXT_DEV_INFO);
+     node = dmt->readManagementNode(nodeName);
+     if (node) {
+-        saveDevInfoConfig(n, *node);
++        saveDevInfoConfig(n, *node); 
++        
+         delete node; 
+         node = NULL;
+     }
+@@ -481,6 +598,7 @@
+     node = dmt->readManagementNode(nodeName);
+     if (node) {
+         saveDevDetailConfig(n, *node);
++        
+         delete node; 
+         node = NULL;
+     }
+@@ -492,6 +610,7 @@
+     node = dmt->readManagementNode(nodeName);
+     if (node) {
+         saveExtDevConfig(n, *node);
++        
+         delete node; 
+         node = NULL;
+     }
+@@ -538,7 +657,17 @@
+ 
+     ManagementNode* node;
+     char nodeName[DIM_MANAGEMENT_PATH];
++    
++#ifdef ___XML____
++    // Get source nodes' children 
++      
++    char* fn = n.createFullName();
++    sprintf(nodeName, "%s/%s", fn, n.getChild(i)->getName());
++    delete [] fn;
++    node = dmt->readManagementNode(nodeName);
+ 
++#else
++
+     if (n.getChild(i) == NULL) {
+         // Create node from Source name.
+         char* fn = n.createFullName();
+@@ -549,11 +678,14 @@
+     else {
+         node = (ManagementNode*)n.getChild(i)->clone();
+     }
++    
++#endif
+ 
+     if (node) {
+         saveSourceConfig(i, n, *node);
+         saveSourceVars(i, n, *node);
+-
++     
++        
+         // *** TBD ***
+         // CTCap c = sourceConfigs[i].getCtCap();
+         // saveCtCap() somewhere...
+@@ -616,7 +748,25 @@
+     authNode.setPropertyValue(PROPERTY_CLIENT_AUTH_TYPE, accessConfig.getClientAuthType());
+     authNode.setPropertyValue(PROPERTY_SERVER_AUTH_TYPE, accessConfig.getServerAuthType());
+     authNode.setPropertyValue(PROPERTY_IS_SERVER_REQUIRED,
+-                              (accessConfig.getServerAuthRequired() ? "1" : "0" ) ); 
++                              (accessConfig.getServerAuthRequired() ? "1" : "0" ) );
++
++#ifdef ___XML____
++    
++    /* after the values for the authNode are set, the property nodes are added
++     * to the authNode of syncMLNode 
++     */ 
++    
++    ManagementNode* n = syncMLNode.getChild(authNode.getName());
++    if(n) {
++    	int c = authNode.getChildrenCount();
++    	for(int i = 0; i < c; i++) {
++    		ManagementNode* child = authNode.getChild(i);
++    		if(child)
++    			n->addChild(*child);
++    	}
++    }
++    
++#endif
+ }
+ 
+ BOOL DMTClientConfig::readConnConfig(ManagementNode& syncMLNode,
+@@ -685,6 +835,20 @@
+     sprintf(buf, "%lu", accessConfig.getReadBufferSize());
+     connNode.setPropertyValue(PROPERTY_READ_BUFFER_SIZE, buf);  
+     connNode.setPropertyValue(PROPERTY_USER_AGENT, accessConfig.getUserAgent());
++    
++#ifdef ___XML____
++    
++    ManagementNode* n = syncMLNode.getChild(connNode.getName());
++    if(n) {
++    	int c = connNode.getChildrenCount();
++    	for(int i = 0; i < c; i++) {
++    		ManagementNode* child = connNode.getChild(i);
++    		if(child)
++    			n->addChild(*child);
++    	}
++    }
++    
++#endif
+ }
+ 
+ BOOL DMTClientConfig::readExtAccessConfig(ManagementNode& syncMLNode,
+@@ -733,6 +897,38 @@
+ 
+     sprintf(buf, "%lu", accessConfig.getMaxModPerMsg());
+     extNode.setPropertyValue(PROPERTY_MAX_MOD_PER_MSG, buf);
++    
++    
++#ifdef ___XML____
++    
++    /* This node is populated by two different methods: this one and saveExtDevConfig()
++     * further below. Therefore here are only those nodes added which were set above
++     */
++    
++    ManagementNode* n = syncMLNode.getChild(extNode.getName());
++    if(n) {
++    	ManagementNode* firstTimeSyncMode = extNode.getChild(PROPERTY_FIRST_TIME_SYNC_MODE);
++    	if(firstTimeSyncMode)
++    		n->addChild(*firstTimeSyncMode);
++    	
++    	ManagementNode* maxMsgSize = extNode.getChild(PROPERTY_MAX_MSG_SIZE);
++    	if(maxMsgSize)
++    	    n->addChild(*maxMsgSize);
++    	
++    	ManagementNode* beginSync = extNode.getChild(PROPERTY_SYNC_BEGIN);
++    	if(beginSync)
++    	   	n->addChild(*beginSync);
++    	    	
++    	ManagementNode* endSync = extNode.getChild(PROPERTY_SYNC_END);
++    	if(endSync)
++    	   	n->addChild(*endSync);
++
++    	ManagementNode* maxModPerMsg = extNode.getChild(PROPERTY_MAX_MOD_PER_MSG);
++    	if(maxModPerMsg)
++    	   	n->addChild(*maxModPerMsg);
++    }
++    
++#endif
+ }
+ 
+ BOOL DMTClientConfig::readDevInfoConfig(ManagementNode& syncMLNode,
+@@ -764,6 +960,21 @@
+     devInfoNode.setPropertyValue(PROPERTY_MANUFACTURER, deviceConfig.getMan());
+     devInfoNode.setPropertyValue(PROPERTY_MODEL, deviceConfig.getMod());
+     devInfoNode.setPropertyValue(PROPERTY_DS_VERSION, deviceConfig.getDsV());
++    
++    
++#ifdef ___XML____
++            
++    ManagementNode* n = syncMLNode.getChild(devInfoNode.getName());
++    if(n) {
++    	int c = devInfoNode.getChildrenCount();
++    	for(int i = 0; i < c; i++) {
++    		ManagementNode* child = devInfoNode.getChild(i);
++    		if(child)
++    			n->addChild(*child);
++    	}
++    }
++    
++#endif
+ }
+         
+ BOOL DMTClientConfig::readDevDetailConfig(ManagementNode& syncMLNode,
+@@ -806,6 +1017,21 @@
+     devDetailNode.setPropertyValue(PROPERTY_HARDWARE_VERSION, deviceConfig.getHwv());
+     devDetailNode.setPropertyValue(PROPERTY_LARGE_OBJECT_SUPPORT, 
+                                    (deviceConfig.getLoSupport() ? "1": "0") );
++    
++    
++#ifdef ___XML____
++        
++    ManagementNode* n = syncMLNode.getChild(devDetailNode.getName());
++    if(n) {
++    	int c = devDetailNode.getChildrenCount();
++    	for(int i = 0; i < c; i++) {
++    		ManagementNode* child = devDetailNode.getChild(i);
++    		if(child)
++    			n->addChild(*child);
++    	}
++    }
++    
++#endif
+ }
+ 
+ BOOL DMTClientConfig::readExtDevConfig(ManagementNode& syncMLNode,
+@@ -856,6 +1082,37 @@
+         
+     sprintf(buf, "%lu", deviceConfig.getMaxObjSize());
+     extNode.setPropertyValue(PROPERTY_MAX_OBJ_SIZE, buf);
++    
++#ifdef ___XML____
++        
++    ManagementNode* n = syncMLNode.getChild(extNode.getName());
++    if(n) {
++    	ManagementNode* verDTD = extNode.getChild(PROPERTY_VER_DTD);
++    	if(verDTD)
++    		n->addChild(*verDTD);
++    	
++    	ManagementNode* devinfHash = extNode.getChild(PROPERTY_DEVINF_HASH);
++    	if(devinfHash)
++    	    n->addChild(*devinfHash);
++    	
++    	ManagementNode* utc = extNode.getChild(PROPERTY_UTC);
++    	if(utc)
++    	   	n->addChild(*utc);
++    	    	
++    	ManagementNode* noc = extNode.getChild(PROPERTY_NUMBER_OF_CHANGES_SUPPORT);
++    	if(noc)
++    	   	n->addChild(*noc);
++
++    	ManagementNode* logLevel = extNode.getChild(PROPERTY_LOG_LEVEL);
++    	if(logLevel)
++    	   	n->addChild(*logLevel);
++    	
++    	ManagementNode* maxObjSize = extNode.getChild(PROPERTY_MAX_OBJ_SIZE);
++    	if(maxObjSize)
++    	   	n->addChild(*maxObjSize);
++    }
++    
++#endif
+ }
+ 
+ BOOL DMTClientConfig::readSourceVars(int i,
+@@ -877,6 +1134,17 @@
+ 
+     timestampToAnchor(sourceConfigs[i].getLast(), buf); 
+     sourceNode.setPropertyValue(PROPERTY_SOURCE_LAST_SYNC, buf);   
++    
++#ifdef ___XML____
++    
++    ManagementNode* n = sourcesNode.getChild(sourceNode.getName());
++    if(n) {
++    	ManagementNode* lastSync = sourceNode.getChild(PROPERTY_SOURCE_LAST_SYNC);
++    	if(lastSync)
++    	   	n->addChild(*lastSync);
++    }
++    
++#endif
+ }
+ 
+ BOOL DMTClientConfig::readSourceConfig(int i,
+@@ -935,5 +1203,24 @@
+     sourceNode.setPropertyValue(PROPERTY_SOURCE_ENCODING, sourceConfigs[i].getEncoding());    
+     sourceNode.setPropertyValue(PROPERTY_SOURCE_SUPP_TYPES, sourceConfigs[i].getSupportedTypes());
+     sourceNode.setPropertyValue(PROPERTY_SOURCE_ENCRYPTION, sourceConfigs[i].getEncryption());
++    
++#ifdef ___XML____
++        
++    ManagementNode* n = sourcesNode.getChild(sourceNode.getName());
++    if(n) {
++    	int c = sourceNode.getChildrenCount();
++    	for(int i = 0; i < c; i++) {
++    		ManagementNode* child = sourceNode.getChild(i);
++    		if(child) {
++    			/* value for PROPERRTY_SOURCE_LAST_SYNC was alredy set in
++    			 * saveSourceVars, so its ommitted here
++    			 */
++    			if(strcmp(child->getName(), PROPERTY_SOURCE_LAST_SYNC) != 0)
++    				n->addChild(*child);
++    		}
++    	}
++    }
++    
++#endif
+ 
+ }

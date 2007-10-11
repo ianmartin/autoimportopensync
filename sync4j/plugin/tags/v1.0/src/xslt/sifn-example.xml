@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<note>
+    <Body>New Note the first note</Body>
+    <Categories>cat1; cat2;cat3</Categories>
+    <Subject>New Note</Subject>
+    <Color>3</Color>
+    <Height>166</Height>
+    <Width>200</Width>
+    <Left>80</Left>
+    <Top>80</Top>
+    <Date>20070926T133139Z</Date>
+</note>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- if the example or xmlformat-todo.xsd is altered, validate with xmllint! -->
+<todo version="2">
+	<Alarm Value="DATE-TIME" AlternativeTextRep="sometring" Language="somestring">
+		<AlarmAction>AUDIO</AlarmAction>
+		<AlarmAttach Value="URI" FormatType="somestring" Encoding="someenc">
+			<Content>anURI</Content>
+		</AlarmAttach>
+		<AlarmAttendee>somestring</AlarmAttendee>
+		<AlarmDescription>somestring</AlarmDescription>
+		<AlarmRepeat>10</AlarmRepeat>
+		<AlarmRepeatDuration>somestring</AlarmRepeatDuration>
+		<AlarmSummary>somestring</AlarmSummary>
+		<AlarmTrigger>somestring</AlarmTrigger>
+	</Alarm>
+	<Attach Value="URI" FormatType="somestring" Encoding="someenc">
+		<Content>anURI</Content>
+	</Attach>
+	<Attendee CUType="INDIVIDUAL" Member="anURI anUri" Role="OPT-PARTICIPANT"
+			  PartStat="ACCEPTED" Rsvp="TRUE" DelegatedTo="anURI anURI anURI"
+			  DelegatedFrom="anUri" SentBy="somestring" CommonName="somestring"
+			  Directory="somestring" Language="somestring">
+		<Content>anURI</Content>
+	</Attendee>
+	<CalendarScale>
+		<Content>somestring</Content>
+	</CalendarScale>
+	<Categories>
+		<Category>somestring</Category>
+		<Category>somestring</Category>
+	</Categories>
+	<Class>
+		<Content>PRIVATE</Content>
+	</Class>
+	<Comment AlternativeTextRep="sometring" Language="somestring">
+		<Content>somestring</Content>
+	</Comment>
+	<Completed Value="DATE-TIME" TimezoneID="somestring">
+		<Content>somestring</Content>
+	</Completed>
+	<Contact AlternativeTextRep="sometring" Language="somestring">
+		<Content>somestring</Content>
+	</Contact>
+	<Created Value="DATE-TIME" TimezoneID="somestring">
+		<Content>somestring</Content>
+	</Created>
+	<DateCalendarCreated Value="DATE-TIME" TimezoneID="somestring">
+		<Content>somestring</Content>
+	</DateCalendarCreated>
+	<DateStarted Value="DATE-TIME" TimezoneID="somestring">
+		<Content>20071001T181254Z</Content>
+	</DateStarted>
+	<Description AlternativeTextRep="sometring" Language="somestring">
+		<Content>somestring</Content>
+	</Description>
+	<Due Value="DATE-TIME" TimezoneID="somestring">
+		<Content>20071001T181254Z</Content>
+	</Due>
+	<Duration>
+		<InAdvance>TRUE</InAdvance>
+		<Weeks>3</Weeks>
+		<Days>1</Days>
+		<Hours>12</Hours>
+		<Minutes>15</Minutes>
+		<Seconds>0</Seconds>
+	</Duration>
+	<ExceptionDateTime Value="DATE-TIME" TimezoneID="somestring">
+		<Content>somestring</Content>
+	</ExceptionDateTime>
+	<ExceptionRule TimezoneID="somestring" TZComponent="somestring">
+		<Frequency>DAILY</Frequency>
+		<Until>somestring</Until>
+		<Count>2</Count>
+		<Interval>10</Interval>
+		<ByDay>somestring</ByDay>
+		<ByMonthDay>somestring</ByMonthDay>
+		<ByYearDay>somestring</ByYearDay>
+		<ByMonth>somestring</ByMonth>
+	</ExceptionRule>
+	<Geo>
+		<Latitude>47.44</Latitude>
+		<Longitude>-23.45</Longitude>
+	</Geo>
+	<LastModified Value="DATE-TIME" TimezoneID="somestring">
+		<Content>somestring</Content>
+	</LastModified>
+	<Location AlternativeTextRep="sometring" Language="somestring">
+		<Content>somestring</Content>
+	</Location>
+	<Method>
+		<Content>somestring</Content>
+	</Method>
+	<Organizer CommonName="somestring" Directory="somestring" SentBy="somestring"
+			   Language="somestring">
+		<Content>anURI</Content>
+	</Organizer>
+	<PercentComplete>
+		<Content>50</Content>
+	</PercentComplete>
+	<Priority>
+		<Content>5</Content>
+	</Priority>
+	<ProductID>
+		<Content>somestring</Content>
+	</ProductID>
+	<RecurrenceDateTime TimezoneID="somestring" Value="DATE-TIME">
+		<Content>somestring</Content>
+	</RecurrenceDateTime>
+	<RecurrenceId TimezoneID="somestring" Range="THISANDFUTURE" Value="DATE-TIME">
+		<Content>somestring</Content>
+	</RecurrenceId>
+	<Related TimezoneID="somestring" RelationshipType="PARENT">
+		<Content>somestring</Content>
+	</Related>
+	<Resources AlternativeTextRep="sometring" Language="somestring">
+		<Content>somestring</Content>
+	</Resources>
+	<RecurrenceRule TimezoneID="somestring" TZComponent="somestring">
+		<Frequency>WEEKLY</Frequency>
+		<Until>somestring</Until>
+		<Count>4</Count>
+		<Interval>5</Interval>
+		<ByDay>somestring</ByDay>
+		<ByMonthDay>somestring</ByMonthDay>
+		<ByYearDay>somestring</ByYearDay>
+		<ByMonth>somestring</ByMonth>
+	</RecurrenceRule>
+	<RStatus TimezoneID="somestring" RelationshipType="CHILD">
+		<StatusCode>somestring</StatusCode>
+		<StatusDescription>somestring</StatusDescription>
+		<ExceptionData>somestring</ExceptionData>
+	</RStatus>
+	<Sequence>
+		<Content>12</Content>
+	</Sequence>
+	<Status>
+		<Content>NEEDS-ACTION</Content>
+	</Status>
+	<Summary AlternativeTextRep="sometring" Language="somestring">
+		<Content>somestring</Content>
+	</Summary>
+	<!-- <Timezone TimezoneID="somestring" TZComponent="somestring">
+		<LastModified Value="DATE-TIME" TimezoneID="somestring">
+			<Content>somestring</Content>
+		</LastModified>
+		<TZUrl>anURI</TZUrl>
+		<X-Location>somestring</X-Location>
+	</Timezone> -->
+	<Uid>
+		<Content>somestring</Content>
+	</Uid>
+	<Url Value="somestring">
+		<Content>anURI</Content>
+	</Url>
+	<Version>
+		<Content>somestring</Content>
+	</Version>
+</todo>

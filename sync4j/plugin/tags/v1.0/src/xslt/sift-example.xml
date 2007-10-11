@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Constants
+
+	OLDAYSOFWEEK
+	olSunday = 1;
+	olMonday = 2;
+	olTuesday = 4;
+	olWednesday = 8;
+	olThursday = 16;
+	olFriday = 32;
+	olSaturday = 64;
+
+	OLRECURRENCETYPE
+	olRecursDaily = 0;
+	olRecursWeekly = 1;
+	olRecursMonthly = 2;
+	olRecursMonthNth = 3;
+	olRecursYearly = 5;
+	olRecursYearNth = 6;
+
+	OLSENSIVITY
+	olNormal = 0;
+	olPersonal = 1;
+	olPrivate = 2;
+	olConfidential = 3;
+
+	OLIMPORTANCE
+	olLow = 0;
+	olNormal = 1;
+	olHigh = 2;
+
+	OLTASKSTATUS
+	olTaskNotStarted = 0;
+	olTaskInProgress = 1;
+	olTaskComplete = 2;
+	olTaskWaiting = 3;
+	olTaskDeferred = 4;
+
+	REMINDEROPTIONS
+	olLED = ??;
+	olDialog = ??;
+	olVibrate = ??;
+	olSound = ??;
+	olRepeat = ??;
+-->
+
+
+<task>
+	<!-- Returns or sets the actual effort (in minutes) spent on the task. -->
+	<ActualWork>10</ActualWork >
+	
+	<!--Returns or sets the billing information associated with the Outlook item.
+		This is a freeform text field -->
+	<BillingInformation>information</BillingInformation>
+	
+	<!-- Returns or sets the clear-text body of the Outlook item. -->
+	<Body>some Body text</Body>
+
+	<!-- Returns or sets the categories assigned to the Outlook item. -->
+	<Categories>cat1;cat4;cat7</Categories>
+
+	<!-- Returns or sets the names of the companies associated with the Outlook
+		 item. This is a free-form text field -->
+	<Companies>Maga S.p.A.</Companies>
+
+	<!-- True if the task is completed. True is 1 -->
+	<Complete>0</Complete>
+
+	<!-- Returns or sets a Date indicating the due date for the task. -->
+	<!-- <DueDate>20051008T230000Z</DueDate> sometimes the below format is returned
+		and the stylesheet has to convert into ISO 8601 -->
+	<DueDate>2005-10-08</DueDate>
+
+	<!-- Returns when the task is completed. It gets set to the current date on
+		 the device when you set the Complete property -->
+	<DateCompleted>20071001T181254Z</DateCompleted>
+
+	<!-- Returns or sets the relative importance level for the Outlook item.
+		 Can be one of the OlImportance constants -->
+	<Importance>1</Importance>
+
+	<!-- Returns or sets a String representing the mileage for an item. This is
+		 a free-form string field and can be used to store mileage information
+		 associated with the item (for example,	100 miles documented for an
+		 appointment, contact, or task) for purposes of reimbursement. -->
+	<Mileage>20,000 miles under the sea</Mileage>
+
+	<!-- Returns or sets the percentage of the task completed at the current
+		 date and time -->
+	<PercentComplete>0</PercentComplete>
+
+	<!-- True if a reminder has been set for this appointment, mail item or
+		 task. True is 1 -->
+	<ReminderSet>1</ReminderSet>
+
+	<!-- Returns or sets the date and time at which the reminder should occur
+		 for this item. -->
+	<ReminderTime>20080101T060000Z</ReminderTime>
+
+	<!-- Returns or sets the path and file name of the sound file to play when
+		 the reminder occurs for the Appointment. This property is valid only if
+		 the ReminderSet property is TRUE and the ReminderOptions property
+		 includes olSound. The default for this is the current setting for the
+		 Calendar application or Alarm1.wav if none. -->
+	<ReminderSoundFile>squeak.wav</ReminderSoundFile>
+
+	<!-- Returns or sets the type of a reminder. Sum of any of the following
+		 constants. olLED activates the LED (light emitting diode) on a device.
+		 olVibrate activates any vibration indicator on a device. olDialog
+		 displays a dialog. olSound plays the file specified by ReminderSoundFile.
+		 olRepeat repeats the reminder. -->
+	<ReminderOptions/>
+
+	<!-- True if the appointment is recurring. True is 1 -->
+	<IsRecurring>1</IsRecurring>
+	
+	
+	<!-- Returns or sets the sensitivity for the Outlook item. Can be one of the
+		 OlSensitivity constants This property corresponds to the MAPI
+		 property PR_SENSITIVITY -->
+	<Sensitivity>3</Sensitivity>
+
+	<!-- Returns or sets the starting date and time for the task -->
+	<StartDate>20041110T230000Z</StartDate>
+
+	<!-- Returns or sets the status for the task. Can be one of the OlTaskStatus
+		 constants -->
+	<Status>0</Status>
+
+	<!-- Returns or sets the subject for the Outlook item. This property
+		 corresponds to the MAPI property PR_SUBJECT. The Subject property is
+		 the default property for Outlook items. IT IS READ ONLY FOR NOTES -->
+	<Subject>new task</Subject>
+
+	<!-- True if the task is a team task. True is 1 -->
+	<TeamTask>0</TeamTask>
+
+	<!-- Returns or sets the total work for the task -->
+	<TotalWork>0</TotalWork>
+
+	
+	<!-- Recurrence properties -->
+
+	<!-- Recurrent event examples
+
+		 An event happening every 2 weeks on Sunday and Monday:
+			RecurrenceType = olRecursWeekly
+			Instance = 2
+			DayOfWeekMask = olSunday + olMonday
+
+		An event scheduled the 2th Wednesday of April of every year:
+			RecurrenceType = olRecursYearNth
+			Interval = 12
+			MonthofYear = 4
+			DayOfWeekMask = olWednesday
+			Instance = 2
+			NoEndDate = True
+	-->
+	
+	<!-- The single day of the month from 1 to 31. -->
+	<DayOfMonth>0</DayOfMonth>
+
+	<!-- The combination days of the week constants (i. e. event recurring on
+		 Monday and Wednesday. The DayOfWeekMask should be olMonday + olWednesday) -->
+	<DayOfWeekMask>4</DayOfWeekMask>
+
+	<!-- Is the interval of the recurrence. If RecurrenceType is olRecursDaily,
+		 event occurs every <interval> day. If olRecursWeekly, event occurs
+		 every <interval> week.. -->
+	<Interval>1</Interval>
+
+	<!-- The ordinal number of the day, week, month -->
+	<Instance>0</Instance>
+
+	<!-- Month of year -->
+	<MonthOfYear>0</MonthOfYear>
+
+	<!-- True if there is no end date. True is 1. -->
+	<NoEndDate>1</NoEndDate>
+
+	<!-- Number of occurrences for the recurrence. -->
+	<Occurrences>0</Occurrences>
+
+	<!-- The start date of the recurrence -->
+	<PatternStartDate>20040930T230000Z</PatternStartDate>
+
+	<!-- The end date of the recurrence -->
+	<PatternEndDate>20050930T230000Z</PatternEndDate>
+
+	<!-- Returns or set a RecurrenceType. See OlRecurrenceType constants -->
+	<RecurrenceType>1</RecurrenceType>
+</task>

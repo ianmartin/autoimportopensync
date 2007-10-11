@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- if the example or xmlformat-note.xsd is altered, validate with xmllint! -->
+<note version="2">
+	<Body AlternativeTextRep="somestring" Language="somestring">
+		<Content>Some body content</Content>
+	</Body>
+	<Categories>
+		<Category>Cat 11</Category>
+		<Category>Cat 22</Category>
+		<Category>Cat 33</Category>
+		<Category>Cat 44</Category>
+	</Categories>
+	<Class>
+		<Content>CONFIDENTIAL</Content>
+	</Class>
+	<Created Value="DATE-TIME" TimezoneID="somestring">
+		<Content>somedatetimestring</Content>
+	</Created>
+	<LastModified Value="DATE" TimezoneID="somestring">
+		<Content>somedatestring</Content>
+	</LastModified>
+	<Summary AlternativeTextRep="somestring" Language="somestring">
+		<Content>Some summary</Content>
+	</Summary>
+	<XIrmcLuid>
+		<Content>somestring</Content>
+	</XIrmcLuid>
+</note>

@@ -1,0 +1,35 @@
+#### Requirements ####
+
+- opensync >= 0.32
+- glib-2.0
+- libxml-2.0
+- libxslt
+- sync4j SDK 6.0.8
+
+
+#### Installation ####
+
+The sync4j SDK can be found in the sync4j-SDK folder.
+1) Extract the archive and apply the patch:
+$ unzip funambol-cpp-api-6.0.8.zip
+$ cd Funambol/
+$ patch -p0 < ../sync4j-6.0.8.patch
+
+2) Configure, build and install
+$ cd sdk/c++/build/autotools/
+$ chmod u+x autogen.sh
+$ ./autogen.sh
+$ ./configure --enable-xmlconfig=yes
+$ make
+$ make install
+
+Then configure, build and install the plugin
+$ ./autogen.sh
+$ ./configure 
+$ make
+$ make install
+
+
+#### Configuration ####
+
+see README

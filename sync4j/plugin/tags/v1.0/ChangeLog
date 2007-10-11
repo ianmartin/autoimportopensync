@@ -1,0 +1,8 @@
+1.0	Initial release.
+Synchronization works with contacts, calendars, notes and todos. Tested with
+Funambol servers (www.scheduleworld.com).
+Sending changes to www.mobical.net (syncml back-end is unkown) works, retrieving
+changes doesn't.
+
+
+
