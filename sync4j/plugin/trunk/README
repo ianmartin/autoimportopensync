@@ -5,3 +5,29 @@ This is a SyncML client plugin based on the SyncML C++ API from
 http://www.funambol.org. The plugin can synchronize contacts, calendars,
 notes and todos.
 
+Configuration follows the usual opensync procedure. Here's an example how
+to create a synchronization group with sync4j and file-sync:
+
+$ msynctool --addgroup sync4jfile
+$ msynctool --addmember sync4jfile syncml-client
+$ msynctool --addmember sync4jfile file-sync
+$ msynctool --configure sync4jfile 1
+
+This will open an editor and you are required to set some minimal settings (most
+are already set to a reasonable default value).
+In node <Auth> set your credentials.
+In node <Conn> set the url.
+In node <Sources> adapt <uri> to point to the correct database.
+
+$ msynctool --configure sync4jfile 1
+Configure the file-sync plugin
+
+$ msynctool --discover sync4jfile 1
+$ msynctool --discover sync4jfile 2
+
+Now make a sync
+$ msynctool --sync sync4jfile
+
+
+
+
