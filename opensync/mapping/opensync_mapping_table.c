@@ -59,17 +59,8 @@ void osync_mapping_table_unref(OSyncMappingTable *table)
 		
 	if (g_atomic_int_dec_and_test(&(table->ref_count))) {
 		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
-		/*while (table->views) {
-			OSyncMappingView *view = table->views->data;
-			osync_mapping_view_unref(view);
-			table->views = g_list_remove(table->views, view);
-		}*/
-		
-		while (table->mappings) {
-			OSyncMapping *mapping = table->mappings->data;
-			osync_mapping_unref(mapping);
-			table->mappings = g_list_remove(table->mappings, mapping);
-		}
+
+		osync_mapping_table_close(table);
 		
 		g_free(table);
 		osync_trace(TRACE_EXIT, "%s", __func__);
@@ -213,7 +204,23 @@ error:
 
 void osync_mapping_table_close(OSyncMappingTable *table)
 {
-	
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
+
+	osync_assert(table);
+
+       	/*while (table->views) {
+       		OSyncMappingView *view = table->views->data;
+       		osync_mapping_view_unref(view);
+       		table->views = g_list_remove(table->views, view);
+       	}*/
+       	
+       	while (table->mappings) {
+       		OSyncMapping *mapping = table->mappings->data;
+       		osync_mapping_unref(mapping);
+       		table->mappings = g_list_remove(table->mappings, mapping);
+       	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*void osync_mapping_table_add_view(OSyncMappingTable *table, OSyncMappingView *view)

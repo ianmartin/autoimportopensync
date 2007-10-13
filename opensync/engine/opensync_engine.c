@@ -1,6 +1,7 @@
 /*
- * libosengine - A synchronization engine for the opensync framework
+ * libopensync - A synchronization engine for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2007       Daniel Gollub <dgollub@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +32,7 @@
 #include "opensync-merger.h"
 
 #include "opensync_obj_engine.h"
+#include "opensync_engine.h"
 #include "opensync_engine_internals.h"
 
 static void osync_engine_set_error(OSyncEngine *engine, OSyncError *error)
@@ -406,9 +408,6 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 		goto error;
 	engine->ref_count = 1;
 
-	engine->group_slowsync = FALSE;
-	engine->objtype_slowsync = NULL;
-	
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 	
@@ -491,7 +490,13 @@ void osync_engine_unref(OSyncEngine *engine)
 		
 	if (g_atomic_int_dec_and_test(&(engine->ref_count))) {
 		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-	
+
+		while (engine->object_engines) {
+			OSyncObjEngine *objengine = engine->object_engines->data;
+			osync_obj_engine_unref(objengine);
+			engine->object_engines = g_list_remove(engine->object_engines, engine->object_engines->data);
+		}
+
 		if (engine->internalFormats)
 			g_hash_table_destroy(engine->internalFormats);
 		
@@ -644,7 +649,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 		goto error;
 	}
 		
-	/* If we dont have a config we have to ask the plugin if it needs a config */
+	/* If we don't have a config we have to ask the plugin if it needs a config */
 	if (!osync_member_has_config(member)) {
 
 		switch (osync_plugin_get_config_type(plugin)) {
@@ -708,127 +713,13 @@ error:
 	return NULL;
 }
 
-osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
-	
-	if (engine->state != OSYNC_ENGINE_STATE_UNINITIALIZED) {
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not uninitialized: %i", engine->state);
-		goto error;
-	}
-	
-	OSyncGroup *group = engine->group;
-
-	if (osync_group_num_members(group) < 2) {
-		//Not enough members!
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
-		goto error;
-	}
-	
-	if (osync_group_num_objtypes(engine->group) == 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
-		goto error;
-	}
-	
-	switch (osync_group_lock(group)) {
-		case OSYNC_LOCKED:
-			osync_error_set(error, OSYNC_ERROR_LOCKED, "Group is locked");
-			goto error;
-		case OSYNC_LOCK_STALE:
-			osync_trace(TRACE_INTERNAL, "Detected stale lock file. Slow-syncing");
-			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_PREV_UNCLEAN, NULL);
-			osync_engine_set_group_slowsync(engine, TRUE);
-			break;
-		case OSYNC_LOCK_OK:
-			break;
-	}
-	
-	engine->formatenv = osync_format_env_new(error);
-	if (!engine->formatenv)
-		goto error;
-	
-	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
-	
-	if (!osync_format_env_load_plugins(engine->formatenv, engine->format_dir, error))
-		goto error_finalize;
-	
-	/* XXX The internal formats XXX */
-	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
-	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
-	_osync_engine_set_internal_format(engine, "todo", osync_format_env_find_objformat(engine->formatenv, "xmlformat-todo"));
-	_osync_engine_set_internal_format(engine, "note", osync_format_env_find_objformat(engine->formatenv, "xmlformat-note"));
-	
-	osync_trace(TRACE_INTERNAL, "Running the main loop");
-	if (!_osync_engine_start(engine, error))
-		goto error_finalize;
-		
-	osync_trace(TRACE_INTERNAL, "Spawning clients");
-	int i;
-	for (i = 0; i < osync_group_num_members(group); i++) {
-		OSyncMember *member = osync_group_nth_member(group, i);
-		if (!_osync_engine_initialize_member(engine, member, error))
-			goto error_finalize;
-	}
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-	
-error_finalize:
-	osync_engine_finalize(engine, NULL);
-	osync_group_unlock(engine->group);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
-osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-	
-	if (engine->state != OSYNC_ENGINE_STATE_INITIALIZED) {
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not in state initialized: %i", engine->state);
-		goto error;
-	}
-	
-	engine->state = OSYNC_ENGINE_STATE_UNINITIALIZED;
-	
-	OSyncClientProxy *proxy = NULL;
-	while (engine->proxies) {
-		proxy = engine->proxies->data;
-		if (!_osync_engine_finalize_member(engine, proxy, error))
-			goto error;
-	}
-	
-	_osync_engine_stop(engine);
-	
-	if (engine->formatenv)
-		osync_format_env_free(engine->formatenv);
-	
-	if (engine->pluginenv)
-		osync_plugin_env_free(engine->pluginenv);
-
-	g_list_foreach((GList *) engine->objtype_slowsync, (GFunc) g_free, NULL);
-	g_list_free(engine->objtype_slowsync);
-	engine->group_slowsync = FALSE;
-	
-	osync_group_unlock(engine->group);
-
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-	
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
 static int BitCount(unsigned int u)                          
 {
 	unsigned int uCount = u - ((u >> 1) & 033333333333) - ((u >> 2) & 011111111111);
 	return ((uCount + (uCount >> 3)) & 030707070707) % 63;
 }
 
-static osync_bool _generate_connected_event(OSyncEngine *engine)
+static osync_bool _osync_engine_generate_connected_event(OSyncEngine *engine)
 {
 	if (BitCount(engine->proxy_errors | engine->proxy_connects) != g_list_length(engine->proxies))
 		return FALSE;
@@ -846,10 +737,10 @@ static osync_bool _generate_connected_event(OSyncEngine *engine)
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_CONNECTED, NULL);
 			osync_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
 		}
+
 		return TRUE;
 	}
 	
-	osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_connects));
 	return FALSE;
 }
 
@@ -867,7 +758,7 @@ osync_bool osync_engine_check_get_changes(OSyncEngine *engine)
 	return FALSE;
 }
 
-static void _generate_get_changes_event(OSyncEngine *engine)
+static void _osync_engine_generate_get_changes_event(OSyncEngine *engine)
 {
 	if (!osync_engine_check_get_changes(engine))
 		return;
@@ -878,7 +769,7 @@ static void _generate_get_changes_event(OSyncEngine *engine)
 	osync_engine_event(engine, OSYNC_ENGINE_EVENT_READ);
 }
 
-static void _generate_written_event(OSyncEngine *engine)
+static void _osync_engine_generate_written_event(OSyncEngine *engine)
 {
 	if (BitCount(engine->proxy_errors | engine->proxy_written) != g_list_length(engine->proxies))
 		return;
@@ -888,9 +779,10 @@ static void _generate_written_event(OSyncEngine *engine)
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_written));
+
 }
 
-static void _generate_sync_done_event(OSyncEngine *engine)
+static void _osync_engine_generate_sync_done_event(OSyncEngine *engine)
 {
 	if (BitCount(engine->proxy_errors | engine->proxy_sync_done) != g_list_length(engine->proxies))
 		return;
@@ -902,7 +794,7 @@ static void _generate_sync_done_event(OSyncEngine *engine)
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_sync_done));
 }
 
-static osync_bool _generate_disconnected_event(OSyncEngine *engine)
+static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 {
 	if (BitCount(engine->proxy_errors | engine->proxy_disconnects) != g_list_length(engine->proxies))
 		return FALSE;
@@ -939,13 +831,8 @@ static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, os
 		engine->proxy_connects = engine->proxy_connects | (0x1 << i);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_CONNECTED, NULL, NULL);
 	}
-
-	if (slowsync) {
-		osync_trace(TRACE_INTERNAL, "Group SlowSync requested by engine connect callback.");
-		osync_engine_set_group_slowsync(engine, TRUE);
-	}
 	
-	_generate_connected_event(engine);
+	_osync_engine_generate_connected_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -973,7 +860,7 @@ static void _engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata,
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_DISCONNECTED, NULL, NULL);
 	}
 	
-	_generate_disconnected_event(engine);
+	_osync_engine_generate_disconnected_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1001,7 +888,7 @@ static void _engine_get_changes_callback(OSyncClientProxy *proxy, void *userdata
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_READ, NULL, NULL);
 	}
 	
-	_generate_get_changes_event(engine);
+	_osync_engine_generate_get_changes_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1029,7 +916,7 @@ static void _engine_written_callback(OSyncClientProxy *proxy, void *userdata, OS
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_WRITTEN, NULL, NULL);
 	}
 	
-	_generate_written_event(engine);
+	_osync_engine_generate_written_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1057,7 +944,7 @@ static void _engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, 
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_SYNC_DONE, NULL, NULL);
 	}
 	
-	_generate_sync_done_event(engine);
+	_osync_engine_generate_sync_done_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1078,7 +965,7 @@ static void _engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent e
 	switch (event) {
 		case OSYNC_ENGINE_EVENT_CONNECTED:
 			engine->obj_connects = engine->obj_connects | (0x1 << i);
-			_generate_connected_event(engine);
+			_osync_engine_generate_connected_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
 			osync_trace(TRACE_ERROR, "Engine received an error: %s", osync_error_print(&error));
@@ -1087,19 +974,19 @@ static void _engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent e
 			break;
 		case OSYNC_ENGINE_EVENT_READ:
 			engine->obj_get_changes = engine->obj_get_changes | (0x1 << i);
-			_generate_get_changes_event(engine);
+			_osync_engine_generate_get_changes_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_WRITTEN:
 			engine->obj_written = engine->obj_written | (0x1 << i);
-			_generate_written_event(engine);
+			_osync_engine_generate_written_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_SYNC_DONE:
 			engine->obj_sync_done = engine->obj_sync_done | (0x1 << i);
-			_generate_sync_done_event(engine);
+			_osync_engine_generate_sync_done_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_DISCONNECTED:
 			engine->obj_disconnects = engine->obj_disconnects | (0x1 << i);
-			_generate_disconnected_event(engine);
+			_osync_engine_generate_disconnected_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_SUCCESSFUL:
 		case OSYNC_ENGINE_EVENT_END_CONFLICTS:
@@ -1130,76 +1017,166 @@ static void _engine_discover_callback(OSyncClientProxy *proxy, void *userdata, O
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void osync_engine_set_group_slowsync(OSyncEngine *engine, osync_bool isslowsync)
+osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 {
-	engine->group_slowsync = isslowsync;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+
+	if (engine->state != OSYNC_ENGINE_STATE_UNINITIALIZED) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not uninitialized: %i", engine->state);
+		goto error;
+	}
+	
+	OSyncGroup *group = engine->group;
+
+	if (osync_group_num_members(group) < 2) {
+		//Not enough members!
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
+		goto error;
+	}
+	
+	if (osync_group_num_objtypes(engine->group) == 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
+		goto error;
+	}
+	
+	switch (osync_group_lock(group)) {
+		case OSYNC_LOCKED:
+			osync_error_set(error, OSYNC_ERROR_LOCKED, "Group is locked");
+			goto error;
+		case OSYNC_LOCK_STALE:
+			osync_trace(TRACE_INTERNAL, "Detected stale lock file. Slow-syncing");
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_PREV_UNCLEAN, NULL);
+			break;
+		case OSYNC_LOCK_OK:
+			break;
+	}
+	
+	engine->formatenv = osync_format_env_new(error);
+	if (!engine->formatenv)
+		goto error;
+	
+	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
+	
+	if (!osync_format_env_load_plugins(engine->formatenv, engine->format_dir, error))
+		goto error_finalize;
+	
+	/* XXX The internal formats XXX */
+	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
+	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
+	_osync_engine_set_internal_format(engine, "todo", osync_format_env_find_objformat(engine->formatenv, "xmlformat-todo"));
+	_osync_engine_set_internal_format(engine, "note", osync_format_env_find_objformat(engine->formatenv, "xmlformat-note"));
+	
+	osync_trace(TRACE_INTERNAL, "Running the main loop");
+	if (!_osync_engine_start(engine, error))
+		goto error_finalize;
+		
+	osync_trace(TRACE_INTERNAL, "Spawning clients");
+	int i;
+	for (i = 0; i < osync_group_num_members(group); i++) {
+		OSyncMember *member = osync_group_nth_member(group, i);
+		if (!_osync_engine_initialize_member(engine, member, error))
+			goto error_finalize;
+	}
+	
+	/* Lets see which objtypes are synchronizable in this group */
+	int num = osync_group_num_objtypes(engine->group);
+	if (num == 0) {
+		osync_error_set(&engine->error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
+		goto error;
+	}
+
+	for (i = 0; i < num; i++) {
+		const char *objtype = osync_group_nth_objtype(engine->group, i);
+
+		/* Respect if the object type is disabled */
+		if (!osync_group_objtype_enabled(engine->group, objtype))
+			continue;
+
+		OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
+		if (!objengine)
+			goto error;
+
+		osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
+		engine->object_engines = g_list_append(engine->object_engines, objengine);
+
+		if (osync_group_lock(group) == OSYNC_LOCK_STALE)
+			osync_obj_engine_set_slowsync(objengine, TRUE);
+
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error_finalize:
+	osync_engine_finalize(engine, NULL);
+	osync_group_unlock(engine->group);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-osync_bool osync_engine_get_group_slowsync(OSyncEngine *engine)
+osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 {
-	return engine->group_slowsync;
-}
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	
+	if (engine->state != OSYNC_ENGINE_STATE_INITIALIZED) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not in state initialized: %i", engine->state);
+		goto error;
+	}
+	
+	engine->state = OSYNC_ENGINE_STATE_UNINITIALIZED;
 
-void osync_engine_slowsync_objtype(OSyncEngine *engine, const char *objtype)
-{
-	engine->objtype_slowsync = g_list_append(engine->objtype_slowsync, g_strdup(objtype));
+	while (engine->object_engines) {
+		OSyncObjEngine *objengine = engine->object_engines->data;
+		osync_obj_engine_unref(objengine);
+		engine->object_engines = g_list_remove(engine->object_engines, engine->object_engines->data);
+	}
+	
+	OSyncClientProxy *proxy = NULL;
+	while (engine->proxies) {
+		proxy = engine->proxies->data;
+		if (!_osync_engine_finalize_member(engine, proxy, error))
+			goto error;
+	}
+	
+	_osync_engine_stop(engine);
+	
+	if (engine->formatenv)
+		osync_format_env_free(engine->formatenv);
+	
+	if (engine->pluginenv)
+		osync_plugin_env_free(engine->pluginenv);
+
+	osync_group_unlock(engine->group);
+
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 {
 	GList *o = NULL;
-	int num = 0;
-	int i;
 	GList *p = NULL;
 	OSyncClientProxy *proxy = NULL;
-	OSyncObjEngine *objengine = NULL;
 			
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, command);
 	osync_assert(engine);
 	
 	switch (command->cmd) {
 		case OSYNC_ENGINE_COMMAND_CONNECT:
-			/* Lets see which objtypes are synchronizable in this group */
-			num = osync_group_num_objtypes(engine->group);
-			if (num == 0) {
-				osync_error_set(&engine->error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
-				goto error;
-			}
 
-			for (i = 0; i < num; i++) {
-				const char *objtype = osync_group_nth_objtype(engine->group, i);
-
-				/* Resepect if the object type is disabled */
-				if (!osync_group_objtype_enabled(engine->group, objtype))
-					continue;
-
-				objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
-				if (!objengine)
-					goto error;
-				osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
-				engine->object_engines = g_list_append(engine->object_engines, objengine);
-				
-				/* Set slowsync for this objtype if group_slowsync is requested */
-				if (osync_engine_get_group_slowsync(engine)) {
-					osync_obj_engine_set_slowsync(objengine, TRUE);
-					continue;
-					/* Skip. Already set slowsync for this object type */
-				}
-
-				for (o = engine->objtype_slowsync; o; o = o->next) {
-					if (!strcmp(objtype, o->data))
-				                osync_obj_engine_set_slowsync(objengine, TRUE);
-				}
-
-			}
-
-			/* Now it's time to reset the group_slowsync, to avoid slow-sync all the time if the engine get
-			   used again without finalizing */
-			osync_engine_set_group_slowsync(engine, FALSE);
-		
 			/* We first tell all object engines to connect */
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
+
+				if (!osync_obj_engine_initialize(objengine, &engine->error))
+					goto error;
+
 				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_CONNECT, &engine->error))
 					goto error;
 			}
@@ -1336,13 +1313,12 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			}
 			break;
 		case OSYNC_ENGINE_EVENT_DISCONNECTED:
-			
-			while (engine->object_engines) {
-				OSyncObjEngine *objengine = engine->object_engines->data;
-				osync_obj_engine_unref(objengine);
-				engine->object_engines = g_list_remove(engine->object_engines, engine->object_engines->data);
+
+			for (o = engine->object_engines; o; o = o->next) {
+				OSyncObjEngine *objengine = o->data;
+				osync_obj_engine_finalize(objengine);
 			}
-			
+
 			engine->proxy_connects = 0;
 			engine->proxy_disconnects = 0;
 			engine->proxy_get_changes = 0;
@@ -1423,12 +1399,12 @@ error:
 	return FALSE;
 }
 
-/*! @brief This function will synchronize once and block until the sync has finished
+/*! @brief This function will discover the capabilities of a member and block until the discovery has finished
  *
- * This can be used to sync a group and wait for the synchronization end. DO NOT USE
- * osync_engine_wait_sync_end for this as this might introduce a race condition.
+ * This can be used to discover a member and wait for the synchronization end.
  * 
- * @param engine A pointer to the engine, which to sync and wait for the sync end
+ * @param engine A pointer to the engine, which to discover the member and wait for the discover end
+ * @param member A pointer to the member, which to discover
  * @param error A pointer to a error struct
  * @returns TRUE on success, FALSE otherwise.
  * 
@@ -1614,9 +1590,37 @@ OSyncClientProxy *osync_engine_find_proxy(OSyncEngine *engine, OSyncMember *memb
 	return NULL;
 }
 
+int osync_engine_num_objengine(OSyncEngine *engine)
+{
+	osync_assert(engine);
+	return g_list_length(engine->object_engines);
+}
+
+OSyncObjEngine *osync_engine_nth_objengine(OSyncEngine *engine, int nth)
+{
+	osync_assert(engine);
+	return g_list_nth_data(engine->object_engines, nth);
+}
+
+OSyncObjEngine *osync_engine_find_objengine(OSyncEngine *engine, const char *objtype)
+{
+	GList *p = NULL;
+	OSyncObjEngine *objengine = NULL;
+	
+	osync_assert(engine);
+
+	for (p = engine->object_engines; p; p = p->next) {
+		objengine = p->data;
+		if (!strcmp(osync_obj_engine_get_objtype(objengine), objtype))
+			return objengine;
+	}
+	
+	return NULL;
+}
+
 /*! @brief This will set the conflict handler for the given engine
  * 
- * The conflict handler will be called everytime a conflict occurs
+ * The conflict handler will be called every time a conflict occurs
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the conflict
@@ -1661,7 +1665,7 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, osync_status_m
 
 /*! @brief This will set the engine status handler for the given engine
  * 
- * The engine status handler will be called every time the engine is updated (started, stoped etc)
+ * The engine status handler will be called every time the engine is updated (started, stopped etc)
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the engine status

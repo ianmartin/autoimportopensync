@@ -1,6 +1,7 @@
 /*
- * libosync_engine - A synchronization engine for the opensync framework
+ * libopensync - A synchronization engine for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2007       Daniel Gollub <dgollub@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -171,17 +172,16 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, osync_status_m
 void osync_engine_set_enginestatus_callback(OSyncEngine *engine, osync_status_engine_cb callback, void *user_data);
 void osync_engine_set_memberstatus_callback(OSyncEngine *engine, osync_status_member_cb callback, void *user_data);
 
-void osync_engine_set_group_slowsync(OSyncEngine *engine, osync_bool isslowsync);
-osync_bool osync_engine_get_group_slowsync(OSyncEngine *engine);
-
-void osync_engine_slowsync_objtype(OSyncEngine *engine, const char *objtype);
-
 void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event);
 osync_bool osync_engine_check_get_changes(OSyncEngine *engine);
 
 int osync_engine_num_proxies(OSyncEngine *engine);
 OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth);
 OSyncClientProxy *osync_engine_find_proxy(OSyncEngine *engine, OSyncMember *member);
+
+int osync_engine_num_objengine(OSyncEngine *engine);
+OSyncObjEngine *osync_engine_nth_objengine(OSyncEngine *engine, int nth);
+OSyncObjEngine *osync_engine_find_objengine(OSyncEngine *engine, const char *objtype);
 
 osync_bool osync_engine_mapping_solve(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncChange *change, OSyncError **error);
 osync_bool osync_engine_mapping_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error);

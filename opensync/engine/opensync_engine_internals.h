@@ -1,5 +1,5 @@
 /*
- * libosengine - A synchronization engine for the opensync framework
+ * libopensync - A synchronization engine for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
@@ -83,12 +83,12 @@ struct OSyncEngine {
 	GCond* started;
 	GMutex* started_mutex;
 	
+	/** proxies contains a list of all OSyncClientProxy objects **/
 	GList *proxies;
+
+	/** object_engines contains a list of all OSyncObjEngine objects **/
 	GList *object_engines;
 
-	osync_bool group_slowsync;
-	GList *objtype_slowsync;
-	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
 	

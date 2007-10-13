@@ -26,8 +26,14 @@ typedef void (* OSyncObjEngineEventCallback) (OSyncObjEngine *engine, OSyncEngin
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *engine, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error);
 void osync_obj_engine_ref(OSyncObjEngine *engine);
 void osync_obj_engine_unref(OSyncObjEngine *engine);
+
+osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **error);
+void osync_obj_engine_finalize(OSyncObjEngine *engine);
+
 const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine);
+
 void osync_obj_engine_set_slowsync(OSyncObjEngine *engine, osync_bool slowsync);
+osync_bool osync_obj_engine_get_slowsync(OSyncObjEngine *engine);
 
 void osync_obj_engine_event(OSyncObjEngine *objengine, OSyncEngineEvent event);
 osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error);

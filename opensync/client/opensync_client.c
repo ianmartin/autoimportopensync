@@ -806,7 +806,7 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 	
 	osync_message_read_string(message, &objtype);
 	osync_message_read_int(message, &slowsync);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s (slowsync: %i", objtype, slowsync);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s (slowsync: %i)", objtype, slowsync);
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {

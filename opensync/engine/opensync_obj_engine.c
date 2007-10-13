@@ -1247,7 +1247,7 @@ static void _generate_written_event(OSyncObjEngine *engine)
 			return;
 	}
 	osync_trace(TRACE_INTERNAL, "%s: Not dirty anymore", __func__);
-	
+
 	/* And that we received the written replies from all sinks */
 	if (BitCount(engine->sink_errors | engine->sink_written) == g_list_length(engine->sink_engines)) {
 		if (BitCount(engine->sink_written) < BitCount(engine->sink_connects)) {
@@ -1449,6 +1449,7 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 		goto error;
 	engine->ref_count = 1;
 	engine->slowsync = FALSE;
+	engine->written = FALSE;
 	
 	/* we dont reference the parent to avoid circular dependencies. This object is completely
 	 * dependent on the engine anyways */
@@ -1463,35 +1464,6 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 	
 	engine->archive = osync_engine_get_archive(parent);
 	
-	if (engine->archive) {
-		if (!osync_mapping_table_load(engine->mapping_table, engine->archive, objtype, error))
-			goto error_free_engine;
-	}
-	osync_trace(TRACE_INTERNAL, "Loaded %i mappings", osync_mapping_table_num_mappings(engine->mapping_table));
-	
-	int num = osync_engine_num_proxies(engine->parent);
-	int i = 0;
-	for (i = 0; i < num; i++) {
-		OSyncClientProxy *proxy = osync_engine_nth_proxy(engine->parent, i);
-		
-		OSyncSinkEngine *sinkengine = osync_sink_engine_new(i, proxy, engine, error);
-		if (!sinkengine)
-			goto error_free_engine;
-		
-		engine->sink_engines = g_list_append(engine->sink_engines, sinkengine);
-	}
-
-	if (!_create_mapping_engines(engine, error))
-		goto error_free_engine;
-	
-	osync_trace(TRACE_INTERNAL, "Created %i mapping engine", g_list_length(engine->mapping_engines));
-
-	if (engine->archive) {
-		/* inject ignored conflicts from previous syncs */
-		if (!_inject_changelog_entries(engine, error))
-			goto error_free_engine;
-	}
-		
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, engine);
 	return engine;
 
@@ -1541,6 +1513,79 @@ void osync_obj_engine_unref(OSyncObjEngine *engine)
 	}
 }
 
+osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+
+	if (engine->archive) {
+		if (!osync_mapping_table_load(engine->mapping_table, engine->archive, engine->objtype, error))
+			goto error;
+	}
+
+	osync_trace(TRACE_INTERNAL, "Loaded %i mappings", osync_mapping_table_num_mappings(engine->mapping_table));
+	
+	int num = osync_engine_num_proxies(engine->parent);
+	int i = 0;
+	for (i = 0; i < num; i++) {
+		OSyncClientProxy *proxy = osync_engine_nth_proxy(engine->parent, i);
+		
+		OSyncSinkEngine *sinkengine = osync_sink_engine_new(i, proxy, engine, error);
+		if (!sinkengine)
+			goto error;
+		
+		engine->sink_engines = g_list_append(engine->sink_engines, sinkengine);
+	}
+
+	if (!_create_mapping_engines(engine, error))
+		goto error;
+	
+	osync_trace(TRACE_INTERNAL, "Created %i mapping engine", g_list_length(engine->mapping_engines));
+
+	if (engine->archive) {
+		/* inject ignored conflicts from previous syncs */
+		if (!_inject_changelog_entries(engine, error))
+			goto error;
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+error:
+
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+void osync_obj_engine_finalize(OSyncObjEngine *engine)
+{
+	engine->slowsync = FALSE;
+	engine->written = FALSE;
+
+	engine->sink_errors = 0;
+	engine->sink_connects = 0;
+	engine->sink_disconnects = 0;
+	engine->sink_get_changes = 0;
+	engine->sink_sync_done = 0;
+	engine->sink_written = 0;
+
+	while (engine->sink_engines) {
+		OSyncSinkEngine *sinkengine = engine->sink_engines->data;
+		osync_sink_engine_unref(sinkengine);
+		
+		engine->sink_engines = g_list_remove(engine->sink_engines, sinkengine);
+	}
+	
+	while (engine->mapping_engines) {
+		OSyncMappingEngine *mapping_engine = engine->mapping_engines->data;
+		osync_mapping_engine_unref(mapping_engine);
+		
+		engine->mapping_engines = g_list_remove(engine->mapping_engines, mapping_engine);
+	}
+	
+	if (engine->mapping_table)
+		osync_mapping_table_close(engine->mapping_table);
+
+}
+
 const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine)
 {
 	osync_assert(engine);
@@ -1551,6 +1596,12 @@ void osync_obj_engine_set_slowsync(OSyncObjEngine *engine, osync_bool slowsync)
 {
 	osync_assert(engine);
 	engine->slowsync = slowsync;
+}
+
+osync_bool osync_obj_engine_get_slowsync(OSyncObjEngine *engine)
+{
+	osync_assert(engine);
+	return engine->slowsync;
 }
 
 static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProxy *proxy, const char *objtype, OSyncError **error)
