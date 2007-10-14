@@ -200,7 +200,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", env->groupsdir, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("group*", de)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || !g_pattern_match_simple("group*", de)) {
 			g_free(filename);
 			continue;
 		}

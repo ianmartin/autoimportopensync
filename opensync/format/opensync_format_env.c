@@ -71,7 +71,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.so", filename)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.so", filename)) {
 			g_free(filename);
 			continue;
 		}

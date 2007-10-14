@@ -339,7 +339,7 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.xml", filename)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.xml", filename)) {
 			g_free(filename);
 			continue;
 		}
