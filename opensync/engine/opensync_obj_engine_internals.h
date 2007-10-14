@@ -83,11 +83,7 @@ struct OSyncMappingEngine {
 	OSyncObjEngine *parent;
 	osync_bool conflict;
 	osync_bool synced;
-	osync_bool solve_by_latest;
-	osync_bool solve_by_ignore;
 };
-
-
 
 OSyncMappingEntryEngine *osync_entry_engine_new(OSyncMappingEntry *entry, OSyncMappingEngine *mapping_engine, OSyncSinkEngine *sink_engine, OSyncObjEngine *objengine, OSyncError **error);
 void osync_entry_engine_ref(OSyncMappingEntryEngine *engine);
