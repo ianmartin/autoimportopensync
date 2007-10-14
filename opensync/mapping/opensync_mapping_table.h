@@ -26,9 +26,13 @@ void osync_mapping_table_ref(OSyncMappingTable *table);
 void osync_mapping_table_unref(OSyncMappingTable *table);
 
 osync_bool osync_mapping_table_load(OSyncMappingTable *table, OSyncArchive *archive, const char *objtype, OSyncError **error);
+osync_bool osync_mapping_table_flush(OSyncMappingTable *table, OSyncArchive *archive, const char *objtype, OSyncError **error);
+
 void osync_mapping_table_close(OSyncMappingTable *table);
 
+/*
 void osync_mapping_table_add_view(OSyncMappingTable *table, OSyncMappingView *view);
+*/
 
 OSyncMapping *osync_mapping_table_find_mapping(OSyncMappingTable *table, long long int id);
 void osync_mapping_table_add_mapping(OSyncMappingTable *table, OSyncMapping *mapping);

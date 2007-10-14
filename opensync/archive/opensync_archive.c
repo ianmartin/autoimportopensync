@@ -472,6 +472,41 @@ error:
 }
 
 /**
+ * @brief Delete all changes from group archive for a certain object type.
+ *
+ * @param archive The group archive
+ * @param objtype Reported object type of entry
+ * @param error Pointer to an error struct
+ * @return Returns TRUE on success, FALSE otherwise 
+ */ 
+osync_bool osync_archive_flush_changes(OSyncArchive *archive, const char *objtype, OSyncError **error)
+{
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, objtype, error);
+	osync_assert(archive);
+	osync_assert(objtype);
+
+	if (!osync_archive_create_changelog(archive->db, objtype, error))
+		goto error;
+	
+	char *query = g_strdup_printf("DELETE FROM tbl_changes_%s", objtype);
+	
+	if (!osync_db_query(archive->db, query, error)) {
+		g_free(query);
+		goto error;
+	}
+
+	g_free(query);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+/**
  * @brief Loads all conficting changes which were ignored in the previous sync. 
  *
  * @param archive The group archive
