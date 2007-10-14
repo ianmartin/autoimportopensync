@@ -364,9 +364,8 @@ osync_bool osync_mapping_engine_supports_ignore(OSyncMappingEngine *engine)
 		const char *objtype = entry_engine->sink_engine->engine->objtype;
 		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype);
 
-		/* if there is no sink read function ignore is not support for this mapping. */
-		/* FIXME: osync_objtype_sink_get_read() will be read all the time .. fix this and store value in syncmember.conf (after discovery) */
-		if (!objtype_sink || !osync_objtype_sink_get_read(objtype_sink))
+		/* if there is no sink read function, ignore is not support for this mapping. */
+		if (!objtype_sink || !osync_objtype_sink_get_function_read(objtype_sink))
 			ignore_supported = FALSE; 
 
 	}

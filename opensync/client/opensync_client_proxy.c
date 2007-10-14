@@ -320,18 +320,11 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			OSyncObjTypeSink *sink = NULL;
 			if (!osync_demarshal_objtype_sink(message, &sink, &locerror))
 				goto error;
-			osync_trace(TRACE_INTERNAL, "Received sink: %s", osync_objtype_sink_get_name(sink));
-	
+
 			proxy->objtypes = g_list_append(proxy->objtypes, sink);
-			
-			if (proxy->member) {
-				osync_member_add_objtype(proxy->member, osync_objtype_sink_get_name(sink));
-				const OSyncList *f = osync_objtype_sink_get_objformats(sink);
-				for (; f; f = f->next) {
-					const char *format = f->data;
-					osync_member_add_objformat(proxy->member, osync_objtype_sink_get_name(sink), format);
-				}
-			}
+
+			if (proxy->member)
+				osync_member_add_objtype_sink(proxy->member, sink);
 		}
 		
 		/* Merger - Set the capabilities */

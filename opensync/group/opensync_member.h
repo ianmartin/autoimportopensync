@@ -45,9 +45,10 @@ OSYNC_EXPORT osync_bool osync_member_delete(OSyncMember *member, OSyncError **er
 
 OSYNC_EXPORT long long int osync_member_get_id(OSyncMember *member);
 
-OSYNC_EXPORT void osync_member_add_objtype(OSyncMember *member, const char *objtype);
 OSYNC_EXPORT int osync_member_num_objtypes(OSyncMember *member);
 OSYNC_EXPORT const char *osync_member_nth_objtype(OSyncMember *member, int nth);
+
+OSYNC_EXPORT void osync_member_add_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sink);
 OSYNC_EXPORT OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtype);
 
 OSYNC_EXPORT osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);

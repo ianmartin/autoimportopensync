@@ -166,12 +166,8 @@ void osync_member_unref(OSyncMember *member)
 		if (osync_member_get_merger(member))
 			osync_merger_unref(osync_member_get_merger(member));
 		
-		while (member->objtypes) {
-			OSyncObjTypeSink *sink = member->objtypes->data;
-			osync_objtype_sink_unref(sink);
-			member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
-		}
-		
+		osync_member_flush_objtypes(member);
+
 		g_free(member);
 	}
 }
@@ -439,6 +435,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 				OSyncObjTypeSink *sink = _osync_member_parse_objtype(cur->xmlChildrenNode, error);
 				if (!sink)
 					goto error_free_doc;
+
 				member->objtypes = g_list_append(member->objtypes, sink);
 			}
 			xmlFree(str);
@@ -644,22 +641,34 @@ const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *ob
 	return osync_objtype_sink_get_objformats(sink);
 }
 
-/** @brief Add an object type to the member list of supported object types of this member
+/** @brief Add an OSyncObjTypeSink object to the member list of supported object types of this member
  * 
  * @param member The member pointer
- * @param objtype The searched object type 
+ * @param sink The OSyncObjTypeSink object to add 
  * 
  */
-void osync_member_add_objtype(OSyncMember *member, const char *objtype)
+void osync_member_add_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sink)
 {
-	OSyncObjTypeSink *sink = NULL;
 	osync_assert(member);
-	osync_assert(objtype);
+	osync_assert(sink);
 
-	if (!osync_member_find_objtype_sink(member, objtype)) {
-		sink = osync_objtype_sink_new(objtype, NULL);
-		member->objtypes = g_list_append(member->objtypes, sink);
-	}
+	member->objtypes = g_list_append(member->objtypes, sink);
+	osync_objtype_sink_ref(sink);
+}
+
+/** @brief Remove an OSyncObjTypeSink object to the member list of supported object types of this member
+ * 
+ * @param member The member pointer
+ * @param sink The OSyncObjTypeSink object to add 
+ * 
+ */
+void osync_member_remove_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sink)
+{
+	osync_assert(member);
+	osync_assert(sink);
+
+	member->objtypes = g_list_remove(member->objtypes, sink);
+	osync_objtype_sink_unref(sink);
 }
 
 /** @brief The number of supported object types of this member
@@ -793,12 +802,11 @@ void osync_member_flush_objtypes(OSyncMember *member)
 {
 	osync_assert(member);
 
-	while (member->objtypes) {
-		OSyncObjTypeSink *sink = member->objtypes->data;
-		osync_objtype_sink_unref(sink);
-		member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
-	}
-
+        while (member->objtypes) {
+                OSyncObjTypeSink *sink = member->objtypes->data;
+                osync_objtype_sink_unref(sink);
+                member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
+        }
 }
 
 /*@}*/

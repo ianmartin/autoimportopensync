@@ -58,6 +58,15 @@ OSYNC_EXPORT void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, co
 OSYNC_EXPORT void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions, void *userdata);
 OSYNC_EXPORT void *osync_objtype_sink_get_userdata(OSyncObjTypeSink *sink);
 
+OSYNC_EXPORT osync_bool osync_objtype_sink_get_function_read(OSyncObjTypeSink *sink);
+OSYNC_EXPORT void osync_objtype_sink_set_function_read(OSyncObjTypeSink *sink, osync_bool read);
+
+OSYNC_EXPORT osync_bool osync_objtype_sink_get_function_getchanges(OSyncObjTypeSink *sink);
+OSYNC_EXPORT void osync_objtype_sink_set_function_getchanges(OSyncObjTypeSink *sink, osync_bool getchanges);
+
+OSYNC_EXPORT osync_bool osync_objtype_sink_get_function_write(OSyncObjTypeSink *sink);
+OSYNC_EXPORT void osync_objtype_sink_set_function_write(OSyncObjTypeSink *sink, osync_bool write);
+
 OSYNC_EXPORT void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
 OSYNC_EXPORT void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
 // OSYNC_EXPORT void osync_objtype_sink_write(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
@@ -75,6 +84,9 @@ OSYNC_EXPORT void osync_objtype_sink_set_available(OSyncObjTypeSink *sink, osync
 
 OSYNC_EXPORT osync_bool osync_objtype_sink_get_write(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_set_write(OSyncObjTypeSink *sink, osync_bool write);
+
+OSYNC_EXPORT osync_bool osync_objtype_sink_get_getchanges(OSyncObjTypeSink *sink);
+OSYNC_EXPORT void osync_objtype_sink_set_getchanges(OSyncObjTypeSink *sink, osync_bool write);
 
 OSYNC_EXPORT osync_bool osync_objtype_sink_get_read(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read);

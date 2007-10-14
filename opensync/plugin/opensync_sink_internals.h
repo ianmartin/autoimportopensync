@@ -31,11 +31,20 @@ struct OSyncObjTypeSink {
 	/** The objtype type of this sink */
 	char *objtype;
 
-	/** The status if this sink is able to write (commit) */
+	/** The status if this sink is allowed to write (commit) */
 	osync_bool write;
+	/** The status if this sink has a write function (commit) */
+	osync_bool func_write;
 
-	/** The status if this sink is able to read (single entries) */
+	/** The status if this sink is allowed to read (single entries) */
 	osync_bool read;
+	/** The status if this sink has a read function (single entries) */
+	osync_bool func_read;
+
+	/** The status if this sink is allowed to get_changes (latest changed entries) */
+	osync_bool getchanges; 
+	/** The status if this sink has a get_changes function (latest changed entries) */
+	osync_bool func_getchanges; 
 
 	/** The status of this sink */
 	osync_bool enabled;

@@ -212,6 +212,9 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	/* Order:
 	 * 
 	 * name
+	 * read function (bool)
+	 * get_changes function (bool)
+	 * write function (bool)
 	 * number of formats
 	 * format list (string)
 	 * enabled */
@@ -219,8 +222,12 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	int i = 0;
 	int num = osync_objtype_sink_num_objformats(sink);
 	osync_message_write_string(message, osync_objtype_sink_get_name(sink));
+
+	osync_message_write_int(message, osync_objtype_sink_get_function_read(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_function_getchanges(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_function_write(sink));
+
 	osync_message_write_int(message, num);
-	
 	for (i = 0; i < num; i++) {
 		const char *format = osync_objtype_sink_nth_objformat(sink, i);
 		osync_message_write_string(message, format);
@@ -236,6 +243,9 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	/* Order:
 	 * 
 	 * name
+	 * read function (bool)
+	 * get_changes function (bool)
+	 * write function (bool)
 	 * number of formats
 	 * format list (string)
 	 * enabled */
@@ -247,12 +257,22 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	char *name = NULL;
 	int num_formats = 0;
 	int enabled = 0;
+	int read = 0, get_changes = 0, write = 0;
 	char *format = NULL;
 	
  	osync_message_read_string(message, &name);
  	osync_objtype_sink_set_name(*sink, name);
  	g_free(name);
  	
+	osync_message_read_int(message, &read);
+	osync_objtype_sink_set_function_read(*sink, read);
+
+	osync_message_read_int(message, &get_changes);
+	osync_objtype_sink_set_function_getchanges(*sink, get_changes);
+
+	osync_message_read_int(message, &write);
+	osync_objtype_sink_set_function_write(*sink, write);
+
 	osync_message_read_int(message, &num_formats);
 	int i = 0;
 	for (i = 0; i < num_formats; i++) {

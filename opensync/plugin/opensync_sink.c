@@ -50,7 +50,9 @@ OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error
 	sink->ref_count = 1;
 	
 	sink->read = TRUE;
+	sink->getchanges = TRUE;
 	sink->write = TRUE;
+
 	sink->enabled = TRUE;
 	
 	return sink;
@@ -217,11 +219,80 @@ void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFu
 	sink->functions = functions;
 	sink->userdata = userdata;
 
-	if (!functions.read)
-		osync_objtype_sink_set_read(sink, FALSE);
+	if (functions.read)
+		 sink->func_read = TRUE;
 
-	if (!functions.write)
-		osync_objtype_sink_set_write(sink, FALSE);
+	if (functions.get_changes)
+		 sink->func_getchanges = TRUE;
+
+	if (functions.write)
+		 sink->func_write = TRUE;
+}
+
+/*! @brief Checks if sink has a read single entries function (read)
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink has a read single entries function (read), FALSE otherwise
+ */
+osync_bool osync_objtype_sink_get_function_read(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->func_read;
+}
+
+/*! @brief Sets the status of the read sink function
+ *
+ * @param sink Pointer to sink
+ * @param write TRUE if the sink has a read function, FALSE otherwise
+ */
+void osync_objtype_sink_set_function_read(OSyncObjTypeSink *sink, osync_bool read)
+{
+	osync_assert(sink);
+	sink->func_read = read;
+}
+
+/*! @brief Checks if sink has a get latest changes function (get_changes)
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink has a get latest changes function (get_changes), FALSE otherwise
+ */
+osync_bool osync_objtype_sink_get_function_getchanges(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->func_getchanges;
+}
+
+/*! @brief Sets the status of the get_changes sink function
+ *
+ * @param sink Pointer to sink
+ * @param write TRUE if the sink has a get_changes function, FALSE otherwise
+ */
+void osync_objtype_sink_set_function_getchanges(OSyncObjTypeSink *sink, osync_bool getchanges)
+{
+	osync_assert(sink);
+	sink->func_getchanges = getchanges;
+}
+
+/*! @brief Checks if sink has a write function (commit)
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink has a write function (commit), FALSE otherwise
+ */
+osync_bool osync_objtype_sink_get_function_write(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->func_write;
+}
+
+/*! @brief Sets the status of the write sink function
+ *
+ * @param sink Pointer to sink
+ * @param write TRUE if the sink has a write function, FALSE otherwise
+ */
+void osync_objtype_sink_set_function_write(OSyncObjTypeSink *sink, osync_bool write)
+{
+	osync_assert(sink);
+	sink->func_write = write;
 }
 
 /** @brief Gets the user data from a sink
@@ -525,13 +596,13 @@ void osync_objtype_sink_set_available(OSyncObjTypeSink *sink, osync_bool availab
 	sink->available = available;
 }
 
-/*! @brief Checks if sink is able to write (commit)
+/*! @brief Checks if sink is allowed to write (commit)
  *
- * If the sink is not able to write, then no changes will be commited to
+ * If the sink is not allowed to write, then no changes will be commited to
  * the sink.
  *
  * @param sink Pointer to the sink
- * @returns TRUE if the sink is able to write (commit), FALSE otherwise
+ * @returns TRUE if the sink is allowed to write (commit), FALSE otherwise
  */
 osync_bool osync_objtype_sink_get_write(OSyncObjTypeSink *sink)
 {
@@ -541,11 +612,10 @@ osync_bool osync_objtype_sink_get_write(OSyncObjTypeSink *sink)
 
 /*! @brief Sets the write status of the sink (commit)
  *
- * This function should only called 
  * See osync_objtype_sink_get_write()
  *
  * @param sink Pointer to sink
- * @param write TRUE if the sink is available, FALSE otherwise
+ * @param write TRUE if the sink is allowed to write changes (commit), FALSE otherwise
  *
  */
 void osync_objtype_sink_set_write(OSyncObjTypeSink *sink, osync_bool write)
@@ -554,17 +624,43 @@ void osync_objtype_sink_set_write(OSyncObjTypeSink *sink, osync_bool write)
 	sink->write = write;
 }
 
-/*! @brief Checks if sink is able to read single entries
+/*! @brief Sets the get latest changes status of the sink (get_change)
+ *
+ * See osync_objtype_sink_get_getchanges()
+ *
+ * @param sink Pointer to sink
+ * @param write Set TRUE if the sink is allowed to get latest changes, FALSE otherwise
+ *
+ */
+void osync_objtype_sink_set_getchanges(OSyncObjTypeSink *sink, osync_bool getchanges)
+{
+	osync_assert(sink);
+	sink->getchanges = getchanges;
+}
+
+/*! @brief Checks if sink is allowed to get latest changes 
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink is allowed to get latest changed entries, FALSE otherwise
+ *
+ */
+osync_bool osync_objtype_sink_get_getchanges(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->getchanges;
+}
+
+/*! @brief Checks if sink is allowed to read single entries
  *
  * "Read" means to request a single entry and does not mean to get the
  * latest changes since last sink. See osync_objtype_sink_get_getchanges().
  * The read function explicitly means to read a single entry without triggering
  * a full sync. This is used for example to check if a conflict between entries
- * could be ignored. Ignoring conflicts is only possible if the sink is able to
+ * could be ignored. Ignoring conflicts is only possible if the sink is allowed to
  * read this conflicting entries on the next sync without triggering a SlowSync.
  *
  * @param sink Pointer to the sink
- * @returns TRUE if the sink is able to read single entries, FALSE otherwise
+ * @returns TRUE if the sink is allowed to read single entries, FALSE otherwise
  *
  */
 osync_bool osync_objtype_sink_get_read(OSyncObjTypeSink *sink)
@@ -583,7 +679,6 @@ osync_bool osync_objtype_sink_get_read(OSyncObjTypeSink *sink)
  */
 void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read)
 {
-	osync_trace(TRACE_INTERNAL, "%s: %i", __func__, read);
 	osync_assert(sink);
 	sink->read = read;
 }
