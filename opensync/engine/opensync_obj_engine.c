@@ -1517,11 +1517,6 @@ osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **erro
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 
-	if (engine->archive) {
-		if (!osync_mapping_table_load(engine->mapping_table, engine->archive, engine->objtype, error))
-			goto error;
-	}
-
 	osync_trace(TRACE_INTERNAL, "Loaded %i mappings", osync_mapping_table_num_mappings(engine->mapping_table));
 	
 	int num = osync_engine_num_proxies(engine->parent);
@@ -1534,6 +1529,16 @@ osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **erro
 			goto error;
 		
 		engine->sink_engines = g_list_append(engine->sink_engines, sinkengine);
+	}
+
+	if (engine->archive && engine->slowsync) {
+		if (!osync_mapping_table_flush(engine->mapping_table, engine->archive, engine->objtype, error))
+			goto error;
+	}
+
+	if (engine->archive) {
+		if (!osync_mapping_table_load(engine->mapping_table, engine->archive, engine->objtype, error))
+			goto error;
 	}
 
 	if (!_create_mapping_engines(engine, error))

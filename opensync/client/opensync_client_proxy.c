@@ -451,7 +451,6 @@ static void _osync_client_proxy_connect_handler(OSyncMessage *message, void *use
 	
 	if (osync_message_get_cmd(message) == OSYNC_MESSAGE_REPLY) {
 		osync_message_read_int(message, &slowsync);
-		osync_trace(TRACE_INTERNAL, "XXX SLOW_SYNC requested: %i", slowsync);
 		ctx->connect_callback(proxy, ctx->connect_callback_data, slowsync, NULL);
 	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
 		osync_demarshal_error(message, &error);
