@@ -1021,6 +1021,8 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 
+	osync_bool prev_sync_unclean = FALSE;
+
 	if (engine->state != OSYNC_ENGINE_STATE_UNINITIALIZED) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not uninitialized: %i", engine->state);
 		goto error;
@@ -1046,6 +1048,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		case OSYNC_LOCK_STALE:
 			osync_trace(TRACE_INTERNAL, "Detected stale lock file. Slow-syncing");
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_PREV_UNCLEAN, NULL);
+			prev_sync_unclean = TRUE;
 			break;
 		case OSYNC_LOCK_OK:
 			break;
@@ -1099,9 +1102,9 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
 		engine->object_engines = g_list_append(engine->object_engines, objengine);
 
-		if (osync_group_lock(group) == OSYNC_LOCK_STALE)
+		/* If previous sync was unclean, then trigger SlowSync for all ObjEngines */
+		if (prev_sync_unclean)
 			osync_obj_engine_set_slowsync(objengine, TRUE);
-
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

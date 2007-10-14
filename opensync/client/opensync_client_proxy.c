@@ -1119,7 +1119,7 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 
 osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
