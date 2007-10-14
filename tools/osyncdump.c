@@ -28,15 +28,10 @@ typedef enum  {
 	RESET = 4
 } ToolAction;
 
-static void dump_map(OSyncGroupEnv *env, const char *objtype, const char *groupname)
+static void dump_map_objtype(OSyncGroupEnv *env, const char *objtype, const char *groupname)
 {
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_env_find_group(env, groupname);
-	
-	if (!group) {
-		printf("Unable to find group with name \"%s\"\n", groupname);
-		return;
-	}
 	
 	char *path = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
 	OSyncArchive *archive = osync_archive_new(path, &error);
@@ -81,6 +76,30 @@ static void dump_map(OSyncGroupEnv *env, const char *objtype, const char *groupn
 error:
 	printf("ERROR: %s", osync_error_print(&error));
 	osync_error_unref(&error);
+}
+
+static void dump_map(OSyncGroupEnv *env, const char *groupname)
+{
+
+	OSyncGroup *group = osync_group_env_find_group(env, groupname);
+	
+	if (!group) {
+		printf("Unable to find group with name \"%s\"\n", groupname);
+		return;
+	}
+
+        int i, num_objtypes = osync_group_num_objtypes(group); 
+        if (num_objtypes == 0) { 
+		printf("Group has no objtypes. Have the objtypes already been discovered?\n"); 
+		return;
+        }
+
+        for (i = 0; i < num_objtypes; i++) {
+		const char *objtype = osync_group_nth_objtype(group, i);
+		printf("Mappings for objtype \"%s\":\n", objtype);
+		dump_map_objtype(env, objtype, groupname);
+	}
+
 }
 
 static void dump_hash(OSyncGroupEnv *env, const char *objtype, const char *groupname, char *memberid)
@@ -194,7 +213,10 @@ int main (int argc, char *argv[])
 	
 	switch (action) {
 		case DUMPMAPS:
-			dump_map(env, objtype, groupname);
+			if (objtype)
+				dump_map_objtype(env, objtype, groupname);
+			else
+				dump_map(env, groupname);
 			break;
 		case DUMPHASH:
 			dump_hash(env, objtype, groupname, membername);
