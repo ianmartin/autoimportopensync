@@ -77,6 +77,8 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 				osync_objtype_sink_set_enabled(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
 				osync_objtype_sink_set_read(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"getchanges")) {
+				osync_objtype_sink_set_getchanges(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
 				osync_objtype_sink_set_write(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
@@ -504,6 +506,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
 		xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
 		xmlNewChild(node, NULL, (xmlChar*)"read", osync_objtype_sink_get_read(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+		xmlNewChild(node, NULL, (xmlChar*)"getchanges", osync_objtype_sink_get_getchanges(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
 		xmlNewChild(node, NULL, (xmlChar*)"write", osync_objtype_sink_get_write(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
 		
 		int i = 0;
