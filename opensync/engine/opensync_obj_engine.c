@@ -1235,6 +1235,13 @@ static void _generate_written_event(OSyncObjEngine *engine)
 	
 	for (p = engine->sink_engines; p; p = p->next) {
 		sinkengine = p->data;
+
+		OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
+		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+
+		/* If the sink engine isn't able/allowed to write we don't care if everything got written ("how dirty is it!?") */ 
+		if (!osync_objtype_sink_get_write(objtype_sink)) 
+			break;
 		
 		for (e = sinkengine->entries; e; e = e->next) {
 			OSyncMappingEntryEngine *entry_engine = e->data;
@@ -1513,6 +1520,23 @@ void osync_obj_engine_unref(OSyncObjEngine *engine)
 	}
 }
 
+static int _osync_obj_engine_num_write_sinks(OSyncObjEngine *objengine) {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, objengine);
+
+	int num = 0;
+	GList *p = NULL;
+	OSyncSinkEngine *sink;
+
+	for (p = objengine->sink_engines; p; p = p->next) {
+		sink = p->data;
+
+
+	}
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, num);
+	return num;
+}
+
 osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
@@ -1692,8 +1716,23 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					goto error;
 			}
 
+			int write_sinks = _osync_obj_engine_num_write_sinks(engine);
+
+			/* Get change entries since last sync. (get_changes) */
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
+
+
+				OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
+				OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+
+				/* Is there at least one other writeable sink? */
+				if (osync_objtype_sink_get_write(objtype_sink) && write_sinks) {
+					_obj_engine_read_callback(sinkengine->proxy, sinkengine, *error);
+					osync_trace(TRACE_INTERNAL, "no other writable sinks .... SKIP");
+					continue;
+				}
+
 				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, sinkengine, engine->objtype, engine->slowsync, error))
 					goto error;
 			}
@@ -1724,13 +1763,14 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
 				
+				OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
+				long long int memberid = osync_member_get_id(member);
+
+				OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+
 				for (e = sinkengine->entries; e; e = e->next) {
 					OSyncMappingEntryEngine *entry_engine = e->data;
 					osync_assert(entry_engine);
-
-					OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
-					long long int memberid = osync_member_get_id(member);
-					
 
 					/* Merger - Save the entire xml and demerge */
 					/* TODO: is here the right place to save the xml???? */
@@ -1767,7 +1807,9 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							osync_merger_demerge(merger, xmlformat);
 					}
 
-					if (osync_entry_engine_is_dirty(entry_engine)) {
+
+					/* Only commit change if the objtype sink is able/allowed to write. */
+					if (osync_objtype_sink_get_write(objtype_sink) && osync_entry_engine_is_dirty(entry_engine)) {
 						osync_assert(entry_engine->change);
 						OSyncChange *change = entry_engine->change;
 
