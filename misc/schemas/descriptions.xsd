@@ -14,6 +14,7 @@
 		<xsd:sequence>
 			<xsd:element maxOccurs="1" minOccurs="1" name="PlugIn" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="Priority" type="xsd:integer"/>
+			<xsd:element maxOccurs="1" minOccurs="1" name="Vendor" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="ModelVersion" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="FirmwareVersion" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="SoftwareVersion" type="xsd:string"/>

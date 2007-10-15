@@ -638,6 +638,7 @@ static osync_bool osync_filesync_discover(void *data, OSyncPluginInfo *info, OSy
 	
 	OSyncVersion *version = osync_version_new(error);
 	osync_version_set_plugin(version, "mock-sync");
+	//osync_version_set_vendor(version, "version");
 	//osync_version_set_modelversion(version, "version");
 	//osync_version_set_firmwareversion(version, "firmwareversion");
 	//osync_version_set_softwareversion(version, "softwareversion");

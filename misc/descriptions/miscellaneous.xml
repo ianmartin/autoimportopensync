@@ -3,6 +3,7 @@
 	<version>
 		<PlugIn>file-sync</PlugIn>
 		<Priority>100</Priority>
+		<Vendor></Vendor>
 		<ModelVersion></ModelVersion>
 		<FirmwareVersion></FirmwareVersion>
 		<SoftwareVersion></SoftwareVersion>

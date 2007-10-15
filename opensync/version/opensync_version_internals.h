@@ -32,6 +32,7 @@ struct OSyncVersion{
 	int ref_count;
 	char *plugin;
 	char *priority;
+	char *vendor;
 	char *modelversion;
 	char *firmwareversion;
 	char *softwareversion;

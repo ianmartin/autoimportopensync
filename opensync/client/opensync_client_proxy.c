@@ -344,6 +344,9 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			osync_version_set_priority(version, str);
 			g_free(str);
 			osync_message_read_string(message, &str);
+			osync_version_set_vendor(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
 			osync_version_set_modelversion(version, str);
 			g_free(str);
 			osync_message_read_string(message, &str);

@@ -29,6 +29,7 @@ OSYNC_EXPORT void osync_version_unref(OSyncVersion *version);
 
 OSYNC_EXPORT char *osync_version_get_plugin(OSyncVersion *version);
 OSYNC_EXPORT char *osync_version_get_priority(OSyncVersion *version);
+OSYNC_EXPORT char *osync_version_get_vendor(OSyncVersion *version);
 OSYNC_EXPORT char *osync_version_get_modelversion(OSyncVersion *version);
 OSYNC_EXPORT char *osync_version_get_firmwareversion(OSyncVersion *version);
 OSYNC_EXPORT char *osync_version_get_softwareversion(OSyncVersion *version);
@@ -37,6 +38,7 @@ OSYNC_EXPORT char *osync_version_get_identifier(OSyncVersion *version);
 
 OSYNC_EXPORT void osync_version_set_plugin(OSyncVersion *version, const char *plugin);
 OSYNC_EXPORT void osync_version_set_priority(OSyncVersion *version, const char *priority);
+OSYNC_EXPORT void osync_version_set_vendor(OSyncVersion *version, const char *vendor);
 OSYNC_EXPORT void osync_version_set_modelversion(OSyncVersion *version, const char *modelversion);
 OSYNC_EXPORT void osync_version_set_firmwareversion(OSyncVersion *version, const char *firmwareversion);
 OSYNC_EXPORT void osync_version_set_softwareversion(OSyncVersion *version, const char *softwareversion);

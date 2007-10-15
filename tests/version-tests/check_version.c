@@ -29,6 +29,7 @@ START_TEST (version_matches)
 	fail_unless(version != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_version_set_plugin(version, "SyncML");
+	osync_version_set_vendor(version, "Nokia");
 	osync_version_set_modelversion(version, "7650");
 	osync_version_set_firmwareversion(version, "*");
 	osync_version_set_softwareversion(version, "*");
@@ -39,6 +40,7 @@ START_TEST (version_matches)
 	fail_unless(error == NULL, NULL);
 	osync_version_set_plugin(pattern, "Sync[A-Z]");
 	osync_version_set_priority(pattern, "100");
+	osync_version_set_vendor(pattern, "Nokia");
 	osync_version_set_modelversion(pattern, "[0-9]");
 	osync_version_set_firmwareversion(pattern, "");
 	osync_version_set_softwareversion(pattern, "");

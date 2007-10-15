@@ -115,6 +115,7 @@ OSyncVersion *osync_version_new(OSyncError **error)
 	version->ref_count = 1;
 	version->plugin = g_strdup("");
 	version->priority = g_strdup("");
+	version->vendor = g_strdup("");
 	version->modelversion = g_strdup("");
 	version->firmwareversion = g_strdup("");
 	version->softwareversion = g_strdup("");
@@ -151,6 +152,8 @@ void osync_version_unref(OSyncVersion *version)
 			g_free(version->plugin);
 		if(version->priority)
 			g_free(version->priority);
+		if(version->vendor)
+			g_free(version->vendor);
 		if(version->modelversion)
 			g_free(version->modelversion);
 		if(version->firmwareversion)
@@ -174,6 +177,11 @@ char *osync_version_get_plugin(OSyncVersion *version)
 char *osync_version_get_priority(OSyncVersion *version)
 {
 	return version->priority;
+}
+
+char *osync_version_get_vendor(OSyncVersion *version)
+{
+	return version->vendor;
 }
 
 char *osync_version_get_modelversion(OSyncVersion *version)
@@ -219,6 +227,16 @@ void osync_version_set_priority(OSyncVersion *version, const char *priority)
 		version->priority = g_strdup("");
 	else
 		version->priority =  g_strdup(priority);
+}
+
+void osync_version_set_vendor(OSyncVersion *version, const char *vendor)
+{
+	if(version->vendor)
+		g_free(version->vendor);
+	if(!vendor)
+		version->vendor = g_strdup("");
+	else
+		version->vendor =  g_strdup(vendor);
 }
 
 void osync_version_set_modelversion(OSyncVersion *version, const char *modelversion)
@@ -285,6 +303,10 @@ int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncErr
 	if(ret <= 0)
 		goto error;
 	
+	ret = _osync_version_match(osync_version_get_vendor(pattern), osync_version_get_vendor(version), error);
+	if(ret <= 0)
+		goto error;
+
 	ret = _osync_version_match(osync_version_get_modelversion(pattern), osync_version_get_modelversion(version), error);
 	if(ret <= 0)
 		goto error;
@@ -385,6 +407,8 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 			osync_version_set_plugin(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
 			osync_version_set_priority(version, (const char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_vendor(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
 			osync_version_set_modelversion(version, (const char *)osxml_node_get_content(child));
 			child = child->next;

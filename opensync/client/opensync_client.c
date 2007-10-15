@@ -640,6 +640,7 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 		osync_message_write_int(reply, 1);
 		osync_message_write_string(reply, osync_version_get_plugin(version));
 		osync_message_write_string(reply, osync_version_get_priority(version));
+		osync_message_write_string(reply, osync_version_get_vendor(version));
 		osync_message_write_string(reply, osync_version_get_modelversion(version));
 		osync_message_write_string(reply, osync_version_get_firmwareversion(version));
 		osync_message_write_string(reply, osync_version_get_softwareversion(version));

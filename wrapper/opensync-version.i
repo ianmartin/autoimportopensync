@@ -42,6 +42,14 @@ typedef struct {} Version;
 		osync_version_set_priority(self, priority);
 	}
 
+	char *get_vendor() {
+		return osync_version_get_vendor(self);
+	}
+
+	void set_vendor(char *vendor) {
+		osync_version_set_vendor(self, vendor);
+	}
+
 	char *get_modelversion() {
 		return osync_version_get_modelversion(self);
 	}
@@ -103,6 +111,7 @@ typedef struct {} Version;
 %pythoncode %{
 	plugin = property(get_plugin, set_plugin)
 	priority = property(get_priority, set_priority)
+	vendor = property(get_vendor, set_vendor)
 	modelversion = property(get_modelversion, set_modelversion)
 	firmwareversion = property(get_firmwareversion, set_firmwareversion)
 	softwareversion = property(get_softwareversion, set_softwareversion)

@@ -373,6 +373,7 @@ static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **e
 
 	OSyncVersion *version = osync_version_new(error);
 	osync_version_set_plugin(version, "<your plugin-name>");
+	//osync_version_set_version(version, "version");
 	//osync_version_set_modelversion(version, "version");
 	//osync_version_set_firmwareversion(version, "firmwareversion");
 	//osync_version_set_softwareversion(version, "softwareversion");
