@@ -244,6 +244,5 @@ typedef struct {} Engine;
 %pythoncode %{
 	group = property(get_group)
 	# archive = property(get_archive)
-	group_slowsync = property(get_group_slowsync, set_group_slowsync)
 %}
 }
