@@ -362,8 +362,8 @@ typedef struct {} Member;
 		return osynclist_to_pylist(list, SWIGTYPE_p_char);
 	}
 
-	void add_objtype(const char *objtype) {
-		osync_member_add_objtype(self, objtype);
+	void add_objtype_sink(ObjTypeSink *sink) {
+		osync_member_add_objtype_sink(self, sink);
 	}
 
 	int num_objtypes() {
