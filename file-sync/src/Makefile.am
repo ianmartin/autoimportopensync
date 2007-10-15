@@ -4,8 +4,6 @@ formatsdir=@OPENSYNC_FORMATSDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@
 
-AM_CFLAGS = -Wall -Werror
-
 EXTRA_DIST = \
 	file-sync \
 	file_sync.h
