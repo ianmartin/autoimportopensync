@@ -467,8 +467,12 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		 * SE SyncML implementation...
 		 * 
 		 * ^^irmc hacks in the irmc plugin ;-)
+		 *
+		 * dgollub: Set masterChange UID for existChange if entry_engine->entry doesn't have 
+		 * mapping uid, even if the newChangeType is UNKOWN. Bug: #571  
+		 *
 		 */
-		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && !osync_mapping_entry_get_uid(entry_engine->entry))
+		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED || !osync_mapping_entry_get_uid(entry_engine->entry))
 			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
 		else
 			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
