@@ -647,16 +647,16 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 
 	// create a new xmlformat object
 	if (target == VFORMAT_EVENT_10) {
-		osync_trace(TRACE_INTERNAL, "Input is vevent10:\n%s", input);
+		osync_trace(TRACE_SENSITIVE, "Input is vevent10:\n%s", input);
 		xmlformat = osync_xmlformat_new("event", error);
 	} else if (target == VFORMAT_EVENT_20) {
-		osync_trace(TRACE_INTERNAL, "Input is vevent20:\n%s", input);
+		osync_trace(TRACE_SENSITIVE, "Input is vevent20:\n%s", input);
 		xmlformat = osync_xmlformat_new("event", error);
 	} else if (target == VFORMAT_TODO_10) {
-		osync_trace(TRACE_INTERNAL, "Input is vtodo10:\n%s", input);
+		osync_trace(TRACE_SENSITIVE, "Input is vtodo10:\n%s", input);
 		xmlformat = osync_xmlformat_new("todo", error);
 	} else if (target == VFORMAT_TODO_20) {
-		osync_trace(TRACE_INTERNAL, "Input is vtodo20:\n%s", input);
+		osync_trace(TRACE_SENSITIVE, "Input is vtodo20:\n%s", input);
 		xmlformat = osync_xmlformat_new("todo", error);
 	}
 
@@ -685,7 +685,7 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
 	if (osync_xmlformat_validate(xmlformat) == FALSE)
@@ -744,7 +744,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
 	// set default encoding
@@ -835,13 +835,13 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	vformat_free(vcalendar);
 
 	if (target == VFORMAT_EVENT_10) {
-		osync_trace(TRACE_INTERNAL, "Output is vevent10:\n%s", *output);
+		osync_trace(TRACE_SENSITIVE, "Output is vevent10:\n%s", *output);
 	} else if (target == VFORMAT_EVENT_20) {
-		osync_trace(TRACE_INTERNAL, "Output is vevent20:\n%s", *output);
+		osync_trace(TRACE_SENSITIVE, "Output is vevent20:\n%s", *output);
 	} else if (target == VFORMAT_TODO_10) {
-		osync_trace(TRACE_INTERNAL, "Output is vtodo10:\n%s", *output);
+		osync_trace(TRACE_SENSITIVE, "Output is vtodo10:\n%s", *output);
 	} else if (target == VFORMAT_TODO_20) {
-		osync_trace(TRACE_INTERNAL, "Output is vtodo20:\n%s", *output);
+		osync_trace(TRACE_SENSITIVE, "Output is vtodo20:\n%s", *output);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

@@ -58,7 +58,7 @@ static osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, cha
 	
 	OSyncHookTables *hooks = init_vnote_to_xmlformat(VFORMAT_NOTE);
 	
-	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
+	osync_trace(TRACE_SENSITIVE, "Input vcal is:\n%s", input);
 	//Parse the vnote
 	VFormat *vnote = vformat_new_from_string(input);
 
@@ -82,7 +82,7 @@ static osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, cha
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "... Output XMLFormat is: \n%s", str);
+	osync_trace(TRACE_SENSITIVE, "... Output XMLFormat is: \n%s", str);
 	g_free(str);
 	
 	if (osync_xmlformat_validate(xmlformat) == FALSE)
@@ -143,7 +143,7 @@ static osync_bool conv_xmlformat_to_vnotememo(char *input, unsigned int inpsize,
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
 	//Parsing xml attributes
@@ -170,7 +170,7 @@ static osync_bool conv_xmlformat_to_vnotememo(char *input, unsigned int inpsize,
 	
 	vformat_free(vnote);	
 	
-	osync_trace(TRACE_INTERNAL, "Output vnote is : \n%s", *output);
+	osync_trace(TRACE_SENSITIVE, "Output vnote is : \n%s", *output);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;

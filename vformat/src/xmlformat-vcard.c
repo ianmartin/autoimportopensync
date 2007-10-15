@@ -1006,7 +1006,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 		g_strfreev(config_array);
 	}
 	
-	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
+	osync_trace(TRACE_SENSITIVE, "Input Vcard is:\n%s", input);
 	
 	//Parse the vcard
 	VFormat *vcard = vformat_new_from_string(input);
@@ -1048,7 +1048,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
 	if (osync_xmlformat_validate(xmlformat) == FALSE)
@@ -1890,7 +1890,7 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
 	//Make the new vcard
@@ -1918,7 +1918,7 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 
 	vformat_free(vcard);
 
-	osync_trace(TRACE_INTERNAL, "Output vcard is: \n%s", *output);
+	osync_trace(TRACE_SENSITIVE, "Output vcard is: \n%s", *output);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
