@@ -18,6 +18,7 @@ if testenv['enable_tests'] == 1:
 	testenv.Program('archive', ['archive-tests/check_archive.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('xmlformat', ['merger-tests/check_xmlformat.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('client', ['client-tests/check_client.c'], LIBS = ['opensync', 'check', support])
+	testenv.Program('version', ['version-tests/check_version.c'], LIBS = ['opensync', 'check', support])
 
 	testenv.Program('mapping', ['mapping-tests/check_mapping.c'], LIBS = ['opensync', 'check', support])
 
