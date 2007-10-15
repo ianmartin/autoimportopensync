@@ -447,6 +447,8 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		OSyncChangeType existChangeType = osync_change_get_changetype(existChange);
 		OSyncChangeType newChangeType = osync_change_get_changetype(masterChange);
 		
+		osync_trace(TRACE_INTERNAL, "Orig change type: %i New change type: %i", existChangeType, newChangeType);
+
 		/* Now update the entry with the change */
 		osync_entry_engine_update(entry_engine, existChange);
 		
@@ -475,7 +477,6 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		osync_change_set_changetype(existChange, osync_change_get_changetype(masterChange));
 		
 		/* We also have to update the changetype of the new change */
-		osync_trace(TRACE_INTERNAL, "Orig change type: %i New change type: %i", existChangeType, newChangeType);
 		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && (existChangeType != OSYNC_CHANGE_TYPE_DELETED && existChangeType != OSYNC_CHANGE_TYPE_UNKNOWN)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to MODIFIED");
 			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_MODIFIED);
