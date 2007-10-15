@@ -26,20 +26,20 @@
   
   <maxObjSize>0</maxObjSize>
   
-  <!-- The name of the contacts db. Must be the same as the phones sends -->
+  <!-- Contact database -->
   <database>
      <name>Contacts</name>
      <objtype>contact</objtype>
   </database>
   
-  <!-- The name of the calendar db. Must be the same as the phones sends -->
+  <!-- Calendar database -->
   <database>
      <name>Calendar</name>
      <objtype>event</objtype>
   </database>
 
   
-  <!-- The name of the note db. Must be the same as the phones sends -->
+  <!-- Note database -->
   <database>
      <name>Notes</name>
      <objtype>note</objtype>
