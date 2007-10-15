@@ -198,18 +198,6 @@ typedef struct {} Engine;
 
 	/* TODO: other callbacks */
 
-	void set_group_slowsync(bool isslowsync) {
-		osync_engine_set_group_slowsync(self, isslowsync);
-	}
-
-	bool get_group_slowsync() {
-		return osync_engine_get_group_slowsync(self);
-	}
-
-	void slowsync_objtype(const char *objtype) {
-		osync_engine_slowsync_objtype(self, objtype);
-	}
-
 	void event(EngineEvent ev) {
 		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
@@ -221,7 +209,37 @@ typedef struct {} Engine;
 		return osync_engine_check_get_changes(self);
 	}
 
-	/* TODO: proxies, mappings */
+
+        int num_proxies() {
+                return osync_engine_num_proxies(self);
+        }
+
+        /* TODO create ClientProxy object
+        ClientProxy nth_objengine(int nth) {
+                return osync_engine_nth_objengine(self, nth);
+        }
+
+        ClientProxy find_objengine(const char *objtype) {
+                return osync_engine_find_objengine(self, objtype);
+        }
+        */
+
+        int num_objengine() {
+                return osync_engine_num_objengine(self);
+        }
+
+        /* TODO Create ObjEngine object
+        ObjEngine nth_objengine(int nth) {
+                return osync_engine_nth_objengine(self, nth);
+        }
+
+        ObjEngine find_objengine(const char *objtype) {
+                return osync_engine_find_objengine(self, objtype);
+        }
+        */
+
+	/* TODO: mappings */
+
 
 %pythoncode %{
 	group = property(get_group)
