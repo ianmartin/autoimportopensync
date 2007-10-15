@@ -1,1 +1,5 @@
-<config><device></device></config>
+<?xml version="1.0"?>
+<config>
+  <!-- device file name of the phone (/dev/ttyACM0 or /dev/rfcomm0) -->
+  <device></device>
+</config>

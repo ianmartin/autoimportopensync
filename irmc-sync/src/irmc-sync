@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <config>
   <connectmedium>bluetooth</connectmedium>
   <btunit></btunit>

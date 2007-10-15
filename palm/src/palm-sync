@@ -1,1 +1,12 @@
-<config><sockaddr>/dev/pilot</sockaddr><username></username><timeout>0</timeout><type>0</type><speed>57600</speed><id>0</id><codepage>cp1252</codepage><popup>1</popup><mismatch>1</mismatch></config>
+<?xml version="1.0"?>
+<config>
+  <sockaddr>/dev/pilot</sockaddr>
+  <username></username>
+  <timeout>0</timeout>
+  <type>0</type>
+  <speed>57600</speed>
+  <id>0</id>
+  <codepage>cp1252</codepage>
+  <popup>1</popup>
+  <mismatch>1</mismatch>
+</config>
