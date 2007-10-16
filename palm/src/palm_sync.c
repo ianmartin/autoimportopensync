@@ -21,11 +21,6 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-#include "palm_todo.h"
-#include "palm_contact.h"
-#include "palm_event.h"
-#include "palm_note.h"
-
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-plugin.h>
