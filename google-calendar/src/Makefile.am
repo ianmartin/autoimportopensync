@@ -8,8 +8,6 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall
 
-EXTRA_DIST = google-calendar google-cal-helper.py
-
 config_DATA = google-calendar
 description_DATA = google-calendar.xml
 capabilities_DATA = google-calendar-gcal-2005.xml
@@ -27,3 +25,10 @@ gcalendar_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
 google-cal-helper: $(srcdir)/google-cal-helper.py
 	cp $(srcdir)/google-cal-helper.py google-cal-helper
+
+EXTRA_DIST = \
+	google-calendar \
+	google-cal-helper.py \
+	$(description_DATA) \
+	$(capabilities_DATA)
+
