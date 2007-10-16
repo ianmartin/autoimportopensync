@@ -17,7 +17,7 @@ def check(env, config):
 		print 'glib-2.0 >= 2.4 not found.'
 		env.Exit(1)
 
-	if not conf.CheckPKG('libsyncml-1.0 >= 0.4.4'):
+	if not conf.CheckPKG('libsyncml-1.0 >= 0.4.5'):
 		print 'libsyncml >= 0.4.4 not found.'
 		env.Exit(1)
 
