@@ -1402,11 +1402,12 @@ error:
 	return FALSE;
 }
 
-/*! @brief This function will discover the capabilities of a member and block until the discovery has finished
+/*! @brief This function will synchronize once and block until the sync has finished
  *
- * This can be used to discover a member and wait for the synchronization end.
+ * This can be used to sync a group and wait for the synchronization end. DO NOT USE
+ * osync_engine_wait_sync_end for this as this might introduce a race condition.
  * 
- * @param engine A pointer to the engine, which to discover the member and wait for the discover end
+ * @param engine A pointer to the engine, which to sync and wait for the sync end
  * @param member A pointer to the member, which to discover
  * @param error A pointer to a error struct
  * @returns TRUE on success, FALSE otherwise.
