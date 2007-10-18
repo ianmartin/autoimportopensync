@@ -825,6 +825,7 @@ gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 						curl_easy_setopt(curl, CURLOPT_UPLOAD, TRUE);
 						curl_easy_setopt(curl, CURLOPT_READDATA, content);
 						curl_easy_setopt(curl, CURLOPT_READFUNCTION, opie_curl_strread);
+						curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1);
 						m_totalwritten = 0;
 					}
 					
