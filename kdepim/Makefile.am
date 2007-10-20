@@ -20,6 +20,7 @@ EXTRA_DIST = \
 	src/kaddrbook.h \
 	src/kcal.h \
 	src/kdepim-sync \
+	src/datasource.h \
 	src/osyncbase.h \
 	src/knotes.h \
 	src/KNotesIface.h
