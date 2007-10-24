@@ -209,7 +209,7 @@ START_TEST (xmlformat_compare_ignore_fields)
 
         result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
 
-	fail_unless(result != OSYNC_CONV_DATA_SAME, NULL);
+	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
 
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);

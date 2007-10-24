@@ -3,6 +3,9 @@
   <Name>
     <FirstName>John</FirstName>
   </Name>
+  <Telephone Location="Work">
+    <Content>0123456789</Content>
+  </Telephone>
   <Uid>
     <Content>747515</Content>
   </Uid>

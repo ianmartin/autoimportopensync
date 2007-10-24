@@ -3,5 +3,11 @@
   <Name>
     <FirstName>John</FirstName>
   </Name>
+  <Revision>
+    <Content>20071024T112815Z</Content>
+  </Revision>
+  <Telephone Location="Work">
+    <Content>0123456789</Content>
+  </Telephone>
 </contact>
 
