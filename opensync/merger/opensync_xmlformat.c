@@ -62,20 +62,30 @@ int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic
  *  Ignored fields doesn't have influence on the compare result. This is needed to keep the compare 
  *  result SAME if an ignored fields are the only differences between the entries.
  *
+ *  0 Points got returned for ignored fields to avoid influence of the collected_points value and let
+ *  collected_points not raise over the threshold value. This could change the compare result to SIMILAR,
+ *  even if the entry should  MISMATCH, this should be avoided. This happens when the number of ignored fiels
+ *  is the greather equal as the thresold value.
+ *
  * @param xmlfield Pointer to xmlfield
  * @param points The sorted points array
  * @param cur_pos Pointer to the actual line in the points array. Gets incremented if the xmlfield requires this! 
  * @param basic_points Points which should be returned if fieldname will not found in the points array 
  * @param same Pointer ot the compare result flag SAME, which got not set to FALSE if the fields should be ignored.
- * @returns The points for the fieldname.
+ * @returns The points for the fieldname. If the field should be ignored 0 points got retunred.
  */
 static int _osync_xmlformat_subtract_points(OSyncXMLField *xmlfield, OSyncXMLPoints points[], int *cur_pos, int basic_points, int *same) {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, xmlfield, points, cur_pos, basic_points, same);
 	int p = _osync_xmlformat_get_points(points, cur_pos, basic_points, (const char *) xmlfield->node->name);
 
-	/* Stay with SAME as compare result - if fields should be ignored */
-	if (p != -1)
+	/* Stay with SAME as compare result and don't substract any points - if fields should be ignored */
+	if (p != -1) {
+		osync_trace(TRACE_INTERNAL, "Not same anymore - \"%s\" field differs!", xmlfield->node->name);
 		*same = FALSE;
+	} else {
+		osync_trace(TRACE_INTERNAL, "Ignored field: %s", xmlfield->node->name);
+		p = 0;
+	}
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, p);
 	return p;
@@ -439,12 +449,12 @@ end:
  * @param xmlformat2 The pointer to a xmlformat object
  * @param points The sorted points array
  * @param basic_points Points which should be used if a xmlfield name is not found in the points array
- * @param treshold If the two xmlformats are not the same, then this value will decide if the two xmlformats are similar 
+ * @param threshold If the two xmlformats are not the same, then this value will decide if the two xmlformats are similar 
  * @return One of the values of the OSyncConvCmpResult enumeration
  */
-OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold)
+OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int threshold)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %i)", __func__, xmlformat1, xmlformat2, points, basic_points, treshold);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %i)", __func__, xmlformat1, xmlformat2, points, basic_points, threshold);
 
 	int res, collected_points, cur_pos;
 	OSyncXMLField *xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
@@ -632,12 +642,12 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 		}
 	};
 	
-	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", collected_points, treshold);
+	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", collected_points, threshold);
 	if (same) {
 		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
 		return OSYNC_CONV_DATA_SAME;
 	}
-	if (collected_points >= treshold) {
+	if (collected_points >= threshold) {
 		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
 		return OSYNC_CONV_DATA_SIMILAR;
 	}
