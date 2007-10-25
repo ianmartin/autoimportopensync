@@ -30,11 +30,6 @@ static void _osync_db_trace(void *data, const char *query)
 }
 */
 
-char *_osync_db_sql_escape(const char *s)
-{
-	return osync_strreplace(s, "'", "''");
-}
-
 OSyncDB *osync_db_new(OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
@@ -585,4 +580,9 @@ long long int osync_db_last_rowid(OSyncDB *db) {
 
 	return sqlite3_last_insert_rowid(db->sqlite3db);
 }	
+
+char *osync_db_sql_escape(const char *query)
+{
+	return osync_strreplace(query, "'", "''");
+}
 

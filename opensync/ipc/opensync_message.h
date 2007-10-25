@@ -67,7 +67,7 @@ void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handle
 OSyncMessageHandler osync_message_get_handler(OSyncMessage *message);
 void *osync_message_get_handler_data(OSyncMessage *message);
 
-gboolean osync_message_is_error(OSyncMessage *message);
+osync_bool osync_message_is_error(OSyncMessage *message);
 osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
 osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
 OSyncMessageCommand osync_message_get_command(OSyncMessage *message);

@@ -213,7 +213,7 @@ OSyncMessage *osync_message_new_queue_error(OSyncError *error, OSyncError **loc_
  * @return #TRUE if the message is a error, #FALSE otherwise
  * 
  */
-gboolean osync_message_is_error(OSyncMessage *message)
+osync_bool osync_message_is_error(OSyncMessage *message)
 {
 	if (message->cmd == OSYNC_MESSAGE_ERRORREPLY)
 		return TRUE;

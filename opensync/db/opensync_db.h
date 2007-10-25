@@ -21,6 +21,7 @@
 #ifndef _OPENSYNC_DB_H_
 #define _OPENSYNC_DB_H_
 
+
 OSyncDB *osync_db_new(OSyncError **error);
 
 osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error);
@@ -43,6 +44,8 @@ osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, 
 int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
 
 long long int osync_db_last_rowid(OSyncDB *db);
+
+char *osync_db_sql_escape(const char *query);
 
 #endif //_OPENSYNC_DB_H_
 

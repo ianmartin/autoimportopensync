@@ -30,9 +30,9 @@
  * MT safe
  */
 
-#include <glib.h>
-#include "opensync.h"
+#include <glib/gmem.h>
 #include "opensync_list.h"
+#include "opensync_internals.h"
 
 #define _osync_list_alloc()         g_slice_new (OSyncList)
 #define _osync_list_alloc0()        g_slice_new0 (OSyncList)
@@ -70,7 +70,7 @@ osync_list_append (OSyncList	*list,
   if (list)
     {
       last = osync_list_last (list);
-      /* g_assert (last != NULL); */
+      /* osync_assert (last != NULL); */
       last->next = new_list;
       new_list->prev = last;
 

@@ -39,8 +39,19 @@
 #include <time.h>
 #include <fcntl.h>
 
-#include <glib/gmacros.h>
-G_BEGIN_DECLS
+#ifdef __cplusplus
+
+#define OPENSYNC_BEGIN_DECLS extern "C" {
+#define OPENSYNC_END_DECLS }
+
+#else
+
+#define OPENSYNC_BEGIN_DECLS
+#define OPENSYNC_END_DECLS
+
+#endif
+
+OPENSYNC_BEGIN_DECLS
 
 /**************************************************************
  * Defines
@@ -158,7 +169,7 @@ typedef struct OSyncQueue OSyncQueue;
 typedef struct OSyncDB OSyncDB;
 typedef int osync_bool;
 
-G_END_DECLS
+OPENSYNC_END_DECLS
 
 #include "opensync-support.h"
 #include "opensync-error.h"

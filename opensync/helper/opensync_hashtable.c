@@ -25,8 +25,6 @@
 #include "opensync-data.h"
 #include "opensync-helper.h"
 #include "opensync-db.h"
-#include <db/opensync_db_internals.h>
-
 
 /**
  * @defgroup OSyncHashtableAPI OpenSync Hashtables
@@ -266,7 +264,7 @@ char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid)
        char *hash = NULL;
        GList *list = NULL;
        OSyncError *error = NULL;
-       char *escaped_uid = _osync_db_sql_escape(uid);
+       char *escaped_uid = osync_db_sql_escape(uid);
 
        char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid= '%s' LIMIT 1",
                                      table->tablename, escaped_uid);
@@ -297,8 +295,8 @@ void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *h
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
-	char *escaped_uid = _osync_db_sql_escape(uid);
-	char *escaped_hash = _osync_db_sql_escape(hash);
+	char *escaped_uid = osync_db_sql_escape(uid);
+	char *escaped_hash = osync_db_sql_escape(hash);
 	char *query = g_strdup_printf("REPLACE INTO %s ('uid', 'hash') VALUES('%s', '%s')", table->tablename, escaped_uid, escaped_hash);
 	g_free(escaped_uid);
 	g_free(escaped_hash);
@@ -319,7 +317,7 @@ void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
-	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
 	char *query = g_strdup_printf("DELETE FROM %s WHERE uid='%s'", table->tablename, escaped_uid);
 	g_free(escaped_uid);
 
@@ -446,7 +444,7 @@ OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char
 	
 	OSyncChangeType retval = OSYNC_CHANGE_TYPE_UNMODIFIED;
 
-	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
 	char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid='%s'", table->tablename, escaped_uid);
 	orighash = osync_db_query_single_string(table->dbhandle, query, NULL); 
 	g_free(query);

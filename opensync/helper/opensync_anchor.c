@@ -23,7 +23,6 @@
 
 #include "opensync-helper.h"
 #include "opensync-db.h"
-#include <db/opensync_db_internals.h>
 
 /*! @brief Create the anchor table in the specified database
  * 
@@ -123,7 +122,7 @@ static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 
 	char *retanchor = NULL;
 
-	char *escaped_key = _osync_db_sql_escape(key);
+	char *escaped_key = osync_db_sql_escape(key);
 	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", escaped_key);
 	retanchor = osync_db_query_single_string(db, query, NULL); 
 	g_free(query);
@@ -146,8 +145,8 @@ static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *an
 	osync_assert(db);
 	osync_assert(key);
 
-	char *escaped_key = _osync_db_sql_escape(key);
-	char *escaped_anchor = _osync_db_sql_escape(anchor);
+	char *escaped_key = osync_db_sql_escape(key);
+	char *escaped_anchor = osync_db_sql_escape(anchor);
 	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", escaped_key, escaped_anchor);
 	g_free(escaped_key);
 	g_free(escaped_anchor);

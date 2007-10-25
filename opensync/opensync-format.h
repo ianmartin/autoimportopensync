@@ -21,14 +21,13 @@
 #ifndef OPENSYNCFORMAT_H_
 #define OPENSYNCFORMAT_H_
 
-#include <glib/gmacros.h>
-G_BEGIN_DECLS
+OPENSYNC_BEGIN_DECLS
 
 #include "format/opensync_converter.h"
 #include "format/opensync_filter.h"
 #include "format/opensync_format_env.h"
 #include "format/opensync_objformat.h"
 
-G_END_DECLS
+OPENSYNC_END_DECLS
 
 #endif /*OPENSYNCFORMAT_H_*/

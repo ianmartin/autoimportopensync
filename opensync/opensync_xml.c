@@ -19,8 +19,8 @@
  */
  
 #include "opensync_xml.h"
+#include "opensync_internals.h"
 #include <opensync/opensync-serializer.h>
-#include <glib.h>
 
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name)
 {
@@ -446,8 +446,8 @@ error:
 
 osync_bool osxml_validate_document(xmlDocPtr doc, char *schemafilepath)
 {
-	g_assert(doc);
-	g_assert(schemafilepath);
+	osync_assert(doc);
+	osync_assert(schemafilepath);
 	
 	int rc = 0;
  	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;

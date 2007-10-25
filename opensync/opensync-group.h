@@ -21,13 +21,12 @@
 #ifndef OPENSYNCGROUP_H_
 #define OPENSYNCGROUP_H_
 
-#include <glib/gmacros.h>
-G_BEGIN_DECLS
+OPENSYNC_BEGIN_DECLS
 
 #include "group/opensync_group_env.h"
 #include "group/opensync_group.h"
 #include "group/opensync_member.h"
 
-G_END_DECLS
+OPENSYNC_END_DECLS
 
 #endif /*OPENSYNCGROUP_H_*/

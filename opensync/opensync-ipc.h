@@ -21,14 +21,13 @@
 #ifndef _OPENSYNC_IPC_H_
 #define _OPENSYNC_IPC_H_
 
-#include <glib/gmacros.h>
-G_BEGIN_DECLS
+OPENSYNC_BEGIN_DECLS
 
 #include "opensync-data.h"
 
 #include "ipc/opensync_message.h"
 #include "ipc/opensync_queue.h"
 
-G_END_DECLS
+OPENSYNC_END_DECLS
 
 #endif /* _OPENSYNC_IPC_H_ */

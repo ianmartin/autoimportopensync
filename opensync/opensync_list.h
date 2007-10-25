@@ -29,10 +29,9 @@
 #ifndef _OPENSYNC_LIST_H_
 #define _OPENSYNC_LIST_H_
 
-#include <glib/gmem.h>
+#include "opensync.h"
 
-#include <glib/gmacros.h>
-G_BEGIN_DECLS
+OPENSYNC_BEGIN_DECLS
 
 typedef struct _OSyncList OSyncList;
 
@@ -109,7 +108,7 @@ OSyncList*   osync_list_sort_with_data          (OSyncList            *list,
 void * osync_list_nth_data                (OSyncList            *list,
 					 unsigned int             n);
 
-G_END_DECLS
+OPENSYNC_END_DECLS
 
 #endif /* _OPENSYNC_LIST_H_ */
 

@@ -28,7 +28,6 @@
 #include "opensync-archive.h"
 #include "opensync_archive_internals.h"
 #include "opensync-db.h"
-#include <db/opensync_db_internals.h>
 
 /**
  * @defgroup OSyncArchivePrivateAPI OpenSync Archive Internals
@@ -259,7 +258,7 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const
 	if (!osync_archive_create(archive->db, objtype, error))
 		goto error;
 
-	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
 	// FIXME: Avoid subselect - this query needs up to 0.5s
 	char *query = g_strdup_printf("REPLACE INTO tbl_archive_%s (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1), ?)", objtype, objtype, escaped_uid);
 	g_free(escaped_uid);
@@ -301,7 +300,7 @@ int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *
 	if (!osync_archive_create(archive->db, objtype, error))
 		goto error;
 
-	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
 	char *query = g_strdup_printf("SELECT data FROM tbl_archive_%s WHERE mappingid=(SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1)", objtype, objtype, escaped_uid);
 	int ret = osync_db_get_blob(archive->db, query, data, size, error);
 	g_free(query);
@@ -346,7 +345,7 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 		goto error;
 
 	char *query = NULL;
-	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
 
 
 
