@@ -366,7 +366,7 @@ osync_bool osync_file_read(const char *filename, char **data, unsigned int *size
  */
 const char *osync_get_version(void)
 {
-	return VERSION;
+	return OPENSYNC_VERSION;
 }
 
 /*! @brief Safely tries to malloc memory
