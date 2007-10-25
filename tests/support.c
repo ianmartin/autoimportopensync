@@ -49,12 +49,12 @@ char *setup_testbed(char *fkt_name)
 		abort();
 	g_free(command);*/
 	
-	command = g_strdup_printf("cp libmock-sync.so %s", testbed);
+	command = g_strdup_printf("cp ./mock-plugin/libmock-sync.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp libmock-format.so %s", testbed);
+	command = g_strdup_printf("cp ./mock-plugin/libmock-format.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);

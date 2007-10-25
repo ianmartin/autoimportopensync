@@ -4,8 +4,6 @@
 
 #include <opensync/opensync-engine.h>
 
-#define OPENSYNC_TESTDATA "data"
-
 char *setup_testbed(char *fkt_name);
 void destroy_testbed(char *path);
 // create_case() with timeout of 30seconds (default)
