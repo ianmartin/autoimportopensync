@@ -201,15 +201,22 @@ START_TEST (xmlformat_compare_ignore_fields)
 	g_free(buffer2);
 
         char* keys_content[] =  {"Content", NULL};
+	char* keys_name[] = {"FirstName", "LastName", NULL};
         OSyncXMLPoints points[] = {
-                {"Revision",	-1, keys_content},
-                {"Uid",		-1, keys_content},
+                {"EMail",               10,     keys_content},
+                {"Name",                90,     keys_name},
+                {"Revision",            -1,     keys_content},
+                {"Telephone",           10,     keys_content},
+                {"Uid",                 -1,     keys_content},
                 {NULL}
         };
 
         result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
-
 	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
+
+        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat1, points, 0, 100);
+	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
+
 
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);

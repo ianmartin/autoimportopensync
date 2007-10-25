@@ -50,8 +50,35 @@ int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic
 			return points[(*cur_pos)].points;
 		if(res > 0)
 			return basic_points;
-	};
+	}
+
 	return basic_points;
+}
+
+/**
+ * @brief Search for the points in the sorted OSyncXMLPoints array for the fieldname of xmlfield and handle ignored fields.
+ * 
+ *  This uses _osync_xmlformat_get_points() but handle the case if the field needs to be ignored.
+ *  Ignored fields doesn't have influence on the compare result. This is needed to keep the compare 
+ *  result SAME if an ignored fields are the only differences between the entries.
+ *
+ * @param xmlfield Pointer to xmlfield
+ * @param points The sorted points array
+ * @param cur_pos Pointer to the actual line in the points array. Gets incremented if the xmlfield requires this! 
+ * @param basic_points Points which should be returned if fieldname will not found in the points array 
+ * @param same Pointer ot the compare result flag SAME, which got not set to FALSE if the fields should be ignored.
+ * @returns The points for the fieldname.
+ */
+static int _osync_xmlformat_subtract_points(OSyncXMLField *xmlfield, OSyncXMLPoints points[], int *cur_pos, int basic_points, int *same) {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, xmlfield, points, cur_pos, basic_points, same);
+	int p = _osync_xmlformat_get_points(points, cur_pos, basic_points, (const char *) xmlfield->node->name);
+
+	/* Stay with SAME as compare result - if fields should be ignored */
+	if (p != -1)
+		*same = FALSE;
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, p);
+	return p;
 }
 
 /*@}*/
@@ -422,59 +449,42 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 	int res, collected_points, cur_pos;
 	OSyncXMLField *xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
 	OSyncXMLField *xmlfield2 = osync_xmlformat_get_first_field(xmlformat2);
+
 	cur_pos = 0;
 	collected_points = 0;
+
 	osync_bool same = TRUE;
 	
 	while(xmlfield1 != NULL || xmlfield2 != NULL)
 	{
-		/* don't compare xmlfield1 if score is -1 (just ignore it) */
-		if(xmlfield1 != NULL && (_osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name) == -1)) {
-			/* check if xmlfield2 is the same; if so, we must skip it here,
-			 * or it won't be found below because cur_pos will have advanced */
-			if (xmlfield2 != NULL && strcmp((const char *)xmlfield1->node->name, (const char *)xmlfield2->node->name) == 0)
-				xmlfield2 = xmlfield2->next;
-			xmlfield1 = xmlfield1->next;
-			continue;
-		}
-
-		/* don't compare xmlfield2 if score is -1 (just ignore it) */
-		if(xmlfield2 != NULL && (_osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield2->node->name) == -1)) {
-			xmlfield2 = xmlfield2->next;
-			continue;
-		}
 
 		/* subtract points for xmlfield2*/
 		if(xmlfield1 == NULL) {
-			same = FALSE;
-			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield2->node->name);
+			collected_points -= _osync_xmlformat_subtract_points(xmlfield2, points, &cur_pos, basic_points, &same);
 			xmlfield2 = xmlfield2->next;
 			continue;	
 		}
 		
 		/* subtract points for xmlfield1*/
 		if(xmlfield2 == NULL) {
-			same = FALSE;
-			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name);
+			collected_points -= _osync_xmlformat_subtract_points(xmlfield1, points, &cur_pos, basic_points, &same);
 			xmlfield1 = xmlfield1->next;
 			continue;
 		}
-		
+	
 		res = strcmp((const char *)xmlfield1->node->name, (const char *)xmlfield2->node->name);
 		osync_trace(TRACE_INTERNAL, "result of strcmp(): %i (%s || %s)", res, xmlfield1->node->name, xmlfield2->node->name);
 		
 		/* subtract points for xmlfield1*/
 		if(res < 0) {
-			same = FALSE;
-			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name);
+			collected_points -= _osync_xmlformat_subtract_points(xmlfield1, points, &cur_pos, basic_points, &same);
 			xmlfield1 = xmlfield1->next;
 			continue;		
 		}
 		
 		/* subtract points for xmlfield2*/
 		if(res > 0) {
-			same = FALSE;
-			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield2->node->name);			
+			collected_points -= _osync_xmlformat_subtract_points(xmlfield2, points, &cur_pos, basic_points, &same);
 			xmlfield2 = xmlfield2->next;
 			continue;			
 		}
@@ -539,6 +549,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 						
 						if(same) {
 							/* add the points */
+							osync_trace(TRACE_INTERNAL, "add %i point(s) for same fields: %s", p, curfieldname);
 							collected_points += p;
 							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
 							fieldlist2 = g_slist_delete_link(fieldlist2, cur_list2);
@@ -586,11 +597,13 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 						/* add or subtract the points */
 						if(found) {
 							/* add the points */
+							osync_trace(TRACE_INTERNAL, "add %i point(s) for similiar field: %s", p, curfieldname);
 							collected_points += p;
 							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
 							fieldlist2 = g_slist_delete_link(fieldlist2, cur_list2);
 						}else{
 							/* subtract the points */
+							osync_trace(TRACE_INTERNAL, "subtracting %i point(s) for missing field: %s", p, curfieldname);
 							collected_points -= p;
 							subtracted_count++;
 							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
@@ -600,10 +613,12 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 					/* subtract the points for the remaining elements in the list2 */
 					while(fieldlist2) {
 						/* subtract the points */
-						if(subtracted_count > 0)
+						if(subtracted_count > 0) {
 							subtracted_count--;
-						else
+						} else {
+							osync_trace(TRACE_INTERNAL, "subtracting %i point(s) for remaining field: %s", p, curfieldname);
 							collected_points -= p;
+						}
 						fieldlist2 = g_slist_delete_link(fieldlist2, fieldlist2);
 					}
 	
