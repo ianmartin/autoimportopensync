@@ -8,6 +8,10 @@
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
 #
+#  Redistribution and use is allowed according to the terms of the New
+#  BSD license.
+#  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
+#
 
 IF ( NOT WIN32 )
 	INCLUDE( UsePkgConfig )
@@ -22,6 +26,7 @@ FIND_LIBRARY( OPENSYNC_LIBRARIES opensync PATHS ${_opensync_link_DIR} )
 
 # Report results
 IF ( OPENSYNC_LIBRARIES AND OPENSYNC_INCLUDE_DIR )	
+	SET( OPENSYNC_FOUND 1 )
 	IF ( NOT OPENSYNC_FIND_QUIETLY )
 		MESSAGE( STATUS "Found OpenSync: ${OPENSYNC_LIBRARIES}" )
 	ENDIF ( NOT OPENSYNC_FIND_QUIETLY )

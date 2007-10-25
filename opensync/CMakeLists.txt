@@ -1,4 +1,4 @@
-INCLUDE_DIRECTORIES( ${GLIB2_INCLUDE_DIR} ${GTHREAD2_INCLUDE_DIR} ${GMODULE2_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${SQLITE_INCLUDE_DIR} )
+INCLUDE_DIRECTORIES( ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} ${SQLITE_INCLUDE_DIR} )
 
 SET( libopensync_LIB_SRCS
    opensync_context.c
@@ -54,6 +54,27 @@ TARGET_LINK_LIBRARIES( opensync ${GLIB2_LIBRARIES} ${GTHREAD2_LIBRARIES} ${GMODU
 SET_TARGET_PROPERTIES( opensync PROPERTIES VERSION 1.0.0 SOVERSION 1 )
 INSTALL( TARGETS opensync DESTINATION ${LIB_INSTALL_DIR} )
 
+INSTALL( DIRECTORY 
+  archive
+  client
+  data
+  db
+  engine
+  format
+  group
+  helper
+  ipc
+  mapping
+  merger
+  module
+  plugin
+  version
+DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync 
+PATTERN "*/*_internals.h" EXCLUDE 
+PATTERN ".*" EXCLUDE 
+PATTERN "*.c*" EXCLUDE
+PATTERN "*.h.*" EXCLUDE )
+
 INSTALL( FILES
    opensync.h
    opensync-archive.h
@@ -76,7 +97,7 @@ INSTALL( FILES
    opensync-time.h
    opensync-version.h
    opensync_xml.h
-DESTINATION ${INCLUDE_INSTALL_DIR}/opensync)
+DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync )
 
 
 ########### osplugin ##################

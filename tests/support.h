@@ -1,8 +1,13 @@
 #include <check.h>
+
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>
-
 #include <opensync/opensync-engine.h>
+#include <opensync/opensync-mapping.h>
+#include <opensync/opensync-archive.h>
+#include <opensync/opensync-helper.h>
+
+#include "config.h"
 
 char *setup_testbed(char *fkt_name);
 void destroy_testbed(char *path);

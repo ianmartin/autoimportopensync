@@ -1,17 +1,17 @@
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-libdir=@libdir@
-includedir=@includedir@
-plugindir=@OPENSYNC_PLUGINDIR@
-configdir=@OPENSYNC_CONFIGDIR@
-capabilitiesdir=@OPENSYNC_CAPABILITIESDIR@
-descriptionsdir=@OPENSYNC_DESCRIPTIONSDIR@
-schemasdir=@OPENSYNC_SCHEMASDIR@
-headerdir=@OPENSYNC_HEADERDIR@
-formatsdir=@OPENSYNC_FORMATSDIR@
+prefix=${CMAKE_INSTALL_PREFIX}
+exec_prefix=${LIBEXEC_INSTALL_DIR}
+libdir=${LIB_INSTALL_DIR}
+includedir=${INCLUDE_INSTALL_DIR}
+plugindir=${OPENSYNC_PLUGINDIR}
+configdir=${OPENSYNC_CONFIGDIR}
+capabilitiesdir=${OPENSYNC_CAPABILITIESDIR}
+descriptionsdir=${OPENSYNC_DESCRIPTIONSDIR}
+schemasdir=${OPENSYNC_SCHEMASDIR}
+headerdir=${OPENSYNC_HEADERDIR}
+formatsdir=${OPENSYNC_FORMATSDIR}
 
 Name: opensync
 Description: OpenSync synchronization framework
-Version: @VERSION@
-Libs: -L${libdir} -lopensync
-Cflags: -I${includedir}/opensync-1.0
+Version: ${OPENSYNC_VERSION}
+Libs: -L${LIB_INSTALL_DIR} -lopensync
+Cflags: -I${INCLUDE_INSTALL_DIR}/opensync-1.0

@@ -1,9 +1,5 @@
 #include "support.h"
 
-#include <opensync/opensync-mapping.h>
-#include <opensync/opensync-archive.h>
-#include <opensync/opensync-helper.h>
-
 char *olddir = NULL;
 
 static void reset_env(void)
