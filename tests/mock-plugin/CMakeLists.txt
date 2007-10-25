@@ -1,5 +1,3 @@
-INCLUDE_DIRECTORIES( ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} )
-
 ADD_LIBRARY( mock-sync SHARED mock_sync.c )
 ADD_LIBRARY( mock-format SHARED mock_format.c )
 
