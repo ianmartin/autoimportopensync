@@ -91,6 +91,8 @@ START_TEST (xmlformat_compare)
 {
 	char *testbed = setup_testbed("xmlformats");
 
+	OSyncConvCmpResult result1, result2;
+
 	char *buffer;
 	unsigned int size;
 	OSyncError *error = NULL;
@@ -111,13 +113,18 @@ START_TEST (xmlformat_compare)
         char* keys_content[] =  {"Content", NULL};
         char* keys_name[] = {"FirstName", "LastName", NULL};
         OSyncXMLPoints points[] = {
+                {"EMail",               10,     keys_content},
                 {"Name",                90,     keys_name},
                 {"Telephone",   10,     keys_content},
-                {"EMail",               10,     keys_content},
                 {NULL}
         };
 
-        osync_xmlformat_compare((OSyncXMLFormat*)xmlformat, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+
+        result1 = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+
+	// Check for left-right / right-left compare issues
+        result2 = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat, points, 0, 100);
+	fail_unless(result1 == result2);
 
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat);
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);
@@ -156,13 +163,14 @@ START_TEST (xmlformat_compare_field2null)
         char* keys_content[] =  {"Content", NULL};
         char* keys_name[] = {"FirstName", "LastName", NULL};
         OSyncXMLPoints points[] = {
+                {"EMail",               10,     keys_content},
                 {"Name",                90,     keys_name},
                 {"Telephone",   10,     keys_content},
-                {"EMail",               10,     keys_content},
                 {NULL}
         };
 
         osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+
 
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);
