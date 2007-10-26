@@ -26,7 +26,11 @@ username
   User name to log into the device as (default root).
 
 password
-  Password to log into the device with (default rootme).
+  Password to log into the device with (default rootme). Note that this is
+  the synchronisation password and not the actual password for the user.
+  The first time a synchronisation occurs, Opie stores the password used
+  on the device and will expect the same password to be provided on
+  subsequent synchronisations.
 
 device
   Device type being connected to:
@@ -97,13 +101,12 @@ Syncing freezes at a particular point
 
 Calendar events are several hours out
 
-  Firstly if you are not using OpenSync newer than 0.20 (eg. svn) then please
-  upgrade - older versions have a bug the time conversion code. Secondly, you
-  may not have set the time zone correctly on the handheld - please check the
-  documentation for your handheld OS (if you are using Familiar please see the
-  Familiar release notes). Essentially you need to make sure that
+  Check that you have set the time zone correctly on the handheld - please see
+  the documentation for your handheld OS (if you are using Familiar please
+  see the Familiar release notes). Essentially you need to make sure that
   /etc/localtime is the correct timezone file for your locale, or a symlink
-  that points to the correct file.
+  that points to the correct file. At present the timezone must also match the
+  timezone on the machine running OpenSync.
 
 
 After syncing with KDEPIM, the KDE address book shows phone numbers as "Other"
@@ -114,7 +117,7 @@ After syncing with KDEPIM, the KDE address book shows phone numbers as "Other"
   KDE bug #102466 (http://bugs.kde.org/show_bug.cgi?id=102466).
 
 
-Todo alarms don't seem to synchronize properly when syncing with KDEPIM
+Todo alarms don't seem to synchronise properly when syncing with KDEPIM
 
   Opie's support for todos is not as comprehensive as KDEPIM's - most of the
   trouble comes from Opie not supporting a due time (only a due date). In the
@@ -122,6 +125,12 @@ Todo alarms don't seem to synchronize properly when syncing with KDEPIM
   alarms on todos which Opie uses.
 
 
+I am using the scp protocol and I keep getting "Permission denied" errors
+
+  If you have not done so you need to set up SSH public key authentication
+  between the device running Opie and the machine running OpenSync. There is
+  no way for a password to be passed to scp so key-based authentication must
+  be used.
 
 
 Todo list
@@ -132,6 +141,12 @@ Missing fields on contacts
   "Business web page", "Gender" and "Children" fields from the Opie side are
   not currently handled since OpenSync's internal XML format does not
   currently support them.
+
+Timezone issues
+
+  Having a different timezone selected on the Opie side than the other member
+  of a sync group is not currently supported. There may also be other
+  timezone-related issues.
 
 Qtopia testing / support
 
