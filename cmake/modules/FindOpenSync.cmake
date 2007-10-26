@@ -19,10 +19,12 @@ IF ( NOT WIN32 )
 	PKGCONFIG( opensync-1.0 _opensync_include_DIR _opensync_link_DIR _opensync_link_FLAGS _opensync_cflags )
 ENDIF ( NOT WIN32 )
 
-# Look for OpenSync include dir and libraries
-FIND_PATH( OPENSYNC_INCLUDE_DIR opensync/opensync.h PATHS ${_opensync_include_DIR} PATH_SUFFIXES opensync-1.0 )
+# Look for OpenSync include dir and libraries, and take care about pkg-config first...
+FIND_PATH( OPENSYNC_INCLUDE_DIR opensync/opensync.h PATHS ${_opensync_include_DIR} PATH_SUFFIXES opensync-1.0 NO_DEFAULT_PATH )
+FIND_PATH( OPENSYNC_INCLUDE_DIR opensync/opensync.h PATH_SUFFIXES opensync-1.0 )
 
-FIND_LIBRARY( OPENSYNC_LIBRARIES opensync PATHS ${_opensync_link_DIR} )
+FIND_LIBRARY( OPENSYNC_LIBRARIES opensync PATHS ${_opensync_link_DIR} NO_DEFAULT_PATH )
+FIND_LIBRARY( OPENSYNC_LIBRARIES opensync )
 
 # Report results
 IF ( OPENSYNC_LIBRARIES AND OPENSYNC_INCLUDE_DIR )	
