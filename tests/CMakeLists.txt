@@ -30,10 +30,10 @@ ADD_EXECUTABLE( sync sync-tests/check_sync.c )
 ADD_EXECUTABLE( version version-tests/check_version.c )
 ADD_EXECUTABLE( xmlformat merger-tests/check_xmlformat.c )
 ADD_EXECUTABLE( detect format-tests/check_detect.c ) 
+ADD_EXECUTABLE( group group-tests/check_group.c )
 
 # TODO: port to new API
 #ADD_EXECUTABLE( hash helper-tests/check_hash.c )
-#ADD_EXECUTABLE( group group-tests/check_group.c )
 #ADD_EXECUTABLE( lock group-tests/check_lock.c )
 #ADD_EXECUTABLE( filter sync-tests/check_filter.c )
 #ADD_EXECUTABLE( multisync sync-tests/check_multisync.c )
@@ -61,9 +61,9 @@ TARGET_LINK_LIBRARIES( sync opensync ${CHECK_LIBRARIES} support )
 TARGET_LINK_LIBRARIES( version opensync ${CHECK_LIBRARIES} support )
 TARGET_LINK_LIBRARIES( xmlformat opensync ${CHECK_LIBRARIES} support )
 TARGET_LINK_LIBRARIES( detect opensync ${CHECK_LIBRARIES} support )
+TARGET_LINK_LIBRARIES( group opensync ${CHECK_LIBRARIES} support )
 
 # TODO: port to new API	
-#TARGET_LINK_LIBRARIES( group opensync ${CHECK_LIBRARIES} support )
 #TARGET_LINK_LIBRARIES( lock opensync ${CHECK_LIBRARIES} support )
 #TARGET_LINK_LIBRARIES( hash opensync ${CHECK_LIBRARIES} support )
 #TARGET_LINK_LIBRARIES( filter opensync ${CHECK_LIBRARIES} support )

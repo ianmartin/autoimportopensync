@@ -1,41 +1,63 @@
 #include "support.h"
 
+#include <opensync/opensync.h>
+#include <opensync/opensync-group.h>
+#include <opensync/opensync_internals.h>
+
+
 START_TEST (group_last_sync)
 {
 	char *testbed = setup_testbed("filter_save_and_load");
 	
-	OSyncEnv *env = init_env();
-	OSyncGroup *group = osync_group_new(env, NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroupEnv *group_env = osync_group_env_new(&error);	   
+	fail_unless(error == NULL, NULL);
+
+
+	OSyncGroup *group = osync_group_new(&error);
 	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
 	
-	osync_group_load(group, "configs/group", NULL);
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	
-	osync_env_append_group(env, group);
-	fail_unless(osync_env_num_groups(env) == 1, NULL);
+	osync_group_env_add_group(group_env, group, &error);
+	fail_unless(error == NULL, osync_error_print(&error));
+
+	fail_unless(osync_group_env_num_groups(group_env) == 1, NULL);
 	mark_point();
 	
 	osync_group_set_last_synchronization(group, (time_t)1000);
 	
 	fail_unless((int)osync_group_get_last_synchronization(group) == 1000, NULL);
 	
-	OSyncError *error = NULL;
 	fail_unless(osync_group_save(group, &error), NULL);
 	
-	fail_unless(osync_env_finalize(env, NULL), NULL);
-	osync_env_free(env);
+	osync_group_env_free(group_env);
 	
-	env = init_env();
-	group = osync_group_new(env, NULL);
-	osync_group_load(group, "configs/group", NULL);
+	group_env = osync_group_env_new(&error);
+	fail_unless(error == NULL, NULL);
+
+	group = osync_group_new(&error);
+	fail_unless(error == NULL, NULL);
+
+	osync_group_load(group, "configs/group", &error);
 	fail_unless(group != NULL, NULL);
-	osync_env_append_group(env, group);
-	fail_unless(osync_env_num_groups(env) == 1, NULL);
+	fail_unless(error == NULL, NULL);
+
+	osync_group_env_add_group(group_env, group, &error);
+	fail_unless(error == NULL);
+
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_group_env_num_groups(group_env) == 1, NULL);
 	mark_point();
 	
 	fail_unless((int)osync_group_get_last_synchronization(group) == 1000, NULL);
 	
-	fail_unless(osync_env_finalize(env, NULL), NULL);
-	osync_env_free(env);
+	osync_group_env_free(group_env);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -43,11 +65,9 @@ END_TEST
 Suite *group_suite(void)
 {
   Suite *s = suite_create("Group");
-  TCase *tc_core = tcase_create("Core");
 
-  suite_add_tcase (s, tc_core);
-  tcase_add_test(tc_core, group_last_sync);
-  
+  create_case(s, "group_last_sync", group_last_sync);
+
   return s;
 }
 
