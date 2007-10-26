@@ -485,7 +485,7 @@ osync_bool osync_archive_flush_changes(OSyncArchive *archive, const char *objtyp
 	osync_assert(archive);
 	osync_assert(objtype);
 
-	if (!osync_archive_create_changelog(archive->db, objtype, error))
+	if (!osync_archive_create_changes(archive->db, objtype, error))
 		goto error;
 	
 	char *query = g_strdup_printf("DELETE FROM tbl_changes_%s", objtype);
