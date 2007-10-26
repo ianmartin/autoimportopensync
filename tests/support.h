@@ -9,6 +9,40 @@
 
 #include "config.h"
 
+
+int num_client_connected;
+int num_client_main_connected;
+int num_client_disconnected;
+int num_client_main_disconnected;
+int num_client_read;
+int num_client_main_read;
+int num_client_written;
+int num_client_main_written;
+int num_client_errors;
+int num_client_sync_done;
+int num_client_main_sync_done;
+int num_client_discovered;
+
+int num_change_read;
+int num_change_written;
+int num_change_error;
+
+int num_engine_connected;
+int num_engine_read;
+int num_engine_written;
+int num_engine_disconnected;
+int num_engine_errors;
+int num_engine_successful;
+int num_engine_end_conflicts;
+int num_engine_prev_unclean;
+int num_engine_sync_done;
+
+
+int num_mapping_solved;
+int num_mapping_written;
+int num_mapping_errors;
+int num_mapping_conflicts;
+
 char *setup_testbed(char *fkt_name);
 void destroy_testbed(char *path);
 // create_case() with timeout of 30seconds (default)
@@ -31,3 +65,17 @@ void mappingtable_close(OSyncMappingTable *maptable);
 OSyncHashTable *hashtable_load(const char *path, const char *objtype, int entries);
 void check_hash(OSyncHashTable *table, const char *cmpuid);
 void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid);
+
+void create_random_file(const char *path);
+void member_status(OSyncMemberUpdate *status, void *user_data);
+void entry_status(OSyncChangeUpdate *status, void *user_data);
+void engine_status(OSyncEngineUpdate *status, void *user_data);
+void mapping_status(OSyncMappingUpdate *status, void *user_data);
+void conflict_handler_choose_first(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+void solve_conflict(OSyncMappingEngine *mapping);
+void conflict_handler_delay(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+void reset_counters();
+osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
+
