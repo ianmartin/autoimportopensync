@@ -30,7 +30,6 @@ ADD_EXECUTABLE( sync sync-tests/check_sync.c )
 ADD_EXECUTABLE( version version-tests/check_version.c )
 ADD_EXECUTABLE( xmlformat merger-tests/check_xmlformat.c )
 
-
 # TODO: port to new API
 #ADD_EXECUTABLE( detect format-tests/check_detect.c ) 
 #ADD_EXECUTABLE( hash helper-tests/check_hash.c )
@@ -39,13 +38,6 @@ ADD_EXECUTABLE( xmlformat merger-tests/check_xmlformat.c )
 #ADD_EXECUTABLE( filter sync-tests/check_filter.c )
 #ADD_EXECUTABLE( multisync sync-tests/check_multisync.c )
 #ADD_EXECUTABLE( syncerror sync-tests/check_sync_error.c )
-
-# TODO: move to vformat
-#ADD_EXECUTABLE( vcard conversion-tests/check_vcard.c )
-#ADD_EXECUTABLE( vevent conversion-tests/check_vevent.c )
-#ADD_EXECUTABLE( vnote conversion-tests/check_vnote.c )
-#ADD_EXECUTABLE( vtodo conversion-tests/check_vtodo.c )
-#ADD_EXECUTABLE( conversion conversion-tests/conversion.c )
 
 TARGET_LINK_LIBRARIES( archive opensync ${CHECK_LIBRARIES} support )
 TARGET_LINK_LIBRARIES( client opensync ${CHECK_LIBRARIES} support )
@@ -77,15 +69,6 @@ TARGET_LINK_LIBRARIES( xmlformat opensync ${CHECK_LIBRARIES} support )
 #TARGET_LINK_LIBRARIES( filter opensync ${CHECK_LIBRARIES} support )
 #TARGET_LINK_LIBRARIES( multisync opensync ${CHECK_LIBRARIES} support )
 #TARGET_LINK_LIBRARIES( syncerror opensync ${CHECK_LIBRARIES} support )
-
-# TODO: move to vformat
-#TARGET_LINK_LIBRARIES( vcard opensync ${CHECK_LIBRARIES} support )
-#TARGET_LINK_LIBRARIES( vevent opensync ${CHECK_LIBRARIES} support )
-#TARGET_LINK_LIBRARIES( vnote opensync ${CHECK_LIBRARIES} support )
-#TARGET_LINK_LIBRARIES( vtodo opensync ${CHECK_LIBRARIES} support )
-#TARGET_LINK_LIBRARIES( conversion opensync ${CHECK_LIBRARIES} support )
-
-
 
 ###### INSTALL ################### 
 #INSTALL( TARGETS osyncdump osyncbinary DESTINATION ${BIN_INSTALL_DIR} ) 
