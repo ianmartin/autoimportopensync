@@ -1,104 +1,62 @@
-# - Try to find LibSyncMl
-# Once done this will define
+# - Try to find libsyncml
+# Find libsyncml headers, libraries and the answer to all questions.
 #
-#  LibSyncMl_FOUND - system has LibSyncMl
-#  LibSyncMl_INCLUDE_DIRS - the LibSyncMl include directory
-#  LibSyncMl_LIBRARIES - Link these to use LibSyncMl
-#  LibSyncMl_DEFINITIONS - Compiler switches required for using LibSyncMl
-#  LibSyncMl_LINK_FLAGS - Link flags
+#  LIBSYNCML_FOUND               True if libsyncml got found
+#  LIBSYNCML_INCLUDE_DIR         Location of libsyncml headers 
+#  LIBSYNCML_LIBRARIES           List of libaries to use libsyncml
+#  LIBSYNCML_DEFINITIONS         Definitions to compile libsyncml 
 #
-#  Copyright (c) 2006 Andreas Schneider <mail@cynapses.org>
-#  Copyright (c) 2006 Philippe Bernery <philippe.bernery@gmail.com>
-#  Copytight © 2007 Juha Tuomala <tuju@iki.fi>
+# Copyright (c) 2007 Juha Tuomala <tuju@iki.fi>
+# Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
 #
 #  Redistribution and use is allowed according to the terms of the New
-#  BSD license. For details see the accompanying COPYING-CMAKE-SCRIPTS file.
+#  BSD license.
+#  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
+#
 
+IF ( NOT WIN32 )
+	INCLUDE( UsePkgConfig )
+	# Take care about libsyncml-1.0.pc settings
+	PKGCONFIG( libsyncml-1.0 _libsyncml_include_DIR _libsyncml_link_DIR _libsyncml_link_FLAGS _libsyncml_cflags )
+ENDIF ( NOT WIN32 )
 
-if (LibSyncMl_LIBRARIES AND LibSyncMl_INCLUDE_DIRS AND LibSyncMl_PUBLIC_LINK_FLAGS)
-	# in cache already
-	set(LibSyncMl_FOUND TRUE)
-else (LibSyncMl_LIBRARIES AND LibSyncMl_INCLUDE_DIRS AND LibSyncMl_PUBLIC_LINK_FLAGS)
-	include(UsePkgConfig)
-	pkgconfig(libsyncml-1.0 _LibSyncMlIncDir _LibSyncMlLinkDir _LibSyncMlLinkFlags _LibSyncMlCflags)
+# Look for libsyncml include dir and libraries, and take care about pkg-config first...
+FIND_PATH( LIBSYNCML_INCLUDE_DIR libsyncml/syncml.h 
+		PATHS ${_libsyncml_include_DIR} 
+		PATH_SUFFIXES libsyncml-1.0 NO_DEFAULT_PATH )
 
-	set(SYNCML_DEFINITIONS ${_LibSyncMlCflags})
-	set(CMAKE_C_FLAGS ${_LibSyncMlCflags})
-
-	find_path(LibSyncMl_INCLUDE_DIR
-		NAMES
-			syncml.h
-			http_client.h
-			http_server.h
-			obex_client.h
-			obex_server.h
-			sml_auth.h
-			sml_base64.h
-			sml_command.h
-			sml_defines.h
-			sml_devinf.h
-			sml_devinf_obj.h
-			sml_ds_server.h
-			sml_elements.h
-			sml_error.h
-			sml_manager.h
-			sml_md5.h
-			sml_notification.h
-			sml_parse.h
-			sml_session.h
-			sml_transport.h
-
+FIND_PATH( LIBSYNCML_INCLUDE_DIR libsyncml/syncml.h PATH_SUFFIXES libsyncml-1.0 
 		PATHS
-			${_LibSyncMlIncDir}
-			/opt/local/include/libsyncml-1.0
-			/sw/include/libsyncml-1.0
-			/usr/local/include/libsyncml-1.0
-			/usr/include/libsyncml-1.0
-			/usr/include/libsyncml-1.0/libsyncml
-	)
+		/opt/local/include/libsyncml-1.0
+		/sw/include/libsyncml-1.0
+		/usr/local/include/libsyncml-1.0
+		/usr/include/libsyncml-1.0 )
 
+FIND_LIBRARY( LIBSYNCML_LIBRARIES syncml 
+		PATHS ${_libsyncml_link_DIR} NO_DEFAULT_PATH )
 
-	find_library(LibSyncMl_LIBRARY
-		NAMES
-			syncml
-
+FIND_LIBRARY( LIBSYNCML_LIBRARIES syncml 
 		PATHS
-			${_LibSyncMlLinkDir}
-			/opt/local/lib
-			/sw/lib
-			/usr/lib
-			/usr/local/lib
-			/usr/lib64
-			/usr/local/lib64
-			/opt/lib64
-	)
+		/opt/local/lib
+		/sw/lib
+		/usr/lib
+		/usr/local/lib
+		/usr/lib64
+		/usr/local/lib64
+		/opt/lib64 )
 
+# Report results
+IF ( LIBSYNCML_LIBRARIES AND LIBSYNCML_INCLUDE_DIR )	
+	SET( LIBSYNCML_FOUND 1 )
+	IF ( NOT LIBSYNCML_FIND_QUIETLY )
+		MESSAGE( STATUS "Found libsyncml: ${LIBSYNCML_LIBRARIES}" )
+	ENDIF ( NOT LIBSYNCML_FIND_QUIETLY )
+ELSE ( LIBSYNCML_LIBRARIES AND LIBSYNCML_INCLUDE_DIR )	
+	IF ( NOT LIBSYNCML_FIND_QUIETLY )
+		MESSAGE( STATUS "Could NOT find libsyncml" )
+	ENDIF ( NOT LIBSYNCML_FIND_QUIETLY )
+ENDIF ( LIBSYNCML_LIBRARIES AND LIBSYNCML_INCLUDE_DIR )	
 
-	if (LibSyncMl_LIBRARY AND LibSyncMl_INCLUDE_DIR)
-		set(LibSyncMl_FOUND TRUE)
-	endif (LibSyncMl_LIBRARY AND LibSyncMl_INCLUDE_DIR)
+# Hide advanced variables from CMake GUIs
+MARK_AS_ADVANCED( LIBSYNCML_LIBRARIES LIBSYNCML_INCLUDE_DIR )
 
-	set(SYNCML_INCLUDE_DIR ${LibSyncMl_INCLUDE_DIR})
-	set(SYNCML_LIBRARIES ${LibSyncMl_LIBRARY} )
-	set(SYNCML_PUBLIC_LINK_FLAGS ${_LibSyncMlLinkFlags} )
-
-	if (LibSyncMl_INCLUDE_DIRS AND LibSyncMl_LIBRARIES)
-		set(LibSyncMl_FOUND TRUE)
-	endif (LibSyncMl_INCLUDE_DIRS AND LibSyncMl_LIBRARIES)
-
-	if (LibSyncMl_FOUND)
-		if (NOT LibSyncMl_FIND_QUIETLY)
-			message(STATUS "Found LibSyncMl: ${LibSyncMl_LIBRARIES}")
-		endif (NOT LibSyncMl_FIND_QUIETLY)
-	else (LibSyncMl_FOUND)
-		if (LibSyncMl_FIND_REQUIRED)
-			message(FATAL_ERROR "Could not find LibSyncMl")
-		endif (LibSyncMl_FIND_REQUIRED)
-	endif (LibSyncMl_FOUND)
-
-	# show the LibSyncMl_INCLUDE_DIRS and LibSyncMl_LIBRARIES variables only in the advanced view
-	mark_as_advanced(LibSyncMl_INCLUDE_DIRS LibSyncMl_LIBRARIES LibSyncMl_PUBLIC_LINK_FLAGS)
-
-endif (LibSyncMl_LIBRARIES AND LibSyncMl_INCLUDE_DIRS AND LibSyncMl_PUBLIC_LINK_FLAGS)
-
-# vim: ts=4 sw=4
