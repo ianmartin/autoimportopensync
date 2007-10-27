@@ -23,7 +23,7 @@
       <xsd:extension base="os:PluginConfigurationType">
         <xsd:sequence>
           <xsd:element default="root" name="username" type="os:String"/>
-          <xsd:element default="rootme" name="password" type="os:Password"/>
+          <xsd:element default="Qtopia" name="password" type="os:Password"/>
           <xsd:element default="192.168.0.202" name="url" type="os:String"/>
           <xsd:element default="opie" name="device" type="OpieSyncDevice"/>
           <xsd:element default="4242" name="port" type="os:Numeric"/>

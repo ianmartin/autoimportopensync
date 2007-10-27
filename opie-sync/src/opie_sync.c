@@ -52,7 +52,7 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 
 	/* Set defaults */
 	env->username = g_strdup("root");
-	env->password = g_strdup("rootme");
+	env->password = g_strdup("Qtopia");
 	env->host = g_strdup("192.168.0.202");
 	env->device_type = OPIE_SYNC_OPIE;
 	env->conn_type = OPIE_CONN_FTP;

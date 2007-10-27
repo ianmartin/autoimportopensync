@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <config>
   <username>root</username>
-  <password>rootme</password>
+  <password>Qtopia</password>
   <hostname>192.168.0.202</hostname>
   <device>opie</device>
   <port>4242</port>
