@@ -26,11 +26,11 @@ username
   User name to log into the device as (default root).
 
 password
-  Password to log into the device with (default rootme). Note that this is
+  Password to log into the device with (default Qtopia). Note that this is
   the synchronisation password and not the actual password for the user.
-  The first time a synchronisation occurs, Opie stores the password used
-  on the device and will expect the same password to be provided on
-  subsequent synchronisations.
+  Note: in current versions of Opie this password must begin with "Qtopia"
+  or "rootme" and the two characters after that are ignored. This will be
+  fixed in later versions.
 
 device
   Device type being connected to:
@@ -88,7 +88,8 @@ I see the error "Failed to log into server"
   Make sure you have set the security options properly on the Opie side - go
   to Settings->Security->Sync and set the "Accept sync from network" option to
   an appropriate value for your network setup. You should also check the
-  username and password set in the configuration for the plugin.
+  username and password set in the configuration for the plugin. See the notes
+  under the "password" option above.
 
 
 Syncing freezes at a particular point
