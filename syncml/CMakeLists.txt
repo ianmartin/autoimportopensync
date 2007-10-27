@@ -1,4 +1,4 @@
-PROJECT( syncml-sync )
+PROJECT( syncml-plugin )
 
 SET( SYNCMLSYNC_VERSION "0.33" )	
 
