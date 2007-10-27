@@ -9,6 +9,7 @@
 #
 #  Copyright (c) 2006 Andreas Schneider <mail@cynapses.org>
 #  Copyright (c) 2006 Philippe Bernery <philippe.bernery@gmail.com>
+#  Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -27,11 +28,19 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
   ## Glib
   pkgconfig(glib-2.0 _GLIB2IncDir _GLIB2LinkDir _GLIB2LinkFlags _GLIB2Cflags)
 
+  # Prefer pkg-config results for custom builds found in PKG_CONFIG_PATH
   find_path(GLIBCONFIG_INCLUDE_DIR
     NAMES
       glibconfig.h
     PATHS
       ${_GLIB2IncDir}
+    NO_DEFAULT_PATH
+  )
+
+  find_path(GLIBCONFIG_INCLUDE_DIR
+    NAMES
+      glibconfig.h
+    PATHS
       /opt/gnome/lib64/glib-2.0/include
       /opt/gnome/lib/glib-2.0/include
       /opt/lib/glib-2.0/include
@@ -48,6 +57,13 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
       glib.h
     PATHS
       ${_GLIB2IncDir}
+    NO_DEFAULT_PATH
+  )
+
+  find_path(GLIB2_INCLUDE_DIR
+    NAMES
+      glib.h
+    PATHS
       /opt/gnome/include/glib-2.0
       /opt/local/include/glib-2.0
       /sw/include/glib-2.0
@@ -60,6 +76,13 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
       glib-2.0
     PATHS
       ${_GLIB2LinkDir}
+    NO_DEFAULT_PATH  
+  )
+
+  find_library(GLIB2_LIBRARY
+    NAMES
+      glib-2.0
+    PATHS
       /opt/gnome/lib
       /opt/local/lib
       /sw/lib
@@ -73,11 +96,19 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
 
   set(GMODULE2_DEFINITIONS ${_GMODULE2Cflags})
 
+  # Prefer pkg-config results for custom builds found in PKG_CONFIG_PATH
   find_path(GMODULE2_INCLUDE_DIR
     NAMES
       gmodule.h
     PATHS
       ${_GMODULE2IncDir}
+    NO_DEFAULT_PATH  
+  )
+
+  find_path(GMODULE2_INCLUDE_DIR
+    NAMES
+      gmodule.h
+    PATHS
       /opt/gnome/include/glib-2.0
       /opt/local/include/glib-2.0
       /sw/include/glib-2.0
@@ -90,6 +121,13 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
       gmodule-2.0
     PATHS
       ${_GMODULE2LinkDir}
+    NO_DEFAULT_PATH  
+  )
+
+  find_library(GMODULE2_LIBRARY
+    NAMES
+      gmodule-2.0
+    PATHS
       /opt/gnome/lib
       /opt/local/lib
       /sw/lib
@@ -106,11 +144,21 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
 
   set(GTHREAD2_DEFINITIONS ${_GTHREAD2Cflags})
 
+  # Prefer pkg-config results for custom builds found in PKG_CONFIG_PATH
   find_path(GTHREAD2_INCLUDE_DIR
     NAMES
       gthread.h
     PATHS
       ${_GTHREAD2IncDir}
+    PATH_SUFFIXES
+      glib
+    NO_DEFAULT_PATH
+  )
+
+  find_path(GTHREAD2_INCLUDE_DIR
+    NAMES
+      gthread.h
+    PATHS
       /opt/gnome/include/glib-2.0
       /opt/local/include/glib-2.0
       /sw/include/glib-2.0
@@ -125,6 +173,13 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
       gthread-2.0
     PATHS
       ${_GTHREAD2LinkDir}
+    NO_DEFAULT_PATH  
+  )
+
+  find_library(GTHREAD2_LIBRARY
+    NAMES
+      gthread-2.0
+    PATHS
       /opt/gnome/lib
       /opt/local/lib
       /sw/lib
@@ -142,11 +197,21 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
 
   set(GOBJECT2_DEFINITIONS ${_GOBJECT2Cflags})
 
+  # Prefer pkg-config results for custom builds found in PKG_CONFIG_PATH
   find_path(GOBJECT2_INCLUDE_DIR
     NAMES
       gobject.h
     PATHS
       ${_GOBJECT2IncDir}
+    PATH_SUFFIXES
+      gobject
+    NO_DEFAULT_PATH  
+  )
+
+  find_path(GOBJECT2_INCLUDE_DIR
+    NAMES
+      gobject.h
+    PATHS
       /opt/gnome/include/glib-2.0
       /opt/local/include/glib-2.0
       /sw/include/glib-2.0
@@ -161,6 +226,13 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
       gobject-2.0
     PATHS
       ${_GOBJECT2LinkDir}
+    NO_DEFAULT_PATH  
+  )
+
+  find_library(GOBJECT2_LIBRARY
+    NAMES
+      gobject-2.0
+    PATHS
       /opt/gnome/lib
       /opt/local/lib
       /sw/lib
@@ -289,5 +361,13 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
 
   # show the GLIB2_INCLUDE_DIRS and GLIB2_LIBRARIES variables only in the advanced view
   mark_as_advanced(GLIB2_INCLUDE_DIRS GLIB2_LIBRARIES GLIB2_PUBLIC_LINK_FLAGS)
+
+  # same for all other variables
+  mark_as_advanced(GLIB2_INCLUDE_DIR GLIB2_LIBRARY GLIBCONFIG_INCLUDE_DIR)
+  mark_as_advanced(GMODULE2_INCLUDE_DIR GMODULE2_LIBRARY)
+  mark_as_advanced(GOBJECT2_INCLUDE_DIR GOBJECT2_LIBRARY)
+  mark_as_advanced(GTHREAD2_INCLUDE_DIR GTHREAD2_LIBRARY)
+  mark_as_advanced(LIBICONV_INCLUDE_DIR LIBICONV_LIBRARY)
+  mark_as_advanced(LIBINTL_INCLUDE_DIR LIBINTL_LIBRARY)
 
 endif (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS AND GLIB2_PUBLIC_LINK_FLAGS)
