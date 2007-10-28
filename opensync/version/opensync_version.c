@@ -449,7 +449,7 @@ OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncE
 
 	OSyncList *versions = osync_version_load_from_descriptions(error);
 	if (*error) /* versions can be null */
-		goto error_free_version;
+		goto error;
 
 	OSyncList *cur = osync_list_first(versions);
 	while(cur) {
@@ -461,7 +461,7 @@ OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncE
 			if (winner)
 				osync_version_unref(winner);
 
-			goto error_free_version;
+			goto error;
 		}
 
 		if( curpriority > 0 && curpriority > priority) {
@@ -488,15 +488,13 @@ OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncE
 		osync_version_unref(winner);
 
 		if (!capabilities)
-			goto error_free_version;
+			goto error;
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
 	return capabilities;
 
-error_free_version:
-	if (version)
-		osync_version_unref(version);
+error:	
 
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
