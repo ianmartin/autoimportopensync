@@ -1,4 +1,4 @@
-PROJECT( vformat-plugin )
+PROJECT( vformat-plugin C )
 
 SET( VFORMATPLUGIN_VERSION "0.33" )	
 
