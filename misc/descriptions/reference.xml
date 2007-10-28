@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <versions version="0.1">
 	<version>
-		<PlugIn>file-sync</PlugIn>
+		<PlugIn>example-sync</PlugIn>
 		<Priority>100</Priority>
 		<Vendor></Vendor>
 		<ModelVersion></ModelVersion>
 		<FirmwareVersion></FirmwareVersion>
 		<SoftwareVersion></SoftwareVersion>
 		<HardwareVersion></HardwareVersion>
-		<Identifier>file-sync.xml</Identifier>
+		<Identifier>reference.xml</Identifier>
 	</version>
 </versions>
