@@ -1,0 +1,22 @@
+PROJECT( moto-sync )
+
+SET( MOTOSYNC_VERSION "0.33" )	
+
+INCLUDE( OpenSyncInternal )
+
+SET( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules )
+
+FIND_PACKAGE( OpenSync REQUIRED )
+# TODO: Find PyBluez, ...
+
+INSTALL( FILES motosync.py DESTINATION ${OPENSYNC_PLUGINDIR} )
+INSTALL( FILES moto-sync DESTINATION ${OPENSYNC_CONFIGDIR} )
+
+## Packaging
+
+SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
+SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
+SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-moto-${MOTOSYNC_VERSION}" )
+INCLUDE( CPack )
+
+

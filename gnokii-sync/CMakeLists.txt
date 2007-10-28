@@ -1,4 +1,4 @@
-PROJECT( gnokii-sync )
+PROJECT( gnokii-sync C )
 
 SET( GNOKIISYNC_VERSION "0.33" )	
 

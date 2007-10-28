@@ -1,4 +1,4 @@
-PROJECT( gpe-sync )
+PROJECT( gpe-sync C )
 
 SET( GPESYNC_VERSION "0.33" )	
 

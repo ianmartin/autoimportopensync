@@ -1,4 +1,4 @@
-PROJECT( file-sync )
+PROJECT( file-sync C )
 
 SET( FILESYNC_VERSION "0.33" )	
 

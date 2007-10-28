@@ -1,4 +1,4 @@
-PROJECT( google-calende-plugin )
+PROJECT( google-calender-plugin C )
 
 SET( GOOGLECALENDAR_VERSION "0.33" )	
 
