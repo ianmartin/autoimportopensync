@@ -1,0 +1,10 @@
+INCLUDE_DIRECTORIES( ${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} )
+
+ADD_LIBRARY( gpe-sync SHARED gpe_sync.c calendar.c contacts.c todo.c gpe_xml.c gpesync_client.c utils.c)
+
+TARGET_LINK_LIBRARIES( gpe-sync ${OPENSYNC_LIBRARY} )
+
+###### INSTALL ################### 
+INSTALL( TARGETS gpe-sync DESTINATION ${OPENSYNC_PLUGINDIR} ) 
+
+INSTALL( FILES "${CMAKE_CURRENT_SOURCE_DIR}/gpe-sync" DESTINATION ${OPENSYNC_CONFIGDIR} )
