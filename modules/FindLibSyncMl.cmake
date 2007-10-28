@@ -27,10 +27,10 @@ FIND_PATH( LIBSYNCML_INCLUDE_DIR libsyncml/syncml.h
 
 FIND_PATH( LIBSYNCML_INCLUDE_DIR libsyncml/syncml.h PATH_SUFFIXES libsyncml-1.0 
 		PATHS
-		/opt/local/include/libsyncml-1.0
-		/sw/include/libsyncml-1.0
-		/usr/local/include/libsyncml-1.0
-		/usr/include/libsyncml-1.0 )
+		/opt/local/include/
+		/sw/include/
+		/usr/local/include/
+		/usr/include/ )
 
 FIND_LIBRARY( LIBSYNCML_LIBRARIES syncml 
 		PATHS ${_libsyncml_link_DIR} NO_DEFAULT_PATH )
