@@ -729,11 +729,17 @@ static void finalize(void *data)
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 	
 	/* Stop the manager */
-	smlManagerStop(env->manager);
+	if (env->manager)
+		smlManagerStop(env->manager);
 	
-	smlTransportFinalize(env->tsp, NULL);
+	if (env->tsp)
+		smlTransportFinalize(env->tsp, NULL);
 	
-	smlTransportFree(env->tsp);
+	if (env->tsp)
+		smlTransportFree(env->tsp);
+
+	if (env->san)
+		smlNotificationFree(env->san);
 
 	if (env->identifier)
 		g_free(env->identifier);
@@ -1257,9 +1263,26 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	env->num = 0;	
 	env->isConnected = FALSE;
 
+	SmlTransportObexClientConfig config;
+	config.type = env->type;
+	if (config.type == SML_OBEX_TYPE_BLUETOOTH) {
+		if (!env->bluetoothAddress) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
+			goto error_free_env;
+		}
+		config.url = env->bluetoothAddress;
+		config.port = env->bluetoothChannel;
+	} else if (config.type == SML_OBEX_TYPE_USB) {
+		config.url = NULL;
+		config.port = env->interface;
+	} else {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
+		goto error_free_env;
+	}
+
 	/* Create the alert for the remote device */
 	if (!env->identifier)
-		env->identifier = g_strdup("LibSyncML Test Suite");
+		env->identifier = g_strdup("OpenSync SyncML Plugin");
 
 	GList *o = env->databases;
 	for (; o; o = o->next) {
@@ -1398,23 +1421,6 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	env->source = source;
 	env->source_functions = functions;
 
-
-	SmlTransportObexClientConfig config;
-	config.type = env->type;
-	if (config.type == SML_OBEX_TYPE_BLUETOOTH) {
-		if (!env->bluetoothAddress) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
-			goto error_free_auth;
-		}
-		config.url = env->bluetoothAddress;
-		config.port = env->bluetoothChannel;
-	} else if (config.type == SML_OBEX_TYPE_USB)
-		config.port = env->interface;
-	else {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
-		goto error_free_auth;
-	}
-
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
 		goto error_free_auth;
@@ -1435,7 +1441,7 @@ error_free_manager:
 error_free_transport:
 	smlTransportFree(env->tsp);
 error_free_env:
-	g_free(env);
+	finalize(env);
 error:
 	if (serror)
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&serror));
