@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<contact>
+  <Name>
+    <FirstName>John</FirstName>
+  </Name>
+  <Telephone Location="Work">
+    <Content>0123456789</Content>
+  </Telephone>
+  
+  <!-- Ignored field on both sides. -->
+  <Uid>
+    <Content>747515</Content>
+  </Uid>
+</contact>
+

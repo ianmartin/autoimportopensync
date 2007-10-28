@@ -229,6 +229,33 @@ START_TEST (xmlformat_compare_ignore_fields)
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);
 
+	/* Testcase: ignored fields on both side shouldn't change the compare result. */
+
+	fail_unless(osync_file_read( "contact4_unique.xml", &buffer1, &size1, &error), NULL);
+
+	xmlformat1 = osync_xmlformat_parse(buffer1, size1, &error);
+	fail_unless(xmlformat1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_file_read( "contact4.xml", &buffer2, &size2, &error), NULL);
+	
+	xmlformat2 = osync_xmlformat_parse(buffer2, size2, &error);
+	fail_unless(xmlformat2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	g_free(buffer1);
+	g_free(buffer2);
+
+        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
+
+        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat1, points, 0, 100);
+	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
+
+
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);
+
 
 	destroy_testbed(testbed);
 }
