@@ -9,8 +9,6 @@
   <Telephone Location="Work">
     <Content>0123456789</Content>
   </Telephone>
-
-  <!-- Ignored fields on both sides -->
   <Uid>
     <Content>343434</Content>
   </Uid>
