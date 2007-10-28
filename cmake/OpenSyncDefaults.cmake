@@ -14,7 +14,6 @@
 # 
 #  OPENSYNC_TRACE               True if tracing is enabled (debugging with env. var. OSYNC_TRACE)
 #  OPENSYNC_DEBUG_MODULES       True if modules shouldn't get unloaded by OpenSync, to keep symbols of plugins
-#  OPENSYNC_DOXYGEN             True if OpenSync API documentation should be build with Doxygen
 #  OPENSYNC_UNITTESTS           True if unit tests should be build
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
@@ -44,5 +43,5 @@ ENDIF ( NOT CMAKE_BUILD_TYPE )
 
 SET( OPENSYNC_TRACE TRUE CACHE BOOL "Debugging/Trace output of OpenSync" )
 SET( OPENSYNC_DEBUG_MODULES FALSE CACHE BOOL "Debugging modules. Avhoid unload of modules." )
-SET( OPENSYNC_DOXYGEN FALSE CACHE BOOL "Generate OpenSync API documentation with doxygen." )
 SET( OPENSYNC_UNITTESTS FALSE CACHE BOOL "Build OpenSync unit tests." )
+

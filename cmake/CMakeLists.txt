@@ -1,6 +1,6 @@
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
 
-CONFIGURE_FILE( "${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncInternal.cmake.in" "${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncInternal.cmake" )
+CONFIGURE_FILE( "${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncInternal.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/OpenSyncInternal.cmake" )
 
 FILE( GLOB OPENSYNC_CMAKE_MODULES "${CMAKE_CURRENT_SOURCE_DIR}/*OpenSync*.cmake" "${CMAKE_CURRENT_BINARY_DIR}/*OpenSync*.cmake" )
 

@@ -63,7 +63,7 @@ void osync_trace_reset_indent(void)
  
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
-#if ENABLE_TRACE
+#ifdef OPENSYNC_TRACE
 	va_list arglist;
 	char *buffer = NULL;
 	int tabs = 0;
@@ -190,7 +190,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	g_free(logmessage);
 	g_free(logfile);
 	
-#endif
+#endif /* OPENSYNC_TRACE */
 }
 
 void osync_trace_disable(void)
