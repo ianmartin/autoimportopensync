@@ -283,7 +283,7 @@ static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsi
         unsigned int size;
         char *str;
         osync_xmlformat_assemble(xmlformat, &str, &size);
-        osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+        osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
         g_free(str);
 
         if (osync_xmlformat_validate(xmlformat) == FALSE)
@@ -477,7 +477,7 @@ static osync_bool conv_xmlformat_to_gnokii_event(char *input, unsigned int inpsi
 	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
 //	struct tm *starttm = NULL, *endtm = NULL, *tmptm = NULL;
