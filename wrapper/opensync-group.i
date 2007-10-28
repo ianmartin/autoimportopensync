@@ -413,7 +413,6 @@ typedef struct {} Member;
 	configdir = property(get_configdir, set_configdir)
 	config = property(get_config, set_config)
 	id = property(get_id)
-	start_type = property(get_start_type, set_start_type)
 	capabilities = property(get_capabilities, set_capabilities)
 	merger = property(get_merger)
 	
