@@ -570,6 +570,7 @@ osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfi
 		do{
 			/* both lists must have the same length */	
 			if(g_slist_length(keylist1) != g_slist_length(keylist2)) {
+				osync_trace(TRACE_INTERNAL, "It's not the same anymore...");
 				same = FALSE;
 				break;
 			}

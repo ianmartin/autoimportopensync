@@ -502,12 +502,21 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 		/* make lists and compare */
 		if(res == 0)
 		{
-			GSList *fieldlist1;
-			GSList *fieldlist2;
-			fieldlist1 = NULL;
-			fieldlist2 = NULL;
-			
+			GSList *fieldlist1 = NULL;
+			GSList *fieldlist2 = NULL;
+
 			const char *curfieldname = (const char *)xmlfield1->node->name;
+
+			/* get the points*/
+			int p = _osync_xmlformat_get_points(points, &cur_pos, basic_points, curfieldname);
+	
+			/* don't compare both fields if they should be ignore to avoid influence of the compare result */
+			if (p == -1) {
+				xmlfield1 = xmlfield1->next;
+				xmlfield2 = xmlfield2->next;
+				continue;
+			}
+
 			do {
 				fieldlist1 = g_slist_prepend(fieldlist1, xmlfield1);
 				xmlfield1 = xmlfield1->next;
@@ -525,9 +534,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 			} while(res == 0);			
 			
 			do {
-				/* get the points*/
-				int p = _osync_xmlformat_get_points(points, &cur_pos, basic_points, curfieldname);
-				
+			
 				/* if same then compare and give points*/
 				do {
 					if(!same)
@@ -548,8 +555,6 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 
 						do {
 							if(osync_xmlfield_compare((OSyncXMLField *)cur_list1->data, (OSyncXMLField *)cur_list2->data) == TRUE)
-								break;
-							if (p == -1)
 								break;
 							cur_list2 = g_slist_next(cur_list2);
 							if(cur_list2 == NULL) {
