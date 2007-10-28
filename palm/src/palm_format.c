@@ -1400,6 +1400,222 @@ static osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
 	return entry->address.entry[i] ? TRUE : FALSE;
 }
 
+
+static osync_bool _palmcontact_address(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	if (!(has_entry(entry, entryAddress) 
+		|| has_entry(entry, entryCity) || has_entry(entry, entryState) 
+		|| has_entry(entry, entryZip) || has_entry(entry, entryCountry)))
+		return TRUE;
+
+	char *tmp_address = return_next_entry(entry, entryAddress);
+	char *tmp_city = return_next_entry(entry, entryCity);
+	char *tmp_state = return_next_entry(entry, entryState);
+	char *tmp_zip = return_next_entry(entry, entryZip);
+	char *tmp_country = return_next_entry(entry, entryCountry);
+
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Address", error);
+	if (!xmlfield)
+		return FALSE;
+
+	//Street
+	if (tmp_address) {
+		osync_xmlfield_set_key_value(xmlfield, "Street", tmp_address);
+		g_free(tmp_address);
+	}
+
+	//City
+	if (tmp_city) {
+		osync_xmlfield_set_key_value(xmlfield, "City", tmp_city);
+		g_free(tmp_city);
+	}
+	
+	//Region
+	if (tmp_state) {
+		osync_xmlfield_set_key_value(xmlfield, "Region", tmp_state);
+		g_free(tmp_state);
+	}
+	
+	//Code
+	if (tmp_zip) {
+		osync_xmlfield_set_key_value(xmlfield, "PostalCode", tmp_zip);
+		g_free(tmp_zip);
+	}
+	
+	//Country
+	if (tmp_country) {
+		osync_xmlfield_set_key_value(xmlfield, "Country", tmp_country);
+		g_free(tmp_country);
+	}
+
+	return TRUE;
+}
+
+static osync_bool _palmcontact_name(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	if (!(has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)))
+		return TRUE;
+	
+	char *tmp_first = return_next_entry(entry, entryFirstname);
+	char *tmp_last  = return_next_entry(entry, entryLastname);
+
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
+	if (!xmlfield)
+		return FALSE;
+
+	//First Name
+	if (tmp_first) {
+		osync_xmlfield_set_key_value(xmlfield, "FirstName", tmp_first);
+		g_free(tmp_first);
+	}
+
+	//Last Name
+	if (tmp_last) {
+		osync_xmlfield_set_key_value(xmlfield, "LastName", tmp_last);
+		g_free(tmp_last);
+	}
+
+	return TRUE;
+}
+
+static osync_bool _palmcontact_organization(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	char *tmp = return_next_entry(entry, entryCompany);
+
+	// Empty?
+	if (!tmp)
+		return TRUE;
+
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
+	if (!xmlfield)
+		return FALSE;
+
+	osync_xmlfield_set_key_value(xmlfield, "Name", tmp);
+	g_free(tmp);
+
+	return TRUE;
+}
+
+static osync_bool _palmcontact_telephone(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	int i;
+	char *tmp = NULL;
+	OSyncXMLField *xmlfield = NULL;
+	for (i = entryPhone1; i <= entryPhone5; i++) {
+		tmp = return_next_entry(entry, i);
+		if (!tmp)
+			continue;
+
+		osync_trace(TRACE_SENSITIVE, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
+
+		xmlfield = NULL;
+
+		if (entry->address.phoneLabel[i - 3] == 4)
+			xmlfield = osync_xmlfield_new(xmlformat, "EMail", error);
+		else
+			xmlfield = osync_xmlfield_new(xmlformat, "Telephone", error);
+
+		if (!xmlfield)
+			return FALSE;
+		
+		osync_xmlfield_set_key_value(xmlfield, "Content", tmp);
+		g_free(tmp);
+		
+		switch (entry->address.phoneLabel[i - 3]) {
+			case 0:
+				// Work
+				osync_xmlfield_set_attr(xmlfield, "Location", "Work");
+				break;
+			case 1:
+				// Home
+				osync_xmlfield_set_attr(xmlfield, "Location", "Home");
+				break;
+			case 2:
+				// Fax
+				osync_xmlfield_set_attr(xmlfield, "Type", "Fax");
+				break;
+			case 3:
+				// Other FIXME Voice!=Other .. Other is not part of xmlformat-contact xsd
+				osync_xmlfield_set_attr(xmlfield, "Type", "Voice");
+				break;
+			case 4:
+				// E Mail
+				break;	
+			case 5:
+				// Main FIXME Mail != Prefered !?
+				osync_xmlfield_set_attr(xmlfield, "Preferred", "true");
+				break;
+			case 6:
+				// Pager
+				osync_xmlfield_set_attr(xmlfield, "Type", "Pager");
+				break;
+			case 7:
+				// Mobile / Cellular
+				osync_xmlfield_set_attr(xmlfield, "Type", "Cellular");
+				break;
+		}
+		
+	}
+	return TRUE;
+}
+
+//Title
+static osync_bool _palmcontact_title(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	char *tmp = return_next_entry(entry, entryTitle);
+	if (!tmp)
+		return TRUE;
+
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Title", error);
+	if (!xmlfield)
+		return FALSE;
+
+	osync_xmlfield_set_key_value(xmlfield, "Content", tmp);
+	g_free(tmp);
+
+	return TRUE;
+}
+		
+
+//Note
+static osync_bool _palmcontact_note(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	char *tmp = return_next_entry(entry, entryNote);
+	if (!tmp)
+		return TRUE;
+
+
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Note", error);
+	if (!xmlfield)
+		return FALSE;
+
+	osync_xmlfield_set_key_value(xmlfield, "Content", tmp);
+	g_free(tmp);
+
+	return TRUE;
+}
+
+// Categories
+static osync_bool _palmcontact_categories(OSyncXMLFormat *xmlformat, PSyncContactEntry *entry, OSyncError **error)
+{
+	GList *c = NULL;
+	OSyncXMLField *xmlfield = NULL;
+
+	for (c = entry->categories; c; c = c->next) {
+		if (!xmlfield)
+			xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
+
+		if (!xmlfield)
+			return FALSE;
+
+		char *tmp = conv_enc_palm_to_xml((char *) c->data);
+		osync_xmlfield_set_key_value(xmlfield, "Category", tmp);
+		g_free(tmp);
+	}
+
+	return TRUE;
+}
+
 static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config ? config : "nil", error);
@@ -1422,159 +1638,34 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	OSyncXMLField *xmlfield = NULL;
 
-	//Names
-	if (has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)) {
-		GString *formatted_name = g_string_new("");
+	// Address
+	if (!_palmcontact_address(xmlformat, entry, error))
+		goto error;
+
+	// Categories
+	if (!_palmcontact_categories(xmlformat, entry, error))
+		goto error;
+	// Name
+	if (!_palmcontact_name(xmlformat, entry, error))
+		goto error;
+
+	// Note
+	if (!_palmcontact_note(xmlformat, entry, error))
+		goto error;
+
+	// Organization 
+	if (!_palmcontact_organization(xmlformat, entry, error))
+		goto error;
+
+	// Title
+	if (!_palmcontact_title(xmlformat, entry, error))
+		goto error;
+
+	// Telephone
+	if (!_palmcontact_telephone(xmlformat, entry, error))
+		goto error;
+
 	
-		char *tmp_first = return_next_entry(entry, entryFirstname);
-		char *tmp_last  = return_next_entry(entry, entryLastname);
-
-		if (tmp_first || tmp_last) {
-			xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
-
-
-			//First Name
-			if (tmp_first) {
-				osync_xmlfield_set_key_value(xmlfield, "FirstName", tmp_first);
-				g_free(tmp_first);
-			}
-
-			//Last Name
-			if (tmp_last) {
-				osync_xmlfield_set_key_value(xmlfield, "LastName", tmp_last);
-				g_free(tmp_last);
-			}
-
-		}
-	}
-	
-	//Company
-	tmp = return_next_entry(entry, entryCompany);
-	if (tmp) {
-		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
-		osync_xmlfield_set_key_value(xmlfield, "Name", tmp);
-		g_free(tmp);
-	}
-
-	//Telephones and email
-	for (i = entryPhone1; i <= entryPhone5; i++) {
-		tmp = return_next_entry(entry, i);
-		if (tmp) {
-			osync_trace(TRACE_SENSITIVE, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
-			if (entry->address.phoneLabel[i - 3] == 4)
-				xmlfield = osync_xmlfield_new(xmlformat, "EMail", error);
-			else
-				xmlfield = osync_xmlfield_new(xmlformat, "Telephone", error);
-		
-			osync_xmlfield_set_key_value(xmlfield, "Content", tmp);
-			g_free(tmp);
-			
-			switch (entry->address.phoneLabel[i - 3]) {
-				case 0:
-					// Work
-					osync_xmlfield_set_attr(xmlfield, "Location", "Work");
-					break;
-				case 1:
-					// Home
-					osync_xmlfield_set_attr(xmlfield, "Location", "Home");
-					break;
-				case 2:
-					// Fax
-					osync_xmlfield_set_attr(xmlfield, "Type", "Fax");
-					break;
-				case 3:
-					// Other FIXME Voice!=Other .. Other is not part of xmlformat-contact xsd
-					osync_xmlfield_set_attr(xmlfield, "Type", "Voice");
-					break;
-				case 4:
-					// E Mail
-					break;	
-				case 5:
-					// Main FIXME Mail != Prefered !?
-					osync_xmlfield_set_attr(xmlfield, "Preferred", "true");
-					break;
-				case 6:
-					// Pager
-					osync_xmlfield_set_attr(xmlfield, "Type", "Pager");
-					break;
-				case 7:
-					// Mobile / Cellular
-					osync_xmlfield_set_attr(xmlfield, "Type", "Cellular");
-					break;
-			}
-		}
-		
-	}
-
-	//Address
-	if (has_entry(entry, entryAddress) || has_entry(entry, entryCity) || has_entry(entry, entryState) || has_entry(entry, entryZip) || has_entry(entry, entryCountry)) {
-		char *tmp_address = return_next_entry(entry, entryAddress);
-		char *tmp_city = return_next_entry(entry, entryCity);
-		char *tmp_state = return_next_entry(entry, entryState);
-		char *tmp_zip = return_next_entry(entry, entryZip);
-		char *tmp_country = return_next_entry(entry, entryCountry);
-
-		if (tmp_address || tmp_city || tmp_state || tmp_zip || tmp_country) {
-			xmlfield = osync_xmlfield_new(xmlformat, "Address", error);
-			//Street
-			if (tmp_address) {
-				osync_xmlfield_set_attr(xmlfield, "Street", tmp_address);
-				g_free(tmp_address);
-			}
-	
-			//City
-			if (tmp_city) {
-				osync_xmlfield_set_attr(xmlfield, "City", tmp_city);
-				g_free(tmp_city);
-			}
-		
-			//Region
-			if (tmp_state) {
-				osync_xmlfield_set_attr(xmlfield, "Region", tmp_state);
-				g_free(tmp_state);
-			}
-		
-			//Code
-			if (tmp_zip) {
-				osync_xmlfield_set_attr(xmlfield, "PostalCode", tmp_zip);
-				g_free(tmp_zip);
-			}
-		
-			//Country
-			if (tmp_country) {
-				osync_xmlfield_set_attr(xmlfield, "Country", tmp_country);
-				g_free(tmp_country);
-			}
-		}
-	}
-	
-	//Title
-	tmp = return_next_entry(entry, entryTitle);
-	if (tmp) {
-		xmlfield = osync_xmlfield_new(xmlformat, "Title", error);
-		osync_xmlfield_set_attr(xmlfield, "Content", tmp);
-		g_free(tmp);
-	}
-		
-	//Note
-	tmp = return_next_entry(entry, entryNote);
-	if (tmp) {
-		xmlfield = osync_xmlfield_new(xmlformat, "Note", error);
-		osync_xmlfield_set_attr(xmlfield, "Content", tmp);
-		g_free(tmp);
-	}
-
-	GList *c = NULL;
-	xmlfield = NULL;
-	for (c = entry->categories; c; c = c->next) {
-		if (!current)
-			xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
-
-		tmp = conv_enc_palm_to_xml((char *) c->data);
-		osync_xmlfield_set_attr(xmlfield, "Category", tmp);
-		g_free(tmp);
-	}
-
 	*free_input = TRUE;
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
