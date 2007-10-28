@@ -1,0 +1,31 @@
+PROJECT( vformat-plugin )
+
+SET( VFORMATPLUGIN_VERSION "0.33" )	
+
+SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
+
+FIND_PACKAGE( OpenSync REQUIRED )
+FIND_PACKAGE( GLIB2 REQUIRED )
+FIND_PACKAGE( Check )
+
+INCLUDE( OpenSyncDefaults )	
+INCLUDE( OpenSyncInternal )
+
+SET( CMAKE_BUILD_TYPE RelWithDebInfo )
+
+ADD_SUBDIRECTORY( src )
+ADD_SUBDIRECTORY( tools )
+
+CONFIGURE_FILE( "config.h.cmake" "config.h" )
+
+IF ( CHECK_FOUND ) 
+	ADD_SUBDIRECTORY( tests )
+ENDIF ( CHECK_FOUND )
+
+## Packaging
+
+SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
+SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
+SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-vformat-${VFORMATPLUGIN_VERSION}" )
+INCLUDE( CPack )
+

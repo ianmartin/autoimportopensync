@@ -3,7 +3,7 @@
 
 void conv(const char *objtype, const char *filename, const char *extension)
 {
-	char *command = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s .", filename);
+	char *command = g_strdup_printf("cp "VFORMAT_TESTDATA"%s .", filename);
 	char *testbed = setup_testbed(NULL);
 	system(command);
 	g_free(command);
@@ -142,8 +142,8 @@ void conv(const char *objtype, const char *filename, const char *extension)
 
 void compare(const char *objtype, const char *lfilename, const char *rfilename, OSyncConvCmpResult result)
 {
-	char *command1 = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s lfile", lfilename);
-	char *command2 = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s rfile", rfilename);
+	char *command1 = g_strdup_printf("cp "VFORMAT_TESTDATA"%s lfile", lfilename);
+	char *command2 = g_strdup_printf("cp "VFORMAT_TESTDATA"%s rfile", rfilename);
 	char *testbed = setup_testbed(NULL);
 	system(command1);
 	g_free(command1);
@@ -229,7 +229,7 @@ void compare(const char *objtype, const char *lfilename, const char *rfilename, 
 
 time_t get_revision(const char *objtype, const char *filename, const char *extension)
 {
-	char *command = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s .", filename);
+	char *command = g_strdup_printf("cp "VFORMAT_TESTDATA"%s .", filename);
 	char *testbed = setup_testbed(NULL);
 	system(command);
 	g_free(command);

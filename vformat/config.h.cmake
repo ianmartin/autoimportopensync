@@ -1,0 +1,1 @@
+#define VFORMAT_TESTDATA "${CMAKE_CURRENT_SOURCE_DIR}/tests/data"
