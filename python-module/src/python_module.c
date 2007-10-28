@@ -28,7 +28,6 @@
 #include <opensync/opensync-context.h>
 #include <signal.h>
 #include <glib.h>
-#include "config.h"
 
 /* change this define for python exception output on stderr */
 //#define PYERR_CLEAR() PyErr_Clear()
