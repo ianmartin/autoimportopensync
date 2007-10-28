@@ -30,7 +30,6 @@ SOFTWARE IS DISCLAIMED.
  */
 
 #include "knotes.h"
-#include <glib.h>
 /*An adapted C++ implementation of RSA Data Securities MD5 algorithm.*/
 #include <kmdcodec.h>
 
@@ -297,7 +296,7 @@ void KNotesDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChange 
 
 		QString summary = (char*)xmlStr;
 		xmlFree(xmlStr);
-		g_free(tmpStr);
+		free(tmpStr);
 
 		xmlStr = (xmlChar*) osxml_find_node(root, "Body");
 		QString body = (char*)xmlStr;

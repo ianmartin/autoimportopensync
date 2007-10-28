@@ -24,9 +24,8 @@ export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconf
 pkg_modules="opensync-1.0"
 PKG_CHECK_MODULES(OSYNC, [opensync-1.0])
 
-# Needed only because opensync-xml leaks libxml and glib
+# Needed only because opensync-xml leaks libxml and knotes.cpp still use it.
 PKG_CHECK_MODULES(XML, [libxml-2.0])
-PKG_CHECK_MODULES(GLIB, [glib-2.0])
 
 OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
 OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)

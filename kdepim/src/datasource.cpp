@@ -209,10 +209,10 @@ bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx, O
 		osync_context_report_change(ctx, change);
 		osync_hashtable_update_hash(hashtable, OSYNC_CHANGE_TYPE_DELETED, uids[i], NULL);
 
-		g_free(uids[i]);
+		free(uids[i]);
 		osync_change_unref(change);
 	}
-	g_free(uids);
+	free(uids);
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 	return true;
 
@@ -220,8 +220,8 @@ error_free_change:
 	osync_change_unref(change);
 error:	
 	for (; uids[i]; i++)
-		g_free(uids[i]);
-	g_free(uids);
+		free(uids[i]);
+	free(uids);
 	osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
 	osync_error_unref(&error);
