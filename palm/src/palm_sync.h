@@ -48,8 +48,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
-
 #define PILOT_DEVICE_SERIAL 0
 #define PILOT_DEVICE_USB_VISOR 1
 #define PILOT_DEVICE_IRDA 2
