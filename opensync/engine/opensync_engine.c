@@ -1474,7 +1474,11 @@ osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
  *
  * This function discover a member of a given engine. The Engine has to be created
  * from a OSyncGroup before by using osync_engine_new(). This function will not block
- * The Engine MUST NOT be initilaized by osync_engine_initilize(), same for finalizing the engine.
+ * The Engine MUST NOT be initialized by osync_engine_initilize(), but MUST finalized with
+ * osync_engine_finalize().
+ *
+ * FIXME: Automatically finalize the engine after discovery of member is finished. This
+ *        is needed by the frontend to allow easy use of non-blocking discovery.
  * 
  * @param engine A pointer to the engine, which to discover the member and wait for the discover end
  * @param member A pointer to the member, which to discover
@@ -1522,9 +1526,10 @@ error:
 	return FALSE;
 }
 
-/*! @brief This function will discover the capabilities of a member and block until the discovery has finished
+/*! @brief This function will discover the member and block until the discovery has finished
  *
- * This can be used to discover a member and wait for the synchronization end.
+ * This can be used to discover a member and wait for the discovery end. 
+ * The engine MUST NOT be initialized or finalized.
  * 
  * @param engine A pointer to the engine, which to discover the member and wait for the discover end
  * @param member A pointer to the member, which to discover
