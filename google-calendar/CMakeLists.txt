@@ -1,0 +1,24 @@
+PROJECT( google-calende-plugin )
+
+SET( GOOGLECALENDAR_VERSION "0.33" )	
+
+SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
+
+FIND_PACKAGE( OpenSync REQUIRED )
+FIND_PACKAGE( GLIB2 REQUIRED )
+#TODO FIND_PACKAGE( HTTPLIB2 REQUIRED ) 
+
+INCLUDE( OpenSyncInternal )
+INCLUDE( OpenSyncPlatforms )
+
+SET( CMAKE_BUILD_TYPE RelWithDebInfo )
+
+ADD_SUBDIRECTORY( src )
+
+## Packaging
+
+SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
+SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
+SET( CPACK_SOURCE_PACKAGE_GOOGLECALENDAR_NAME "libopensync-plugin-google-calendar-${GOOGLECALENDAR_VERSION}" )
+INCLUDE( CPack )
+
