@@ -18,9 +18,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
+#include <string.h>
 #include <glib.h>
+
 #include <opensync/opensync.h>
-#include <opensync/opensync_xml.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-merger.h>
