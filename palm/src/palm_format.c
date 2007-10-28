@@ -21,9 +21,9 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-#include <opensync/opensync_xml.h>
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
+#include <opensync/opensync-merger.h>
 #include <opensync/opensync-serializer.h>
 
 static char *conv_enc_palm_to_xml(const char *text) {
@@ -1418,9 +1418,9 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 	for (i = 0; i < 19; i++)
 		osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i] ? entry->address.entry[i] : "nil");
 	
-	//Create a new xml document
-	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *root = osxml_node_add_root(doc, "contact");
+	//Create a new xmlformat
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
+	OSyncXMLField *xmlfield = NULL;
 
 	//Names
 	if (has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)) {
@@ -1430,40 +1430,29 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 		char *tmp_last  = return_next_entry(entry, entryLastname);
 
 		if (tmp_first || tmp_last) {
-			current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+			xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
+
 
 			//First Name
 			if (tmp_first) {
-				osxml_node_add(current, "FirstName", tmp_first);
-				formatted_name = g_string_append(formatted_name, tmp_first);
+				osync_xmlfield_set_key_value(xmlfield, "FirstName", tmp_first);
 				g_free(tmp_first);
 			}
 
 			//Last Name
 			if (tmp_last) {
-				osxml_node_add(current, "LastName", tmp_last);
-			
-				// this is only for the FormattedName
-				formatted_name = g_string_append(formatted_name, " ");
-				formatted_name = g_string_append(formatted_name, tmp_last);
+				osync_xmlfield_set_key_value(xmlfield, "LastName", tmp_last);
 				g_free(tmp_last);
 			}
 
-			//Formatted Name
-			//JFYI: This will be dropped, when the xml-vcard convert is able to generate FormattedName
-			current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-			osxml_node_add(current, "Content", formatted_name->str);
-			osync_trace(TRACE_SENSITIVE, "FormattedName: \"%s\"", formatted_name->str ? formatted_name->str : "nil");
-
-			g_string_free(formatted_name, TRUE);
 		}
 	}
 	
 	//Company
 	tmp = return_next_entry(entry, entryCompany);
 	if (tmp) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
-		osxml_node_add(current, "Name", tmp);
+		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
+		osync_xmlfield_set_key_value(xmlfield, "Name", tmp);
 		g_free(tmp);
 	}
 
@@ -1473,44 +1462,44 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 		if (tmp) {
 			osync_trace(TRACE_SENSITIVE, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
 			if (entry->address.phoneLabel[i - 3] == 4)
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"EMail", NULL);
+				xmlfield = osync_xmlfield_new(xmlformat, "EMail", error);
 			else
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
+				xmlfield = osync_xmlfield_new(xmlformat, "Telephone", error);
 		
-			xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+			osync_xmlfield_set_key_value(xmlfield, "Content", tmp);
 			g_free(tmp);
 			
 			switch (entry->address.phoneLabel[i - 3]) {
 				case 0:
 					// Work
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"WORK");
+					osync_xmlfield_set_attr(xmlfield, "Location", "Work");
 					break;
 				case 1:
 					// Home
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"HOME");
+					osync_xmlfield_set_attr(xmlfield, "Location", "Home");
 					break;
 				case 2:
 					// Fax
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"FAX");
+					osync_xmlfield_set_attr(xmlfield, "Type", "Fax");
 					break;
 				case 3:
-					// Other
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"VOICE");
+					// Other FIXME Voice!=Other .. Other is not part of xmlformat-contact xsd
+					osync_xmlfield_set_attr(xmlfield, "Type", "Voice");
 					break;
 				case 4:
 					// E Mail
 					break;	
 				case 5:
-					// Main
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"PREF");
+					// Main FIXME Mail != Prefered !?
+					osync_xmlfield_set_attr(xmlfield, "Preferred", "true");
 					break;
 				case 6:
 					// Pager
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"PAGER");
+					osync_xmlfield_set_attr(xmlfield, "Type", "Pager");
 					break;
 				case 7:
 					// Mobile / Cellular
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"CELL");
+					osync_xmlfield_set_attr(xmlfield, "Type", "Cellular");
 					break;
 			}
 		}
@@ -1526,34 +1515,34 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 		char *tmp_country = return_next_entry(entry, entryCountry);
 
 		if (tmp_address || tmp_city || tmp_state || tmp_zip || tmp_country) {
-			current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
+			xmlfield = osync_xmlfield_new(xmlformat, "Address", error);
 			//Street
 			if (tmp_address) {
-				osxml_node_add(current, "Street", tmp_address);
+				osync_xmlfield_set_attr(xmlfield, "Street", tmp_address);
 				g_free(tmp_address);
 			}
 	
 			//City
 			if (tmp_city) {
-				osxml_node_add(current, "City", tmp_city);
+				osync_xmlfield_set_attr(xmlfield, "City", tmp_city);
 				g_free(tmp_city);
 			}
 		
 			//Region
 			if (tmp_state) {
-				osxml_node_add(current, "Region", tmp_state);
+				osync_xmlfield_set_attr(xmlfield, "Region", tmp_state);
 				g_free(tmp_state);
 			}
 		
 			//Code
 			if (tmp_zip) {
-				osxml_node_add(current, "PostalCode", tmp_zip);
+				osync_xmlfield_set_attr(xmlfield, "PostalCode", tmp_zip);
 				g_free(tmp_zip);
 			}
 		
 			//Country
 			if (tmp_country) {
-				osxml_node_add(current, "Country", tmp_country);
+				osync_xmlfield_set_attr(xmlfield, "Country", tmp_country);
 				g_free(tmp_country);
 			}
 		}
@@ -1562,35 +1551,46 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 	//Title
 	tmp = return_next_entry(entry, entryTitle);
 	if (tmp) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Title", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		xmlfield = osync_xmlfield_new(xmlformat, "Title", error);
+		osync_xmlfield_set_attr(xmlfield, "Content", tmp);
 		g_free(tmp);
 	}
 		
 	//Note
 	tmp = return_next_entry(entry, entryNote);
 	if (tmp) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Note", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		xmlfield = osync_xmlfield_new(xmlformat, "Note", error);
+		osync_xmlfield_set_attr(xmlfield, "Content", tmp);
 		g_free(tmp);
 	}
 
 	GList *c = NULL;
-	current = NULL;
+	xmlfield = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
-			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
+			xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
+
 		tmp = conv_enc_palm_to_xml((char *) c->data);
-		osxml_node_add(current, "Category", tmp);
+		osync_xmlfield_set_attr(xmlfield, "Category", tmp);
 		g_free(tmp);
 	}
 
 	*free_input = TRUE;
-	*output = (char *)doc;
-	*outpsize = sizeof(doc);
+	*output = (char *)xmlformat;
+	*outpsize = sizeof(xmlformat);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc) ? osxml_write_to_string((xmlDoc *)doc) : "nil");
-	
+        unsigned int size;
+        char *str;
+        osync_xmlformat_assemble(xmlformat, &str, &size);
+        osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
+        g_free(str);
+
+        if (osync_xmlformat_validate(xmlformat) == FALSE)
+                osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: Not valid!");
+        else
+                osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: VAILD");
+
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
@@ -1599,22 +1599,105 @@ error:
 	return FALSE;
 }
 
+
+static void _xmlfield_name(PSyncContactEntry *entry, OSyncXMLField *xmlfield)
+{
+	entry->address.entry[0] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "LastName"));
+	entry->address.entry[1] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "FirstName"));
+}
+
+static void _xmlfield_organization(PSyncContactEntry *entry, OSyncXMLField *xmlfield)
+{
+	entry->address.entry[2] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Name"));
+}
+
+static void _xmlfield_telephone(PSyncContactEntry *entry, OSyncXMLField *xmlfield, int *pos)
+{
+	entry->address.entry[3 + *pos] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Content"));
+
+	const char *type = osync_xmlfield_get_attr(xmlfield, "Type");
+	const char *location = osync_xmlfield_get_attr(xmlfield, "Location");
+	const char *pref = osync_xmlfield_get_attr(xmlfield, "Preferred");
+
+	if (location && !strcmp(location, "Work"))
+		entry->address.phoneLabel[*pos] = 0;
+	else if (location && !strcmp(location, "Home"))
+		entry->address.phoneLabel[*pos] = 1;
+	else if (type && !strcasecmp(type, "Fax"))
+		entry->address.phoneLabel[*pos] = 2;
+	else if (type && !strcmp(type, "Voice"))
+		entry->address.phoneLabel[*pos] = 3;
+	else if (pref && !strcmp(type, "true"))
+		entry->address.phoneLabel[*pos] = 5;
+	else if (type && !strcmp(type, "Pager"))
+		entry->address.phoneLabel[*pos] = 6;
+	else if (type && !strcmp(type, "Cellular"))
+		entry->address.phoneLabel[*pos] = 7;
+
+	(*pos)++;
+}
+
+static void _xmlfield_email(PSyncContactEntry *entry, OSyncXMLField *xmlfield, int *pos)
+{
+	entry->address.entry[3 + *pos] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Content")); 
+	entry->address.phoneLabel[*pos] = 4;
+}
+
+static void _xmlfield_address(PSyncContactEntry *entry, OSyncXMLField *xmlfield)
+{
+	entry->address.entry[8] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Street"));
+	entry->address.entry[9] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "City"));
+	entry->address.entry[10] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Region"));
+	entry->address.entry[11] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "PostalCode"));
+	entry->address.entry[12] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Country"));
+}
+
+static void _xmlfield_title(PSyncContactEntry *entry, OSyncXMLField *xmlfield)
+{
+	entry->address.entry[13] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Content")); 
+}
+
+static void _xmlfield_note(PSyncContactEntry *entry, OSyncXMLField *xmlfield)
+{
+	entry->address.entry[18] = g_strdup(osync_xmlfield_get_key_value(xmlfield, "Content")); 
+}
+
+static void _xmlfield_category(PSyncContactEntry *entry, OSyncXMLField *xmlfield)
+{
+
+	int i, numnodes;
+	numnodes = osync_xmlfield_get_key_count(xmlfield);
+	for (i=0; i < numnodes; i++) {
+		char *tmp = conv_enc_xml_to_palm(osync_xmlfield_get_nth_key_value(xmlfield, i));
+		entry->categories = g_list_append(entry->categories, tmp);
+		g_free(tmp);
+	}
+}
+
 static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config ? config : "nil", error);
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input) ? osxml_write_to_string((xmlDoc *)input) : "nil");
+
+	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(xmlformat, &str, &size);
+	osync_trace(TRACE_SENSITIVE, "Input XMLFormat is:\n%s", str);
+	g_free(str);
 
 	char *tmp = NULL;
 	
-	//Get the root node of the input document
-	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
-	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+	if (strcmp("contact", osync_xmlformat_get_objtype(xmlformat))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xmlformat: %s",  
+				osync_xmlformat_get_objtype(xmlformat));
 		goto error;
 	}
-	
-	if (xmlStrcmp(root->name, (const xmlChar *)"contact")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
+
+	//Get the first field 
+	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
+
+	if (!xmlfield) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get first xmlfield");
 		goto error;
 	}
 
@@ -1631,94 +1714,33 @@ static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, ch
 	entry->address.phoneLabel[4] = 4;
 	entry->address.showPhone = 0;
 	
-	//Name
-	xmlNode *cur = osxml_get_node(root, "Name");
-	if (cur) {
-		entry->address.entry[0] = osxml_find_node(cur, "LastName");
-		entry->address.entry[1] = osxml_find_node(cur, "FirstName");
+	int pos = 0;
+
+	/* TODO This is ugly - since this is sorted this could be done much faster */
+	for (; xmlfield; xmlfield = osync_xmlfield_get_next(xmlfield)) {
+		osync_trace(TRACE_INTERNAL, "Field: %s", osync_xmlfield_get_name(xmlfield));
+
+		if (!strcmp("Name", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_name(entry, xmlfield);
+		if (!strcmp("Organization", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_name(entry, xmlfield);
+		else if (!strcmp("Telephone", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_telephone(entry, xmlfield, &pos);
+		else if (!strcmp("EMail", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_email(entry, xmlfield, &pos);
+		else if (!strcmp("Address", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_address(entry, xmlfield);
+		else if (!strcmp("Title", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_title(entry, xmlfield);
+		else if (!strcmp("Note", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_note(entry, xmlfield);
+		else if (!strcmp("Categories", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_category(entry, xmlfield);
+
 	}
 
-	//Company
-	cur = osxml_get_node(root, "Organization");
-	if (cur)
-		entry->address.entry[2] = osxml_find_node(cur, "Name");
 
-	//Telephone
-	int i = 0;
-	xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Telephone");
-	xmlNodeSet *nodes = xobj->nodesetval;
-	int numnodes = (nodes) ? nodes->nodeNr : 0;
-	osync_trace(TRACE_INTERNAL, "Found %i telephones", numnodes);
-	
-	// Palm supports 5 Numbers
-	for (i = 0; i < 5 && i < numnodes; i++) {
-		cur = nodes->nodeTab[i];
-		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
-
-		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i] ? entry->address.entry[3 + i] : "nil", osxml_has_property(cur, "WORK"), osxml_has_property(cur, "HOME"), osxml_has_property(cur, "VOICE"));
-
-		if (osxml_has_property(cur, "WORK")) {
-			entry->address.phoneLabel[i] = 0;
-		} else if (osxml_has_property(cur, "HOME")) {
-			entry->address.phoneLabel[i] = 1;
-		} else if (osxml_has_property(cur, "FAX")) {
-			entry->address.phoneLabel[i] = 2;
-		} else if (!(osxml_has_property(cur, "WORK")) && !(osxml_has_property(cur, "HOME")) && osxml_has_property(cur, "VOICE")) {
-			entry->address.phoneLabel[i] = 3;
-		} else if (osxml_has_property(cur, "PREF")) {
-			entry->address.phoneLabel[i] = 5;
-		} else if (osxml_has_property(cur, "PAGER")) {
-			entry->address.phoneLabel[i] = 6;
-		} else if (osxml_has_property(cur, "CELL")) {
-			entry->address.phoneLabel[i] = 7;
-		} else osync_trace(TRACE_INTERNAL, "Unknown TEL entry");
-	}
-	xmlXPathFreeObject(xobj);
-	
-	//EMail
-	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/EMail");
-	nodes = xobj->nodesetval;
-	numnodes = (nodes) ? nodes->nodeNr : 0;
-	osync_trace(TRACE_INTERNAL, "Found %i emails", numnodes);
-	int n;
-	for (n = 0; i < 5 && n < numnodes; n++) {
-		cur = nodes->nodeTab[n];
-		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
-		entry->address.phoneLabel[i] = 4;
-		i++;
-	}
-	xmlXPathFreeObject(xobj);
-	
-	//Address
-	cur = osxml_get_node(root, "Address");
-	if (cur) {
-		entry->address.entry[8] = osxml_find_node(cur, "Street");
-		entry->address.entry[9] = osxml_find_node(cur, "City");
-		entry->address.entry[10] = osxml_find_node(cur, "Region");
-		entry->address.entry[11] = osxml_find_node(cur, "PostalCode");
-		entry->address.entry[12] = osxml_find_node(cur, "Country");
-	}
-
-	//Title
-	cur = osxml_get_node(root, "Title");
-	if (cur)
-		entry->address.entry[13] = (char*)xmlNodeGetContent(cur);
-
-	//Note
-	cur = osxml_get_node(root, "Note");
-	if (cur)
-		entry->address.entry[18] = (char*)xmlNodeGetContent(cur);
-
-	//Categories
-	cur = osxml_get_node(root, "Categories");
-	if (cur) {
-		for (cur = cur->children; cur; cur = cur->next) {
-			tmp = conv_enc_xml_to_palm((char*)xmlNodeGetContent(cur));
-			entry->categories = g_list_append(entry->categories, tmp);
-			g_free(tmp);
-		}
-	}
-
+	int i;
 	/* Now convert to the charset */
 	for (i = 0; i < 19; i++) {
 	  if (entry->address.entry[i]) {
