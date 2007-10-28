@@ -549,6 +549,8 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 						do {
 							if(osync_xmlfield_compare((OSyncXMLField *)cur_list1->data, (OSyncXMLField *)cur_list2->data) == TRUE)
 								break;
+							if (p == -1)
+								break;
 							cur_list2 = g_slist_next(cur_list2);
 							if(cur_list2 == NULL) {
 								same = FALSE;	
