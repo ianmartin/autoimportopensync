@@ -1,0 +1,40 @@
+PROJECT( irmc-sync C )
+
+SET( IRMCSYNC_VERSION "0.33" )	
+
+SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
+
+INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} )
+
+FIND_PACKAGE( OpenSync REQUIRED )
+FIND_PACKAGE( GLIB2 REQUIRED )
+FIND_PACKAGE( OpenObex REQUIRED )
+FIND_PACKAGE( BlueZ )
+
+INCLUDE( OpenSyncInternal )
+
+SET( CMAKE_BUILD_TYPE RelWithDebInfo )
+
+IF ( OPENOBEX_FOUND )
+	SET( ENABLE_OBEX TRUE BOOL "Obex Transport" )
+ENDIF ( OPENOBEX_FOUND )
+
+IF ( BLUEZ_FOUND )
+	SET( HAVE_BLUETOOTH TRUE BOOL "Bluetooth Transport enabled" ) 
+ENDIF ( BLUEZ_FOUND )	
+
+# TODO Write checks	
+SET( HAVE_IRDA TRUE BOOL "IrDA Transport enabled" ) 
+SET( HAVE_BT_OBEX TRUE BOOL "OpenObex Bluetooth Transport" )
+
+CONFIGURE_FILE( "config.h.cmake" "config.h" )
+
+ADD_SUBDIRECTORY( src )
+
+## Packaging
+
+SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
+SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
+SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-irmc-${IRMCSYNC_VERSION}" )
+INCLUDE( CPack )
+

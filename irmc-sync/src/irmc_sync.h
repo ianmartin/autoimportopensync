@@ -4,11 +4,11 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
 #include <linux/types.h>
 #include <linux/irda.h>
 #endif
-#if HAVE_BLUETOOTH
+#ifdef HAVE_BLUETOOTH
 #include <bluetooth/bluetooth.h>
 #endif
 #include <openobex/obex.h>
@@ -49,7 +49,7 @@ typedef struct  {
 
   // irda specific
   irmc_ir_unit irunit;           // IR device name and serial
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   __u32 ir_addr;                 // Absolute address to IR device (used temporary)
 #endif
 

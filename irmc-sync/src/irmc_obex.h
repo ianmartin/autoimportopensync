@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
 #include <linux/types.h>
 #include <linux/irda.h>
 #endif
@@ -23,7 +23,7 @@
 #define IRMC_OBEX_REQDONE -1
 #define IRMC_OBEX_REQFAILED -2
 
-#if HAVE_BLUETOOTH
+#ifdef HAVE_BLUETOOTH
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/l2cap.h>
@@ -38,7 +38,8 @@ struct bt_unit {
   char bdaddr;
   char bdaddr_pad[5];
 };
-#endif
+#endif /* HAVE_BLUETOOTH */
+
 #include <openobex/obex.h>
 #include "cobex_bfb.h"
 
@@ -52,7 +53,7 @@ typedef struct  {
   char cabledev[20];
   cable_type cabletype;
   irmc_ir_unit irunit; // IR device name and serial  
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   __u32 ir_addr;   
 #endif
   int channel;
@@ -100,7 +101,5 @@ void irmc_obex_init(void);
 void irmc_obex_cleanup(obex_t* handle);
 char* irmc_obex_get_serial(obex_t* handle);
 
+#endif /* IRMC_OBEX_H */
 
-
-
-#endif
