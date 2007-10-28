@@ -1,4 +1,5 @@
 #include "conversion.h"
+#include <stdio.h>
 
 void conv(const char *objtype, const char *filename, const char *extension)
 {
@@ -14,7 +15,7 @@ void conv(const char *objtype, const char *filename, const char *extension)
 	OSyncFormatEnv *format_env = osync_format_env_new(&error);
 	fail_unless(format_env != NULL, NULL);
 
-	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
+	fail_unless(osync_format_env_load_plugins(format_env, testbed, &error), NULL);
 
 	char *buffer;
 	unsigned size;

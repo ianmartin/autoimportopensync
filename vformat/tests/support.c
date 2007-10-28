@@ -39,6 +39,11 @@ char *setup_testbed(char *fkt_name)
 		g_free(command);
 		g_free(dirname);
 	}
+
+	command = g_strdup_printf("cp ../src/*.so*  %s", testbed);
+	if (system(command))
+		abort();
+	g_free(command);
 	
 	command = g_strdup_printf("chmod -R 700 %s", testbed);
 	if (system(command))
