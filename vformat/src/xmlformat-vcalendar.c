@@ -545,7 +545,7 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
 		GString *retstr = values->data;
-		osync_assert(retstr);
+		g_assert(retstr);
 
 		if (strstr(retstr->str, "FREQ=")) {
 			rrules[0].value = retstr->str + strlen("FREQ=");

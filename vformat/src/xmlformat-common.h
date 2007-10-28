@@ -30,12 +30,10 @@
 #include <opensync/opensync-merger.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-time.h>
-#include <opensync/opensync_xml.h>
 
 #include "vformat.h"
 
 #define HANDLE_IGNORE (void *)1
-#define osync_assert(x) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: Assertion \"" #x "\" failed\n", __FILE__, __LINE__, __func__); abort();}
 
 typedef struct OSyncHookTables {
 	GHashTable *attributes;

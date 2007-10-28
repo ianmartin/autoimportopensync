@@ -93,9 +93,9 @@ void handle_simple_xmlfield(OSyncXMLField *xmlfield, VFormatAttribute *attr, con
 /**** XML Attributes ****/
 VFormatAttribute *handle_xml_attribute_simple_content(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding)
 {
-	osync_assert(vformat);
-	osync_assert(xmlfield);
-	osync_assert(name);
+	g_assert(vformat);
+	g_assert(xmlfield);
+	g_assert(name);
 
 	osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", name);
 	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
@@ -154,8 +154,8 @@ osync_bool needs_charset(const unsigned char *tmp)
 /* Attribute helpers */
 void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name, const char *encoding)
 {
-	osync_assert(xmlfield);
-	osync_assert(name);
+	g_assert(xmlfield);
+	g_assert(name);
 
 	const char *tmp = osync_xmlfield_get_key_value(xmlfield, name);
 	
