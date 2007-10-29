@@ -630,12 +630,14 @@ static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext 
 		goto error_free_san;
 
 	smlNotificationFree(env->san);
+	env->san = NULL;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
 error_free_san:
 	smlNotificationFree(env->san);
+	env->san = NULL;
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
@@ -1434,6 +1436,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 
 error_free_san:
 	smlNotificationFree(env->san);
+	env->san = NULL;
 error_free_auth:
 	smlAuthFree(env->auth);
 error_free_manager:
