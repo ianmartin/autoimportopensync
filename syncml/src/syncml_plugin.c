@@ -1267,19 +1267,29 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 
 	SmlTransportObexClientConfig config;
 	config.type = env->type;
-	if (config.type == SML_OBEX_TYPE_BLUETOOTH) {
-		if (!env->bluetoothAddress) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
-			goto error_free_env;
-		}
-		config.url = env->bluetoothAddress;
-		config.port = env->bluetoothChannel;
-	} else if (config.type == SML_OBEX_TYPE_USB) {
-		config.url = NULL;
-		config.port = env->interface;
-	} else {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
-		goto error_free_env;
+	switch(config.type) {
+		case SML_OBEX_TYPE_USB:
+			config.url = NULL;
+			config.port = env->interface;
+			break;
+
+		case SML_OBEX_TYPE_BLUETOOTH:
+			if (!env->bluetoothAddress) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
+				goto error_free_auth;
+			}
+			config.url = g_strdup(env->bluetoothAddress);
+			config.port = env->bluetoothChannel;
+			break;
+
+		case SML_OBEX_TYPE_SERIAL:
+		case SML_OBEX_TYPE_IRDA: 
+			config.url = env->bluetoothAddress;
+			break;
+
+		default:
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
+			goto error_free_auth;
 	}
 
 	/* Create the alert for the remote device */
