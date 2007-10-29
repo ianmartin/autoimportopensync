@@ -136,7 +136,7 @@ static const char *_contenttype_to_format(const char *contenttype)
 		return "contact";
 	}
 	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL)) {
-		return "data";
+		return "event";
 	}
 	if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN)) {
 		return "note";
