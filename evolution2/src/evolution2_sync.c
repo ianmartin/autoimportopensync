@@ -31,18 +31,6 @@ static void free_env(OSyncEvoEnv *env)
 		
 	if (env->tasks_path)
 		g_free(env->tasks_path);
-
-	if (env->contact_sink)
-		osync_objtype_sink_unref(env->contact_sink);
-		
-	if (env->calendar_sink)
-		osync_objtype_sink_unref(env->calendar_sink);
-		
-	if (env->memos_sink)
-		osync_objtype_sink_unref(env->memos_sink);
-	
-	if (env->tasks_sink)
-		osync_objtype_sink_unref(env->tasks_sink);
 	
 	if (env->change_id)
 		g_free(env->change_id);
@@ -59,38 +47,6 @@ GList *evo2_list_calendars(OSyncEvoEnv *env, void *data, OSyncError **error)
 	
 	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_EVENT, NULL)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list calendars. Unable to get sources");
-		return NULL;
-	}
-
-	GSList *g = NULL;
-	for (g = e_source_list_peek_groups (sources); g; g = g->next) {
-		ESourceGroup *group = E_SOURCE_GROUP (g->data);
-		GSList *s = NULL;
-		for (s = e_source_group_peek_sources (group); s; s = s->next) {
-			source = E_SOURCE (s->data);
-			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			if (!first) {
-				first = TRUE;
-				path->uri = g_strdup("default");
-			} else {
-				path->uri = g_strdup(e_source_get_uri(source));
-			}
-			path->name = g_strdup(e_source_peek_name(source));
-			paths = g_list_append(paths, path);
-		}
-	}
-	return paths;
-}
-
-GList *evo2_list_memos(OSyncEvoEnv *env, void *data, OSyncError **error)
-{
-	GList *paths = NULL;
-	ESourceList *sources = NULL;
-	ESource *source = NULL;
-	osync_bool first = FALSE;
-	
-	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_JOURNAL, NULL)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list memos. Unable to get sources");
 		return NULL;
 	}
 
@@ -205,7 +161,6 @@ static osync_bool evo2_parse_settings(OSyncEvoEnv *env, const char *data, OSyncE
 	//set defaults
 	env->addressbook_path = NULL;
 	env->calendar_path = NULL;
-	env->memos_path = NULL;
 	env->tasks_path = NULL;
 
 	doc = xmlParseMemory(data, strlen(data));
@@ -236,9 +191,6 @@ static osync_bool evo2_parse_settings(OSyncEvoEnv *env, const char *data, OSyncE
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_path")) {
 				env->calendar_path = g_strdup(str);
-			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"memos_path")) {
-				env->memos_path = g_strdup(str);	
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"tasks_path")) {
 				env->tasks_path = g_strdup(str);	
@@ -277,9 +229,6 @@ static void *evo2_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	if (!evo2_ecal_initialize(env, info, error))
 		goto error_free_env;
 
-	if (!evo2_memo_initialize(env, info, error))
-		goto error_free_env;
-	
 	if (!evo2_etodo_initialize(env, info, error))
 		goto error_free_env;
 	
@@ -295,7 +244,6 @@ error:
 
 static void evo2_finalize(void *data)
 {
-        osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	OSyncEvoEnv *env = data;
 
 	if (env->contact_sink)
@@ -304,14 +252,10 @@ static void evo2_finalize(void *data)
 	if (env->calendar_sink)
 		osync_objtype_sink_unref(env->calendar_sink);
 
-	if (env->memos_sink)
-		osync_objtype_sink_unref(env->memos_sink);
-
 	if (env->tasks_sink)
 		osync_objtype_sink_unref(env->tasks_sink);
 
 	free_env(env);
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /* Here we actually tell opensync which sinks are available. For this plugin, we
@@ -329,9 +273,6 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	
 	if (env->calendar_path)
 		osync_objtype_sink_set_available(env->calendar_sink, TRUE);
-	
-	if (env->memos_path)
-		osync_objtype_sink_set_available(env->memos_sink, TRUE);
 	
 	if (env->tasks_path)
 		osync_objtype_sink_set_available(env->tasks_sink, TRUE);

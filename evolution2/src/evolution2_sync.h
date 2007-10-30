@@ -43,11 +43,6 @@ typedef struct OSyncEvoEnv {
 	OSyncObjTypeSink *calendar_sink;
 	OSyncObjFormat *calendar_format;
 	
-	char *memos_path;
-	ECal *memos;
-	OSyncObjTypeSink *memos_sink;
-	OSyncObjFormat *memos_format;
-	
 	char *tasks_path;
 	ECal *tasks;
 	OSyncObjTypeSink *tasks_sink;
@@ -60,7 +55,6 @@ void evo2_report_change(OSyncContext *ctx, OSyncObjFormat *format, char *data, u
 
 #include "evolution2_ebook.h"
 #include "evolution2_ecal.h"
-#include "evolution2_memo.h"
 #include "evolution2_etodo.h"
 
 #endif
