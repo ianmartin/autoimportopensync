@@ -161,7 +161,7 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 	}
 
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "xml-note");
+	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "xmlformat-note");
 
 	OSyncChange *chg = NULL;
 	OSyncData *odata = NULL;
@@ -183,26 +183,21 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 
 		QString uid = i.key();
 		QString hash = NULL;
-		// Create osxml doc containing the note
-		xmlDoc *doc = xmlNewDoc((const xmlChar*)"1.0");
-		xmlNode *root = osxml_node_add_root(doc, "note");
 
-		OSyncXMLEncoding enc;
-		enc.encoding = OSXML_8BIT;
-		enc.charset = OSXML_UTF8;
+		// Create XMLFormat-note
+		OSyncXMLFormat *xmlformat = osync_xmlformat_new("note", &error);
+		OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Summary", &error);
 
-		// Set the right attributes
-		xmlNode *sum = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
 		QCString utf8str = i.data().utf8();
 		hash_value.update(utf8str);
-		osxml_node_set(sum, "Summary", utf8str, enc);
+		osync_xmlfield_set_key_value(xmlfield, "Content", utf8str);
 
 		utf8str = strip_html(kn_iface->text(i.key())).utf8();
 		hash_value.update(utf8str);
 		hash = hash_value.base64Digest ();
 		if (utf8str && !utf8str.isEmpty()) {
-			xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
-			osxml_node_set(body, "Body", utf8str, enc);
+			xmlfield = osync_xmlfield_new(xmlformat, "Body", &error);
+			osync_xmlfield_set_key_value(xmlfield, "Content", utf8str);
 		}
 
 		// initialize the change object
@@ -211,7 +206,7 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 			goto error;
 		osync_change_set_uid(chg, uid.local8Bit());
 
-		odata = osync_data_new((char*)doc, sizeof(doc), objformat, &error);
+		odata = osync_data_new((char*)xmlformat, sizeof(OSyncXMLFormat *), objformat, &error);
 		if (!odata)
 			goto error;
 
@@ -270,37 +265,34 @@ void KNotesDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChange 
 
 	if (type != OSYNC_CHANGE_TYPE_DELETED) {
 
-		// Get osxml data
+		// Get data
 		OSyncData *odata = osync_change_get_data(chg);
-		xmlDoc *doc = (xmlDoc*)osync_data_get_data_ptr(odata);
+		OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)osync_data_get_data_ptr(odata);
 
-		xmlNode *root = xmlDocGetRootElement(doc);
-		if (!root) {
-			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		if (!xmlformat) {
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get xmlformat");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data", __func__);
 			return;
 		}
 
-		if (xmlStrcmp((root)->name, (const xmlChar *) "note")) {
-			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Wrong root element");
-			osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data2", __func__);
+		if (strcmp("note", osync_xmlformat_get_objtype(xmlformat))) {
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Wrong xmlformat: %s", osync_xmlformat_get_objtype(xmlformat));
+			osync_trace(TRACE_EXIT_ERROR, "%s: Wrong xmlformat.", __func__);
 			return;
 		}
 
-		xmlChar *xmlStr;
-		char * tmpStr;
+		QString summary, body;
 
-		tmpStr = osync_data_get_printable(odata);
-		xmlStr = (xmlChar*) osxml_find_node(root, "Summary");
-		osync_trace(TRACE_INTERNAL, "Getting note %s and %s\n", tmpStr, xmlStr);
+	       OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
+		for (; xmlfield; xmlfield = osync_xmlfield_get_next(xmlfield)) {
+			osync_trace(TRACE_INTERNAL, "Field: %s", osync_xmlfield_get_name(xmlfield));
 
-		QString summary = (char*)xmlStr;
-		xmlFree(xmlStr);
-		free(tmpStr);
-
-		xmlStr = (xmlChar*) osxml_find_node(root, "Body");
-		QString body = (char*)xmlStr;
-		xmlFree(xmlStr);
+			if (!strcmp("Body", osync_xmlfield_get_name(xmlfield))) {
+				summary = osync_xmlfield_get_key_value(xmlfield, "Content");
+			} else if (!strcmp("Summary", osync_xmlfield_get_name(xmlfield))) {
+				body = osync_xmlfield_get_key_value(xmlfield, "Content");
+			}
+		}
 
 		QString hash;
 		switch (type) {

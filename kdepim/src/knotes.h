@@ -49,7 +49,6 @@ typedef QString KNoteID_t;
 
 #include "osyncbase.h"
 #include "datasource.h"
-#include <opensync/opensync_xml.h>
 
 /** KNotes access implementation interface
  */

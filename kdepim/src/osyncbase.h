@@ -9,6 +9,7 @@ extern "C"
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-format.h>	
+#include <opensync/opensync-merger.h>
 }
 
 /** Base class to OpenSync plugin.
