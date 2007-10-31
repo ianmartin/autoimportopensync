@@ -19,7 +19,7 @@ FIND_PATH( KDEPIM3_INCLUDE_DIR kdepimmacros.h
 		PATHS
 		$ENV{KDEDIR}/include/
 		/opt/kde3/include/
-		/usr/inclue/kde/
+		/usr/include/kde/
 		/opt/local/include/
 		/sw/include/
 		/usr/local/include/
