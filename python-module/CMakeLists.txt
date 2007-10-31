@@ -1,4 +1,4 @@
-PROJECT( pyhton-module C )
+PROJECT( python-module C )
 
 SET( PYTHONMODULE_VERSION "0.33" )	
 

@@ -7,12 +7,12 @@ SET( python_module_LIB_SRCS
 python_module.c
 )
 
-ADD_LIBRARY( pyhton-module SHARED ${python_module_LIB_SRCS} )
+ADD_LIBRARY( python-module SHARED ${python_module_LIB_SRCS} )
 
-TARGET_LINK_LIBRARIES( pyhton-module ${OPENYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${PYTHON_LIBRARIES} )
+TARGET_LINK_LIBRARIES( python-module ${OPENYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${PYTHON_LIBRARIES} )
 
 # Install plugin
-INSTALL( TARGETS pyhton-module DESTINATION ${OPENSYNC_PLUGINDIR} )
+INSTALL( TARGETS python-module DESTINATION ${OPENSYNC_PLUGINDIR} )
 
 # Install sampe plugin
 INSTALL( FILES sample.py DESTINATION ${OPENSYNC_PYTHONPLG_DIR} )
