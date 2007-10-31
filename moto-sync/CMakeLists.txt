@@ -1,7 +1,8 @@
-PROJECT( moto-sync )
+PROJECT( moto-sync C ) # actually we don't need any compilers
 
-SET( MOTOSYNC_VERSION "0.33" )	
+SET( MOTOSYNC_VERSION "0.33" ) 
 
+INCLUDE( OpenSyncDefaults )
 INCLUDE( OpenSyncInternal )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules )
@@ -9,7 +10,9 @@ SET( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules )
 FIND_PACKAGE( OpenSync REQUIRED )
 # TODO: Find PyBluez, ...
 
-INSTALL( FILES motosync.py DESTINATION ${OPENSYNC_PLUGINDIR} )
+SET( OPENSYNC_PYTHONPLG_DIR "${LIB_INSTALL_DIR}/opensync/python-plugins" )
+
+INSTALL( FILES motosync.py DESTINATION ${OPENSYNC_PYTHONPLG_DIR} )
 INSTALL( FILES moto-sync DESTINATION ${OPENSYNC_CONFIGDIR} )
 
 ## Packaging
