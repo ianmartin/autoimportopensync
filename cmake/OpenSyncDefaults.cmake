@@ -11,6 +11,7 @@
 #  OPENSYNC_SCHEMASDIR          Location of OpenSync related schema files
 # 
 #  OPENSYNC_INCLUDE_DIR         Location of OpenSync headers
+#  OPENSYNC_DATA_DIR            Location of OpenSync data directory 
 # 
 #  OPENSYNC_TRACE               True if tracing is enabled (debugging with env. var. OSYNC_TRACE)
 #  OPENSYNC_DEBUG_MODULES       True if modules shouldn't get unloaded by OpenSync, to keep symbols of plugins
@@ -34,6 +35,7 @@ SET( OPENSYNC_DESCRIPTIONSDIR "${SHARE_INSTALL_DIR}/opensync/descriptions" CACHE
 SET( OPENSYNC_SCHEMASDIR "${SHARE_INSTALL_DIR}/opensync/schemas" CACHE PATH "OpenSync schemas directory" )
 
 SET( OPENSYNC_INCLUDE_DIR "${INCLUDE_INSTALL_DIR}/opensync-1.0/" CACHE PATH "OpenSync headers location" )
+SET( OPENSYNC_DATA_DIR "${SHARE_INSTALL_DIR}/opensync" CACHE PATH "OpenSync data directory" )
 
 # OpenSync build options:
 

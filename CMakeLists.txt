@@ -41,9 +41,6 @@ ENDIF ( CHECK_FOUND )
 
 ############################################## 
 
-CONFIGURE_FILE( "config.h.cmake" "config.h" )
-CONFIGURE_FILE( "opensync-1.0.pc.in" "opensync-1.0.pc" )
-
 IF ( BUILD_DOCUMENTATION)
 	IF ( DOXYGEN_DOT_EXECUTABLE )
 		SET( HAVE_DOT "YES" )
@@ -54,6 +51,9 @@ ENDIF ( BUILD_DOCUMENTATION )
 
 INCLUDE( CheckFunctionExists )
 CHECK_FUNCTION_EXISTS( flock HAVE_FLOCK )
+
+CONFIGURE_FILE( "config.h.cmake" "config.h" )
+CONFIGURE_FILE( "opensync-1.0.pc.in" "opensync-1.0.pc" )
 
 ########## INSTALL ##############################
 	
