@@ -13,11 +13,18 @@
 #  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 #
 
-IF ( NOT WIN32 )
+FIND_PROGRAM( PKGCONFIG_EXECUTABLE NAMES pkg-config )
+
+IF ( PKGCONFIG_EXECUTABLE )
 	INCLUDE( UsePkgConfig )
 	# Take care about opensync-1.0.pc settings
 	PKGCONFIG( opensync-1.0 _opensync_include_DIR _opensync_link_DIR _opensync_link_FLAGS _opensync_cflags )
-ENDIF ( NOT WIN32 )
+
+
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS opensync-1.0 --variable=datadir OUTPUT_VARIABLE _opensync_data_DIR )
+	STRING( REGEX REPLACE "[\r\n]" " " _opensync_data_DIR "${_opensync_data_DIR}"  )
+
+ENDIF ( PKGCONFIG_EXECUTABLE )
 
 # Look for OpenSync include dir and libraries, and take care about pkg-config first...
 FIND_PATH( OPENSYNC_INCLUDE_DIR opensync/opensync.h PATHS ${_opensync_include_DIR} PATH_SUFFIXES opensync-1.0 NO_DEFAULT_PATH )
@@ -38,6 +45,10 @@ FIND_LIBRARY( OPENSYNC_LIBRARIES opensync
 		/usr/lib64
 		/usr/local/lib64
 		/opt/lib64 )
+
+FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATHS "${_opensync_data_DIR}" PATH_SUFFIXES "cmake/modules" NO_DEFAULT_PATH) 
+FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATH_SUFFIXES "cmake/modules" ) 
+SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${OPENSYNC_CMAKE_MODULES}" )
 
 # Report results
 IF ( OPENSYNC_LIBRARIES AND OPENSYNC_INCLUDE_DIR )	
