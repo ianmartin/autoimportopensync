@@ -17,6 +17,8 @@
 #cmakedefine OPENSYNC_DEBUG_MODULES 
 #cmakedefine OPENSYNC_TRACE
 
+#cmakedefine HAVE_FLOCK
+
 #define OPENSYNC_TESTDATA "${CMAKE_CURRENT_SOURCE_DIR}/tests/data"
 
 #endif /* _CONFIG_H_OPENSYNC */

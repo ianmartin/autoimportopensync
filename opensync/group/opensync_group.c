@@ -32,7 +32,7 @@
 #ifndef _WIN32
 #include <sys/file.h>
 
-#ifdef NOT_HAVE_FLOCK
+#ifndef HAVE_FLOCK
 #define LOCK_SH 1
 #define LOCK_EX 2
 #define LOCK_NB 4
