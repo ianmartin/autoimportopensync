@@ -57,7 +57,7 @@ def prompt_user(options):
         print 'Are you sure? [yn] ',
         if sys.stdin.read(1).lower() != 'y':
             print 'Operation aborted'
-            return
+            sys.exit(1)
 
 def pack_backup(typestr, edata):
     """pack event data into a single-line string to write to the backup file"""
