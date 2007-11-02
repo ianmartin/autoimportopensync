@@ -1,8 +1,10 @@
-PROJECT( evo2-sync C )
+PROJECT( libopensync-plugin-evolution2 C )
 
-SET( FILESYNC_VERSION "0.33" )	
+SET( VERSION "0.33" )	
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
+
+message( "modulepath: ${CMAKE_MODULE_PATH}" )
 
 FIND_PACKAGE( EDS REQUIRED )
 FIND_PACKAGE( OpenSync REQUIRED )
@@ -11,9 +13,9 @@ FIND_PACKAGE( LibXml2 REQUIRED )
 FIND_PACKAGE( GConf2 REQUIRED )
 FIND_PACKAGE( Check )
 
-INCLUDE( OpenSyncInternal )
+message( "modulepath2: ${CMAKE_MODULE_PATH}" )
 
-SET( CMAKE_BUILD_TYPE RelWithDebInfo )
+INCLUDE( OpenSyncInternal )
 
 ADD_SUBDIRECTORY( src )
 
@@ -25,10 +27,5 @@ ENDIF ( CHECK_FOUND )
 
 CONFIGURE_FILE( misc/evolution2.spec.in misc/evolution2.spec )
 
-## Packaging ################################
-
-SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
-SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
-SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-evolution2-${FILESYNC_VERSION}" )
-INCLUDE( CPack )
+OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
 

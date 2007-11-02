@@ -192,7 +192,7 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
           config->connectmedium = MEDIUM_IR;
         else if (!strcmp(str, "cable"))
           config->connectmedium = MEDIUM_CABLE;
-#if HAVE_BLUETOOTH
+#ifdef HAVE_BLUETOOTH
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
         baswap(&(config->btunit.bdaddr), strtoba(str));
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {

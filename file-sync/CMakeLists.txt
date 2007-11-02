@@ -1,6 +1,6 @@
-PROJECT( file-sync C )
+PROJECT( libopensync-plugin-file C )
 
-SET( FILESYNC_VERSION "0.33" )	
+SET( VERSION "0.33" )	
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 
@@ -10,14 +10,7 @@ FIND_PACKAGE( LibXml2 REQUIRED )
 
 INCLUDE( OpenSyncInternal )
 
-SET( CMAKE_BUILD_TYPE RelWithDebInfo )
-
 ADD_SUBDIRECTORY( src )
 
-## Packaging
-
-SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
-SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
-SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-file-${FILESYNC_VERSION}" )
-INCLUDE( CPack )
+OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
 

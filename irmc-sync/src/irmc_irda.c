@@ -37,14 +37,14 @@
 #include <sys/un.h>
 #include <glib.h>
 #include <gmodule.h>
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
 #include <linux/types.h>
 #include <linux/irda.h>
 #endif
 #include "irmc_obex.h"
 #include "irmc_sync.h"
 #include "irmc_bluetooth.h"
-#if HAVE_BT_OBEX
+#ifdef HAVE_BT_OBEX
 #include <bluetooth/bluetooth.h>
 #endif
 
@@ -56,7 +56,7 @@
 extern gboolean multisync_debug;
 
 gint obex_irda_connect(obex_t *handle, gpointer ud) {
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   struct irda_device_list *list;
   unsigned char buf[DISC_BUF_LEN];
   int len;
@@ -141,7 +141,7 @@ gint obex_irda_disconnect(obex_t *handle, gpointer ud) {
 }
 
 GList* find_irda_units(irmc_config *config) {
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   struct irda_device_list *list;
   unsigned char buf[DISC_BUF_LEN];
 //int ret = -1; // unused!

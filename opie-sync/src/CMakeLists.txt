@@ -1,13 +1,28 @@
 INCLUDE_DIRECTORIES( ${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} ${CURL_INCLUDE_DIRS} )
 
-ADD_LIBRARY( opie SHARED opie_format.c opie_xml_utils.c )
-ADD_LIBRARY( opie-sync SHARED opie_sync.c opie_qcop.c opie_comms.c opie_xml.c opie_xml_utils.c md5.c )
+SET( opie_format_SRCS
+opie_format.c
+opie_xml_utils.c
+)
+
+SET( opie_sync_SRCS
+opie_sync.c
+opie_qcop.c
+opie_comms.c
+opie_xml.c
+opie_xml_utils.c
+md5.c
+)
+
+OPENSYNC_FORMAT_ADD( opie ${opie_format_SRCS} )
+OPENSYNC_PLUGIN_ADD( opie-sync ${opie_sync_SRCS} )
 
 TARGET_LINK_LIBRARIES( opie ${OPENSYNC_LIBRARY} )
 TARGET_LINK_LIBRARIES( opie-sync ${OPENSYNC_LIBRARY} ${CURL_LIBRARIES} )
 
 ###### INSTALL ################### 
-INSTALL( TARGETS opie DESTINATION ${OPENSYNC_FORMATSDIR} )
-INSTALL( TARGETS opie-sync DESTINATION ${OPENSYNC_PLUGINDIR} )
+OPENSYNC_FORMAT_INSTALL( opie )
+OPENSYNC_PLUGIN_INSTALL( opie-sync )
 
-INSTALL( FILES "${CMAKE_CURRENT_SOURCE_DIR}/opie-sync" DESTINATION ${OPENSYNC_CONFIGDIR} )
+OPENSYNC_PLUGIN_CONFIG( opie-sync )
+

@@ -1,6 +1,6 @@
-PROJECT( opie-sync C )
+PROJECT( libopensync-plugin-opie C )
 
-SET( OPIESYNC_VERSION "0.33" )
+SET( VERSION "0.33" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 
@@ -15,14 +15,7 @@ endif (CURL_FOUND)
 
 INCLUDE( OpenSyncInternal )
 
-SET( CMAKE_BUILD_TYPE RelWithDebInfo )
-
 ADD_SUBDIRECTORY( src )
 
-## Packaging
-
-SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
-SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
-SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-opie-${OPIESYNC_VERSION}" )
-INCLUDE( CPack )
+OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
 

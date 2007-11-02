@@ -1,6 +1,6 @@
-PROJECT( irmc-sync C )
+PROJECT( libopensync-plugin-irmc C )
 
-SET( IRMCSYNC_VERSION "0.33" )	
+SET( VERSION "0.33" )	
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 
@@ -31,10 +31,5 @@ CONFIGURE_FILE( "config.h.cmake" "config.h" )
 
 ADD_SUBDIRECTORY( src )
 
-## Packaging
-
-SET( CPACK_GENERATOR "TGZ;TBZ2" ) # This line is need for a CMake (Version 2.4.7) Bug - Fixed in CVS
-SET( CPACK_SOURCE_GENERATOR "TGZ;TBZ2")
-SET( CPACK_SOURCE_PACKAGE_FILE_NAME "libopensync-plugin-irmc-${IRMCSYNC_VERSION}" )
-INCLUDE( CPack )
+OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
 

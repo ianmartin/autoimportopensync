@@ -40,7 +40,7 @@
 #include <sys/ioctl.h>
 #include <glib.h>
 #include <gmodule.h>
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
 #include <linux/types.h>
 #include <linux/irda.h>
 #endif
@@ -48,7 +48,7 @@
 #include "irmc_sync.h"
 #include "irmc_bluetooth.h"
 #include "irmc_irda.h"
-#if HAVE_BT_OBEX
+#ifdef HAVE_BT_OBEX
 #include <bluetooth/bluetooth.h>
 #endif
 
@@ -305,7 +305,7 @@ gint obex_cable_connect(obex_t *handle, gpointer ud) {
   tcflush(userdata->fd, TCIFLUSH);
   tcsetattr(userdata->fd, TCSANOW, &newtio);
 
-#if HAVE_COBEX  
+#ifdef HAVE_COBEX  
   if (userdata->cabletype == IRMC_CABLE_SIEMENS)
     return(cobex_connect(handle, ud));
 #endif  
@@ -446,13 +446,13 @@ gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout) {
 
 obex_t* irmc_obex_client(irmc_config *config) {
   obex_ctrans_t bttrans;
-#if HAVE_COBEX  
+#ifdef HAVE_COBEX  
   obex_ctrans_t cabletrans = { obex_cable_connect, cobex_disconnect,
 			       NULL, cobex_write, 
 			       cobex_handleinput, 0 };
 #endif  
 
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   obex_ctrans_t irdatrans = { obex_irda_connect, obex_irda_disconnect,
 			      obex_cable_listen, obex_cable_write, 
 			      obex_cable_handleinput, 0 };
@@ -473,22 +473,22 @@ obex_t* irmc_obex_client(irmc_config *config) {
   userdata = (obexdata_t*) g_malloc0(sizeof(obexdata_t));
 #if 1 //OBEX_CUSTOMDATA
   bttrans.customdata = userdata;
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   irdatrans.customdata = userdata;
 #endif
 
-#if HAVE_COBEX  
+#ifdef HAVE_COBEX  
   cabletrans.customdata = userdata;
 #endif  
 
 #endif
-#if OBEX_USERDATA
+#ifdef OBEX_USERDATA
   bttrans.userdata = userdata;
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   irdatrans.userdata = userdata;
 #endif
   
-#if HAVE_COBEX  
+#ifdef HAVE_COBEX  
   cabletrans.userdata = userdata;
 #endif  
 
@@ -498,7 +498,7 @@ obex_t* irmc_obex_client(irmc_config *config) {
   strncpy(userdata->cabledev, config->cabledev, 19);
   userdata->cabletype = config->cabletype;
   memcpy(&userdata->irunit, &config->irunit, sizeof(irmc_ir_unit));
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
   userdata->ir_addr = config->ir_addr; // Temp absolute IR address
 #endif
   userdata->connectmedium = config->connectmedium;
@@ -508,7 +508,7 @@ obex_t* irmc_obex_client(irmc_config *config) {
 
   switch(userdata->connectmedium) {
   case MEDIUM_BLUETOOTH:
-#if HAVE_BT_OBEX
+#ifdef HAVE_BT_OBEX
     if (!(handle = OBEX_Init(OBEX_TRANS_BLUETOOTH, obex_event, 0)))
       return(0);
 #else
@@ -519,14 +519,14 @@ obex_t* irmc_obex_client(irmc_config *config) {
 #endif
     break;
   case MEDIUM_IR:
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
     if (!(handle = OBEX_Init(OBEX_TRANS_CUST, obex_event, 0)))
       return(0);
     OBEX_RegisterCTransport(handle, &irdatrans);
 #endif
     break;
   case MEDIUM_CABLE:
-#if HAVE_COBEX    
+#ifdef HAVE_COBEX    
     if (!(handle = OBEX_Init(OBEX_TRANS_CUST, obex_event, 0)))
       return(0);
     OBEX_RegisterCTransport(handle, &cabletrans);
@@ -550,7 +550,7 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
   userdata->connected = 0;
   switch(userdata->connectmedium) {
   case MEDIUM_BLUETOOTH:
-#if HAVE_BT_OBEX
+#ifdef HAVE_BT_OBEX
     ret=BtOBEX_TransportConnect(handle, NULL, 
 				&userdata->btu.bdaddr, userdata->channel);
 #else
@@ -589,7 +589,7 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
   }
   if (userdata->state == IRMC_OBEX_REQDONE) {
     if (strlen(userdata->irunit.serial) > 0) {
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
       if (!userdata->ir_addr) {
 #endif
 	char *serial = irmc_obex_get_serial(handle);
@@ -602,7 +602,7 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
     return FALSE;
 	}
 	g_free(serial);
-#if HAVE_IRDA
+#ifdef HAVE_IRDA
       }
 #endif
     }

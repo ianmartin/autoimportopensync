@@ -7,12 +7,12 @@ SET( python_module_LIB_SRCS
 python_module.c
 )
 
-ADD_LIBRARY( python-module SHARED ${python_module_LIB_SRCS} )
+OPENSYNC_PLUGIN_ADD( python-module ${python_module_LIB_SRCS} )
 
 TARGET_LINK_LIBRARIES( python-module ${OPENYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${PYTHON_LIBRARIES} -lutil )
 
 # Install plugin
-INSTALL( TARGETS python-module DESTINATION ${OPENSYNC_PLUGINDIR} )
+OPENSYNC_PLUGIN_INSTALL( python-module )
 
 # Install sampe plugin
 INSTALL( FILES sample.py DESTINATION ${OPENSYNC_PYTHONPLG_DIR} )
