@@ -1,10 +1,8 @@
 PROJECT( libopensync-plugin-evolution2 C )
 
-SET( VERSION "0.33" )	
+SET( VERSION "0.34" )	
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
-
-message( "modulepath: ${CMAKE_MODULE_PATH}" )
 
 FIND_PACKAGE( EDS REQUIRED )
 FIND_PACKAGE( OpenSync REQUIRED )
@@ -12,8 +10,6 @@ FIND_PACKAGE( GLIB2 REQUIRED )
 FIND_PACKAGE( LibXml2 REQUIRED )
 FIND_PACKAGE( GConf2 REQUIRED )
 FIND_PACKAGE( Check )
-
-message( "modulepath2: ${CMAKE_MODULE_PATH}" )
 
 INCLUDE( OpenSyncInternal )
 

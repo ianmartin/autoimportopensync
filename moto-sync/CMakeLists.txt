@@ -1,6 +1,6 @@
 PROJECT( libopensync-plugin-moto C ) # actually we don't need any compilers
 
-SET( VERSION "0.33" ) 
+SET( VERSION "0.34" ) 
 
 SET( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules )
 
