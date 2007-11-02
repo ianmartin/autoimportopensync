@@ -204,28 +204,28 @@ END_TEST
 START_TEST (get_revision1)
 {
 	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full1.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full1.vcf", "VCARD_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (get_revision2)
 {
 	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full2.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full2.vcf", "VCARD_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (get_revision3)
 {
 	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-multiline.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-multiline.vcf", "VCARD_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (get_revision4)
 {
 	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-photo.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-photo.vcf", "VCARD_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 

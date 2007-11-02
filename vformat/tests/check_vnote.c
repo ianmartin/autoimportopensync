@@ -44,21 +44,21 @@ END_TEST
 START_TEST (get_revision1)
 {
 	struct tm testtm = {0, 0, 0, 6, 4 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vnote_get_revision("/vnotes/vnote1.vnt") == mktime(&testtm), NULL);
+	fail_unless(vnote_get_revision("/vnotes/vnote1.vnt") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (get_revision2)
 {
 	struct tm testtm = {1, 1, 1, 6, 4 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vnote_get_revision("/vnotes/vnote2.vnt") == mktime(&testtm), NULL);
+	fail_unless(vnote_get_revision("/vnotes/vnote2.vnt") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (get_revision3)
 {
 	struct tm testtm = {0, 0, 0, 6, 4 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vnote_get_revision("/vnotes/vnote3.vnt") == mktime(&testtm), NULL);
+	fail_unless(vnote_get_revision("/vnotes/vnote3.vnt") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 

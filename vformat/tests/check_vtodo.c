@@ -68,21 +68,21 @@ END_TEST
 START_TEST (todo_get_revision1)
 {
 	struct tm testtm = {50, 56, 0, 6, 3 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vtodo_get_revision("/vtodos/evolution2/todo-full1.vcf", "VTODO_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vtodo_get_revision("/vtodos/evolution2/todo-full1.vcf", "VTODO_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (todo_get_revision2)
 {
 	struct tm testtm = {50, 56, 0, 6, 3 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vtodo_get_revision("/vtodos/evolution2/todo-full2.vcf", "VTODO_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vtodo_get_revision("/vtodos/evolution2/todo-full2.vcf", "VTODO_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (todo_get_revision3)
 {
 	struct tm testtm = {0, 0, 0, 6, 3 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vtodo_get_revision("/vtodos/evolution2/todo-full3.vcf", "VTODO_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vtodo_get_revision("/vtodos/evolution2/todo-full3.vcf", "VTODO_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 

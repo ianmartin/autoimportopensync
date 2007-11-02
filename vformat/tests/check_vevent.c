@@ -119,21 +119,21 @@ END_TEST
 START_TEST (event_get_revision1)
 {
 	struct tm testtm = {2, 6, 11, 29, 3 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vevent_get_revision("/vevents/evolution2/1-hour-alarm.vcf", "VCAL_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vevent_get_revision("/vevents/evolution2/1-hour-alarm.vcf", "VCAL_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (event_get_revision2)
 {
 	struct tm testtm = {1, 8, 11, 29, 3 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vevent_get_revision("/vevents/evolution2/1-hour-alarm2.vcf", "VCAL_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vevent_get_revision("/vevents/evolution2/1-hour-alarm2.vcf", "VCAL_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
 START_TEST (event_get_revision3)
 {
 	struct tm testtm = {13, 5, 11, 29, 3 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vevent_get_revision("/vevents/evolution2/1-hour.vcf", "VCAL_EXTENSION=Evolution") == mktime(&testtm), NULL);
+	fail_unless(vevent_get_revision("/vevents/evolution2/1-hour.vcf", "VCAL_EXTENSION=Evolution") == (mktime(&testtm) - timezone), NULL);
 }
 END_TEST
 
