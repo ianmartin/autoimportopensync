@@ -34,6 +34,7 @@ SET( OPENSYNC_CONFIGDIR "${SHARE_INSTALL_DIR}/opensync/defaults" CACHE PATH "Ope
 SET( OPENSYNC_DESCRIPTIONSDIR "${SHARE_INSTALL_DIR}/opensync/descriptions" CACHE PATH "OpenSync descriptions directory" )
 SET( OPENSYNC_SCHEMASDIR "${SHARE_INSTALL_DIR}/opensync/schemas" CACHE PATH "OpenSync schemas directory" )
 
+SET( OPENSYNC_LIBRARIES_DIR "${LIB_INSTALL_DIR}" CACHE PATH "OpenSync library location" )
 SET( OPENSYNC_INCLUDE_DIR "${INCLUDE_INSTALL_DIR}/opensync-1.0/" CACHE PATH "OpenSync headers location" )
 SET( OPENSYNC_DATA_DIR "${SHARE_INSTALL_DIR}/opensync" CACHE PATH "OpenSync data directory" )
 

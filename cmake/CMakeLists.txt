@@ -6,6 +6,7 @@ SET( OPENSYNC_CMAKE_MODULES
 "${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncPlatforms.cmake" 
 "${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncPackaging.cmake" 
 "${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncTesting.cmake" 
+"${CMAKE_CURRENT_SOURCE_DIR}/OpenSyncPlugin.cmake" 
 "${CMAKE_CURRENT_BINARY_DIR}/OpenSyncInternal.cmake" 
 )
 
