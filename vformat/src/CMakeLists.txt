@@ -1,19 +1,20 @@
 INCLUDE_DIRECTORIES( ${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} )
 
-ADD_LIBRARY( vcard SHARED vcard.c )
-ADD_LIBRARY( vevent SHARED vevent.c )
-ADD_LIBRARY( vnote SHARED vnote.c )
-ADD_LIBRARY( vtodo SHARED vtodo.c )
-
 ADD_LIBRARY( vformat SHARED vformat.c )
-
 ADD_LIBRARY( xmlformat-common SHARED xmlformat-common.c )
 ADD_LIBRARY( xmlformat-vcalendar SHARED xmlformat-vcalendar.c )
 
-ADD_LIBRARY( xmlformat-vcard SHARED xmlformat-vcard.c )
-ADD_LIBRARY( xmlformat-vevent SHARED xmlformat-vevent.c )
-ADD_LIBRARY( xmlformat-vnote SHARED xmlformat-vnote.c )
-#ADD_LIBRARY( xmlformat-vtodo SHARED xmlformat-vtodo.c )
+
+OPENSYNC_FORMAT_ADD( vcard vcard.c )
+OPENSYNC_FORMAT_ADD( vevent vevent.c )
+OPENSYNC_FORMAT_ADD( vnote vnote.c )
+OPENSYNC_FORMAT_ADD( vtodo vtodo.c )
+
+
+OPENSYNC_FORMAT_ADD( xmlformat-vcard xmlformat-vcard.c )
+OPENSYNC_FORMAT_ADD( xmlformat-vevent xmlformat-vevent.c )
+OPENSYNC_FORMAT_ADD( xmlformat-vnote xmlformat-vnote.c )
+#OPENSYNC_FORMAT_ADD( xmlformat-vtodo xmlformat-vtodo.c )
 
 TARGET_LINK_LIBRARIES( vcard ${OPENSYNC_LIBRARY} ${GLIB2_LIBRARIES} )
 TARGET_LINK_LIBRARIES( vevent ${OPENSYNC_LIBRARY} ${GLIB2_LIBRARIES} )
@@ -31,17 +32,14 @@ TARGET_LINK_LIBRARIES( xmlformat-vnote ${OPENSYNC_LIBRARY} ${GLIB2_LIBRARIES} )
 #TARGET_LINK_LIBRARIES( xmlformat-vtodo ${OPENSYNC_LIBRARY} ${GLIB2_LIBRARIES} )
 
 ###### INSTALL ################### 
-INSTALL( TARGETS 
-vcard 
-vevent 
-vnote 
-vtodo 
-vformat
-xmlformat-common
-xmlformat-vcalendar
-xmlformat-vcard
-xmlformat-vevent
-xmlformat-vnote
-#xmlformat-vtodo
-DESTINATION ${OPENSYNC_FORMATSDIR} ) 
+OPENSYNC_FORMAT_INSTALL( vcard )
+OPENSYNC_FORMAT_INSTALL( vevent )
+OPENSYNC_FORMAT_INSTALL( vnote )
+OPENSYNC_FORMAT_INSTALL( vtodo )
+OPENSYNC_FORMAT_INSTALL( xmlformat-vcard )
+OPENSYNC_FORMAT_INSTALL( xmlformat-vevent )
+OPENSYNC_FORMAT_INSTALL( xmlformat-vnote )
+#OPENSYNC_FORMAT_INSTALL( xmlformat-vtodo )
+
+INSTALL( TARGETS xmlformat-common xmlformat-vcalendar vformat DESTINATION ${OPENSYNC_FORMATSDIR} ) 
 
