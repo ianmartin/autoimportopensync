@@ -37,7 +37,7 @@
  */
 /*@{*/
 
-void _osync_archive_trace(void *data, const char *query)
+static void _osync_archive_trace(void *data, const char *query)
 {
 	osync_trace(TRACE_INTERNAL, "query executed: %s", query);
 }

@@ -79,7 +79,7 @@ static gboolean _command_check(GSource *source)
 
 void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command);
 
-OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, const char *objtype)
+static OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, const char *objtype)
 {
 	char *format = g_hash_table_lookup(engine->internalFormats, objtype);
 	if (!format)
@@ -87,7 +87,7 @@ OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, const cha
 	return osync_format_env_find_objformat(engine->formatenv, format);
 }
 
-void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
+static void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
 {
 	osync_trace(TRACE_INTERNAL, "Setting internal format of %s to %p", objtype, format);
 	if (!format)

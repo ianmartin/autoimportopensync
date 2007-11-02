@@ -141,7 +141,7 @@ gboolean _queue_check(GSource *source)
 	return FALSE;
 }
 
-int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSyncError **error)
+static int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSyncError **error)
 {
 	ssize_t nwritten = 0;
 
@@ -161,7 +161,7 @@ int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSync
 	return (nwritten);
 }
 
-osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message, OSyncError **error)
+static osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message, OSyncError **error)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(long long int), error) < 0)
 		return FALSE;
@@ -169,7 +169,7 @@ osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long i
 	return TRUE;
 }
 
-osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message, OSyncError **error)
+static osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message, OSyncError **error)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(int), error) < 0)
 		return FALSE;

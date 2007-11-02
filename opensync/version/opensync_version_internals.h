@@ -40,6 +40,4 @@ struct OSyncVersion{
 	char *identifier;
 };
 
-int _osync_version_match(char *pattern, char* string, OSyncError **error);
-
 #endif /*OPENSYNC_VERSION_INTERNALS_H_*/

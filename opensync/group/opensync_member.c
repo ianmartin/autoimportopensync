@@ -41,7 +41,7 @@
  * @param member The Member pointer 
  * 
  */
-void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
+static void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
 {
 	osync_assert(member);
 	

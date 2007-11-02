@@ -42,6 +42,4 @@ struct OSyncMember {
 	OSyncMerger *merger;
 };
 
-void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger);
-
 #endif /* _OPENSYNC_MEMBER_INTERNALS_H_ */

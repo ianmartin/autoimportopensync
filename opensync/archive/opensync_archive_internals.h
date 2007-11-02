@@ -37,6 +37,4 @@ struct OSyncArchive {
 	/**  */
 };
 
-void _osync_archive_trace(void *data, const char *query);
-
 #endif /*OPENSYNC_ARCHIVE_INTERNALS_H_*/

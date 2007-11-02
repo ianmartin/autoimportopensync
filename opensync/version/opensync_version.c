@@ -35,7 +35,7 @@
  */
 /*@{*/
 
-int _osync_version_match(char *pattern, char* string, OSyncError **error)
+static int _osync_version_match(char *pattern, char* string, OSyncError **error)
 {
 #ifndef _WIN32
 	osync_assert(pattern);
