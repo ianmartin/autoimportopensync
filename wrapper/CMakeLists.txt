@@ -21,4 +21,4 @@ ADD_CUSTOM_COMMAND(TARGET ${SWIG_MODULE_opensync_REAL_NAME} POST_BUILD
 INSTALL( FILES ${CMAKE_CURRENT_BINARY_DIR}/_opensync.so
    DESTINATION ${LIB_INSTALL_DIR}/python/site-packages/ )
 INSTALL( FILES ${CMAKE_CURRENT_BINARY_DIR}/opensync_hack.py
-   DESTINATION ${LIB_INSTALL_DIR}/python/site-packages/ RENAME opensync.py )
+   DESTINATION ${LIB_INSTALL_DIR}/python${PYTHON_VERSION}/site-packages/ RENAME opensync.py )
