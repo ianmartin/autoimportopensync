@@ -1,6 +1,8 @@
 INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CHECK_INCLUDE_DIR} ${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} )
 
 ########### support #################	
+ADD_DEFINITIONS( -DOPENSYNC_FORMATSDIR="\\\"${OPENSYNC_FORMATSDIR}\\\"" )
+
 ADD_LIBRARY( support SHARED support.c )
 TARGET_LINK_LIBRARIES( support opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} )
 
@@ -9,13 +11,10 @@ TARGET_LINK_LIBRARIES( conversion opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARI
 
 ############ unit tests ##########################	
 
-ADD_EXECUTABLE( vcard check_vcard.c )
-ADD_EXECUTABLE( vevent check_vevent.c )
-ADD_EXECUTABLE( vnote check_vnote.c )
-ADD_EXECUTABLE( vtodo check_vtodo.c )
+SET( TEST_TARGET_LIBRARIES support conversion )
 
-TARGET_LINK_LIBRARIES( vcard opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} support conversion )
-TARGET_LINK_LIBRARIES( vevent opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} support conversion )
-TARGET_LINK_LIBRARIES( vnote opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} support conversion )
-TARGET_LINK_LIBRARIES( vtodo opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} support conversion )
+OPENSYNC_ADD_TEST( vcard check_vcard.c ${TEST_TARGET_LIBRARIES}  )
+OPENSYNC_ADD_TEST( vevent check_vevent.c ${TEST_TARGET_LIBRARIES} )
+OPENSYNC_ADD_TEST( vnote check_vnote.c ${TEST_TARGET_LIBRARIES} )
+OPENSYNC_ADD_TEST( vtodo check_vtodo.c ${TEST_TARGET_LIBRARIES} )
 

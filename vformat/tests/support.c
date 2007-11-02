@@ -44,6 +44,11 @@ char *setup_testbed(char *fkt_name)
 	if (system(command))
 		abort();
 	g_free(command);
+
+        command = g_strdup_printf("cp %s/*.so*  %s", OPENSYNC_FORMATSDIR, testbed);
+        if (system(command))
+                abort();
+        g_free(command);
 	
 	command = g_strdup_printf("chmod -R 700 %s", testbed);
 	if (system(command))
