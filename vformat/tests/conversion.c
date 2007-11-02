@@ -130,12 +130,13 @@ void conv(const char *objtype, const char *filename, const char *extension)
 	//Compare again
 	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
 
-	osync_format_env_free(format_env);
 	osync_data_unref(data);
 	osync_data_unref(newdata);
 
 	osync_change_unref(newchange);
 	osync_change_unref(change);
+
+	osync_format_env_free(format_env);
 
 	destroy_testbed(testbed);
 }
