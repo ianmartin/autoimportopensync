@@ -46,6 +46,7 @@ typedef struct OSyncHookTables {
 void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 /** VFormat Attributes **/
+OSyncXMLField *handle_attribute_simple_content_timestamp(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error); 
 OSyncXMLField *handle_attribute_simple_content(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error); 
 OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);

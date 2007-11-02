@@ -458,7 +458,7 @@ OSyncXMLField *handle_sequence_attribute(OSyncXMLFormat *xmlformat, VFormatAttri
 
 OSyncXMLField *handle_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "LastModified", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "LastModified", error);
 }
 
 OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

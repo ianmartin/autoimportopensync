@@ -32,6 +32,18 @@ void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 }
 
 /**** ATTRIBUTE ****/
+OSyncXMLField *handle_attribute_simple_content_timestamp(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error)
+{
+        osync_trace(TRACE_INTERNAL, "Handling %s attribute with timestamp", name);
+        OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, name, error);
+        if(!xmlfield) {
+                osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+                return NULL;
+        }
+        osync_xmlfield_set_key_value(xmlfield, "Content", osync_time_timestamp(vformat_attribute_get_nth_value(attr, 0)));
+        return xmlfield;
+}
+
 OSyncXMLField *handle_attribute_simple_content(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error) 
 { 
 	osync_trace(TRACE_INTERNAL, "Handling %s attribute", name);
