@@ -590,6 +590,8 @@ static osync_bool _osync_engine_start(OSyncEngine *engine, OSyncError **error)
 		goto error;
 	
 	osync_thread_start(engine->thread);
+
+	osync_engine_ref(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -603,7 +605,10 @@ static void _osync_engine_stop(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	
-	osync_thread_stop(engine->thread);
+	if (engine->thread)
+		osync_thread_stop(engine->thread);
+
+	osync_engine_unref(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

@@ -14,6 +14,7 @@ START_TEST (simple_lock)
 	
 	fail_unless(osync_group_lock(group) == OSYNC_LOCK_OK, NULL);
 	osync_group_unlock(group);
+	osync_group_unref(group);
 
 	fail_unless(!g_file_test("configs/group/lock", G_FILE_TEST_EXISTS), NULL);
 
@@ -33,6 +34,7 @@ START_TEST (simple_seq_lock)
 	
 	fail_unless(osync_group_lock(group) == OSYNC_LOCK_OK, NULL);
 	osync_group_unlock(group);
+	osync_group_unref(group);
 
 	fail_unless(!g_file_test("configs/group/lock", G_FILE_TEST_EXISTS), NULL);
 
@@ -51,6 +53,7 @@ START_TEST (dual_lock)
 	fail_unless(osync_group_lock(group) == OSYNC_LOCKED, NULL);
 	
 	osync_group_unlock(group);
+	osync_group_unref(group);
 
 	destroy_testbed(testbed);
 }
@@ -69,6 +72,8 @@ START_TEST (dual_lock2)
 	fail_unless(osync_group_lock(group2) == OSYNC_LOCKED, NULL);
 	
 	osync_group_unlock(group);
+	osync_group_unref(group);
+	osync_group_unref(group2);
 
 	destroy_testbed(testbed);
 }
@@ -125,6 +130,8 @@ START_TEST (dual_sync_engine_lock)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
 	
+	osync_group_unref(group);
+	osync_group_unref(group2);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -157,8 +164,11 @@ START_TEST (dual_sync_engine_unclean)
 	 */
 	if (engine->thread) {
 		osync_thread_stop(engine->thread);
+		osync_thread_free(engine->thread);
+		engine->thread = NULL;
 	}
 
+	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 	osync_group_unref(group);
 
@@ -228,6 +238,8 @@ START_TEST (dual_sync_engine_unclean)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+
+	osync_group_unref(group);
 	
 	destroy_testbed(testbed);
 }
