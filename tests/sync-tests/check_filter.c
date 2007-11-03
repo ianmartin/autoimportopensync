@@ -1,48 +1,71 @@
 #include "support.h"
 
+#include "opensync/format/opensync_filter_internals.h"
+
+static osync_bool dummy_filter_hook(OSyncData *data, const char *config)
+{
+	return TRUE;
+}
+
 START_TEST (filter_setup)
 {
 	char *testbed = setup_testbed("filter_setup");
-	OSyncEnv *osync = init_env();
-	
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
 	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
+	fail_unless(group != NULL, NULL);
+
 	mark_point();
 	
-	OSyncMember *leftmember = osync_group_nth_member(group, 0);
-	OSyncMember *rightmember = osync_group_nth_member(group, 1);
-	
-	OSyncFilter *filter = osync_filter_add(group, leftmember, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+	OSyncFilter *filter = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
+	fail_unless(error == NULL, NULL);
 	fail_unless(filter != NULL, NULL);
+	osync_group_add_filter(group, filter);
 	
 	mark_point();
 	fail_unless(osync_group_num_filters(group) == 1, NULL);
 	fail_unless(osync_group_nth_filter(group, 0) == filter, NULL);
 	
 	mark_point();
-	osync_filter_remove(group, filter);
+	osync_group_remove_filter(group, filter);
 	fail_unless(osync_group_num_filters(group) == 0, NULL);
-	osync_filter_free(filter);
+	osync_filter_unref(filter);
 
 	destroy_testbed(testbed);
 }
 END_TEST
 
+/* filter flushing got dropped with OpenSync 0.30 API
 START_TEST (filter_flush)
 {
 	char *testbed = setup_testbed("filter_setup");
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
 	OSyncMember *leftmember = osync_group_nth_member(group, 0);
 	OSyncMember *rightmember = osync_group_nth_member(group, 1);
 	
-	OSyncFilter *filter1 = osync_filter_add(group, leftmember, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
-	OSyncFilter *filter2 = osync_filter_add(group, leftmember, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+	OSyncFilter *filter1 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
+	OSyncFilter *filter2 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
 	fail_unless(filter1 != NULL, NULL);
 	fail_unless(filter2 != NULL, NULL);
+
+	osync_group_add_filter(group, filter1);
+	osync_group_add_filter(group, filter2);
 	
 	mark_point();
 	fail_unless(osync_group_num_filters(group) == 2, NULL);
@@ -56,28 +79,42 @@ START_TEST (filter_flush)
 	destroy_testbed(testbed);
 }
 END_TEST
+*/
 
 START_TEST (filter_sync_deny_all)
 {
 	char *testbed = setup_testbed("filter_sync_deny_all");
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
-	OSyncMember *leftmember = osync_group_nth_member(group, 0);
-	
-	osync_filter_add(group, leftmember, NULL, NULL, NULL, NULL, OSYNC_FILTER_DENY);
-	osync_filter_add(group, NULL, leftmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+	OSyncFilter *filter1 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
+	OSyncFilter *filter2 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
+
+	fail_unless(filter1 != NULL, NULL);
+	fail_unless(filter2 != NULL, NULL);
+
+	osync_group_add_filter(group, filter1);
+	osync_group_add_filter(group, filter2);
 	
 	mark_point();
-	OSyncError *error = NULL;
-  	OSyncEngine *engine = osengine_new(group, &error);
+  	OSyncEngine *engine = osync_engine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
-	synchronize_once(engine, NULL);
-	osengine_finalize(engine);
+
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+
+	fail_unless(osync_engine_initialize(engine, &error), osync_error_print(&error));
+	synchronize_once(engine, &error);
+	osync_engine_finalize(engine, &error);
 
 	fail_unless(!system("test \"x$(ls data1)\" = \"xtestdata\""), NULL);
 	fail_unless(!system("test \"x$(ls data2)\" = \"xtestdata2\""), NULL);
@@ -89,22 +126,39 @@ END_TEST
 START_TEST (filter_sync_custom)
 {
 	char *testbed = setup_testbed("filter_sync_custom");
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
-	OSyncFilter *filter = osync_filter_add_custom(group, NULL, NULL, NULL, NULL, "contact", "vcard_categories_filter");
+	OSyncCustomFilter *custom_filter = osync_custom_filter_new("mockobjtype1", "mockformat1", "mockformat1_custom_filter", dummy_filter_hook, &error);
+	fail_unless(custom_filter != NULL, NULL);
+
+	OSyncFilter *filter = osync_filter_new_custom(custom_filter, NULL, OSYNC_FILTER_DENY, &error);
+
+	fail_unless(filter != NULL, NULL);
+
+	osync_group_add_filter(group, filter);
+
 	osync_filter_set_config(filter, "test");
 	
 	mark_point();
-	OSyncError *error = NULL;
-  	OSyncEngine *engine = osengine_new(group, &error);
+  	OSyncEngine *engine = osync_engine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 
@@ -112,32 +166,40 @@ START_TEST (filter_sync_custom)
 }
 END_TEST
 
-static OSyncFilterAction vcard_cats(OSyncChange *change, char *config)
-{
-	//Check what categories are supported here.
-	return OSYNC_FILTER_IGNORE;
-}
-
 START_TEST (filter_save_and_load)
 {
 	char *testbed = setup_testbed("filter_save_and_load");
-	OSyncEnv *osync = init_env();
-	osync_env_register_objtype(osync, "test");
-	osync_env_register_objformat(osync, "test", "format1");
-	osync_env_register_filter_function(osync, "vcard_cats", "test", "format1", vcard_cats);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
 	
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
+	/* TODO filter member handling 
 	OSyncMember *leftmember = osync_group_nth_member(group, 0);
 	OSyncMember *rightmember = osync_group_nth_member(group, 1);
+	*/
+	OSyncCustomFilter *custom_filter = osync_custom_filter_new("mockobjtype3", "mockformat3", "mockformat1_custom_filter", dummy_filter_hook, &error);
+	fail_unless(custom_filter != NULL, NULL);
+
+	OSyncFilter *filter1 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
+	OSyncFilter *filter2 = osync_filter_new("mockobjtype2", OSYNC_FILTER_ALLOW, &error);
+
+	OSyncFilter *filter3 = osync_filter_new_custom(custom_filter, "test", OSYNC_FILTER_IGNORE, &error);
 	
-	OSyncFilter *filter1 = osync_filter_add(group, leftmember, rightmember, "1", "2", "3", OSYNC_FILTER_DENY);
-	OSyncFilter *filter2 = osync_filter_add(group, rightmember, leftmember, "4", "5", "6", OSYNC_FILTER_ALLOW);
-	OSyncFilter *filter3 = osync_filter_add_custom(group, leftmember, rightmember, "7", "8", "9", "vcard_cats");
-	osync_filter_set_config(filter3, "test");
-	
+	fail_unless(filter1 != NULL, NULL);
+	fail_unless(filter2 != NULL, NULL);
+	fail_unless(filter3 != NULL, NULL);
+
+	osync_group_add_filter(group, filter1);
+	osync_group_add_filter(group, filter2);
+	osync_group_add_filter(group, filter3);
+
 	fail_unless(osync_group_num_filters(group) == 3, NULL);
 	fail_unless(osync_group_nth_filter(group, 0) == filter1, NULL);
 	fail_unless(osync_group_nth_filter(group, 1) == filter2, NULL);
@@ -146,43 +208,51 @@ START_TEST (filter_save_and_load)
 	mark_point();
 	osync_group_save(group, NULL);
 	mark_point();
-	osync_env_finalize(osync, NULL);
-	osync_env_free(osync);
-	osync = init_env();
-	osync_env_register_objtype(osync, "test");
-	osync_env_register_objformat(osync, "test", "format1");
-	osync_env_register_filter_function(osync, "vcard_cats", "test", "format1", vcard_cats);
-	group = osync_group_load(osync, "configs/group", NULL);
+
+	osync_group_load(group, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
 
 	fail_unless(osync_group_num_filters(group) == 3, NULL);
 	filter1 = osync_group_nth_filter(group, 0);
 	fail_unless(filter1 != NULL, NULL);
-	fail_unless(filter1->sourcememberid == 1, NULL);
-	fail_unless(filter1->destmemberid == 2, NULL);
-	fail_unless(!strcmp(filter1->sourceobjtype, "1"), NULL);
-	fail_unless(!strcmp(filter1->destobjtype, "2"), NULL);
-	fail_unless(!strcmp(filter1->detectobjtype, "3"), NULL);
+	/* filter aren't member specific anymore. */
+	//fail_unless(filter1->sourcememberid == 1, NULL);
+	//fail_unless(filter1->destmemberid == 2, NULL);
+	fail_unless(!strcmp(osync_filter_get_objtype(filter1), "mockobjtype1"), NULL);
+	/* cross objtype syncing isn't supported anymore with 0.30 API */
+	//fail_unless(!strcmp(filter1->destobjtype, "2"), NULL);
+	//fail_unless(!strcmp(filter1->detectobjtype, "3"), NULL);
 	fail_unless(filter1->action == OSYNC_FILTER_DENY, NULL);
 	
 	filter1 = osync_group_nth_filter(group, 1);
 	fail_unless(filter1 != NULL, NULL);
-	fail_unless(filter1->sourcememberid == 2, NULL);
-	fail_unless(filter1->destmemberid == 1, NULL);
-	fail_unless(!strcmp(filter1->sourceobjtype, "4"), NULL);
-	fail_unless(!strcmp(filter1->destobjtype, "5"), NULL);
-	fail_unless(!strcmp(filter1->detectobjtype, "6"), NULL);
+	/* filter aren't member specific anymore. */
+	//fail_unless(filter1->sourcememberid == 2, NULL);
+	//fail_unless(filter1->destmemberid == 1, NULL);
+	/* cross objtype syncing isn't supported anymore with 0.30 API */
+	fail_unless(!strcmp(osync_filter_get_objtype(filter1), "mockobjtype2"), NULL);
+	/* cross objtype syncing isn't supported anymore with 0.30 API */
+	//fail_unless(!strcmp(filter1->destobjtype, "5"), NULL);
+	//fail_unless(!strcmp(filter1->detectobjtype, "6"), NULL);
 	fail_unless(filter1->action == OSYNC_FILTER_ALLOW, NULL);
 
 	filter1 = osync_group_nth_filter(group, 2);
 	fail_unless(filter1 != NULL, NULL);
-	fail_unless(filter1->sourcememberid == 1, NULL);
-	fail_unless(filter1->destmemberid == 2, NULL);
-	fail_unless(!strcmp(filter1->sourceobjtype, "7"), NULL);
-	fail_unless(!strcmp(filter1->destobjtype, "8"), NULL);
-	fail_unless(!strcmp(filter1->detectobjtype, "9"), NULL);
-	fail_unless(filter1->hook != NULL, NULL);
+
+	/* filter aren't member specific anymore. */
+	//fail_unless(filter1->sourcememberid == 1, NULL);
+	//fail_unless(filter1->destmemberid == 2, NULL);
+	/* cross objtype syncing isn't supported anymore with 0.30 API */
+
+	// FIXME - custom filter handling for objtype
+	///fail_unless(!strcmp(osync_filter_get_objtype(filter1), "mockobjtype3"), NULL);
+
+	/* cross objtype syncing isn't supported anymore with 0.30 API */
+	//fail_unless(!strcmp(filter1->destobjtype, "8"), NULL);
+	//fail_unless(!strcmp(filter1->detectobjtype, "9"), NULL);
+	fail_unless(filter1->custom_filter != NULL, NULL);
+	fail_unless(filter1->custom_filter->hook != NULL, NULL);
 	fail_unless(!strcmp(osync_filter_get_config(filter1), "test"), NULL);
 
 	destroy_testbed(testbed);
@@ -192,26 +262,42 @@ END_TEST
 START_TEST (filter_sync_vcard_only)
 {
 	char *testbed = setup_testbed("filter_sync_vcard_only");
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
+	/* TODO filtering isn't member sepcific anymore
 	OSyncMember *rightmember = osync_group_nth_member(group, 1);
+	*/
 	
-	osync_filter_add(group, NULL, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
-	osync_filter_add(group, NULL, rightmember, NULL, NULL, "contact", OSYNC_FILTER_ALLOW);
+	OSyncFilter *filter1 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
+	OSyncFilter *filter2 = osync_filter_new("mockobjtype1", OSYNC_FILTER_ALLOW, &error);
+
+	fail_unless(filter1 != NULL, NULL);
+	fail_unless(filter2 != NULL, NULL);
+
+	osync_group_add_filter(group, filter1);
+	osync_group_add_filter(group, filter2);
 	
 	mark_point();
-	OSyncError *error = NULL;
-  	OSyncEngine *engine = osengine_new(group, &error);
+  	OSyncEngine *engine = osync_engine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osengine_finalize(engine);
-	osync_env_finalize(osync, NULL);
-	osync_env_free(osync);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 
 	fail_unless(!system("test \"x$(ls data1/testdata)\" = \"xdata1/testdata\""), NULL);
 	fail_unless(!system("test \"x$(ls data1/testdata2)\" = \"xdata1/testdata2\""), NULL);
@@ -230,17 +316,26 @@ START_TEST(filter_destobjtype_delete)
 	/* Check if the destobjtype of the changes is being
 	 * set when the change type os DELETE */
 	char *testbed = setup_testbed("destobjtype_delete");
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
 	mark_point();
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
+	OSyncEngine *engine = osync_engine_new(group, &error);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 	mark_point();
 
@@ -250,7 +345,7 @@ START_TEST(filter_destobjtype_delete)
 
 	synchronize_once(engine, NULL);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 
 	destroy_testbed(testbed);
 }
@@ -261,10 +356,14 @@ END_TEST
 START_TEST (filter_sync_read_only)
 {
 	char *testbed = setup_testbed("filter_sync_deny_all");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
@@ -275,12 +374,16 @@ START_TEST (filter_sync_read_only)
 	num_read = 0;
 	mark_point();
 	OSyncError *error = NULL;
-  	OSyncEngine *engine = osengine_new(group, &error);
+  	OSyncEngine *engine = osync_engine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 
 	fail_unless(num_read == 1);
 
@@ -298,7 +401,6 @@ Suite *filter_suite(void)
 	//Suite *s2 = suite_create("Filter");
 	
 	create_case(s, "filter_setup", filter_setup);
-	create_case(s, "filter_flush", filter_flush);
 	create_case(s, "filter_sync_deny_all", filter_sync_deny_all);
 	create_case(s, "filter_sync_custom", filter_sync_custom);
 	create_case(s, "filter_save_and_load", filter_save_and_load);

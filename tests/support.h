@@ -8,6 +8,7 @@
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-data.h>
+#include <opensync/opensync-group.h>
 
 #include "config.h"
 

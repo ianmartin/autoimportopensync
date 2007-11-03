@@ -136,7 +136,7 @@ void osync_filter_set_config(OSyncFilter *filter, const char *config)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, filter, config);
 	
-	g_assert(filter);
+	osync_assert(filter);
 	if (filter->config)
 		g_free(filter->config);
 	filter->config = g_strdup(config);
@@ -151,7 +151,7 @@ void osync_filter_set_config(OSyncFilter *filter, const char *config)
  **/
 const char *osync_filter_get_config(OSyncFilter *filter)
 {
-	g_assert(filter);
+	osync_assert(filter);
 	return filter->config;
 }
 
@@ -162,6 +162,7 @@ const char *osync_filter_get_config(OSyncFilter *filter)
  **/
 const char *osync_filter_get_objtype(OSyncFilter *filter)
 {
+	osync_assert(filter);
 	return filter->objtype;
 }
 
