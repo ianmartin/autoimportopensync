@@ -6,6 +6,8 @@
 #include <opensync/opensync-mapping.h>
 #include <opensync/opensync-archive.h>
 #include <opensync/opensync-helper.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-data.h>
 
 #include "config.h"
 

@@ -4,7 +4,10 @@ INCLUDE( ${SWIG_USE_FILE} )
 
 SET(CMAKE_SWIG_FLAGS -Werror -Wall -modern)
 
-FIND_PACKAGE( OpenSync REQUIRED )
+# SWIG 1.3.31 is broken - SVN version of SWIG got fixed by andrewb (ticket #498)
+IF (CMAKE_COMPILER_IS_GNUCC)
+	ADD_DEFINITIONS( -fno-strict-aliasing )
+ENDIF (CMAKE_COMPILER_IS_GNUCC)
 
 FILE(GLOB SWIG_MODULE_opensync_EXTRA_DEPS opensync-*.i)
 SWIG_ADD_MODULE( opensync python opensync.i )

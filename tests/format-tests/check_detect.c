@@ -1,9 +1,4 @@
-#include <check.h>
-#include <glib.h>
-#include <opensync/opensync.h>
-#include <opensync/opensync-data.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync_internals.h>
+#include "support.h"
 
 static osync_bool detect(const char *data, int size)
 {
