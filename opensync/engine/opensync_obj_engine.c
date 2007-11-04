@@ -1244,7 +1244,7 @@ static void _generate_written_event(OSyncObjEngine *engine)
 		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
 
 		/* If the sink engine isn't able/allowed to write we don't care if everything got written ("how dirty is it!?") */ 
-		if (!osync_objtype_sink_get_write(objtype_sink)) 
+		if (!objtype_sink || !osync_objtype_sink_get_write(objtype_sink)) 
 			break;
 		
 		for (e = sinkengine->entries; e; e = e->next) {
@@ -1731,7 +1731,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 				OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
 
 				/* Is there at least one other writeable sink? */
-				if (osync_objtype_sink_get_write(objtype_sink) && write_sinks) {
+				if (objtype_sink && osync_objtype_sink_get_write(objtype_sink) && write_sinks) {
 					_obj_engine_read_callback(sinkengine->proxy, sinkengine, *error);
 					osync_trace(TRACE_INTERNAL, "no other writable sinks .... SKIP");
 					continue;
@@ -1813,7 +1813,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 
 					/* Only commit change if the objtype sink is able/allowed to write. */
-					if (osync_objtype_sink_get_write(objtype_sink) && osync_entry_engine_is_dirty(entry_engine)) {
+					if (objtype_sink && osync_objtype_sink_get_write(objtype_sink) && osync_entry_engine_is_dirty(entry_engine)) {
 						osync_assert(entry_engine->change);
 						OSyncChange *change = entry_engine->change;
 
