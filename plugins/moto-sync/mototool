@@ -74,32 +74,52 @@ def pack_backup(typestr, edata):
         if type(val) == types.IntType:
             strings.append(str(val))
         else:
-            strings.append('"%s"' % val.encode('utf7'))
-            assert('"' not in val)
+            if val == '': 
+                strings.append('') 
+            else: 
+                s = val.encode('utf8') 
+                # escape \ to \\, " to \" and newline to \n 
+                s = s.replace('\\', '\\\\') 
+                s = s.replace('"', '\\"') 
+                s = s.replace('\n', '\\n') 
+                strings.append('"' + s + '"')
     return ','.join([typestr] + strings) + '\n'
 
 def unpack_backup(line):
     """reverse the pack_backup function above"""
+    # FIXME: is the unescaping sane with arbitrary utf8 characters? 
     if line[-1] == '\n':
         line = line[:-1]
     parts = []
     nextpart = ''
     wasquote = False
     inquote = False
+    inescape = False
     for c in line:
         if c == ',' and not inquote:
-            if not wasquote and len(parts) > 0:
+            if not wasquote and len(parts) > 0 and nextpart != '':
                 nextpart = int(nextpart)
+            if wasquote: 
+                nextpart = nextpart.decode('utf8')
             parts.append(nextpart)
             nextpart = ''
             wasquote = False
+        elif c == '\\' and inquote and not inescape: 
+            inescape = True 
+        elif inquote and inescape: 
+            inescape = False 
+            if c == 'n': 
+                c = '\n' 
+            else: 
+                assert(c == '"' or c == '\\') 
+            nextpart = nextpart + c
         elif c == '"':
             wasquote = True
             inquote = not inquote
         else:
             nextpart = nextpart + c
-    if wasquote:
-        parts.append(nextpart.decode('utf7'))
+    if wasquote or nextpart == '':
+        parts.append(nextpart.decode('utf8'))
     else:
         parts.append(int(nextpart))
     return parts[0], parts[1:]

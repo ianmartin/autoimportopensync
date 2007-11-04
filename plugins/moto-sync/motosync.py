@@ -426,9 +426,10 @@ class PhoneComms:
         self.__do_cmd('AT+MODE=0') # ?
         self.__do_cmd('ATE0Q0V1')  # echo off, result codes off, verbose results
 
-        # use ISO 8859-1 encoding for data values, for easier debugging
-        # FIXME: change to UCS2?
-        self.__do_cmd('AT+CSCS="8859-1"')
+        # use UCS2 encoding for data values 
+        # this is an older version of UTF16 where every char is two bytes long 
+        # the phone implements it by sending us 2 hex chars per byte, ie. 4 per char 
+        self.__do_cmd('AT+CSCS="UCS2"')
 
         (maxevs, numevs, namelen, max_except, _) = self.read_event_params()
         self.max_events = maxevs
@@ -528,8 +529,11 @@ class PhoneComms:
         self.delete_event(pos)
         exceptions = evdata[-1]
         data = evdata[:-1]
-        placeholders = self.__make_placeholders(data)
-        self.__do_cmd(('AT+MDBW=' + placeholders) % tuple(data), WRITE_ENABLED)
+        # HACK: only the name of the event (data[1]) should be unicode 
+        for n in range(2, len(data)): 
+            if type(data[n]) == types.UnicodeType: 
+                data[n] = data[n].encode('ascii') 
+        self.__do_cmd('AT+MDBW=' + self.__to_cmd_str(data)) 
         for expos in exceptions:
             self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos), WRITE_ENABLED)
 
@@ -610,8 +614,11 @@ class PhoneComms:
     def write_contact(self, data):
         """write a single contact to the position specified in the data list"""
         self.close_calendar()
-        placeholders = self.__make_placeholders(data)
-        self.__do_cmd(('AT+MPBW=' + placeholders) % tuple(data), WRITE_ENABLED)
+        # HACK: the email/number and birthday (index 1&23) must not be unicode 
+        for n in [1, 23]: 
+            if len(data) > n and type(data[n]) == types.UnicodeType: 
+                data[n] = data[n].encode('ascii') 
+        self.__do_cmd('AT+MPBW=' + self.__to_cmd_str(data)) 
 
     def delete_contact(self, pos):
         """delete the contact at a given position"""
@@ -645,7 +652,6 @@ class PhoneComms:
 
         If it succeeds, return lines as a list; otherwise raise an exception.
         """
-        cmd = cmd.encode('iso_8859_1')
         debug('--> ' + cmd)
         ret = []
         if reallydoit:
@@ -696,9 +702,11 @@ class PhoneComms:
                 # convert quoted values to strings, everything else to integers
                 valparts = []
                 for part in parts:
-                    if part[0] == '"':
+                    if part == '': 
+                        valparts.append('') 
+                    elif part[0] == '"':
                         assert(part[-1] == '"')
-                        valparts.append(part[1:-1].decode('iso_8859_1'))
+                        valparts.append(part[1:-1])
                     elif part[0] == '(':
                         # parse a range string like '(1-10,45,50-60)'
                         assert(part[-1] == ')')
@@ -707,6 +715,9 @@ class PhoneComms:
                         if len(ranges) == 1:
                             ranges = ranges[0]
                         valparts.append(ranges)
+                    elif len(part) >= 4 and part[0] == '0': 
+                        # this looks like a UCS2-encoded string 
+                        valparts.append(part.decode('hex').decode('utf_16_be')) 
                     else:
                         try:
                             part = int(part)
@@ -716,19 +727,33 @@ class PhoneComms:
                 ret.append(valparts)
         return ret
 
-    def __make_placeholders(self, vals):
-        """Return string expandion placeholders ("%s",%d etc) for a write."""
+    def __to_cmd_str(self, vals): 
+        """Convert different typed data to a string that can be used in a phone 
+        write command (ie. MPBW or MDBW.""" 
         def make_placeholder(val):
             """Return a single placeholder based on the given value's type."""
             t = type(val)
             if t == types.IntType:
                 return '%d'
+            elif t == types.StringType or val == '': 
+                return '"%s"' 
+            elif t == types.UnicodeType: 
+                return '%s' 
             else:
-                assert(t == types.StringType or t == types.UnicodeType,
-                       'unexpected type %s' % str(t))
-                return '"%s"'
+                assert(False, 'unexpected type %s' % str(t)) 
+        
+        def convert_val(val): 
+            """Convert a value to an alternate representation, if needed.""" 
+            if type(val) == types.UnicodeType: 
+                # convert to the phone's idea of UCS2 
+                # FIXME: this breaks in the case of surrogate pairs, but I doubt 
+                # they'll turn up in PIM data, and it's not clear what the phone 
+                # actually does support as its character set 
+                return val.encode('utf_16_be').encode('hex').upper() 
+            else: 
+                return val
 
-        return ','.join(map(make_placeholder, vals))
+        return ','.join(map(make_placeholder, vals)) % tuple(map(convert_val, vals)) 
 
 
 
