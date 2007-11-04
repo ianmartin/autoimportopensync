@@ -1499,7 +1499,7 @@ class PhoneEventExtended(PhoneEventSimple):
         appendXMLTag(doc, e, 'Content', self.location)
         insertXMLNode(top, e)
 
-        e = doc.createElement('Summary')
+        e = doc.createElement('Description')
         appendXMLTag(doc, e, 'Content', self.note)
         insertXMLNode(top, e)
 
@@ -1553,7 +1553,7 @@ class PhoneEventExtendedXML(PhoneEventExtended):
         xmlevent_to_moto_simple(node, self)
 
         self.location = getXMLField(node, 'Location', 'Content')
-        self.note = getXMLField(node, 'Summary', 'Content')
+        self.note = getXMLField(node, 'Description', 'Content')
 
         catname = getXMLField(node, 'Categories', 'Category')
         if catname:
@@ -1770,8 +1770,7 @@ class PhoneContactMoto(PhoneContact):
             self.birthday = None
         else:
             self.birthday = parse_moto_time(data[23])
-        if len(data) >= 25:
-            assert(data[24] == '') # unknown? old phones don't have it
+        # data[24] is a path (on the phone) to a special ringtone
 
         self.children.append(PhoneContactChildMoto(self, data))
 
