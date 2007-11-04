@@ -1,10 +1,12 @@
-ADD_LIBRARY( mock-sync SHARED mock_sync.c )
-ADD_LIBRARY( mock-format SHARED mock_format.c )
+INCLUDE( OpenSyncPlugin )
+
+OPENSYNC_PLUGIN_ADD( mock-sync mock_sync.c )
+OPENSYNC_FORMAT_ADD( mock-format mock_format.c )
 
 TARGET_LINK_LIBRARIES( mock-sync opensync ${CHECK_LIBRARIES} )
 TARGET_LINK_LIBRARIES( mock-format opensync ${CHECK_LIBRARIES} )
 
-
 ###### INSTALL ################### 
-#INSTALL( TARGETS mock-sync mock-format DESTINATION ${OPENSYNC_PLUGINDIR} ) 
+#OPENSYNC_PLUGIN_INSTALL( mock-sync ) 
+#OPENSYNC_FORMAT_INSTALL( mock-format ) 
 

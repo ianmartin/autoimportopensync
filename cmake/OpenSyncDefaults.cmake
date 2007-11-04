@@ -47,4 +47,6 @@ ENDIF ( NOT CMAKE_BUILD_TYPE )
 SET( OPENSYNC_TRACE TRUE CACHE BOOL "Debugging/Trace output of OpenSync" )
 SET( OPENSYNC_DEBUG_MODULES FALSE CACHE BOOL "Debugging modules. Avhoid unload of modules." )
 SET( OPENSYNC_UNITTESTS FALSE CACHE BOOL "Build OpenSync unit tests." )
+SET( OPENSYNC_PYTHONBINDINGS TRUE CACHE BOOL "Build OpenSync with Python bindings." )
+
 
