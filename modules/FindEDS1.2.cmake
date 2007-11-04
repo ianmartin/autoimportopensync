@@ -39,30 +39,47 @@
 
 IF ( NOT WIN32 )
 	INCLUDE( UsePkgConfig )
+
 	# Take care about evolution-data-server-1.2.pc settings
 	PKGCONFIG( evolution-data-server-1.2 _evolution-data-server-1.2_include_DIR _evolution-data-server-1.2_link_DIR _evolution-data-server-1.2_link_FLAGS _evolution-data-server-1.2_cflags )
+
 	# Take care about libebook-1.2.pc settings
 	PKGCONFIG( libebook-1.2 _libebook-1.2_include_DIR _libebook-1.2_link_DIR _libebook-1.2_link_FLAGS _libebook-1.2_cflags )
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS libebook-1.2 --variable=privincludedir OUTPUT_VARIABLE _libebook-1.2_include_DIR )
+	STRING( REGEX REPLACE "[\r\n]" " " _libebook-1.2_include_DIR "${_libebook-1.2_include_DIR}" )
+
 	# Take care about libecal-1.2.pc settings
 	PKGCONFIG( libecal-1.2 _libecal-1.2_include_DIR _libecal-1.2_link_DIR _libecal-1.2_link_FLAGS _libecal-1.2_cflags )
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS libecal-1.2 --variable=privincludedir OUTPUT_VARIABLE _libecal-1.2_include_DIR )
+	STRING( REGEX REPLACE "[\r\n]" " " _libecal-1.2_include_DIR "${_libecal-1.2_include_DIR}" )
+
 	# Take care about libedata-book-1.2.pc settings
 	PKGCONFIG( libedata-book-1.2 _libedata-book-1.2_include_DIR _libedata-book-1.2_link_DIR _libedata-book-1.2_link_FLAGS _libedata-book-1.2_cflags )
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS libedata-book-1.2 --variable=privincludedir OUTPUT_VARIABLE _libedata-book-1.2_include_DIR )
+	STRING( REGEX REPLACE "[\r\n]" " " _libedata-book-1.2_include_DIR "${_libedata-book-1.2_include_DIR}" )
+
 	# Take care about libedata-cal-1.2.pc settings
 	PKGCONFIG( libedata-cal-1.2 _libedata-cal-1.2_include_DIR _libedata-cal-1.2_link_DIR _libedata-cal-1.2_link_FLAGS _libedata-cal-1.2_cflags )
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS libedata-cal-1.2 --variable=privincludedir OUTPUT_VARIABLE _libedata-cal-1.2_include_DIR )
+	STRING( REGEX REPLACE "[\r\n]" " " _libedata-cal-1.2_include_DIR "${_libedata-cal-1.2_include_DIR}" )
+
 	# Take care about libedataserver-1.2.pc settings
 	PKGCONFIG( libedataserver-1.2 _libedataserver-1.2_include_DIR _libedataserver-1.2_link_DIR _libedataserver-1.2_link_FLAGS _libedataserver-1.2_cflags )
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS libedataserver-1.2 --variable=privincludedir OUTPUT_VARIABLE _libedataserver-1.2_include_DIR )
+	STRING( REGEX REPLACE "[\r\n]" " " _libedataserver-1.2_include_DIR "${_libedataserver-1.2_include_DIR}" )
+
 ENDIF ( NOT WIN32 )
 
 # Look for libebook1.2 include dir and libraries, and take care about pkg-config first...
 FIND_PATH( LIBEBOOK1.2_INCLUDE_DIR
 		NAMES libebook/e-book.h
 		PATHS ${_libebook-1.2_include_DIR}
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 
+		PATH_SUFFIXES evolution-data-server-1.2 
 		NO_DEFAULT_PATH )
 
 FIND_PATH( LIBEBOOK1.2_INCLUDE_DIR
 		NAMES libebook/e-book.h
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 
+		PATH_SUFFIXES evolution-data-server-1.2 
 		PATHS
 		/opt/local/include/
 		/sw/include/
@@ -89,11 +106,11 @@ FIND_LIBRARY( LIBEBOOK1.2_LIBRARIES
 FIND_PATH( LIBECAL1.2_INCLUDE_DIR
 		NAMES libecal/e-cal.h
 		PATHS ${_libecal-1.2_include_DIR}
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 NO_DEFAULT_PATH )
+		PATH_SUFFIXES evolution-data-server-1.2 NO_DEFAULT_PATH )
 
 FIND_PATH( LIBECAL1.2_INCLUDE_DIR
 		NAMES libecal/e-cal.h
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 
+		PATH_SUFFIXES evolution-data-server-1.2 
 		PATHS
 		/opt/local/include/
 		/sw/include/
@@ -120,11 +137,11 @@ FIND_LIBRARY( LIBECAL1.2_LIBRARIES
 FIND_PATH( LIBEDATABOOK1.2_INCLUDE_DIR
 		NAMES libedata-book/e-data-book.h
 		PATHS ${_libedata-book-1.2_include_DIR}
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 NO_DEFAULT_PATH )
+		PATH_SUFFIXES evolution-data-server-1.2 NO_DEFAULT_PATH )
 
 FIND_PATH( LIBEDATABOOK1.2_INCLUDE_DIR
 		NAMES libedata-book/e-data-book.h
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 
+		PATH_SUFFIXES evolution-data-server-1.2 
 		PATHS
 		/opt/local/include/
 		/sw/include/
@@ -151,11 +168,11 @@ FIND_LIBRARY( LIBEDATABOOK1.2_LIBRARIES
 FIND_PATH( LIBEDATACAL1.2_INCLUDE_DIR
 		NAMES libedata-cal/e-data-cal.h
 		PATHS ${_libedata-cal-1.2_include_DIR}
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 NO_DEFAULT_PATH )
+		PATH_SUFFIXES evolution-data-server-1.2 NO_DEFAULT_PATH )
 
 FIND_PATH( LIBEDATACAL1.2_INCLUDE_DIR
 		NAMES libedata-cal/e-data-cal.h
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 
+		PATH_SUFFIXES evolution-data-server-1.2 
 		PATHS
 		/opt/local/include/
 		/sw/include/
@@ -182,11 +199,11 @@ FIND_LIBRARY( LIBEDATACAL1.2_LIBRARIES
 FIND_PATH( LIBEDATASERVER1.2_INCLUDE_DIR
 		NAMES libedataserver/e-data-server-module.h 
 		PATHS ${_libedataserver-1.2_include_DIR} 
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 NO_DEFAULT_PATH )
+		PATH_SUFFIXES evolution-data-server-1.2 NO_DEFAULT_PATH )
 
 FIND_PATH( LIBEDATASERVER1.2_INCLUDE_DIR
 		NAMES libedataserver/e-data-server-module.h 
-		PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2 
+		PATH_SUFFIXES evolution-data-server-1.2 
 		PATHS
 		/opt/local/include/
 		/sw/include/
@@ -217,9 +234,14 @@ IF ( LIBEBOOK1.2_LIBRARIES AND LIBEBOOK1.2_INCLUDE_DIR )
 	ENDIF ( NOT LIBEBOOK1.2_FIND_QUIETLY )
 	SET( EDS1.2_FOUND 1 )
 ELSE ( LIBEBOOK1.2_LIBRARIES AND LIBEBOOK1.2_INCLUDE_DIR )	
-	IF ( NOT LIBEBOOK1.2_FIND_QUIETLY )
-		MESSAGE( STATUS "Could NOT find libebook-1.2" )
-	ENDIF ( NOT LIBEBOOK1.2_FIND_QUIETLY )
+	IF ( LIBEBOOK1.2_FIND_REQUIRED )
+		MESSAGE( SEND_ERROR "Could NOT find libebook-1.2" )
+	ELSE ( LIBEBOOK1.2_FIND_REQUIRED )
+		IF ( NOT LIBEBOOK1.2_FIND_QUIETLY )
+			MESSAGE( STATUS "Could NOT find libebook-1.2" )	
+		ENDIF ( NOT LIBEBOOK1.2_FIND_QUIETLY )
+	ENDIF ( LIBEBOOK1.2_FIND_REQUIRED )
+	SET( LIBEBOOK1.2_FOUND 1 )
 	SET( EDS1.2_FOUND 0 )
 ENDIF ( LIBEBOOK1.2_LIBRARIES AND LIBEBOOK1.2_INCLUDE_DIR )	
 
@@ -228,10 +250,16 @@ IF ( LIBECAL1.2_LIBRARIES AND LIBECAL1.2_INCLUDE_DIR )
 	IF ( NOT LIBECAL1.2_FIND_QUIETLY )
 		MESSAGE( STATUS "Found libecal-1.2: ${LIBECAL1.2_LIBRARIES}" )
 	ENDIF ( NOT LIBECAL1.2_FIND_QUIETLY )
+	SET( EDS1.2_FOUND 1 )
 ELSE ( LIBECAL1.2_LIBRARIES AND LIBECAL1.2_INCLUDE_DIR )	
-	IF ( NOT LIBECAL1.2_FIND_QUIETLY )
-		MESSAGE( STATUS "Could NOT find libecal-1.2" )
-	ENDIF ( NOT LIBECAL1.2_FIND_QUIETLY )
+	IF ( LIBECAL1.2_FIND_REQUIRED )
+		MESSAGE( SEND_ERROR "Could NOT find libecal-1.2" )
+	ELSE ( LIBECAL1.2_FIND_REQUIRED )
+		IF ( NOT LIBECAL1.2_FIND_QUIETLY )
+			MESSAGE( STATUS "Could NOT find libecal-1.2" )	
+		ENDIF ( NOT LIBECAL1.2_FIND_QUIETLY )
+	ENDIF ( LIBECAL1.2_FIND_REQUIRED )
+	SET( LIBECAL1.2_FOUND 0 )
 	SET( EDS1.2_FOUND 0 )
 ENDIF ( LIBECAL1.2_LIBRARIES AND LIBECAL1.2_INCLUDE_DIR )	
 
@@ -240,10 +268,15 @@ IF ( LIBEDATABOOK1.2_LIBRARIES AND LIBEDATABOOK1.2_INCLUDE_DIR )
 	IF ( NOT LIBEDATABOOK1.2_FIND_QUIETLY )
 		MESSAGE( STATUS "Found libedata-book-1.2: ${LIBEDATABOOK1.2_LIBRARIES}" )
 	ENDIF ( NOT LIBEDATABOOK1.2_FIND_QUIETLY )
+	SET( EDS1.2_FOUND 1 )
 ELSE ( LIBEDATABOOK1.2_LIBRARIES AND LIBEDATABOOK1.2_INCLUDE_DIR )	
-	IF ( NOT LIBEDATABOOK1.2_FIND_QUIETLY )
-		MESSAGE( STATUS "Could NOT find libedata-book-1.2" )
-	ENDIF ( NOT LIBEDATABOOK1.2_FIND_QUIETLY )
+	IF ( LIBEDATABOOK1.2_FIND_REQUIRED )
+		MESSAGE( SEND_ERROR "Could NOT find libedatabook-1.2" )
+	ELSE ( LIBEDATABOOK1.2_FIND_REQUIRED )
+		IF ( NOT LIBEDATABOOK1.2_FIND_QUIETLY )
+			MESSAGE( STATUS "Could NOT find libedatabook-1.2" )	
+		ENDIF ( NOT LIBEDATABOOK1.2_FIND_QUIETLY )
+	ENDIF ( LIBEDATABOOK1.2_FIND_REQUIRED )
 	SET( EDS1.2_FOUND 0 )
 ENDIF ( LIBEDATABOOK1.2_LIBRARIES AND LIBEDATABOOK1.2_INCLUDE_DIR )	
 
@@ -252,10 +285,15 @@ IF ( LIBEDATACAL1.2_LIBRARIES AND LIBEDATACAL1.2_INCLUDE_DIR )
 	IF ( NOT LIBEDATACAL1.2_FIND_QUIETLY )
 		MESSAGE( STATUS "Found libedata-cal-1.2: ${LIBEDATACAL1.2_LIBRARIES}" )
 	ENDIF ( NOT LIBEDATACAL1.2_FIND_QUIETLY )
+	SET( EDS1.2_FOUND 1 )
 ELSE ( LIBEDATACAL1.2_LIBRARIES AND LIBEDATACAL1.2_INCLUDE_DIR )	
-	IF ( NOT LIBEDATACAL1.2_FIND_QUIETLY )
-		MESSAGE( STATUS "Could NOT find libedata-cal-1.2" )
-	ENDIF ( NOT LIBEDATACAL1.2_FIND_QUIETLY )
+	IF ( LIBEDATACAL1.2_FIND_REQUIRED )
+		MESSAGE( SEND_ERROR "Could NOT find libedata-cal-1.2" )
+	ELSE ( LIBEDATACAL1.2_FIND_REQUIRED )
+		IF ( NOT LIBEDATACAL1.2_FIND_QUIETLY )
+			MESSAGE( STATUS "Could NOT find libedata-cal-1.2" )	
+		ENDIF ( NOT LIBEDATACAL1.2_FIND_QUIETLY )
+	ENDIF ( LIBEDATACAL1.2_FIND_REQUIRED )
 	SET( EDS1.2_FOUND 0 )
 ENDIF ( LIBEDATACAL1.2_LIBRARIES AND LIBEDATACAL1.2_INCLUDE_DIR )	
 
@@ -264,10 +302,15 @@ IF ( LIBEDATASERVER1.2_LIBRARIES AND LIBEDATASERVER1.2_INCLUDE_DIR )
 	IF ( NOT LIBEDATASERVER1.2_FIND_QUIETLY )
 		MESSAGE( STATUS "Found libedataserver-1.2: ${LIBEDATASERVER1.2_LIBRARIES}" )
 	ENDIF ( NOT LIBEDATASERVER1.2_FIND_QUIETLY )
+	SET( EDS1.2_FOUND 1 )
 ELSE ( LIBEDATASERVER1.2_LIBRARIES AND LIBEDATASERVER1.2_INCLUDE_DIR )	
-	IF ( NOT LIBEDATASERVER1.2_FIND_QUIETLY )
-		MESSAGE( STATUS "Could NOT find libedataserver-1.2" )
-	ENDIF ( NOT LIBEDATASERVER1.2_FIND_QUIETLY )
+	IF ( LIBEDATASERVER1.2_FIND_REQUIRED )
+		MESSAGE( SEND_ERROR "Could NOT find libedataserver-1.2" )
+	ELSE ( LIBEDATASERVER1.2_FIND_REQUIRED )
+		IF ( NOT LIBEDATASERVER1.2_FIND_QUIETLY )
+			MESSAGE( STATUS "Could NOT find libedataserver-1.2" )	
+		ENDIF ( NOT LIBEDATASERVER1.2_FIND_QUIETLY )
+	ENDIF ( LIBEDATASERVER1.2_FIND_REQUIRED )
 	SET( EDS1.2_FOUND 0 )
 ENDIF ( LIBEDATASERVER1.2_LIBRARIES AND LIBEDATASERVER1.2_INCLUDE_DIR )	
 
