@@ -1758,15 +1758,18 @@ class PhoneContactMoto(PhoneContact):
     def __init__(self, data):
         """grab stuff out of the list of values from the phone"""
         PhoneContact.__init__(self)
-        assert(type(data) == list and len(data) >= 24)
+        assert(type(data) == list and len(data) >= 20)
         self.name = data[3]
         self.categorynum = data[9]
         self.firstlast_enabled = data[11]
         self.firstlast_index = data[12]
         assert(data[14] == 0) # unknown?
         assert(data[15] == 0) # unknown?
-        self.nickname = data[22]
-        if data[23] == '':
+        if len(data) >= 21:
+            self.nickname = data[22]
+        else:
+            self.nickname = None
+        if len(data) < 22 or data[23] == '':
             self.birthday = None
         else:
             self.birthday = parse_moto_time(data[23])
@@ -1991,8 +1994,11 @@ class PhoneContactChild:
 class PhoneContactChildMoto(PhoneContactChild):
     """Phone contact child object for children created from phone data."""
     def __init__(self, parent, data):
-        assert(type(data) == list and len(data) >= 24)
-        adr = (data[17], data[16], data[18], data[19], data[20], data[21])
+        assert(type(data) == list and len(data) >= 14)
+        if len(data) >= 22:
+            adr = (data[17], data[16], data[18], data[19], data[20], data[21])
+        else:
+            adr = (None, None, None, None, None, None)
         PhoneContactChild.__init__(self, parent, data[1], data[4], data[8], adr)
         self.pos = data[0]
         self.numtype = data[2]
