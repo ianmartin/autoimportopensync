@@ -758,6 +758,7 @@ class PhoneComms:
         self.__calendar_open = False
         self.__calendar_locking_required = True
         self.__fd = self.__btsock = None
+        self.model = None
         self.max_events = None
         self.num_events = None
         self.event_name_len = None
@@ -816,6 +817,8 @@ class PhoneComms:
         # this is an older version of UTF16 where every char is two bytes long
         # the phone implements it by sending us 2 hex chars per byte, ie. 4 per char
         self.__do_cmd('AT+CSCS="UCS2"')
+
+        self.model = self.read_model()
 
         (maxevs, numevs, namelen, max_except, extended) = self.read_event_params()
         self.max_events = maxevs
@@ -1020,10 +1023,16 @@ class PhoneComms:
     def write_contact(self, data):
         """write a single contact to the position specified in the data list"""
         self.close_calendar()
+
         # HACK: the email/number and birthday (index 1&23) must not be unicode
         for n in [1, 23]:
             if len(data) > n and type(data[n]) == types.UnicodeType:
                 data[n] = data[n].encode('ascii')
+
+        # HACK: the V3 only takes 16 parameters (no address), lop the rest off
+        if self.model == 'V3':
+            data = data[:16]
+
         self.__do_cmd('AT+MPBW=' + self.__to_cmd_str(data))
 
     def delete_contact(self, pos):

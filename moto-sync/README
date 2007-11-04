@@ -23,6 +23,7 @@ Untested, but might be working with recent changes:
  * K1 KRZR (extended calendar suppport, ticket #425)
  * V3xx RAZR (extended calendar suppport, ticket #425)
  * V3c (doesn't like AT+MODE=0, ticket #505)
+ * V3 RAZR (tickets #599, #555, #504)
 
 Models known not to work:
  * V600 (shorter contact entries, ticket #504)
