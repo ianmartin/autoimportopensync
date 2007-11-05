@@ -1,0 +1,100 @@
+OpenSync Format Plugin: vformat
+===============================
+
+This plugin is based on vformat.{c,h} which got adapted from evolution e-vcard
+parser. vformat.{c,h} parsing and assembling of vObject-like formatting. The
+term vformat is often use to describe this format of vCard 2.1, vCard 3.0,
+vCalendar, iCalendar and vNote.
+
+vformat.c
+
+	Please keep vformat.c clean from any OpenSync specific code (osync_*
+	functions). Since vformat.c is very powerful on parsing the vObject
+	format, it's planned to split vformat.c out of OpenSync and provide a
+	shared library independent of the OpenSync vformat plugin. So far
+	osync_trace() calls are tolerated, for debugging purpose in vformat.c
+	codebase.
+
+
+vcard.c
+
+	Register the object formats "vcard21", "vcard30". 
+	vcard21 represents vCard 2.1 - http://www.imc.org/pdi/vcard-21.txt
+	vcard30 represents vCard 3.0 - RFC2426
+
+	Beside the object formats, format detectores to detect vcard21 and
+	vcard30 in "plain" format.
+
+	TODO: Implement cutom filter for vCards - skeleton available.
+
+vevent.c
+
+	Register the object formats "vevent10", "vevent20". 
+
+	vevent10 represents VEVENT component of vCalendar 
+		- http://www.imc.org/pdi/vcal-10.txt
+
+	vevent20 represents VEVENT component of iCalendar 
+		- RFC2445, Chapter 4.6.1 Event Component
+
+	Beside the object formats, format detectores to detect vevent10 and
+	vevent20 in "plain" format.
+
+vtodo.c
+
+
+	Register the object formats "vevent10", "vevent20". 
+
+	vevent10 represents VTODO component of vCalendar 
+		- http://www.imc.org/pdi/vcal-10.txt
+
+	vevent20 represents VTODO component of iCalendar 
+		- RFC2445, Chapter 4.6.2 To-do Component
+
+
+	Beside the object formats, format detectores to detect vtodo10 and
+	vtodo20 in "plain" format.
+
+vnote.c
+
+	Register the object formats "vnote11".
+
+	vnote11 represents vNote 1.1 - [IRMC]
+
+	Beside the object format, format detectores to detect vnote11 in
+	"plain" format.
+
+xmlformat-common.c
+
+	Provides helper functions for the xmlformat to vformat convters.
+
+xmlformat-vcalendar.c
+
+	Provides common helper functions for the xmlformat-event from/to
+	vevent10 and vevent20 converters and xmlformat-todo from/to vtodo10 and 
+	vtodo20 conveters.
+
+xmlformat-vcard.c
+
+	Converter code of xmlformat-contact from/to vcard21 and vcard30 converter.
+
+xmlformat-vevent.c
+
+	Converter code of xmlformat-event from/to vevent10 and vevent20 converter.
+
+xmlformat-vtodo.c [TBD]
+
+	Converter code of xmlformat-todo from/to vtodo10 and vtodo20 converter.
+
+xmlformat-vnote.c
+
+	Converter code of xmlformat-note from/to vnote11 converter.
+
+vformat-xmlformat.c
+
+	Register the vformat converters:
+		
+		- xmlformat-event from/to vevent10 and vevent20 converter
+		- xmlformat-todo from/to vtodo10 and vtodo20 converter
+		- xmlformat-note from/to vnote11 converter
+

@@ -45,7 +45,7 @@ char *setup_testbed(char *fkt_name)
 		abort();
 	g_free(command);
 
-        command = g_strdup_printf("cp %s/*.so*  %s", OPENSYNC_FORMATSDIR, testbed);
+        command = g_strdup_printf("cp %s/plain.so %s/xmlformat.so  %s", OPENSYNC_FORMATSDIR, OPENSYNC_FORMATSDIR, testbed);
         if (system(command))
                 abort();
         g_free(command);

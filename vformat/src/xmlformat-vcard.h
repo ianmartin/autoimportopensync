@@ -35,4 +35,12 @@ typedef struct OSyncHookTables {
 #define HANDLE_IGNORE (void *)1
 */
 
+
+osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+osync_bool conv_xmlformat_to_vcard30(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+osync_bool conv_xmlformat_to_vcard21(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+
+
+
+
 #endif /*XMLFORMAT_VCARD_H_*/

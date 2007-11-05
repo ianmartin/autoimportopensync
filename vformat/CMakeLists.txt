@@ -4,6 +4,11 @@ SET( VERSION "0.34" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 
+SET( BUILD_CONTACT TRUE CACHE BOOL "Build contact support for vCard 2.1 and vCard 3.0" )
+SET( BUILD_CALENDAR TRUE CACHE BOOL "Build calendar support for vCalendar and iCalendar" )
+SET( BUILD_NOTE TRUE CACHE BOOL "Build note support for vNote" )
+SET( BUILD_XMLFORMAT CACHE TRUE BOOL "Build format converters for OpenSync XMLFormat" )
+
 FIND_PACKAGE( OpenSync REQUIRED )
 FIND_PACKAGE( GLIB2 REQUIRED )
 FIND_PACKAGE( Check )

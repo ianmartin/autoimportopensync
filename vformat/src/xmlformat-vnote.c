@@ -52,7 +52,7 @@ static void *init_vnote_to_xmlformat(VFormatType target)
 	return (void *)hooks;
 }
 
-static osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
@@ -176,41 +176,8 @@ static osync_bool conv_xmlformat_to_vnotememo(char *input, unsigned int inpsize,
 	return TRUE;
 }
 
-static osync_bool conv_xmlformat_to_vnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_vnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vnotememo(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_NOTE);
 }
 
-osync_bool get_conversion_info(OSyncFormatEnv *env)
-{
-	OSyncFormatConverter *conv = NULL;
-	OSyncError *error = NULL;
-
-	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-note");
-	OSyncObjFormat *vnote = osync_format_env_find_objformat(env, "vnote11");
-
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vnote, conv_xmlformat_to_vnote, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vnote, xmlformat, conv_vnote_to_xmlformat, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-
-	return TRUE;
-}
-
-int get_version(void)
-{
-	return 1;
-}

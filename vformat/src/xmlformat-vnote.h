@@ -41,4 +41,8 @@ struct OSyncHookTables {
 
 #define HANDLE_IGNORE (void *)1
 */
+
+osync_bool conv_xmlformat_to_vnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+
 #endif //XMLFORMAT_VNOTE_H_

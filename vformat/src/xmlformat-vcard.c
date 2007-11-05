@@ -962,7 +962,7 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 //	return;
 //}
 
-static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
@@ -1925,68 +1925,13 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	return TRUE;
 }
 
-
-static osync_bool conv_xmlformat_to_vcard30(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_vcard30(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vcard(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_CARD_30);
 }
 
-static osync_bool conv_xmlformat_to_vcard21(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_vcard21(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vcard(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_CARD_21);
 }
 
-osync_bool get_conversion_info(OSyncFormatEnv *env)
-{
-	OSyncFormatConverter *conv;
-	OSyncError *error = NULL;
-	
-	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-contact");
-	OSyncObjFormat *vcard21 = osync_format_env_find_objformat(env, "vcard21");
-	OSyncObjFormat *vcard30 = osync_format_env_find_objformat(env, "vcard30");
-	
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcard21, conv_xmlformat_to_vcard21, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcard21, xmlformat, conv_vcard_to_xmlformat, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-	
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcard30, conv_xmlformat_to_vcard30, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcard30, xmlformat, conv_vcard_to_xmlformat, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return FALSE;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-
-	return TRUE;
-}
-
-int get_version(void)
-{
-	return 1;
-}
