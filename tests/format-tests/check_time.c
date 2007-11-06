@@ -162,6 +162,9 @@ START_TEST (time_unix_converters)
 {
 	struct tm base;
 
+
+	putenv("TZ=America/Montreal");
+
 	// simple test, no DST
 	base.tm_sec = 0;
 	base.tm_min = 0;

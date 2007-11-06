@@ -287,9 +287,21 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
 	GString *vtime = g_string_new("");
 	struct tm my_time = *time;
+	const char *tz = NULL;
 
 	/* ask C library to clean up any anomalies */
+	if (is_utc) {
+		tz = g_getenv("TZ");
+		putenv("TZ=Etc/UTC");
+	}
 	mktime(&my_time);
+	if(is_utc) {
+		if (tz) {
+			g_setenv("TZ", tz, TRUE);
+		} else {
+			g_unsetenv("TZ");
+		}
+	}
 
 	g_string_printf(vtime, "%04d%02d%02dT%02d%02d%02d",
 				my_time.tm_year + 1900, my_time.tm_mon + 1, my_time.tm_mday,
