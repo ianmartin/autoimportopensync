@@ -95,88 +95,6 @@ static void _osync_engine_set_internal_format(OSyncEngine *engine, const char *o
 	g_hash_table_insert(engine->internalFormats, g_strdup(objtype), g_strdup(osync_objformat_get_name(format)));
 }
 
-static osync_bool _osync_engine_receive_change_detect_data(OSyncEngine *engine, OSyncChange *change, OSyncError *error)
-{
-
-	OSyncData *data = osync_change_get_data(change);
-	int changetype = osync_change_get_changetype(change);
-	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
-	OSyncObjFormat *detectedFormat = NULL;
-
-	detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
-	if (!detectedFormat)
-		goto error;
-
-	/* To avoid problems with unsupported object types in groups. Check if object type of 
-	   detectedFormat is supported by the object engines... */
-	const char *detected_objtype = osync_objformat_get_objtype(detectedFormat);
-	osync_bool supported_objtype = FALSE;
-
-	GList *objengine = NULL;
-	for (objengine = engine->object_engines; objengine; objengine = objengine->next) {
-		const char *objtype = osync_obj_engine_get_objtype(objengine->data);
-		if (!strcmp(detected_objtype, objtype)) {
-			supported_objtype = TRUE;
-			break;
-		}
-	}
-
-	osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), detected_objtype);
-
-	/* ... only if the objtype is supported by one of the object engines we change the objtype of the change-entry (change). */
-	if (supported_objtype)
-		osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
-	else
-		osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype);
-
-	/* If initial objformat was reported as "file" detect the real object format and update it.
-	   This is needed to avoid an invalid converting path from file -> plain -> targetformat.
-	   The correct converting path would be:
-	     file -> plain -> original sourceformat -> targetformat.
-
-	   Example: 
-	     real sourceformat: vcard30 targetformat: xmlformat-contact
-
-	     file -> plain -> xmlformat-contact-doc -> xmlformat-contact 
-
-	     This would break because the xmlformat-cotnact-doc converter would try to
-	     parse the plain vcard30 as XML
-	
-	 */
-
-	if (changetype != OSYNC_CHANGE_TYPE_DELETED && (!strcmp(format, "plain") || !strcmp(format, "file"))) {
-		/* Check if the object format got already detected by objtype "data" update. */
-		if (!detectedFormat)
-			detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
-
-		if (!detectedFormat)
-			goto error;
-
-		/* Convert from plain/file to the detected format to avoid shortcuts within the converter path */
-		if (osync_group_get_converter_enabled(engine->group) && detectedFormat != osync_data_get_objformat(data)) {
-			OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), detectedFormat, &error);
-			if (!path)
-				goto error;
-		
-			if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
-				osync_converter_path_unref(path);
-				goto error;
-			}
-			
-			osync_converter_path_unref(path);
-		}
-
-	}
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE; 
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	return FALSE;
-}
-
-
 static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
 {
 	OSyncEngine *engine = userdata;
@@ -194,13 +112,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
 	
 	OSyncData *data = osync_change_get_data(change);
-	
-	/* If objtype == "data", detect the objtype */
-	if (!strcmp(osync_change_get_objtype(change), "data") && osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
-		if (!_osync_engine_receive_change_detect_data(engine, change, error))
-			goto error;
-	}
-	
+
 	/* Convert the format to the internal format */
 	OSyncObjFormat *internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
 	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change));
