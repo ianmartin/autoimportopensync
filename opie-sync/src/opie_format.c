@@ -29,7 +29,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <opensync/opensync.h>
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
-#include <opensync/opensync_xml.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-merger.h>
 
@@ -345,7 +344,8 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int
 
 	/* Create a new output xml document */
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *on_contact = osxml_node_add_root(odoc, "Contact");
+	xmlNode *on_contact = xmlNewDocNode(odoc, NULL, "Contact", NULL); 
+
 	
 	OSyncXMLField *in_xmlfield = osync_xmlformat_get_first_field(in_xmlformat);
 	while(in_xmlfield) {
@@ -738,7 +738,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(char *input, unsigned int inpsi
 
 	/* Create a new output xml document */
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *on_todo = osxml_node_add_root(odoc, "Task");
+	xmlNode *on_todo = xmlNewDocNode(odoc, NULL, "Task", NULL);
 	
 	OSyncXMLField *in_xmlfield = osync_xmlformat_get_first_field(in_xmlformat);
 	while(in_xmlfield) {
@@ -1081,7 +1081,7 @@ static osync_bool conv_xml_event_to_opie_xml_event(char *input, unsigned int inp
 	
 	/* Create a new output xml document */
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *on_event = osxml_node_add_root(odoc, "event");
+	xmlNode *on_event = xmlNewDocNode(odoc, NULL, "event", NULL);
 	
 	OSyncXMLField *in_xmlfield = osync_xmlformat_get_first_field(in_xmlformat);
 	while(in_xmlfield) {
@@ -1183,7 +1183,7 @@ static osync_bool conv_opie_xml_note_to_xml_note(char *input, unsigned int inpsi
 			xmlFree(value);
 		}
 		// Body
-		value = osxml_find_node(icur, "content");
+		value = xmlGetProp(icur, "content");
 		if(value) {
 			out_xmlfield = osync_xmlfield_new(out_xmlformat, "Body", error);
 			osync_xmlfield_set_key_value(out_xmlfield, "Content", value);
@@ -1243,7 +1243,7 @@ static osync_bool conv_xml_note_to_opie_xml_note(char *input, unsigned int inpsi
 
 	/* Create a new output xml document */
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *on_note = osxml_node_add_root(odoc, "note");
+	xmlNode *on_note = xmlNewDocNode(odoc, NULL, "note", NULL);
 	
 	OSyncXMLField *in_xmlfield = osync_xmlformat_get_first_field(in_xmlformat);
 	while(in_xmlfield) {
@@ -1254,7 +1254,7 @@ static osync_bool conv_xml_note_to_opie_xml_note(char *input, unsigned int inpsi
 		else if(!strcmp("Body", fieldname)) {
 			const char *value = osync_xmlfield_get_key_value(in_xmlfield, "Content");
 			if(value)
-				osxml_node_add(on_note, "content", value);
+				xmlNewTextChild(on_note, NULL, "content", value);
 		}
 		
 		in_xmlfield = osync_xmlfield_get_next(in_xmlfield);

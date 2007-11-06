@@ -40,7 +40,6 @@
 
 #include <opensync/opensync.h>
 #include <opensync/opensync-plugin.h>
-#include <opensync/opensync_xml.h>
 
 #include "opie_comms.h"
 #include "opie_xml.h"
@@ -893,7 +892,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 	if(doc && doc->_private == 0) {
 		char *data = NULL;
 		if(objtype != OPIE_OBJECT_TYPE_NOTE) {
-			data = osxml_write_to_string(doc);
+			xmlDocDumpFormatMemoryEnc(doc, (xmlChar **) &data, NULL, NULL, 1);
 			if(!data)
 				goto error;
 		}
