@@ -185,12 +185,12 @@ void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name
 	
 	/* XXX: This one breaks unit test case: conv_vcard_evolution2_special
 	   TODO: Combine this with converter extension/config ... e.g. if a mobile needs QP!
-	        
+	*/        
 	if (needs_encoding((unsigned char*)tmp, encoding)) {
 		if (!vformat_attribute_has_param (attr, "ENCODING"))
 			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
 		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
-	} else*/
+	} else
 	vformat_attribute_add_value(attr, tmp);
 }
 

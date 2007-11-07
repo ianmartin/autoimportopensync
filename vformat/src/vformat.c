@@ -421,6 +421,12 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_
 				case '"': str = g_string_append_c (str, '"'); break;
 				  /* \t is (incorrectly) used by kOrganizer, so handle it here */
 				case 't': str = g_string_append_c (str, '\t'); break;
+				case '=':  
+					if (format_encoding == VF_ENCODING_QP) {
+						str = g_string_append_c (str, '\\');
+						// bypass the following g_utf8_next_char : we need to keep this "=" for the next loop run if QP 
+						continue;
+					}
 				default:
 					osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %i", *lp);
 					str = g_string_append_c (str, '\\');
@@ -576,7 +582,8 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format
 				}
 			}
 			if (param && !comma) {
-				vformat_attribute_add_param (attr, param);
+				if(g_ascii_strcasecmp (param->name, "encoding"))  // value are already decoded in _read_attribute_value. Setting encoding
+	  				vformat_attribute_add_param (attr, param);// would lead to double decoding of the value.
 				param = NULL;
 			}
 			if (colon)
@@ -750,11 +757,36 @@ char *vformat_escape_string (const char *s, VFormatType type)
 	for (p = s; p && *p; p++) {
 		switch (*p) {
 		case '\n':
-			str = g_string_append (str, "\\n");
+			/** 
+			 * We won't escape newlines
+			 * on vcard 2.1, unless it is in the end of a value.
+			 * See comments above for a better explanation
+			**/
+			if (*p != '\0' && type == VFORMAT_CARD_21) {
+				osync_trace(TRACE_INTERNAL, "[%s]We won't escape newlines", __func__);
+				str = g_string_append (str, "\r\n");
+			}
+			else {
+				osync_trace(TRACE_INTERNAL, "[%s] escape newlines!!", __func__);
+				str = g_string_append (str, "\\n");
+			}
 			break;
 		case '\r':
 			if (*(p+1) == '\n')
 				p++;
+			/** 
+			 * We won't escape carriage returns
+			 * on vcard 2.1, unless it is in the end of a value.
+			 * See comments above for a better explanation
+			**/
+			if (*p != '\0' && type == VFORMAT_CARD_21) {
+				osync_trace(TRACE_INTERNAL, "[%s]We won't escape carriage returns", __func__);
+				str = g_string_append (str, "\r\n");
+			}
+			else {
+				osync_trace(TRACE_INTERNAL, "[%s] escape carriage returns!!", __func__);
+				str = g_string_append (str, "\\n");
+			}
 			str = g_string_append (str, "\\n");
 			break;
 		case ';':
@@ -778,7 +810,7 @@ char *vformat_escape_string (const char *s, VFormatType type)
 			}
 			else {
 				osync_trace(TRACE_INTERNAL, "[%s] escape backslashes!!", __func__);
-			str = g_string_append (str, "\\\\");
+				str = g_string_append (str, "\\\\");
 			}
 			break;
 		default:
