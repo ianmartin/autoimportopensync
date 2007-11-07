@@ -1,4 +1,4 @@
-PROJECT( libopensync-plugin-moto C ) # actually we don't need any compilers
+PROJECT( libopensync-plugin-moto NONE )
 
 SET( VERSION "0.34" ) 
 
