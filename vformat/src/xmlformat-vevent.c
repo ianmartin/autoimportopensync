@@ -493,7 +493,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Created", handle_xml_dcreated_attribute); // vcal only
 	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute); // vtodo only
 	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Due", handle_xml_due_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
 	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
 	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);
@@ -579,7 +579,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Contact", handle_xml_event_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Created", handle_xml_created_attribute); // ical only
-	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Due", handle_xml_due_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
