@@ -189,8 +189,8 @@ static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsi
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
-		{"DateDue", 		10, 	keys_content},
 		{"DateStarted", 	10, 	keys_content},
+		{"Due", 		10, 	keys_content},
 		{"ProductID", 		-1, 	keys_content},
 		{"Summary", 		90, 	keys_content},
 		{"Uid", 		-1, 	keys_content},
