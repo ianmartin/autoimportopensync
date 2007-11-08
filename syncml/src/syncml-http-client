@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<config>
+  <!-- username to use. Leave empty to not require a username -->
+  <username></username>
+  
+  <!-- the password for the username -->
+  <password></password>
+  
+  <!-- The url that you want the server to listen on. This has to be set on the mobile as well. example: "/" -->
+  <url>http://127.0.0.1:8080</url>
+  
+  <!-- The port where to listen. This has to be set on the mobile as well. -->
+  <port></port>
+  
+  <!-- If wbxml is enabled, defines wether the wbxml should use string tables -->
+  <usestringtable>0</usestringtable>
+  
+  <!-- Never send ADD command, but send REPLACE (not needed normally) -->
+  <onlyreplace>0</onlyreplace>
+  
+  <!-- Workaround around for mobile phones which only use local timestamps and _no_ UTC timestamps! -->
+  <onlyLocaltime>0</onlyLocaltime>
+
+  <!-- Sets the maximum allowed size in bytes of incoming messages (some device need this option set). Example: 10000 -->
+  <recvLimit>0</recvLimit>
+  
+  <maxObjSize>0</maxObjSize>
+  
+  <!-- Contact database -->
+  <database>
+     <name>Contacts</name>
+     <objtype>contact</objtype>
+  </database>
+  
+  <!-- Calendar database -->
+  <database>
+     <name>Calendar</name>
+     <objtype>event</objtype>
+  </database>
+
+  
+  <!-- Note database -->
+  <database>
+     <name>Notes</name>
+     <objtype>note</objtype>
+  </database>
+
+</config>

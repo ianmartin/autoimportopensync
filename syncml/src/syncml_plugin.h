@@ -45,6 +45,7 @@
 
 #include <libsyncml/obex_client.h>
 #include <libsyncml/http_server.h>
+#include <libsyncml/http_client.h>
 
 #include <libsyncml/sml_auth.h>
 #include <libsyncml/sml_devinf_obj.h>

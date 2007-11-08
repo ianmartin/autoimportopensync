@@ -9,4 +9,5 @@ OPENSYNC_PLUGIN_INSTALL( syncml-plugin )
 
 OPENSYNC_PLUGIN_CONFIG( syncml-obex-client )
 OPENSYNC_PLUGIN_CONFIG( syncml-http-server )
+OPENSYNC_PLUGIN_CONFIG( syncml-http-client )
 
