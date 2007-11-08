@@ -636,6 +636,16 @@ static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext 
                                             SML_PROTOCOL_SYNCML,
                                             loc, loc,
 					    NULL, 0, &error);
+	// FIXME: MD5 is more safe but the most systems does not support MD5
+	// FIXME: auth is available in client config !!!
+	if (env->username || env->password)
+	{
+		SmlCred *cred = smlCredNewAuth(SML_AUTH_TYPE_BASIC,
+						 env->username,
+						 env->password,
+						 loc, &error);
+		smlSessionSetCred(session, cred);
+	}
 	if (!smlManagerSessionAdd(env->manager, session, link, &error))
 		goto error_free_san;
 	osync_trace(TRACE_INTERNAL, "%s: session ready", __func__);

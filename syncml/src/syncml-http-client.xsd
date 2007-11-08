@@ -2,10 +2,18 @@
 
 <xsd:schema elementFormDefault="qualified" version="1.0" xmlns:os="http://opensync.org/Schema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <xsd:import namespace="http://opensync.org/Schema" schemaLocation="temp.xsd"/>
+  <xsd:simpleType name="SyncmlAuthType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="NONE"/>
+      <xsd:enumeration value="BASIC"/>
+      <xsd:enumeration value="MD5"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   <xsd:complexType name="SyncmlHTTPClientConfig">
     <xsd:complexContent>
       <xsd:extension base="os:PluginConfiguration">
         <xsd:sequence>
+          <xsd:element default="NONE" name="auth" type="SyncmlAuthType"/>
           <xsd:element name="username" type="os:String"/>
           <xsd:element name="password" type="os:Password"/>
           <xsd:element name="url" type="os:String"/>

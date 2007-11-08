@@ -1,5 +1,11 @@
 <?xml version="1.0"?>
 <config>
+  <!-- authentication type to use. Leave empty to not require an authentication -->
+  <!-- supported values are:                                  -->
+  <!--   BASIC - unsecure but widely supported                -->
+  <!--   MD5   - more secure but not supported by all servers -->
+  <auth>NONE</auth>
+
   <!-- username to use. Leave empty to not require a username -->
   <username></username>
   
