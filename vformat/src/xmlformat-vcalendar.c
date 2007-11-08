@@ -353,17 +353,17 @@ OSyncXMLField *handle_comment_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 
 OSyncXMLField *handle_created_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "Created", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "Created", error);
 }
 
 OSyncXMLField *handle_dtstamp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "DateCalendarCreated", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "DateCalendarCreated", error);
 }
 
 OSyncXMLField *handle_dtstart_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "DateStarted", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "DateStarted", error);
 }
 
 OSyncXMLField *handle_description_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -378,7 +378,7 @@ OSyncXMLField *handle_summary_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 
 OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "Due", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "Due", error);
 }
 
 OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -506,7 +506,7 @@ OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 
 OSyncXMLField *handle_exdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "ExceptionDateTime", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "ExceptionDateTime", error);
 }
 
 static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error) 
@@ -645,7 +645,7 @@ OSyncXMLField *handle_resources_attribute(OSyncXMLFormat *xmlformat, VFormatAttr
 
 OSyncXMLField *handle_dtend_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "DateEnd", error);
+	return handle_attribute_simple_content_timestamp(xmlformat, attr, "DateEnd", error);
 }
 
 OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
