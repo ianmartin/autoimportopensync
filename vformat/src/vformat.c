@@ -787,7 +787,6 @@ char *vformat_escape_string (const char *s, VFormatType type)
 				osync_trace(TRACE_INTERNAL, "[%s] escape carriage returns!!", __func__);
 				str = g_string_append (str, "\\n");
 			}
-			str = g_string_append (str, "\\n");
 			break;
 		case ';':
 			str = g_string_append (str, "\\;");
