@@ -18,7 +18,7 @@
  *
  */
 
-#include "syncml_plugin.h"
+#include "syncml_common.h"
 
 static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {

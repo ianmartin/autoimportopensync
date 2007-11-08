@@ -18,8 +18,8 @@
  *
  */
  
-#ifndef _SYNCML_PLUGIN_H
-#define _SYNCML_PLUGIN_H
+#ifndef _SYNCML_COMMON_H
+#define _SYNCML_COMMON_H
 //#include <config.h>
 
 #include <opensync/opensync.h>
@@ -54,54 +54,136 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-static SmlBool _recv_alert(
+struct commitContext {
+	OSyncContext *context;
+	OSyncChange *change;
+};
+
+typedef struct SmlPluginEnv {
+	char *path;
+	unsigned int interface;
+	char *bluetoothAddress;
+	int bluetoothChannel;
+	char *identifier;
+	SmlNotificationVersion version;
+	osync_bool useWbxml;
+	char *username;
+	char *password;
+	SmlBool useStringtable;
+	SmlBool onlyReplace;
+	SmlBool onlyLocaltime;
+	SmlTransportObexClientType type;
+	unsigned int port;
+	char *url;
+	
+	unsigned int recvLimit;
+	unsigned int maxObjSize;
+
+	SmlBool gotFinal;
+	SmlBool gotDisconnect;
+	SmlBool tryDisconnect;
+
+	
+	OSyncMember *member;
+	char *anchor_path;
+
+	GSource *source;
+	GSourceFuncs *source_functions;
+
+	GMainContext *context;
+	GMainLoop *loop;
+	
+	SmlTransport *tsp;
+	SmlAuthenticator *auth;
+	SmlDevInfAgent *agent;
+	SmlManager *manager;
+	SmlSession *session;
+	
+	OSyncContext *connectCtx;
+
+	SmlNotification *san;
+
+	GList *databases;
+
+	int num;
+
+	GList *eventEntries;
+	unsigned int numEventEntries;
+
+	osync_bool isConnected;
+
+	SmlAuthType authType;
+} SmlPluginEnv;
+
+typedef struct SmlDatabase {
+	SmlPluginEnv *env;
+	SmlDsSession *session;
+	SmlDsServer *server;
+	OSyncObjFormat *objformat;
+	char *objformat_name;
+	OSyncObjTypeSink *sink;
+	char *objtype;	
+	char *url;
+
+	osync_bool gotChanges;
+	osync_bool finalChanges; 
+
+	OSyncContext *getChangesCtx;
+	OSyncContext *commitCtx;
+	OSyncContext *disconnectCtx;
+
+} SmlDatabase;
+
+extern SmlBool _recv_alert(
 			SmlDsSession *dsession, 
 			SmlAlertType type, 
 			const char *last, 
 			const char *next, 
 			void *userdata);
 
-static void _manager_event(
+extern void _manager_event(
 			SmlManager *manager, 
 			SmlManagerEventType type, 
 			SmlSession *session, 
 			SmlError *error, 
 			void *userdata);
 
-static gboolean _sessions_prepare(GSource *source, gint *timeout_);
+extern gboolean _sessions_prepare(GSource *source, gint *timeout_);
 
-static gboolean _sessions_check(GSource *source);
+extern gboolean _sessions_check(GSource *source);
 
-static gboolean _sessions_dispatch(
+extern gboolean _sessions_dispatch(
 			GSource *source, 
 			GSourceFunc callback, 
 			gpointer user_data);
 
-static void get_changeinfo(
+extern void get_changeinfo(
 			void *data, 
 			OSyncPluginInfo *info, 
 			OSyncContext *ctx);
 
-static void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+extern void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
-static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+extern void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
-static void batch_commit(
+extern void batch_commit(
 			void *data, 
 			OSyncPluginInfo *info, 
 			OSyncContext *ctx, 
 			OSyncContext **contexts, 
 			OSyncChange **changes);
 
-static void _ds_alert(SmlDsSession *dsession, void *userdata);
+extern void _ds_alert(SmlDsSession *dsession, void *userdata);
 
-static void _verify_user(
+extern void _verify_user(
 			SmlAuthenticator *auth, 
 			const char *username, 
 			const char *password, 
 			void *userdata, 
 			SmlErrorType *reply);
 
-static const char *_objtype_to_contenttype(const char *objtype);
+extern const char *_objtype_to_contenttype(const char *objtype);
 
-#endif //_SYNCML_PLUGIN_H
+extern void finalize(void *data);
+
+#endif //_SYNCML_COMMON_H

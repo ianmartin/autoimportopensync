@@ -1,6 +1,6 @@
 INCLUDE_DIRECTORIES( ${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} ${LIBSYNCML_INCLUDE_DIR} )
 
-OPENSYNC_PLUGIN_ADD( syncml-plugin syncml_plugin.c syncml_http_client.c syncml_http_server.c syncml_obex_client.c)
+OPENSYNC_PLUGIN_ADD( syncml-plugin syncml_plugin.c syncml_http_client.c syncml_http_server.c syncml_obex_client.c syncml_common.c)
 
 TARGET_LINK_LIBRARIES( syncml-plugin ${OPENSYNC_LIBRARIES} ${LIBSYNCML_LIBRARIES} ${GLIB2_LIBRARIES} ${LIBXML2_LIBRARIES} )
 

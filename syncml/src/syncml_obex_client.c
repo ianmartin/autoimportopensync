@@ -18,7 +18,7 @@
  *
  */
 
-#include "syncml_plugin.h"
+#include "syncml_common.h"
 
 static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {

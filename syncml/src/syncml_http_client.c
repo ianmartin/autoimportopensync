@@ -1,4 +1,4 @@
-#include "syncml_plugin.h"
+#include "syncml_common.h"
 
 static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
@@ -107,13 +107,10 @@ static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char 
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
 
-	env->port = 8080;
 	env->url = NULL;
+	env->authType = SML_AUTH_TYPE_UNKNOWN;
 	env->username = NULL;
-	env->recvLimit = 0;
 	env->password = NULL;
-	env->useStringtable = TRUE;
-	env->onlyReplace = FALSE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -135,8 +132,19 @@ static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char 
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str && strlen(str)) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
-				env->port = atoi(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"auth")) {
+				if (!strcmp(str, "BASIC")) {
+					env->authType = SML_AUTH_TYPE_BASIC;
+				} else if (!strcmp(str, "MD5")) {
+					env->authType = SML_AUTH_TYPE_MD5;
+				} else if (!strcmp(str, "NONE")) {
+					env->authType = SML_AUTH_TYPE_UNKNOWN;
+				} else {
+					// this is an illegal keyword
+					osync_error_set(error, OSYNC_ERROR_GENERIC,
+						 "illegal authentication type - %s", str);
+					goto error_free_doc;
+				}
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {
@@ -147,31 +155,10 @@ static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char 
 				env->username = g_strdup(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit")) {
-				env->recvLimit = atoi(str);
-			}
-			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
 				env->password = g_strdup(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
-				env->useStringtable = atoi(str);
-			}
-
-			/* XXX Workaround for mobiles which only handle localtime! */
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyLocaltime")) {
-				env->onlyLocaltime = atoi(str);
-			}
-		
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyreplace")) {
-				env->onlyReplace = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
-				env->maxObjSize = atoi(str);
-			}
-
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"database")) {
 				if (!syncml_config_parse_database(env, cur->xmlChildrenNode, error))
 					goto error_free_doc;
@@ -206,8 +193,7 @@ static void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
 	
-	// the server and client config is identical	
-	if (!syncml_http_server_parse_config(env, configdata, error))
+	if (!syncml_http_client_parse_config(env, configdata, error))
 		goto error_free_transport;
 
 	env->num = 0;	
