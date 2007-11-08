@@ -1,4 +1,4 @@
-PROJECT( libopensync-plugin-google-calender C )
+PROJECT( libopensync-plugin-google-calendar C )
 
 SET( VERSION "0.34" )
 
