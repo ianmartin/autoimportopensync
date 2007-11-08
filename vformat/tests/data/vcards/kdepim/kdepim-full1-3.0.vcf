@@ -4,7 +4,6 @@ ADR;TYPE=home;TYPE=pref:pobox1;;HomeAddress1;local1;region1;postalcode1;Ger
  many
 BDAY:2005-02-26T00:00:00Z
 CATEGORIES:Customer,Family
-CLASS:PUBLIC
 EMAIL;TYPE=PREF:email1
 EMAIL:email2@test.com
 FN:givenname familynames

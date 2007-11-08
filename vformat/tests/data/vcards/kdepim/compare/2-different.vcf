@@ -1,6 +1,5 @@
 BEGIN:VCARD
 ADR;TYPE=home:;;kdepimaddress;;;;Germany
-CLASS:PUBLIC
 FN:samename
 N:samename;;;;
 TEL;TYPE=WORK:kdepimphone

@@ -1,6 +1,5 @@
 BEGIN:VCARD
 ADR;TYPE=home:;;sameaddress;;;;Germany
-CLASS:PUBLIC
 EMAIL:samemail
 FN:kdepimname
 N:kdepimname;;;;
