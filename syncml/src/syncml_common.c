@@ -77,7 +77,7 @@ static const char *_format_to_contenttype(OSyncChange *change)
 	return _objtype_to_contenttype(osync_change_get_objtype(change));
 }
 
-static osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
+osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
 

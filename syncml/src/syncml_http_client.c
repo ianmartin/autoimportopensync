@@ -48,7 +48,7 @@ static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext 
 						 env->username,
 						 env->password,
 						 loc, &error);
-		smlSessionSetCred(session, cred);
+		smlSessionSetCredential(session, cred);
 	}
 	if (!smlManagerSessionAdd(env->manager, session, link, &error))
 		goto error_free_san;
@@ -181,7 +181,7 @@ error:
 	return FALSE;
 }
 
-static void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
@@ -345,7 +345,7 @@ error:
 	return NULL;
 }
 
-static osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+extern osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         

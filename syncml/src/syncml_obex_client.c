@@ -191,7 +191,7 @@ error:
 	return FALSE;
 }
 
-static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+extern void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
@@ -407,7 +407,7 @@ error:
 	return NULL;
 }
 
-static osync_bool syncml_obex_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+extern osync_bool syncml_obex_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         
