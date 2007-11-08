@@ -132,4 +132,52 @@ typedef struct SmlDatabase {
 
 } SmlDatabase;
 
+static SmlBool _recv_alert(
+			SmlDsSession *dsession, 
+			SmlAlertType type, 
+			const char *last, 
+			const char *next, 
+			void *userdata);
+
+static void _manager_event(
+			SmlManager *manager, 
+			SmlManagerEventType type, 
+			SmlSession *session, 
+			SmlError *error, 
+			void *userdata);
+
+static gboolean _sessions_prepare(GSource *source, gint *timeout_);
+
+static gboolean _sessions_check(GSource *source);
+
+static gboolean _sessions_dispatch(
+			GSource *source, 
+			GSourceFunc callback, 
+			gpointer user_data);
+
+static void get_changeinfo(
+			void *data, 
+			OSyncPluginInfo *info, 
+			OSyncContext *ctx);
+
+static void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+
+static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+
+static void batch_commit(
+			void *data, 
+			OSyncPluginInfo *info, 
+			OSyncContext *ctx, 
+			OSyncContext **contexts, 
+			OSyncChange **changes);
+
+static void _ds_alert(SmlDsSession *dsession, void *userdata);
+
+static void _verify_user(
+			SmlAuthenticator *auth, 
+			const char *username, 
+			const char *password, 
+			void *userdata, 
+			SmlErrorType *reply);
+
 #endif //_SYNCML_PLUGIN_H
