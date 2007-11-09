@@ -89,7 +89,7 @@ static OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, co
 
 static void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
 {
-	osync_trace(TRACE_INTERNAL, "Setting internal format of %s to %p", objtype, format);
+	osync_trace(TRACE_INTERNAL, "Setting internal format of %s to %p:%s", objtype, format, osync_objformat_get_name(format));
 	if (!format)
 		return;
 	g_hash_table_insert(engine->internalFormats, g_strdup(objtype), g_strdup(osync_objformat_get_name(format)));
