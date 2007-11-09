@@ -8,6 +8,10 @@
 #  PYTHON_DEBUG_LIBRARIES = path to the debug library
 #  PYTHON_VERSION = version of python library
 #
+#  The user can set this variable to choose their preferred python 
+#  version to be found:
+#
+#  PREFERRED_PYTHON_VERSION = preferred version of the python library 
 
 INCLUDE(CMakeFindFrameworks)
 
@@ -34,7 +38,7 @@ IF(WIN32)
   )
 ENDIF(WIN32)
 
-FIND_LIBRARY(PYTHON_LIBRARY
+FIND_LIBRARY(PYTHON_LIBRARY ${PREFERRED_PYTHON_VERSION}
   NAMES python25 python2.5
         python24 python2.4
         python23 python2.3
@@ -64,6 +68,9 @@ FIND_LIBRARY(PYTHON_LIBRARY
     python1.6/config
     python1.5/config
 )
+IF(PYTHON_LIBRARY)
+message(STATUS "Found Python: ${PYTHON_LIBRARY}")
+ENDIF(PYTHON_LIBRARY)
 
 # Search for the python framework on Apple.
 CMAKE_FIND_FRAMEWORKS(Python)
@@ -94,6 +101,7 @@ FIND_PATH(PYTHON_INCLUDE_PATH
     [HKEY_LOCAL_MACHINE\\SOFTWARE\\Python\\PythonCore\\1.5\\InstallPath]/include
 
   PATH_SUFFIXES
+    ${PREFERRED_PYTHON_VERSION}
     python2.5
     python2.4
     python2.3
@@ -113,7 +121,7 @@ IF (WIN32)
 ENDIF(WIN32)
 
 
-FIND_PROGRAM( PYTHON_EXECUTABLE NAMES python )
+FIND_PROGRAM( PYTHON_EXECUTABLE NAMES ${PREFERRED_PYTHON_VERSION} python )
 
 IF ( PYTHON_EXECUTABLE )
 	EXEC_PROGRAM( ${PYTHON_EXECUTABLE} ARGS "-c \"import sys; print sys.version[:3]\"" OUTPUT_VARIABLE PYTHON_VERSION )
