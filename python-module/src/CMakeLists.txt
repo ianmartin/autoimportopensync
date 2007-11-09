@@ -9,7 +9,7 @@ python_module.c
 
 OPENSYNC_PLUGIN_ADD( python-module ${python_module_LIB_SRCS} )
 
-TARGET_LINK_LIBRARIES( python-module ${OPENYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${PYTHON_LIBRARIES} -lutil )
+TARGET_LINK_LIBRARIES( python-module ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${PYTHON_LIBRARIES} -lutil )
 
 # Install plugin
 OPENSYNC_PLUGIN_INSTALL( python-module )
