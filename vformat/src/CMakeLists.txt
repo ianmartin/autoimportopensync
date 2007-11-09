@@ -33,7 +33,7 @@ ENDIF ( BUILD_NOTE )
 
 IF ( BUILD_XMLFORMAT )
 	OPENSYNC_FORMAT_ADD( vformat-xmlformat ${xmlformat_SRCS} vformat.c vformat-xmlformat.c )
-	TARGET_LINK_LIBRARIES( vformat-xmlformat ${OPENSYNC_LIBRARY} ${GLIB2_LIBRARIES} )
+	TARGET_LINK_LIBRARIES( vformat-xmlformat ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} )
 ENDIF ( BUILD_XMLFORMAT )	
 
 
