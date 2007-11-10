@@ -13,6 +13,7 @@ SET( libopensync_LIB_SRCS
    data/opensync_data.c
    db/opensync_db.c
    engine/opensync_engine.c
+   engine/opensync_mapping_engine.c
    engine/opensync_obj_engine.c
    engine/opensync_status.c
    format/opensync_converter.c

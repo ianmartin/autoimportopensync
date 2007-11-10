@@ -29,6 +29,7 @@
 
 #include "opensync_engine_internals.h"
 #include "opensync_obj_engine_internals.h"
+#include "opensync_mapping_engine_internals.h"
 
 void osync_status_free_member_update(OSyncMemberUpdate *update)
 {

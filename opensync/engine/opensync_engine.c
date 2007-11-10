@@ -630,19 +630,13 @@ error:
 	return NULL;
 }
 
-static int BitCount(unsigned int u)                          
-{
-	unsigned int uCount = u - ((u >> 1) & 033333333333) - ((u >> 2) & 011111111111);
-	return ((uCount + (uCount >> 3)) & 030707070707) % 63;
-}
-
 static osync_bool _osync_engine_generate_connected_event(OSyncEngine *engine)
 {
-	if (BitCount(engine->proxy_errors | engine->proxy_connects) != g_list_length(engine->proxies))
+	if (osync_bitcount(engine->proxy_errors | engine->proxy_connects) != g_list_length(engine->proxies))
 		return FALSE;
 	
-	if (BitCount(engine->obj_errors | engine->obj_connects) == g_list_length(engine->object_engines)) {
-		if (BitCount(engine->obj_errors) == g_list_length(engine->object_engines)) {
+	if (osync_bitcount(engine->obj_errors | engine->obj_connects) == g_list_length(engine->object_engines)) {
+		if (osync_bitcount(engine->obj_errors) == g_list_length(engine->object_engines)) {
 			OSyncError *locerror = NULL;
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "No objtypes left without error. Aborting");
 			osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
@@ -663,15 +657,15 @@ static osync_bool _osync_engine_generate_connected_event(OSyncEngine *engine)
 
 osync_bool osync_engine_check_get_changes(OSyncEngine *engine)
 {
-	if (BitCount(engine->proxy_errors | engine->proxy_get_changes) != g_list_length(engine->proxies)) {
-		osync_trace(TRACE_INTERNAL, "Not yet. main sinks still need to read: %i", BitCount(engine->proxy_errors | engine->proxy_get_changes), g_list_length(engine->proxies));
+	if (osync_bitcount(engine->proxy_errors | engine->proxy_get_changes) != g_list_length(engine->proxies)) {
+		osync_trace(TRACE_INTERNAL, "Not yet. main sinks still need to read: %i", osync_bitcount(engine->proxy_errors | engine->proxy_get_changes), g_list_length(engine->proxies));
 		return FALSE;
 	}
 	
-	if (BitCount(engine->obj_errors | engine->obj_get_changes) == g_list_length(engine->object_engines))
+	if (osync_bitcount(engine->obj_errors | engine->obj_get_changes) == g_list_length(engine->object_engines))
 		return TRUE;
 		
-	osync_trace(TRACE_INTERNAL, "Not yet. Obj Engines still need to read: %i", BitCount(engine->obj_errors | engine->obj_get_changes));
+	osync_trace(TRACE_INTERNAL, "Not yet. Obj Engines still need to read: %i", osync_bitcount(engine->obj_errors | engine->obj_get_changes));
 	return FALSE;
 }
 
@@ -688,41 +682,41 @@ static void _osync_engine_generate_get_changes_event(OSyncEngine *engine)
 
 static void _osync_engine_generate_written_event(OSyncEngine *engine)
 {
-	if (BitCount(engine->proxy_errors | engine->proxy_written) != g_list_length(engine->proxies))
+	if (osync_bitcount(engine->proxy_errors | engine->proxy_written) != g_list_length(engine->proxies))
 		return;
 	
-	if (BitCount(engine->obj_errors | engine->obj_written) == g_list_length(engine->object_engines)) {
+	if (osync_bitcount(engine->obj_errors | engine->obj_written) == g_list_length(engine->object_engines)) {
 		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_WRITTEN, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
 	} else
-		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_written));
+		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->obj_errors | engine->obj_written));
 
 }
 
 static void _osync_engine_generate_sync_done_event(OSyncEngine *engine)
 {
-	if (BitCount(engine->proxy_errors | engine->proxy_sync_done) != g_list_length(engine->proxies))
+	if (osync_bitcount(engine->proxy_errors | engine->proxy_sync_done) != g_list_length(engine->proxies))
 		return;
 	
-	if (BitCount(engine->obj_errors | engine->obj_sync_done) == g_list_length(engine->object_engines)) {
+	if (osync_bitcount(engine->obj_errors | engine->obj_sync_done) == g_list_length(engine->object_engines)) {
 		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
 	} else
-		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_sync_done));
+		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->obj_errors | engine->obj_sync_done));
 }
 
 static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 {
-	if (BitCount(engine->proxy_errors | engine->proxy_disconnects) != g_list_length(engine->proxies))
+	if (osync_bitcount(engine->proxy_errors | engine->proxy_disconnects) != g_list_length(engine->proxies))
 		return FALSE;
 	
-	if (BitCount(engine->obj_errors | engine->obj_disconnects) == g_list_length(engine->object_engines)) {
+	if (osync_bitcount(engine->obj_errors | engine->obj_disconnects) == g_list_length(engine->object_engines)) {
 		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_DISCONNECTED, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_DISCONNECTED);
 		return TRUE;
 	}
 	
-	osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_disconnects));
+	osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->obj_errors | engine->obj_disconnects));
 	return FALSE;
 }
 

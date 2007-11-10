@@ -34,4 +34,6 @@ void osync_thread_free(OSyncThread *thread);
 void osync_thread_start(OSyncThread *thread);
 void osync_thread_stop(OSyncThread *thread);
 
+int osync_bitcount(unsigned int u);
+
 #endif //_OPENSYNC_SUPPORT_INTERNALS_H
