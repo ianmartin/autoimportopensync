@@ -1258,7 +1258,7 @@ gboolean scp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 		
 		/* Create a temp directory */
 		char *randstr = g_strdup_printf("opie-sync-%i", g_random_int_range(0, 2000000000));
-		char *temppath = g_build_filename(g_get_tmp_dir(), randstr);
+		char *temppath = g_build_filename(g_get_tmp_dir(), randstr, NULL);
 		g_free(randstr);
 		
 		if(g_mkdir(temppath, 0700)) {
@@ -1350,7 +1350,7 @@ gboolean scp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 		
 		/* Create a temp directory */
 		char *randstr = g_strdup_printf("opie-sync-%i", g_random_int_range(0, G_MAXUINT32));
-		temppath = g_build_filename(g_get_tmp_dir(), randstr);
+		temppath = g_build_filename(g_get_tmp_dir(), randstr, NULL);
 		g_free(randstr);
 		
 		if(g_mkdir(temppath, 0700)) {
