@@ -276,74 +276,76 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 	cur_capability = osync_capabilities_get_first(merger->capabilities, osync_xmlformat_get_objtype(xmlformat));
 	cur_xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	
-	if(cur_capability) /* if there is no capability - it means that the device can handle all xmlfields */
+	if(!cur_capability) /* if there is no capability - it means that the device can handle all xmlfields */
+		goto end;
+
+	while(cur_xmlfield != NULL)
 	{
-		while(cur_xmlfield != NULL)
-		{
-	 		if(cur_capability == NULL) {
-	 			/* delete all xmlfields */
-	 			while(cur_xmlfield) {
-	 				osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield));
-	 				tmp = osync_xmlfield_get_next(cur_xmlfield);
-	 				osync_xmlfield_delete(cur_xmlfield);
-	 				cur_xmlfield = tmp;
-	 			}
-	 			break; 			
-	 		}
-	 		
-	 		rc = strcmp(osync_xmlfield_get_name(cur_xmlfield), osync_capability_get_name(cur_capability));
-		 	if(rc == 0) {
-		 		/* check the secound level here */
-		 		if(osync_capability_has_key(cur_capability)) /* if there is no key - it means that the xmlfield can handle all keys */
-		 		{
-		 			int i, j=0;
-		 			int capability_keys = osync_capability_get_key_count(cur_capability);
-		 			int xmlfield_keys = osync_xmlfield_get_key_count(cur_xmlfield);
-		 			
-		 			for(i=0; i < xmlfield_keys; i++)
-		 			{
-		 				if(j == capability_keys) {
-		 					for(; i < xmlfield_keys; i++) {
-		 						osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
-		 						osync_xmlfield_set_nth_key_value(cur_xmlfield, i, "");
-		 					}
-		 					break;
-		 				}
-		 				
-		 				int krc = strcmp(osync_xmlfield_get_nth_key_name(cur_xmlfield, i), osync_capability_get_nth_key(cur_capability, j));
-		 				if(krc == 0) {
-		 					continue;
-		 				}	
-		 				if(krc > 0) {
-		 					j++;
-		 					continue;
-		 				}
-		 				if(krc < 0) {
-		 					osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
-		 					osync_xmlfield_set_nth_key_value(cur_xmlfield, i, "");
-		 					continue;
-		 				}
-		 				g_assert_not_reached();
-		 			}
-		 		}
-		 		cur_xmlfield = osync_xmlfield_get_next(cur_xmlfield);
-		 		continue;
-		 	}
-		 	if(rc > 0) {
-		 		cur_capability = osync_capability_get_next(cur_capability);
-		 		continue;
-		 	}
-		 	if(rc < 0) {
-				/* delete xmlfield */
+		if(cur_capability == NULL) {
+			/* delete all xmlfields */
+			while(cur_xmlfield) {
 				osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield));
 				tmp = osync_xmlfield_get_next(cur_xmlfield);
-	 			osync_xmlfield_delete(cur_xmlfield);
-	 			cur_xmlfield = tmp;
-	 			continue;
-		 	}
-			g_assert_not_reached();
+				osync_xmlfield_delete(cur_xmlfield);
+				cur_xmlfield = tmp;
+			}
+			break; 			
 		}
+		
+		rc = strcmp(osync_xmlfield_get_name(cur_xmlfield), osync_capability_get_name(cur_capability));
+	 	if(rc == 0) {
+	 		/* check the secound level here */
+	 		if(osync_capability_has_key(cur_capability)) /* if there is no key - it means that the xmlfield can handle all keys */
+	 		{
+	 			int i, j=0;
+	 			int capability_keys = osync_capability_get_key_count(cur_capability);
+	 			int xmlfield_keys = osync_xmlfield_get_key_count(cur_xmlfield);
+	 			
+	 			for(i=0; i < xmlfield_keys; i++)
+	 			{
+	 				if(j == capability_keys) {
+	 					for(; i < xmlfield_keys; i++) {
+	 						osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
+	 						osync_xmlfield_set_nth_key_value(cur_xmlfield, i, "");
+	 					}
+	 					break;
+	 				}
+	 				
+	 				int krc = strcmp(osync_xmlfield_get_nth_key_name(cur_xmlfield, i), osync_capability_get_nth_key(cur_capability, j));
+	 				if(krc == 0) {
+	 					continue;
+	 				}	
+	 				if(krc > 0) {
+	 					j++;
+	 					continue;
+	 				}
+	 				if(krc < 0) {
+	 					osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
+	 					osync_xmlfield_set_nth_key_value(cur_xmlfield, i, "");
+	 					continue;
+	 				}
+	 				g_assert_not_reached();
+	 			}
+	 		}
+	 		cur_xmlfield = osync_xmlfield_get_next(cur_xmlfield);
+	 		continue;
+	 	}
+	 	if(rc > 0) {
+	 		cur_capability = osync_capability_get_next(cur_capability);
+	 		continue;
+	 	}
+	 	if(rc < 0) {
+			/* delete xmlfield */
+			osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield));
+			tmp = osync_xmlfield_get_next(cur_xmlfield);
+			osync_xmlfield_delete(cur_xmlfield);
+			cur_xmlfield = tmp;
+			continue;
+	 	}
+		g_assert_not_reached();
 	}
+
+end:
 	osync_trace(TRACE_EXIT, "%s: ", __func__);
 	return;
 }
