@@ -18,44 +18,20 @@
  * 
  */
  
-#ifndef OPENSYNC_OBJ_ENGINE_INTERNALS_H_
-#define OPENSYNC_OBJ_ENGINE_INTERNALS_H_
+#ifndef OPENSYNC_SINK_ENGINE_INTERNALS_H_
+#define OPENSYNC_SINK_ENGINE_INTERNALS_H_
 
-struct OSyncObjEngine {
+typedef struct OSyncSinkEngine {
 	int ref_count;
-	OSyncEngine *parent;
+	int position;
+	OSyncClientProxy *proxy;
+	OSyncObjEngine *engine;
+	GList *entries;
+	GList *unmapped;
+} OSyncSinkEngine;
 
-	/** The object type of this Object Engine **/
-	char *objtype;
+OSyncSinkEngine *osync_sink_engine_new(int position, OSyncClientProxy *proxy, OSyncObjEngine *objengine, OSyncError **error);
+void osync_sink_engine_ref(OSyncSinkEngine *engine);
+void osync_sink_engine_unref(OSyncSinkEngine *engine);
 
-	/** Status of Slow Sync **/
-	osync_bool slowsync;
-
-	OSyncArchive *archive;
-	
-	OSyncMappingTable *mapping_table;
-	GList *mapping_engines;
-	
-	GList *sink_engines;
-	OSyncError *error;
-	OSyncFormatEnv *formatenv;
-	
-	int sink_errors;
-	int sink_connects;
-	int sink_disconnects;
-	int sink_get_changes;
-	int sink_sync_done;
-	int sink_written;
-	
-	OSyncObjEngineEventCallback callback;
-	void *callback_userdata;
-	
-	GList *conflicts;
-
-	/** Written status of Object Engine. - TODO: Is this still needed?! **/
-	osync_bool written;
-};
-
-OSyncMappingEngine *_osync_obj_engine_create_mapping_engine(OSyncObjEngine *engine, OSyncError **error);
-
-#endif /*OPENSYNC_OBJ_ENGINE_INTERNALS_H_*/
+#endif /*OPENSYNC_SINK_ENGINE_INTERNALS_H_*/
