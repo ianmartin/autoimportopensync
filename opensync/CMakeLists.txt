@@ -14,7 +14,9 @@ SET( libopensync_LIB_SRCS
    db/opensync_db.c
    engine/opensync_engine.c
    engine/opensync_mapping_engine.c
+   engine/opensync_mapping_entry_engine.c
    engine/opensync_obj_engine.c
+   engine/opensync_sink_engine.c
    engine/opensync_status.c
    format/opensync_converter.c
    format/opensync_filter.c
