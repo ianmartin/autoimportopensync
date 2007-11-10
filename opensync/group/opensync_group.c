@@ -19,15 +19,13 @@
  */
  
 #include "opensync.h"
+#include "opensync_xml.h"
 #include "opensync_internals.h"
 
 #include "opensync-format.h"
 #include "opensync-group.h"
 #include "opensync_group_internals.h"
 #include "opensync-db.h"
-
-
-#include "opensync_xml.h"
 
 #ifndef _WIN32
 #include <sys/file.h>
@@ -695,7 +693,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	filename = g_strdup_printf("%s/syncgroup.conf", real_path);
 	g_free(real_path);
 	
-	if (!osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
+	if (!osync_xml_open_file(&doc, &cur, filename, "syncgroup", error)) {
 		g_free(filename);
 		goto error;
 	}

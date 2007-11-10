@@ -1145,13 +1145,13 @@ struct tm *osync_time_dstchange(xmlNode *dstNode)
 	struct tm *dst_change = NULL, *tm_started = NULL;
 	char *started = NULL, *rule = NULL, *byday = NULL;
 
-	xmlNode *current = osxml_get_node(dstNode, "DateStarted");
+	xmlNode *current = osync_xml_get_node(dstNode, "DateStarted");
 	started = (char*) xmlNodeGetContent(current);
 	tm_started = osync_time_vtime2tm(started);
 	
 	xmlFree(started);
 
-	current = osxml_get_node(dstNode, "RecurrenceRule");
+	current = osync_xml_get_node(dstNode, "RecurrenceRule");
 	current = current->children;
 
 	while (current) {
@@ -1206,10 +1206,10 @@ osync_bool osync_time_isdst(const char *vtime, xmlNode *tzid)
 	timestamp = osync_time_vtime2unix(vtime, 0);
 
 	// Handle XML Timezone field
-	current = osxml_get_node(tzid, "Standard");
+	current = osync_xml_get_node(tzid, "Standard");
 	std_changetime = osync_time_dstchange(current);
 
-	current = osxml_get_node(tzid, "DaylightSavings");
+	current = osync_xml_get_node(tzid, "DaylightSavings");
 	dst_changetime = osync_time_dstchange(current);
 
 	// determine in which timezone is vtime
@@ -1243,11 +1243,11 @@ int osync_time_tzoffset(const char *vtime, xmlNode *tz)
 	xmlNode *current = NULL;
 
 	if (osync_time_isdst(vtime, tz))
-		current = osxml_get_node(tz, "DaylightSavings");
+		current = osync_xml_get_node(tz, "DaylightSavings");
 	else
-		current = osxml_get_node(tz, "Standard");
+		current = osync_xml_get_node(tz, "Standard");
 
-	offset = osxml_find_node(current, "TZOffsetFrom");
+	offset = osync_xml_find_node(current, "TZOffsetFrom");
 	seconds = osync_time_utcoffset2sec(offset);
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, seconds);
@@ -1266,7 +1266,7 @@ char *osync_time_tzid(xmlNode *tz)
 
 	char *id = NULL; 
 
-	id = osxml_find_node(tz, "TimezoneID");
+	id = osync_xml_find_node(tz, "TimezoneID");
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, id);
 	return id;
@@ -1285,7 +1285,7 @@ char *osync_time_tzlocation(xmlNode *tz)
 
 	char *location = NULL; 
 
-	location = osxml_find_node(tz, "TimezoneLocation");
+	location = osync_xml_find_node(tz, "TimezoneLocation");
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, location);
 	return location;
@@ -1310,7 +1310,7 @@ xmlNode *osync_time_tzinfo(xmlNode *root, const char *tzid)
 	xmlXPathObject *xobj = NULL;
 
 	/* search matching Timezone information */
-	xobj = osxml_get_nodeset(root->doc, "/vcal/Timezone");
+	xobj = osync_xml_get_nodeset(root->doc, "/vcal/Timezone");
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
 
@@ -1364,7 +1364,7 @@ char *osync_time_tzlocal2utc(xmlNode *root, const char *field)
 	xmlNode *tz = NULL;
 
 	/*
-	node = osxml_get_node(root, field);
+	node = osync_xml_get_node(root, field);
 	if (!node) {
 		osync_trace(TRACE_EXIT, "%s: field \"%s\" not found", __func__, field);
 		return NULL;
@@ -1383,7 +1383,7 @@ char *osync_time_tzlocal2utc(xmlNode *root, const char *field)
 	if (!tz)
 		goto noresult;
 
-	vtime = osxml_find_node(root, "Content");
+	vtime = osync_xml_find_node(root, "Content");
 
 	/* Handle UTC offset like 13.5h */
 	offset = osync_time_tzoffset(vtime, tz);
@@ -1497,11 +1497,11 @@ OSyncXMLField* osync_time_tzcomponent(OSyncXMLFormat *event, OSyncXMLField *date
 	xmlNode *current = NULL;
 
 	if (osync_time_isdst(vtime, tz))
-		current = osxml_get_node(tz, "DaylightSavings");
+		current = osync_xml_get_node(tz, "DaylightSavings");
 	else
-		current = osxml_get_node(tz, "Standard");
+		current = osync_xml_get_node(tz, "Standard");
 
-	offset = osxml_find_node(current, "TZOffsetFrom");
+	offset = osync_xml_find_node(current, "TZOffsetFrom");
 	seconds = osync_time_utcoffset2sec(offset);
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, *tzoffset);

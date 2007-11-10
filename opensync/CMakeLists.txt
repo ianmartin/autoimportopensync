@@ -26,7 +26,6 @@ SET( libopensync_LIB_SRCS
    group/opensync_group.c
    group/opensync_group_env.c
    group/opensync_member.c
-   group/opensync_xml.c
    helper/opensync_anchor.c
    helper/opensync_hashtable.c
    ipc/opensync_message.c
@@ -99,7 +98,6 @@ INSTALL( FILES
    opensync-support.h
    opensync-time.h
    opensync-version.h
-   opensync_xml.h
 DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync )
 
 

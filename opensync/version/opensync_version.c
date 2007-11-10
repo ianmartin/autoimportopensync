@@ -381,7 +381,7 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 		}
 
 		char *schemafilepath = g_strdup_printf("%s%c%s", OPENSYNC_SCHEMASDIR, G_DIR_SEPARATOR, "descriptions.xsd");
- 		osync_bool res = osxml_validate_document(doc, schemafilepath);
+ 		osync_bool res = osync_xml_validate_document(doc, schemafilepath);
  		g_free(schemafilepath);
 
 		if(res == FALSE) {
@@ -404,21 +404,21 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 			}
 				
 			child = cur->children;
-			osync_version_set_plugin(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_plugin(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_priority(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_priority(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_vendor(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_vendor(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_modelversion(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_modelversion(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_firmwareversion(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_firmwareversion(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_softwareversion(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_softwareversion(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_hardwareversion(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_hardwareversion(version, (const char *)osync_xml_node_get_content(child));
 			child = child->next;
-			osync_version_set_identifier(version, (const char *)osxml_node_get_content(child));
+			osync_version_set_identifier(version, (const char *)osync_xml_node_get_content(child));
 			
 			versions = osync_list_append(versions, version);
 		}

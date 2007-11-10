@@ -382,7 +382,7 @@ osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
 		"xmlformat-",
 		osync_xmlformat_get_objtype(xmlformat),
 		".xsd");
- 	osync_bool res = osxml_validate_document(xmlformat->doc, schemafilepath);
+ 	osync_bool res = osync_xml_validate_document(xmlformat->doc, schemafilepath);
  	g_free(schemafilepath);
 	
 	return res;

@@ -422,7 +422,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	g_free(basename);
 	osync_member_set_configdir(member, path);
 	
-	if (!osync_open_xml_file(&doc, &cur, filename, "syncmember", error)) {
+	if (!osync_xml_open_file(&doc, &cur, filename, "syncmember", error)) {
 		g_free(filename);
 		goto error;
 	}
