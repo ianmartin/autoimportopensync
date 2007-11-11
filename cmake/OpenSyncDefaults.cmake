@@ -26,17 +26,20 @@ INCLUDE( OpenSyncPlatforms )
 
 # Installation directories:
 
-SET( OPENSYNC_PLUGINDIR "${LIB_INSTALL_DIR}/opensync/plugins" CACHE PATH "OpenSync plugin directory" )
-SET( OPENSYNC_FORMATSDIR "${LIB_INSTALL_DIR}/opensync/formats" CACHE PATH "OpenSync format plugin directory" )
+SET( OPENSYNC_API_DIR "opensync-1.0" )
+SET( OPENSYNC_PLUGINDIR "${LIB_INSTALL_DIR}/${OPENSYNC_API_DIR}/plugins" CACHE PATH "OpenSync plugin directory" )
+SET( OPENSYNC_FORMATSDIR "${LIB_INSTALL_DIR}/${OPENSYNC_API_DIR}/formats" CACHE PATH "OpenSync format plugin directory" )
+SET( OPENSYNC_PYTHON_PLUGINDIR "${LIB_INSTALL_DIR}/${OPENSYNC_API_DIR}/python-plugins" CACHE PATH "OpenSync python plugin directory" )
 
-SET( OPENSYNC_CAPABILITIESDIR "${SHARE_INSTALL_DIR}/opensync/capabilities" CACHE PATH "OpenSync capabilities directory" )
-SET( OPENSYNC_CONFIGDIR "${SHARE_INSTALL_DIR}/opensync/defaults" CACHE PATH "OpenSync plugin configuration directory" )
-SET( OPENSYNC_DESCRIPTIONSDIR "${SHARE_INSTALL_DIR}/opensync/descriptions" CACHE PATH "OpenSync descriptions directory" )
-SET( OPENSYNC_SCHEMASDIR "${SHARE_INSTALL_DIR}/opensync/schemas" CACHE PATH "OpenSync schemas directory" )
+SET( OPENSYNC_CAPABILITIESDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/capabilities" CACHE PATH "OpenSync capabilities directory" )
+SET( OPENSYNC_CONFIGDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/defaults" CACHE PATH "OpenSync plugin configuration directory" )
+SET( OPENSYNC_DESCRIPTIONSDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/descriptions" CACHE PATH "OpenSync descriptions directory" )
+SET( OPENSYNC_SCHEMASDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/schemas" CACHE PATH "OpenSync schemas directory" )
 
 SET( OPENSYNC_LIBRARIES_DIR "${LIB_INSTALL_DIR}" CACHE PATH "OpenSync library location" )
-SET( OPENSYNC_INCLUDE_DIR "${INCLUDE_INSTALL_DIR}/opensync-1.0/" CACHE PATH "OpenSync headers location" )
-SET( OPENSYNC_DATA_DIR "${SHARE_INSTALL_DIR}/opensync" CACHE PATH "OpenSync data directory" )
+SET( OPENSYNC_LIBEXEC_DIR "${LIBEXEC_INSTALL_DIR}/${OPENSYNC_API_DIR}" CACHE PATH "OpenSync libexec location" )
+SET( OPENSYNC_INCLUDE_DIR "${INCLUDE_INSTALL_DIR}/${OPENSYNC_API_DIR}" CACHE PATH "OpenSync headers location" )
+SET( OPENSYNC_DATA_DIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}" CACHE PATH "OpenSync data directory" )
 
 # OpenSync build options:
 
