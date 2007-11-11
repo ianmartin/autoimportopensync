@@ -30,6 +30,8 @@
 GPrivate* current_tabs = NULL;
 GPrivate* thread_id = NULL;
 GPrivate* trace_disabled = NULL;
+GPrivate* trace_sensitive = NULL;
+const char *trace = NULL;
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -50,7 +52,49 @@ void osync_trace_reset_indent(void)
 	g_private_set(current_tabs, GINT_TO_POINTER(0));
 }
 
+void osync_trace_disable(void)
+{
+	if (!trace_disabled)
+		trace_disabled = g_private_new (NULL);
+	
+	g_private_set(trace_disabled, GINT_TO_POINTER(1));
+}
 
+void osync_trace_enable(void)
+{
+	if (!trace_disabled)
+		trace_disabled = g_private_new (NULL);
+
+	if (!trace)
+		g_private_set(trace_disabled, GINT_TO_POINTER(1));
+	else
+		g_private_set(trace_disabled, GINT_TO_POINTER(0));
+
+}
+
+static void _osync_trace_init()
+{
+	trace = g_getenv("OSYNC_TRACE");
+	if (!trace)
+		return;
+	
+	const char *sensitive = g_getenv("OSYNC_PRIVACY");
+	if (!trace_sensitive)
+		trace_sensitive = g_private_new(NULL);
+
+	if (sensitive)
+		g_private_set(trace_sensitive, GINT_TO_POINTER(1));
+	else
+		g_private_set(trace_sensitive, GINT_TO_POINTER(0));
+	
+	if (!g_file_test(trace, G_FILE_TEST_IS_DIR)) {
+		printf("OSYNC_TRACE argument is no directory\n");
+		return;
+	}
+
+	trace = NULL;
+}
+	
 /*! @brief Used for tracing the application
  * 
  * use this function to trace calls. The call graph will be saved into
@@ -82,27 +126,17 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	GError *error = NULL;
 	GIOChannel *chan = NULL;
 	gsize writen;
-	const char *trace = NULL;
 	const char *endline = NULL;
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	
-	if (!trace_disabled)
+	if (!trace_disabled) {
+		_osync_trace_init();
 		osync_trace_enable();
+	}
 	
 	if (GPOINTER_TO_INT(g_private_get(trace_disabled)))
 		return;
-	
-	trace = g_getenv("OSYNC_TRACE");
-	if (!trace)
-		return;
-	
-	const char *sensitive = g_getenv("OSYNC_PRIVACY");
-	
-	if (!g_file_test(trace, G_FILE_TEST_IS_DIR)) {
-		printf("OSYNC_TRACE argument is no directory\n");
-		return;
-	}
 	
 	if (!current_tabs)
 		current_tabs = g_private_new (NULL);
@@ -146,7 +180,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			logmessage = g_strdup_printf("[%li.%li]\t%s%s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			break;
 		case TRACE_SENSITIVE:
-			if (!sensitive)
+			if (!GPOINTER_TO_INT(g_private_get(trace_sensitive)))
 				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE] %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			else
 				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE CONTENT HIDDEN]%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, endline);
@@ -191,22 +225,6 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	g_free(logfile);
 	
 #endif /* OPENSYNC_TRACE */
-}
-
-void osync_trace_disable(void)
-{
-	if (!trace_disabled)
-		trace_disabled = g_private_new (NULL);
-	
-	g_private_set(trace_disabled, GINT_TO_POINTER(1));
-}
-
-void osync_trace_enable(void)
-{
-	if (!trace_disabled)
-		trace_disabled = g_private_new (NULL);
-	
-	g_private_set(trace_disabled, GINT_TO_POINTER(0));
 }
 
 /*! @brief Used for printing binary data
