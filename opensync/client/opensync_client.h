@@ -22,7 +22,7 @@
 #define OPENSYNC_CLIENT_H_
 
 OSyncClient *osync_client_new(OSyncError **error);
-void osync_client_ref(OSyncClient *client);
+OSyncClient *osync_client_ref(OSyncClient *client);
 void osync_client_unref(OSyncClient *client);
 
 void osync_client_set_incoming_queue(OSyncClient *client, OSyncQueue *incoming);

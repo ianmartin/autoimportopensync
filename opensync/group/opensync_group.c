@@ -271,11 +271,13 @@ error:
  * @param group The group
  * 
  */
-void osync_group_ref(OSyncGroup *group)
+OSyncGroup *osync_group_ref(OSyncGroup *group)
 {
 	osync_assert(group);
 	
 	g_atomic_int_inc(&(group->ref_count));
+
+	return group;
 }
 
 /** @brief Decrease the reference count of the group

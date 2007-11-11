@@ -2,7 +2,7 @@
 #define OPENSYNC_PLUGIN_INFO_H_
 
 OSYNC_EXPORT OSyncPluginInfo *osync_plugin_info_new(OSyncError **error);
-OSYNC_EXPORT void osync_plugin_info_ref(OSyncPluginInfo *info);
+OSYNC_EXPORT OSyncPluginInfo *osync_plugin_info_ref(OSyncPluginInfo *info);
 OSYNC_EXPORT void osync_plugin_info_unref(OSyncPluginInfo *info);
 
 OSYNC_EXPORT void osync_plugin_info_set_loop(OSyncPluginInfo *info, void *loop);

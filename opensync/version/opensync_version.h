@@ -24,7 +24,7 @@
 #define OPENSYNC_VERSION_H_
 
 OSYNC_EXPORT OSyncVersion *osync_version_new(OSyncError **error);
-OSYNC_EXPORT void osync_version_ref(OSyncVersion *version);
+OSYNC_EXPORT OSyncVersion *osync_version_ref(OSyncVersion *version);
 OSYNC_EXPORT void osync_version_unref(OSyncVersion *version);
 
 OSYNC_EXPORT char *osync_version_get_plugin(OSyncVersion *version);

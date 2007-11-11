@@ -27,7 +27,7 @@ typedef void (* OSyncContextCallbackFn)(void *, OSyncError *);
 typedef void (* OSyncContextChangeFn) (OSyncChange *, void *);
 
 OSyncContext *osync_context_new(OSyncError **error);
-void osync_context_ref(OSyncContext *context);
+OSyncContext *osync_context_ref(OSyncContext *context);
 void osync_context_unref(OSyncContext *context);
 
 void osync_context_set_callback(OSyncContext *context, OSyncContextCallbackFn callback, void *userdata);

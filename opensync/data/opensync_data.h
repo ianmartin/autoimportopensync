@@ -22,7 +22,7 @@
 #define _OPENSYNC_DATA_H_
 
 OSYNC_EXPORT OSyncData *osync_data_new(char *data, unsigned int size, OSyncObjFormat *format, OSyncError **error);
-OSYNC_EXPORT void osync_data_ref(OSyncData *data);
+OSYNC_EXPORT OSyncData *osync_data_ref(OSyncData *data);
 OSYNC_EXPORT void osync_data_unref(OSyncData *data);
 
 OSYNC_EXPORT OSyncObjFormat *osync_data_get_objformat(OSyncData *data);

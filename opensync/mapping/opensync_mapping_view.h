@@ -22,7 +22,7 @@
 #define OPENSYNC_MAPPING_VIEW_H_
 
 /*OSyncMappingView *osync_mapping_view_new(OSyncError **error);
-void osync_mapping_view_ref(OSyncMappingView *view);
+OSyncMappingView *osync_mapping_view_ref(OSyncMappingView *view);
 void osync_mapping_view_unref(OSyncMappingView *view);
 
 osync_bool osync_mapping_view_add_entry(OSyncMappingView *view, OSyncChange *change, OSyncError **error);

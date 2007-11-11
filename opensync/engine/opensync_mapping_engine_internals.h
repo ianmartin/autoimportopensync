@@ -33,7 +33,7 @@ struct OSyncMappingEngine {
 };
 
 OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error);
-void osync_mapping_engine_ref(OSyncMappingEngine *engine);
+OSyncMappingEngine *osync_mapping_engine_ref(OSyncMappingEngine *engine);
 void osync_mapping_engine_unref(OSyncMappingEngine *engine);
 
 osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError **error);

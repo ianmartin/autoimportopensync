@@ -44,7 +44,7 @@ typedef struct OSyncObjTypeSinkFunctions {
 } OSyncObjTypeSinkFunctions;
 
 OSYNC_EXPORT OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error);
-OSYNC_EXPORT void osync_objtype_sink_ref(OSyncObjTypeSink *sink);
+OSYNC_EXPORT OSyncObjTypeSink *osync_objtype_sink_ref(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_unref(OSyncObjTypeSink *sink);
 
 OSYNC_EXPORT const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink);

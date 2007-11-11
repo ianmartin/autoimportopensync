@@ -72,11 +72,13 @@ OSyncMerger *osync_merger_new(OSyncCapabilities *capabilities, OSyncError **erro
  * @brief Increments the reference counter
  * @param merger The pointer to a merger object
  */
-void osync_merger_ref(OSyncMerger *merger)
+OSyncMerger *osync_merger_ref(OSyncMerger *merger)
 {
 	osync_assert(merger);
 	
 	g_atomic_int_inc(&(merger->ref_count));
+
+	return merger;
 }
 
 /**

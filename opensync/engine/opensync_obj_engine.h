@@ -24,7 +24,7 @@
 typedef void (* OSyncObjEngineEventCallback) (OSyncObjEngine *engine, OSyncEngineEvent event, OSyncError *error, void *userdata);
 
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *engine, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error);
-void osync_obj_engine_ref(OSyncObjEngine *engine);
+OSyncObjEngine *osync_obj_engine_ref(OSyncObjEngine *engine);
 void osync_obj_engine_unref(OSyncObjEngine *engine);
 
 osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **error);

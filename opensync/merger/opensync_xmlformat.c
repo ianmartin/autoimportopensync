@@ -183,11 +183,13 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
  * @brief Increments the reference counter
  * @param xmlformat The pointer to a xmlformat object
  */
-void osync_xmlformat_ref(OSyncXMLFormat *xmlformat)
+OSyncXMLFormat *osync_xmlformat_ref(OSyncXMLFormat *xmlformat)
 {
 	osync_assert(xmlformat);
 	
 	g_atomic_int_inc(&(xmlformat->ref_count));
+
+	return xmlformat;
 }
 
 /**

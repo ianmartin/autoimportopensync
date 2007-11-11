@@ -48,7 +48,7 @@ typedef enum {
 	OSYNC_ERROR_PLUGIN_NOT_FOUND = 16
 } OSyncErrorType;
 
-OSYNC_EXPORT void osync_error_ref(OSyncError **error);
+OSYNC_EXPORT OSyncError **osync_error_ref(OSyncError **error);
 OSYNC_EXPORT void osync_error_unref(OSyncError **error);
 OSYNC_EXPORT osync_bool osync_error_is_set (OSyncError **error);
 OSYNC_EXPORT void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format, ...);

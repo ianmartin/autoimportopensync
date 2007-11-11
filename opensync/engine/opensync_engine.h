@@ -131,7 +131,7 @@ typedef struct OSyncEngineUpdate {
 } OSyncEngineUpdate;
 
 OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error);
-void osync_engine_ref(OSyncEngine *engine);
+OSyncEngine *osync_engine_ref(OSyncEngine *engine);
 void osync_engine_unref(OSyncEngine *engine);
 
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);

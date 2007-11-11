@@ -32,7 +32,7 @@ typedef osync_bool (* OSyncFormatMarshalFunc) (const char *input, unsigned int i
 typedef osync_bool (* OSyncFormatDemarshalFunc) (OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
 
 OSYNC_EXPORT OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error);
-OSYNC_EXPORT void osync_objformat_ref(OSyncObjFormat *format);
+OSYNC_EXPORT OSyncObjFormat *osync_objformat_ref(OSyncObjFormat *format);
 OSYNC_EXPORT void osync_objformat_unref(OSyncObjFormat *format);
 
 OSYNC_EXPORT const char *osync_objformat_get_name(OSyncObjFormat *format);

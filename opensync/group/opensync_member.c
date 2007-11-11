@@ -133,11 +133,13 @@ error:
  * @param member The member
  * 
  */
-void osync_member_ref(OSyncMember *member)
+OSyncMember *osync_member_ref(OSyncMember *member)
 {
 	osync_assert(member);
 	
 	g_atomic_int_inc(&(member->ref_count));
+
+	return member;
 }
 
 /** @brief Decrease the reference count of the member

@@ -723,11 +723,13 @@ error:
 	return NULL;
 }
 
-void osync_client_proxy_ref(OSyncClientProxy *proxy)
+OSyncClientProxy *osync_client_proxy_ref(OSyncClientProxy *proxy)
 {
 	osync_assert(proxy);
 	
 	g_atomic_int_inc(&(proxy->ref_count));
+
+	return proxy;
 }
 
 void osync_client_proxy_unref(OSyncClientProxy *proxy)

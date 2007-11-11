@@ -37,7 +37,7 @@ OSYNC_EXPORT typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigne
 
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error);
-OSYNC_EXPORT void osync_converter_ref(OSyncFormatConverter *converter);
+OSYNC_EXPORT OSyncFormatConverter *osync_converter_ref(OSyncFormatConverter *converter);
 OSYNC_EXPORT void osync_converter_unref(OSyncFormatConverter *converter);
 
 OSYNC_EXPORT OSyncObjFormat *osync_converter_get_sourceformat(OSyncFormatConverter *converter);
@@ -49,7 +49,7 @@ OSYNC_EXPORT osync_bool osync_converter_invoke(OSyncFormatConverter *converter, 
 OSYNC_EXPORT osync_bool osync_converter_matches(OSyncFormatConverter *converter, OSyncData *data);
 
 OSYNC_EXPORT OSyncFormatConverterPath *osync_converter_path_new(OSyncError **error);
-OSYNC_EXPORT void osync_converter_path_ref(OSyncFormatConverterPath *path);
+OSYNC_EXPORT OSyncFormatConverterPath *osync_converter_path_ref(OSyncFormatConverterPath *path);
 OSYNC_EXPORT void osync_converter_path_unref(OSyncFormatConverterPath *path);
 
 OSYNC_EXPORT void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatConverter *edge);

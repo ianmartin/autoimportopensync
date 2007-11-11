@@ -22,7 +22,7 @@
 #define _OPENSYNC_MEMBER_H_
 
 OSYNC_EXPORT OSyncMember *osync_member_new(OSyncError **error);
-OSYNC_EXPORT void osync_member_ref(OSyncMember *member);
+OSYNC_EXPORT OSyncMember *osync_member_ref(OSyncMember *member);
 OSYNC_EXPORT void osync_member_unref(OSyncMember *member);
 
 OSYNC_EXPORT const char *osync_member_get_pluginname(OSyncMember *member);

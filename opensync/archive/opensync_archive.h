@@ -26,7 +26,7 @@
 #define OPENSYNC_ARCHIVE_H_
 
 OSYNC_EXPORT OSyncArchive *osync_archive_new(const char *filename, OSyncError **error);
-OSYNC_EXPORT void osync_archive_ref(OSyncArchive *archive);
+OSYNC_EXPORT OSyncArchive *osync_archive_ref(OSyncArchive *archive);
 OSYNC_EXPORT void osync_archive_unref(OSyncArchive *archive);
 
 OSYNC_EXPORT osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error);

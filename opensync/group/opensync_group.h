@@ -39,7 +39,7 @@ typedef enum {
 } OSyncConflictResolution;
 
 OSYNC_EXPORT OSyncGroup *osync_group_new(OSyncError **error);
-OSYNC_EXPORT void osync_group_ref(OSyncGroup *group);
+OSYNC_EXPORT OSyncGroup *osync_group_ref(OSyncGroup *group);
 OSYNC_EXPORT void osync_group_unref(OSyncGroup *group);
 
 OSYNC_EXPORT OSyncLockState osync_group_lock(OSyncGroup *group);

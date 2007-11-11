@@ -70,11 +70,13 @@ error:
 	return NULL;
 }
 
-void osync_entry_engine_ref(OSyncMappingEntryEngine *engine)
+OSyncMappingEntryEngine *osync_entry_engine_ref(OSyncMappingEntryEngine *engine)
 {
 	osync_assert(engine);
 	
 	g_atomic_int_inc(&(engine->ref_count));
+
+	return engine;
 }
 
 void osync_entry_engine_unref(OSyncMappingEntryEngine *engine)

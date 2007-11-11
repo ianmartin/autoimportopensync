@@ -63,11 +63,13 @@ error:
 	return NULL;
 }
 
-void osync_sink_engine_ref(OSyncSinkEngine *engine)
+OSyncSinkEngine *osync_sink_engine_ref(OSyncSinkEngine *engine)
 {
 	osync_assert(engine);
 	
 	g_atomic_int_inc(&(engine->ref_count));
+
+	return engine;
 }
 
 void osync_sink_engine_unref(OSyncSinkEngine *engine)

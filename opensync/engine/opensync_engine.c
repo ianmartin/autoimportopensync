@@ -389,11 +389,13 @@ error:
 	return NULL;
 }
 
-void osync_engine_ref(OSyncEngine *engine)
+OSyncEngine *osync_engine_ref(OSyncEngine *engine)
 {
 	osync_assert(engine);
 	
 	g_atomic_int_inc(&(engine->ref_count));
+
+	return engine;
 }
 
 void osync_engine_unref(OSyncEngine *engine)

@@ -63,11 +63,13 @@ OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error
  * @param sink Pointer to the sink
  * 
  */
-void osync_objtype_sink_ref(OSyncObjTypeSink *sink)
+OSyncObjTypeSink *osync_objtype_sink_ref(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	
 	g_atomic_int_inc(&(sink->ref_count));
+
+	return sink;
 }
 
 /*! @brief Decrease the reference count on a sink

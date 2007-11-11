@@ -36,7 +36,7 @@ typedef void (* committed_all_cb) (OSyncClientProxy *proxy, void *userdata, OSyn
 typedef void (* sync_done_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 
 OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember *member, OSyncError **error);
-void osync_client_proxy_ref(OSyncClientProxy *proxy);
+OSyncClientProxy *osync_client_proxy_ref(OSyncClientProxy *proxy);
 void osync_client_proxy_unref(OSyncClientProxy *proxy);
 
 void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx);

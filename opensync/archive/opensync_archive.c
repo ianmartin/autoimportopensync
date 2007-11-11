@@ -200,11 +200,13 @@ error:
  * @brief Increments the reference counter
  * @param archive The pointer to an archive object
  */
-void osync_archive_ref(OSyncArchive *archive)
+OSyncArchive *osync_archive_ref(OSyncArchive *archive)
 {
 	osync_assert(archive);
 	
 	g_atomic_int_inc(&(archive->ref_count));
+
+	return archive;
 }
 
 /**

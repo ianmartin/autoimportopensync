@@ -1254,11 +1254,13 @@ OSyncClient *osync_client_new(OSyncError **error)
 	return client;
 }
 
-void osync_client_ref(OSyncClient *client)
+OSyncClient *osync_client_ref(OSyncClient *client)
 {
 	osync_assert(client);
 	
 	g_atomic_int_inc(&(client->ref_count));
+
+	return client;
 }
 
 void osync_client_unref(OSyncClient *client)

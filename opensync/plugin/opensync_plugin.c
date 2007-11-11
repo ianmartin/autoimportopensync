@@ -62,11 +62,13 @@ OSyncPlugin *osync_plugin_new(OSyncError **error)
  * @param plugin Pointer to the plugin
  * 
  */
-void osync_plugin_ref(OSyncPlugin *plugin)
+OSyncPlugin *osync_plugin_ref(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	
 	g_atomic_int_inc(&(plugin->ref_count));
+
+	return plugin;
 }
 
 /*! @brief Decrease the reference count on a plugin

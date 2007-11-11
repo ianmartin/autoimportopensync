@@ -98,11 +98,13 @@ error:
  * @param filter Pointer to the filter
  * 
  */
-void osync_filter_ref(OSyncFilter *filter)
+OSyncFilter *osync_filter_ref(OSyncFilter *filter)
 {
 	osync_assert(filter);
 	
 	g_atomic_int_inc(&(filter->ref_count));
+
+	return filter;
 }
 
 /*! @brief Decrease the reference count on a filter
@@ -234,11 +236,13 @@ error:
  * @param filter Pointer to the custom filter
  * 
  */
-void osync_custom_filter_ref(OSyncCustomFilter *filter)
+OSyncCustomFilter *osync_custom_filter_ref(OSyncCustomFilter *filter)
 {
 	osync_assert(filter);
 	
 	g_atomic_int_inc(&(filter->ref_count));
+
+	return filter;
 }
 
 /*! @brief Decrease the reference count on a custom filter

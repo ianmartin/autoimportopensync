@@ -37,11 +37,13 @@ OSyncContext *osync_context_new(OSyncError **error)
 	return ctx;
 }
 
-void osync_context_ref(OSyncContext *context)
+OSyncContext *osync_context_ref(OSyncContext *context)
 {
 	osync_assert(context);
 	
 	g_atomic_int_inc(&(context->ref_count));
+
+	return context;
 }
 
 void osync_context_unref(OSyncContext *context)

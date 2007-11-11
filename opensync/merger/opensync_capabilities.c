@@ -189,11 +189,13 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
  * @brief Increments the reference counter
  * @param capabilities The pointer to a capabilities object
  */
-void osync_capabilities_ref(OSyncCapabilities *capabilities)
+OSyncCapabilities *osync_capabilities_ref(OSyncCapabilities *capabilities)
 {
 	osync_assert(capabilities);
 	
 	g_atomic_int_inc(&(capabilities->ref_count));
+
+	return capabilities;
 }
 
 /**

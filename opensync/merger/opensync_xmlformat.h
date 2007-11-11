@@ -38,7 +38,7 @@ typedef struct OSyncXMLPoints {
 
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error);
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSyncError **error);
-OSYNC_EXPORT void osync_xmlformat_ref(OSyncXMLFormat *xmlformat);
+OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_ref(OSyncXMLFormat *xmlformat);
 OSYNC_EXPORT void osync_xmlformat_unref(OSyncXMLFormat *xmlformat);
 
 OSYNC_EXPORT const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat);

@@ -52,7 +52,7 @@ OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
 OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError *error, OSyncError **loc_error);
 OSyncMessage *osync_message_new_error(OSyncError *error, OSyncError **loc_error);
 OSyncMessage *osync_message_new_queue_error(OSyncError *error, OSyncError **loc_error);
-void osync_message_ref(OSyncMessage *message);
+OSyncMessage *osync_message_ref(OSyncMessage *message);
 void osync_message_unref(OSyncMessage *message);
 
 void osync_message_set_cmd(OSyncMessage *message, OSyncMessageCommand cmd);

@@ -25,7 +25,7 @@
 
 OSYNC_EXPORT OSyncCapabilities *osync_capabilities_new(OSyncError **error);
 OSYNC_EXPORT OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int size, OSyncError **error);
-OSYNC_EXPORT void osync_capabilities_ref(OSyncCapabilities *capabilities);
+OSYNC_EXPORT OSyncCapabilities *osync_capabilities_ref(OSyncCapabilities *capabilities);
 OSYNC_EXPORT void osync_capabilities_unref(OSyncCapabilities *capabilities);
 
 OSYNC_EXPORT OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, const char *objtype);

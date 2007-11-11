@@ -56,11 +56,13 @@ error:
  * @brief Increments the reference counter
  * @param archive The pointer to an mapping table object
  */
-void osync_mapping_table_ref(OSyncMappingTable *table)
+OSyncMappingTable *osync_mapping_table_ref(OSyncMappingTable *table)
 {
 	osync_assert(table);
 	
 	g_atomic_int_inc(&(table->ref_count));
+
+	return table;
 }
 
 /**

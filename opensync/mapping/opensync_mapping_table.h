@@ -22,7 +22,7 @@
 #define OPENSYNC_MAPPING_TABLE_H_
 
 OSyncMappingTable *osync_mapping_table_new(OSyncError **error);
-void osync_mapping_table_ref(OSyncMappingTable *table);
+OSyncMappingTable *osync_mapping_table_ref(OSyncMappingTable *table);
 void osync_mapping_table_unref(OSyncMappingTable *table);
 
 osync_bool osync_mapping_table_load(OSyncMappingTable *table, OSyncArchive *archive, const char *objtype, OSyncError **error);

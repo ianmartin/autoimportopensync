@@ -64,11 +64,13 @@ OSyncData *osync_data_new(char *buffer, unsigned int size, OSyncObjFormat *forma
  * @param data The data object
  * 
  */
-void osync_data_ref(OSyncData *data)
+OSyncData *osync_data_ref(OSyncData *data)
 {
 	osync_assert(data);
 	
 	g_atomic_int_inc(&(data->ref_count));
+
+	return data;
 }
 
 /*! @brief Decrease the reference count on a data object

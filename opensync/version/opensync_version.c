@@ -130,11 +130,13 @@ OSyncVersion *osync_version_new(OSyncError **error)
  * @brief Increments the reference counter
  * @param version The pointer to a version object
  */
-void osync_version_ref(OSyncVersion *version)
+OSyncVersion *osync_version_ref(OSyncVersion *version)
 {
 	osync_assert(version);
 	
 	g_atomic_int_inc(&(version->ref_count));
+
+	return version;
 }
 
 /**

@@ -22,7 +22,7 @@
 #define OPENSYNC_MAPPING_ENTRY_H_
 
 OSyncMappingEntry *osync_mapping_entry_new(OSyncError **error);
-void osync_mapping_entry_ref(OSyncMappingEntry *entry);
+OSyncMappingEntry *osync_mapping_entry_ref(OSyncMappingEntry *entry);
 void osync_mapping_entry_unref(OSyncMappingEntry *entry);
 
 osync_bool osync_mapping_entry_matches(OSyncMappingEntry *entry, OSyncChange *change);

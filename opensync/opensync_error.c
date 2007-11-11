@@ -108,12 +108,14 @@ const char *osync_error_get_name(OSyncError **error)
 	return osync_error_name_from_type((*error)->type);
 }
 
-void osync_error_ref(OSyncError **error)
+OSyncError **osync_error_ref(OSyncError **error)
 {
 	if (!osync_error_is_set(error))
 		return;
 	
 	g_atomic_int_inc(&(*error)->ref_count);
+
+	return error;
 }
 
 void osync_error_unref(OSyncError **error)

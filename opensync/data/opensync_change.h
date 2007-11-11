@@ -2,7 +2,7 @@
 #define _OPENSYNC_CHANGE_H_
 
 OSyncChange *osync_change_new(OSyncError **error);
-void osync_change_ref(OSyncChange *change);
+OSyncChange *osync_change_ref(OSyncChange *change);
 void osync_change_unref(OSyncChange *change);
 
 OSyncChange *osync_change_clone(OSyncChange *source, OSyncError **error);

@@ -58,11 +58,13 @@ OSyncPluginInfo *osync_plugin_info_new(OSyncError **error)
  * @param info Pointer to the plugin info object
  * 
  */
-void osync_plugin_info_ref(OSyncPluginInfo *info)
+OSyncPluginInfo *osync_plugin_info_ref(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	
 	g_atomic_int_inc(&(info->ref_count));
+
+	return info;
 }
 
 /*! @brief Decrease the reference count on a plugin info object

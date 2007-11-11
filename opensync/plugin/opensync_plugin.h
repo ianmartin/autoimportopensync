@@ -42,7 +42,7 @@ typedef enum {
 
 OSYNC_EXPORT OSyncPlugin *osync_plugin_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_unref(OSyncPlugin *plugin);
-OSYNC_EXPORT void osync_plugin_ref(OSyncPlugin *plugin);
+OSYNC_EXPORT OSyncPlugin *osync_plugin_ref(OSyncPlugin *plugin);
 
 OSYNC_EXPORT const char *osync_plugin_get_name(OSyncPlugin *plugin);
 OSYNC_EXPORT void osync_plugin_set_name(OSyncPlugin *plugin, const char *name);

@@ -32,7 +32,7 @@ typedef struct OSyncMappingEntryEngine {
 } OSyncMappingEntryEngine;
 
 OSyncMappingEntryEngine *osync_entry_engine_new(OSyncMappingEntry *entry, OSyncMappingEngine *mapping_engine, OSyncSinkEngine *sink_engine, OSyncObjEngine *objengine, OSyncError **error);
-void osync_entry_engine_ref(OSyncMappingEntryEngine *engine);
+OSyncMappingEntryEngine *osync_entry_engine_ref(OSyncMappingEntryEngine *engine);
 void osync_entry_engine_unref(OSyncMappingEntryEngine *engine);
 
 osync_bool osync_entry_engine_matches(OSyncMappingEntryEngine *engine, OSyncChange *change);

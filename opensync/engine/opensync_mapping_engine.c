@@ -82,11 +82,13 @@ error:
 	return NULL;
 }
 
-void osync_mapping_engine_ref(OSyncMappingEngine *engine)
+OSyncMappingEngine *osync_mapping_engine_ref(OSyncMappingEngine *engine)
 {
 	osync_assert(engine);
 	
 	g_atomic_int_inc(&(engine->ref_count));
+
+	return engine;
 }
 
 void osync_mapping_engine_unref(OSyncMappingEngine *engine)

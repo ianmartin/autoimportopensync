@@ -97,11 +97,13 @@ OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat,
  * @param converter Pointer to the converter
  * 
  */
-void osync_converter_ref(OSyncFormatConverter *converter)
+OSyncFormatConverter *osync_converter_ref(OSyncFormatConverter *converter)
 {
 	osync_assert(converter);
 	
 	g_atomic_int_inc(&(converter->ref_count));
+
+	return converter;
 }
 
 /*! @brief Decrease the reference count on a converter
@@ -272,11 +274,13 @@ OSyncFormatConverterPath *osync_converter_path_new(OSyncError **error)
  * @param path Pointer to the converter path
  * 
  */
-void osync_converter_path_ref(OSyncFormatConverterPath *path)
+OSyncFormatConverterPath *osync_converter_path_ref(OSyncFormatConverterPath *path)
 {
 	osync_assert(path);
 	
 	g_atomic_int_inc(&(path->ref_count));
+
+	return path;
 }
 
 /*! @brief Decrease the reference count on a converter path

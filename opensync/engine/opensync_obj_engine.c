@@ -607,11 +607,13 @@ error:
 	return NULL;
 }
 
-void osync_obj_engine_ref(OSyncObjEngine *engine)
+OSyncObjEngine *osync_obj_engine_ref(OSyncObjEngine *engine)
 {
 	osync_assert(engine);
 	
 	g_atomic_int_inc(&(engine->ref_count));
+
+	return engine;
 }
 
 void osync_obj_engine_unref(OSyncObjEngine *engine)

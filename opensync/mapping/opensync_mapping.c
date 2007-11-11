@@ -44,11 +44,13 @@ error:
 	return NULL;
 }
 
-void osync_mapping_ref(OSyncMapping *mapping)
+OSyncMapping *osync_mapping_ref(OSyncMapping *mapping)
 {
 	osync_assert(mapping);
 	
 	g_atomic_int_inc(&(mapping->ref_count));
+
+	return mapping;
 }
 
 void osync_mapping_unref(OSyncMapping *mapping)

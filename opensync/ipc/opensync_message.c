@@ -61,9 +61,11 @@ OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **
 	return message;
 }
 
-void osync_message_ref(OSyncMessage *message)
+OSyncMessage *osync_message_ref(OSyncMessage *message)
 {
 	g_atomic_int_inc(&(message->refCount));
+
+	return message;
 }
 
 void osync_message_unref(OSyncMessage *message)

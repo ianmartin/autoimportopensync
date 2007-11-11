@@ -60,11 +60,13 @@ OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, 
  * @param format Pointer to the object format
  * 
  */
-void osync_objformat_ref(OSyncObjFormat *format)
+OSyncObjFormat *osync_objformat_ref(OSyncObjFormat *format)
 {
 	osync_assert(format);
 	
 	g_atomic_int_inc(&(format->ref_count));
+
+	return format;
 }
 
 /*! @brief Decrease the reference count on an object format

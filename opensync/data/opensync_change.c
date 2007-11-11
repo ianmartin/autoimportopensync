@@ -55,11 +55,13 @@ OSyncChange *osync_change_new(OSyncError **error)
  * @param change The change object
  * 
  */
-void osync_change_ref(OSyncChange *change)
+OSyncChange *osync_change_ref(OSyncChange *change)
 {
 	osync_assert(change);
 	
 	g_atomic_int_inc(&(change->ref_count));
+
+	return change;
 }
 
 /*! @brief Decrease the reference count on a change object
