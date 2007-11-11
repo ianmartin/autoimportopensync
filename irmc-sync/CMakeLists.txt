@@ -16,17 +16,23 @@ INCLUDE( OpenSyncInternal )
 
 SET( CMAKE_BUILD_TYPE RelWithDebInfo )
 
+# Defaults
+SET( ENABLE_BLUETOOTH TRUE CACHE BOOL "Bluetooth Transport" )
+SET( ENABLE_IRDA TRUE CACHE BOOL "IrDA Transport" )
+
 IF ( OPENOBEX_FOUND )
 	SET( ENABLE_OBEX TRUE BOOL "Obex Transport" )
+
+	# TODO Write check for bluetooth support in openobex
+	IF ( ENABLE_BLUETOOTH AND BLUEZ_FOUND )
+	    SET( HAVE_BLUETOOTH TRUE BOOL "Bluetooth Transport enabled" )
+	ENDIF ( ENABLE_BLUETOOTH AND BLUEZ_FOUND )
+
+	# TODO Write check for irda support in openobex
+	IF ( ENABLE_IRDA )
+	    SET( HAVE_IRDA TRUE BOOL "IrDA Transport enabled" )
+	ENDIF ( ENABLE_IRDA )
 ENDIF ( OPENOBEX_FOUND )
-
-IF ( BLUEZ_FOUND )
-	SET( HAVE_BLUETOOTH TRUE BOOL "Bluetooth Transport enabled" ) 
-ENDIF ( BLUEZ_FOUND )	
-
-# TODO Write checks	
-SET( HAVE_IRDA TRUE BOOL "IrDA Transport enabled" ) 
-SET( HAVE_BT_OBEX TRUE BOOL "OpenObex Bluetooth Transport" )
 
 CONFIGURE_FILE( "config.h.cmake" "config.h" )
 

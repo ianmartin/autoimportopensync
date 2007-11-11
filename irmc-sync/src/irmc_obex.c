@@ -46,11 +46,7 @@
 #endif
 #include "irmc_obex.h"
 #include "irmc_sync.h"
-#include "irmc_bluetooth.h"
 #include "irmc_irda.h"
-#ifdef HAVE_BT_OBEX
-#include <bluetooth/bluetooth.h>
-#endif
 
 #include <openobex/obex.h>
 
@@ -446,15 +442,15 @@ gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout) {
 
 obex_t* irmc_obex_client(irmc_config *config) {
   obex_ctrans_t bttrans;
-#ifdef HAVE_COBEX  
+#ifdef HAVE_COBEX
   obex_ctrans_t cabletrans = { obex_cable_connect, cobex_disconnect,
 			       NULL, cobex_write, 
 			       cobex_handleinput, 0 };
-#endif  
+#endif
 
 #ifdef HAVE_IRDA
   obex_ctrans_t irdatrans = { obex_irda_connect, obex_irda_disconnect,
-			      obex_cable_listen, obex_cable_write, 
+			      obex_cable_listen, obex_cable_write,
 			      obex_cable_handleinput, 0 };
 #endif
   obexdata_t *userdata;
@@ -477,9 +473,9 @@ obex_t* irmc_obex_client(irmc_config *config) {
   irdatrans.customdata = userdata;
 #endif
 
-#ifdef HAVE_COBEX  
+#ifdef HAVE_COBEX
   cabletrans.customdata = userdata;
-#endif  
+#endif
 
 #endif
 #ifdef OBEX_USERDATA
@@ -487,13 +483,15 @@ obex_t* irmc_obex_client(irmc_config *config) {
 #ifdef HAVE_IRDA
   irdatrans.userdata = userdata;
 #endif
-  
-#ifdef HAVE_COBEX  
+
+#ifdef HAVE_COBEX
   cabletrans.userdata = userdata;
-#endif  
+#endif
 
 #endif
-  memcpy(&userdata->btu, &config->btunit, sizeof(struct bt_unit));
+#ifdef HAVE_BLUETOOTH
+  memcpy(&userdata->bdaddr, &config->bdaddr, sizeof(bdaddr_t));
+#endif
   userdata->channel = config->btchannel;
   strncpy(userdata->cabledev, config->cabledev, 19);
   userdata->cabletype = config->cabletype;
@@ -508,14 +506,9 @@ obex_t* irmc_obex_client(irmc_config *config) {
 
   switch(userdata->connectmedium) {
   case MEDIUM_BLUETOOTH:
-#ifdef HAVE_BT_OBEX
+#ifdef HAVE_BLUETOOTH
     if (!(handle = OBEX_Init(OBEX_TRANS_BLUETOOTH, obex_event, 0)))
       return(0);
-#else
-    if (!(handle = OBEX_Init(OBEX_TRANS_CUST, obex_event, 0)))
-      return(0);
-    if (bluetoothplugin)
-      OBEX_RegisterCTransport(handle, &bttrans);    
 #endif
     break;
   case MEDIUM_IR:
@@ -550,11 +543,8 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
   userdata->connected = 0;
   switch(userdata->connectmedium) {
   case MEDIUM_BLUETOOTH:
-#ifdef HAVE_BT_OBEX
-    ret=BtOBEX_TransportConnect(handle, NULL, 
-				&userdata->btu.bdaddr, userdata->channel);
-#else
-    ret=OBEX_TransportConnect (handle, (struct sockaddr*) &addr, 0);
+#ifdef HAVE_BLUETOOTH
+    ret=BtOBEX_TransportConnect(handle, NULL, &userdata->bdaddr, userdata->channel);
 #endif
     break;
   case MEDIUM_IR:

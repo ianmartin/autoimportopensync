@@ -43,17 +43,11 @@
 #endif
 #include "irmc_obex.h"
 #include "irmc_sync.h"
-#include "irmc_bluetooth.h"
-#ifdef HAVE_BT_OBEX
-#include <bluetooth/bluetooth.h>
-#endif
 
 #include <openobex/obex.h>
 
 #define DISC_BUF_LEN	sizeof(struct irda_device_list) + \
 			sizeof(struct irda_device_info) * (10)
-
-extern gboolean multisync_debug;
 
 gint obex_irda_connect(obex_t *handle, gpointer ud) {
 #ifdef HAVE_IRDA

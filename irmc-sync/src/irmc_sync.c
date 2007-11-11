@@ -36,7 +36,6 @@
 #include <libxml/parser.h>
 
 #include "irmc_sync.h"
-#include "irmc_bluetooth.h"
 
 #define SYNC_OBJECT_TYPE_CALENDAR 0
 #define SYNC_OBJECT_TYPE_TODO 1
@@ -194,7 +193,7 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
           config->connectmedium = MEDIUM_CABLE;
 #ifdef HAVE_BLUETOOTH
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
-        baswap(&(config->btunit.bdaddr), strtoba(str));
+        baswap(&(config->bdaddr), strtoba(str));
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {
         config->btchannel = atoi(str);
 #endif

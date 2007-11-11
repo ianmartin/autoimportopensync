@@ -9,7 +9,6 @@ bfb/bfb_io.c
 bfb/crc.c
 irmc_sync.c
 cobex_bfb.c
-irmc_bluetooth.c
 irmc_irda.c
 irmc_obex.c
 )

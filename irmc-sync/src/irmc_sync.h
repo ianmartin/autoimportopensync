@@ -40,7 +40,7 @@ typedef struct  {
   connect_medium connectmedium;  // The connection type
 
   // bluetooth specific
-  struct bt_unit btunit;         // Bluetooth address
+  bdaddr_t bdaddr;               // Bluetooth address
   int btchannel;                 // Bluetooth channel
 
   // cable specific

@@ -25,19 +25,6 @@
 
 #ifdef HAVE_BLUETOOTH
 #include <bluetooth/bluetooth.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/l2cap.h>
-#include <bluetooth/rfcomm.h>
-
-
-struct bt_unit { 
-  bdaddr_t bdaddr;
-};
-#else
-struct bt_unit {
-  char bdaddr;
-  char bdaddr_pad[5];
-};
 #endif /* HAVE_BLUETOOTH */
 
 #include <openobex/obex.h>
@@ -49,12 +36,14 @@ struct bt_unit {
 typedef struct  { 
   int fd;
   connect_medium connectmedium;
-  struct bt_unit btu; 
+#ifdef HAVE_BLUETOOTH
+  bdaddr_t bdaddr;
+#endif
   char cabledev[20];
   cable_type cabletype;
   irmc_ir_unit irunit; // IR device name and serial  
 #ifdef HAVE_IRDA
-  __u32 ir_addr;   
+  __u32 ir_addr;
 #endif
   int channel;
   int state;
@@ -68,7 +57,6 @@ typedef struct  {
 } obexdata_t;
 
 
-int rfcomm_connect(struct bt_unit *btu, int channel);
 gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error);
 gboolean irmc_obex_disconnect(obex_t* handle, OSyncError **error);
 gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
@@ -80,9 +68,9 @@ gint obex_cable_write(obex_t *handle, gpointer ud,
 		 guint8 *buf, gint buflen);
 gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout);
 gint irmc_obex_handleinput(obex_t* handle, int timeout);
-void server_done(obex_t *handle, obex_object_t *object, 
+void server_done(obex_t *handle, obex_object_t *object,
 		 gint obex_cmd, gint obex_rsp);
-void client_done(obex_t *handle, obex_object_t *object, 
+void client_done(obex_t *handle, obex_object_t *object,
 		 gint obex_cmd, gint obex_rsp);
 void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp);
 void put_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp);
@@ -94,7 +82,7 @@ gint obex_cable_connect(obex_t *handle, gpointer ud);
 gint obex_irda_connect(obex_t *handle, gpointer ud);
 gint obex_fd_disconnect(obex_t *handle, gpointer ud);
 gint obex_fd_listen(obex_t *handle, gpointer ud);
-gint obex_fd_write(obex_t *handle, gpointer ud, 
+gint obex_fd_write(obex_t *handle, gpointer ud,
 		   guint8 *buf, gint buflen);
 gint obex_fd_handleinput(obex_t *handle, gpointer ud, gint timeout);
 void irmc_obex_init(void);
