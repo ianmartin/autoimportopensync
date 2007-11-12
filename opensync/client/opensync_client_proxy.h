@@ -35,32 +35,32 @@ typedef void (* commit_change_cb) (OSyncClientProxy *proxy, void *userdata, cons
 typedef void (* committed_all_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 typedef void (* sync_done_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 
-OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember *member, OSyncError **error);
-OSyncClientProxy *osync_client_proxy_ref(OSyncClientProxy *proxy);
-void osync_client_proxy_unref(OSyncClientProxy *proxy);
+OSYNC_EXPORT OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT OSyncClientProxy *osync_client_proxy_ref(OSyncClientProxy *proxy);
+OSYNC_EXPORT void osync_client_proxy_unref(OSyncClientProxy *proxy);
 
-void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx);
-void osync_client_proxy_set_change_callback(OSyncClientProxy *proxy, change_cb cb, void *userdata);
-OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy);
+OSYNC_EXPORT void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx);
+OSYNC_EXPORT void osync_client_proxy_set_change_callback(OSyncClientProxy *proxy, change_cb cb, void *userdata);
+OSYNC_EXPORT OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy);
 
-osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type, const char *path, OSyncError **error);
-osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type, const char *path, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **error);
 
-osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, const char *config, OSyncError **error);
-osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, const char *config, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error);
 
-osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error);
-int osync_client_proxy_num_objtypes(OSyncClientProxy *proxy);
-OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nth);
+OSYNC_EXPORT osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error);
+OSYNC_EXPORT int osync_client_proxy_num_objtypes(OSyncClientProxy *proxy);
+OSYNC_EXPORT OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nth);
 
-osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
-osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error);
 
-osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
-osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
-osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_change_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
-osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_change_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error);
 
-osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb callback, void *userdata, const char *objtype, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb callback, void *userdata, const char *objtype, OSyncError **error);
 
 #endif /*OSYNC_CLIENT_PROXY_H_*/

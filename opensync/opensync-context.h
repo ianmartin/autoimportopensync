@@ -26,20 +26,20 @@ OPENSYNC_BEGIN_DECLS
 typedef void (* OSyncContextCallbackFn)(void *, OSyncError *);
 typedef void (* OSyncContextChangeFn) (OSyncChange *, void *);
 
-OSyncContext *osync_context_new(OSyncError **error);
-OSyncContext *osync_context_ref(OSyncContext *context);
-void osync_context_unref(OSyncContext *context);
+OSYNC_EXPORT OSyncContext *osync_context_new(OSyncError **error);
+OSYNC_EXPORT OSyncContext *osync_context_ref(OSyncContext *context);
+OSYNC_EXPORT void osync_context_unref(OSyncContext *context);
 
-void osync_context_set_callback(OSyncContext *context, OSyncContextCallbackFn callback, void *userdata);
-void osync_context_set_changes_callback(OSyncContext *context, OSyncContextChangeFn changes);
-void osync_context_set_warning_callback(OSyncContext *context, OSyncContextCallbackFn warning);
+OSYNC_EXPORT void osync_context_set_callback(OSyncContext *context, OSyncContextCallbackFn callback, void *userdata);
+OSYNC_EXPORT void osync_context_set_changes_callback(OSyncContext *context, OSyncContextChangeFn changes);
+OSYNC_EXPORT void osync_context_set_warning_callback(OSyncContext *context, OSyncContextCallbackFn warning);
 
-void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...);
-void osync_context_report_success(OSyncContext *context);
-void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error);
+OSYNC_EXPORT void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...);
+OSYNC_EXPORT void osync_context_report_success(OSyncContext *context);
+OSYNC_EXPORT void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error);
 
-void osync_context_report_osyncwarning(OSyncContext *context, OSyncError *error);
-void osync_context_report_change(OSyncContext *context, OSyncChange *change);
+OSYNC_EXPORT void osync_context_report_osyncwarning(OSyncContext *context, OSyncError *error);
+OSYNC_EXPORT void osync_context_report_change(OSyncContext *context, OSyncChange *change);
 
 OPENSYNC_END_DECLS
 

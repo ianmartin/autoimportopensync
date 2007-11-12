@@ -47,47 +47,47 @@ typedef enum {
  */
 typedef void (*OSyncMessageHandler)(OSyncMessage *message, void *user_data);
 
-OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
-OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
-OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError *error, OSyncError **loc_error);
-OSyncMessage *osync_message_new_error(OSyncError *error, OSyncError **loc_error);
-OSyncMessage *osync_message_new_queue_error(OSyncError *error, OSyncError **loc_error);
-OSyncMessage *osync_message_ref(OSyncMessage *message);
-void osync_message_unref(OSyncMessage *message);
+OSYNC_EXPORT OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
+OSYNC_EXPORT OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
+OSYNC_EXPORT OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError *error, OSyncError **loc_error);
+OSYNC_EXPORT OSyncMessage *osync_message_new_error(OSyncError *error, OSyncError **loc_error);
+OSYNC_EXPORT OSyncMessage *osync_message_new_queue_error(OSyncError *error, OSyncError **loc_error);
+OSYNC_EXPORT OSyncMessage *osync_message_ref(OSyncMessage *message);
+OSYNC_EXPORT void osync_message_unref(OSyncMessage *message);
 
-void osync_message_set_cmd(OSyncMessage *message, OSyncMessageCommand cmd);
-OSyncMessageCommand osync_message_get_cmd(OSyncMessage *message);
-void osync_message_set_id(OSyncMessage *message, long long int id);
-long long int osync_message_get_id(OSyncMessage *message);
-unsigned int osync_message_get_message_size(OSyncMessage *message);
-void osync_message_set_message_size(OSyncMessage *message, unsigned int size);
-void osync_message_get_buffer(OSyncMessage *message, char **data, unsigned int *size);
+OSYNC_EXPORT void osync_message_set_cmd(OSyncMessage *message, OSyncMessageCommand cmd);
+OSYNC_EXPORT OSyncMessageCommand osync_message_get_cmd(OSyncMessage *message);
+OSYNC_EXPORT void osync_message_set_id(OSyncMessage *message, long long int id);
+OSYNC_EXPORT long long int osync_message_get_id(OSyncMessage *message);
+OSYNC_EXPORT unsigned int osync_message_get_message_size(OSyncMessage *message);
+OSYNC_EXPORT void osync_message_set_message_size(OSyncMessage *message, unsigned int size);
+OSYNC_EXPORT void osync_message_get_buffer(OSyncMessage *message, char **data, unsigned int *size);
 
-void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, void *user_data);
-OSyncMessageHandler osync_message_get_handler(OSyncMessage *message);
-void *osync_message_get_handler_data(OSyncMessage *message);
+OSYNC_EXPORT void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, void *user_data);
+OSYNC_EXPORT OSyncMessageHandler osync_message_get_handler(OSyncMessage *message);
+OSYNC_EXPORT void *osync_message_get_handler_data(OSyncMessage *message);
 
-osync_bool osync_message_is_error(OSyncMessage *message);
-osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
-osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
-OSyncMessageCommand osync_message_get_command(OSyncMessage *message);
-char* osync_message_get_commandstr(OSyncMessage *message);
-void osync_message_reset_timeout(OSyncMessage *message);
-osync_bool osync_message_is_answered(OSyncMessage *message);
-void osync_message_set_answered(OSyncMessage *message);
+OSYNC_EXPORT osync_bool osync_message_is_error(OSyncMessage *message);
+OSYNC_EXPORT osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
+OSYNC_EXPORT OSyncMessageCommand osync_message_get_command(OSyncMessage *message);
+OSYNC_EXPORT char* osync_message_get_commandstr(OSyncMessage *message);
+OSYNC_EXPORT void osync_message_reset_timeout(OSyncMessage *message);
+OSYNC_EXPORT osync_bool osync_message_is_answered(OSyncMessage *message);
+OSYNC_EXPORT void osync_message_set_answered(OSyncMessage *message);
 
-void osync_message_write_int(OSyncMessage *message, int value);
-void osync_message_write_long_long_int(OSyncMessage *message, long long int value);
-void osync_message_write_string(OSyncMessage *message, const char *value);
-void osync_message_write_data(OSyncMessage *message, const void *value, int size);
-void osync_message_write_buffer(OSyncMessage *message, const void *value, int size);
+OSYNC_EXPORT void osync_message_write_int(OSyncMessage *message, int value);
+OSYNC_EXPORT void osync_message_write_long_long_int(OSyncMessage *message, long long int value);
+OSYNC_EXPORT void osync_message_write_string(OSyncMessage *message, const char *value);
+OSYNC_EXPORT void osync_message_write_data(OSyncMessage *message, const void *value, int size);
+OSYNC_EXPORT void osync_message_write_buffer(OSyncMessage *message, const void *value, int size);
 
-void osync_message_read_int(OSyncMessage *message, int *value);
-void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
-void osync_message_read_string(OSyncMessage *message, char **value);
-void osync_message_read_data(OSyncMessage *message, void *value, int size);
-void osync_message_read_const_data(OSyncMessage *message, void **value, int size);
-void osync_message_read_const_string(OSyncMessage *message, char **value);
-void osync_message_read_buffer(OSyncMessage *message, void **value, int *size);
+OSYNC_EXPORT void osync_message_read_int(OSyncMessage *message, int *value);
+OSYNC_EXPORT void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
+OSYNC_EXPORT void osync_message_read_string(OSyncMessage *message, char **value);
+OSYNC_EXPORT void osync_message_read_data(OSyncMessage *message, void *value, int size);
+OSYNC_EXPORT void osync_message_read_const_data(OSyncMessage *message, void **value, int size);
+OSYNC_EXPORT void osync_message_read_const_string(OSyncMessage *message, char **value);
+OSYNC_EXPORT void osync_message_read_buffer(OSyncMessage *message, void **value, int *size);
 
 #endif //_OPENSYNC_MESSAGES_H

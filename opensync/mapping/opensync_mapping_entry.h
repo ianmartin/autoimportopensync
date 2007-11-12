@@ -21,25 +21,27 @@
 #ifndef OPENSYNC_MAPPING_ENTRY_H_
 #define OPENSYNC_MAPPING_ENTRY_H_
 
-OSyncMappingEntry *osync_mapping_entry_new(OSyncError **error);
-OSyncMappingEntry *osync_mapping_entry_ref(OSyncMappingEntry *entry);
-void osync_mapping_entry_unref(OSyncMappingEntry *entry);
+OSYNC_EXPORT OSyncMappingEntry *osync_mapping_entry_new(OSyncError **error);
+OSYNC_EXPORT OSyncMappingEntry *osync_mapping_entry_ref(OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_entry_unref(OSyncMappingEntry *entry);
 
-osync_bool osync_mapping_entry_matches(OSyncMappingEntry *entry, OSyncChange *change);
+OSYNC_EXPORT osync_bool osync_mapping_entry_matches(OSyncMappingEntry *entry, OSyncChange *change);
 
-/*void osync_mapping_entry_update(OSyncMappingEntry *entry, OSyncChange *change);
-OSyncChange *osync_mapping_entry_get_change(OSyncMappingEntry *entry);
+/*
+OSYNC_EXPORT void osync_mapping_entry_update(OSyncMappingEntry *entry, OSyncChange *change);
+OSYNC_EXPORT OSyncChange *osync_mapping_entry_get_change(OSyncMappingEntry *entry);
 
-osync_bool osync_mapping_entry_is_dirty(OSyncMappingEntry *entry);
-void osync_mapping_entry_set_dirty(OSyncMappingEntry *entry, osync_bool dirty);*/
+OSYNC_EXPORT osync_bool osync_mapping_entry_is_dirty(OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_entry_set_dirty(OSyncMappingEntry *entry, osync_bool dirty);
+ */
 
-void osync_mapping_entry_set_uid(OSyncMappingEntry *entry, const char *uid);
-const char *osync_mapping_entry_get_uid(OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_entry_set_uid(OSyncMappingEntry *entry, const char *uid);
+OSYNC_EXPORT const char *osync_mapping_entry_get_uid(OSyncMappingEntry *entry);
 
-long long int osync_mapping_entry_get_member_id(OSyncMappingEntry *entry);
-void osync_mapping_entry_set_member_id(OSyncMappingEntry *entry, long long int id);
+OSYNC_EXPORT long long int osync_mapping_entry_get_member_id(OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_entry_set_member_id(OSyncMappingEntry *entry, long long int id);
 
-long long int osync_mapping_entry_get_id(OSyncMappingEntry *entry);
-void osync_mapping_entry_set_id(OSyncMappingEntry *entry, long long int id);
+OSYNC_EXPORT long long int osync_mapping_entry_get_id(OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_entry_set_id(OSyncMappingEntry *entry, long long int id);
 
 #endif /*OPENSYNC_MAPPING_ENTRY_H_*/

@@ -29,7 +29,7 @@ OSYNC_EXPORT OSyncArchive *osync_archive_new(const char *filename, OSyncError **
 OSYNC_EXPORT OSyncArchive *osync_archive_ref(OSyncArchive *archive);
 OSYNC_EXPORT void osync_archive_unref(OSyncArchive *archive);
 
-OSYNC_EXPORT osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error);
 OSYNC_EXPORT int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error);
 
 OSYNC_EXPORT long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error);

@@ -21,19 +21,19 @@
 #ifndef OPENSYNC_MAPPING_H_
 #define OPENSYNC_MAPPING_H_
 
-OSyncMapping *osync_mapping_new(OSyncError **error);
-OSyncMapping *osync_mapping_ref(OSyncMapping *mapping);
-void osync_mapping_unref(OSyncMapping *mapping);
+OSYNC_EXPORT OSyncMapping *osync_mapping_new(OSyncError **error);
+OSYNC_EXPORT OSyncMapping *osync_mapping_ref(OSyncMapping *mapping);
+OSYNC_EXPORT void osync_mapping_unref(OSyncMapping *mapping);
 
-long long int osync_mapping_get_id(OSyncMapping *mapping);
-void osync_mapping_set_id(OSyncMapping *mapping, long long int id);
+OSYNC_EXPORT long long int osync_mapping_get_id(OSyncMapping *mapping);
+OSYNC_EXPORT void osync_mapping_set_id(OSyncMapping *mapping, long long int id);
 
-int osync_mapping_num_entries(OSyncMapping *mapping);
-OSyncMappingEntry *osync_mapping_nth_entry(OSyncMapping *mapping, int nth);
+OSYNC_EXPORT int osync_mapping_num_entries(OSyncMapping *mapping);
+OSYNC_EXPORT OSyncMappingEntry *osync_mapping_nth_entry(OSyncMapping *mapping, int nth);
 
-void osync_mapping_add_entry(OSyncMapping *mapping, OSyncMappingEntry *entry);
-void osync_mapping_remove_entry(OSyncMapping *mapping, OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_add_entry(OSyncMapping *mapping, OSyncMappingEntry *entry);
+OSYNC_EXPORT void osync_mapping_remove_entry(OSyncMapping *mapping, OSyncMappingEntry *entry);
 
-OSyncMappingEntry *osync_mapping_find_entry_by_member_id(OSyncMapping *mapping, long long int memberid);
+OSYNC_EXPORT OSyncMappingEntry *osync_mapping_find_entry_by_member_id(OSyncMapping *mapping, long long int memberid);
 
 #endif /*OPENSYNC_MAPPING_H_*/
