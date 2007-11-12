@@ -133,6 +133,7 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 	char* keys_name[] = {"FirstName", "LastName", NULL};
 	OSyncXMLPoints points[] = {
 		{"EMail", 		10, 	keys_content},
+		{"FormattedName",	-1, 	keys_content},
 		{"Name", 		90, 	keys_name},
 		{"Revision", 		-1, 	keys_content},
 		{"Telephone", 		10, 	keys_content},
@@ -160,10 +161,15 @@ static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int lefts
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
+		{"Alarm",		-1,     keys_content}, // Not implemented
+		{"Created",		-1,     keys_content}, // It changes ... weird . Digg further 
 		{"DateCalendarCreated", -1,     keys_content},
 		{"DateEnd", 		10, 	keys_content},
 		{"DateStarted", 	10, 	keys_content},
+		{"LastModified",	-1, 	keys_content},	// fixme
+		{"Method", 		-1, 	keys_content},	// fixme
 		{"ProductID", 		-1, 	keys_content},
+		{"Status", 		-1, 	keys_content},
 		{"Summary", 		90, 	keys_content},
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
@@ -189,10 +195,16 @@ static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsi
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
+		{"DateCalendarCreated", -1,     keys_content},	// Not in vtodo10
 		{"DateStarted", 	10, 	keys_content},
 		{"Due", 		10, 	keys_content},
+		{"Method", 		-1, 	keys_content},	// Not in vtodo10
+		{"PercentComplete",	-1, 	keys_content},	// Not in vtodo10
 		{"ProductID", 		-1, 	keys_content},
 		{"Summary", 		90, 	keys_content},
+		{"Timezone", 		-1, 	keys_content},	// Not in vtodo10
+		{"TimezoneComponent",	-1, 	keys_content},	// Not in vtodo10
+		{"TimezoneRule",	-1, 	keys_content},	// Not in vtodo10
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
 	};
