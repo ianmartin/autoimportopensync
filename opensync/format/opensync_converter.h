@@ -32,8 +32,8 @@ typedef enum {
 	OSYNC_CONVERTER_DETECTOR = 4
 } ConverterType;
 
-OSYNC_EXPORT typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size);
-OSYNC_EXPORT typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size);
+typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error);

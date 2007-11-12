@@ -33,7 +33,7 @@ typedef enum OSyncFilterAction {
 	OSYNC_FILTER_DENY = 2
 } OSyncFilterAction;
 
-OSYNC_EXPORT typedef osync_bool (* OSyncFilterFunction) (OSyncData *data, const char *config);
+typedef osync_bool (* OSyncFilterFunction) (OSyncData *data, const char *config);
 
 OSYNC_EXPORT OSyncFilter *osync_filter_new(const char *objtype, OSyncFilterAction action, OSyncError **error);
 OSYNC_EXPORT OSyncFilter *osync_filter_new_custom(OSyncCustomFilter *custom_filter, const char *config, OSyncFilterAction action, OSyncError **error);

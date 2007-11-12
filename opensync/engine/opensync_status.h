@@ -21,15 +21,15 @@
 #ifndef OPENSYNC_STATUS_H_
 #define OPENSYNC_STATUS_H_
 
-void osync_status_free_member_update(OSyncMemberUpdate *update);
-void osync_status_free_engine_update(OSyncEngineUpdate *update);
-void osync_status_free_change_update(OSyncChangeUpdate *update);
-void osync_status_free_mapping_update(OSyncMappingUpdate *update);
+OSYNC_EXPORT void osync_status_free_member_update(OSyncMemberUpdate *update);
+OSYNC_EXPORT void osync_status_free_engine_update(OSyncEngineUpdate *update);
+OSYNC_EXPORT void osync_status_free_change_update(OSyncChangeUpdate *update);
+OSYNC_EXPORT void osync_status_free_mapping_update(OSyncMappingUpdate *update);
 
-void osync_status_update_member(OSyncEngine *engine, OSyncMember *member, OSyncMemberEvent type, const char *objtype, OSyncError *error);
-void osync_status_update_engine(OSyncEngine *engine, OSyncEngineEvent type, OSyncError *error);
-void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, OSyncMember *member, OSyncMapping *mapping, OSyncChangeEvent type, OSyncError *error);
-void osync_status_update_mapping(OSyncEngine *engine, OSyncMappingEngine *mapping, OSyncMappingEvent type, OSyncError *error);
-void osync_status_conflict(OSyncEngine *engine, OSyncMappingEngine *mapping_engine);
+OSYNC_EXPORT void osync_status_update_member(OSyncEngine *engine, OSyncMember *member, OSyncMemberEvent type, const char *objtype, OSyncError *error);
+OSYNC_EXPORT void osync_status_update_engine(OSyncEngine *engine, OSyncEngineEvent type, OSyncError *error);
+OSYNC_EXPORT void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, OSyncMember *member, OSyncMapping *mapping, OSyncChangeEvent type, OSyncError *error);
+OSYNC_EXPORT void osync_status_update_mapping(OSyncEngine *engine, OSyncMappingEngine *mapping, OSyncMappingEvent type, OSyncError *error);
+OSYNC_EXPORT void osync_status_conflict(OSyncEngine *engine, OSyncMappingEngine *mapping_engine);
 
 #endif /*OPENSYNC_STATUS_H_*/

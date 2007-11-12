@@ -22,17 +22,17 @@
 #ifndef OPENSYNC_MAPPING_ENGINE_H_
 #define OPENSYNC_MAPPING_ENGINE_H_
 
-int osync_mapping_engine_num_changes(OSyncMappingEngine *engine);
-OSyncChange *osync_mapping_engine_nth_change(OSyncMappingEngine *engine, int nth);
-OSyncChange *osync_mapping_engine_member_change(OSyncMappingEngine *engine, int memberid);
-OSyncMember *osync_mapping_engine_change_find_member(OSyncMappingEngine *engine, OSyncChange *change);
+OSYNC_EXPORT int osync_mapping_engine_num_changes(OSyncMappingEngine *engine);
+OSYNC_EXPORT OSyncChange *osync_mapping_engine_nth_change(OSyncMappingEngine *engine, int nth);
+OSYNC_EXPORT OSyncChange *osync_mapping_engine_member_change(OSyncMappingEngine *engine, int memberid);
+OSYNC_EXPORT OSyncMember *osync_mapping_engine_change_find_member(OSyncMappingEngine *engine, OSyncChange *change);
 
-osync_bool osync_mapping_engine_supports_ignore(OSyncMappingEngine *engine);
-osync_bool osync_mapping_engine_supports_use_latest(OSyncMappingEngine *engine);
+OSYNC_EXPORT osync_bool osync_mapping_engine_supports_ignore(OSyncMappingEngine *engine);
+OSYNC_EXPORT osync_bool osync_mapping_engine_supports_use_latest(OSyncMappingEngine *engine);
 
-osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *change, OSyncError **error);
-osync_bool osync_mapping_engine_ignore(OSyncMappingEngine *engine, OSyncError **error);
-osync_bool osync_mapping_engine_use_latest(OSyncMappingEngine *engine, OSyncError **error);
-osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *change, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_mapping_engine_ignore(OSyncMappingEngine *engine, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_mapping_engine_use_latest(OSyncMappingEngine *engine, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, OSyncError **error);
 
 #endif /*OPENSYNC_MAPPING_ENGINE_H_*/
