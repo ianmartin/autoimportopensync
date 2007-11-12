@@ -217,8 +217,13 @@ static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsi
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
-		{"Body", 		90, 	keys_content},
-		{"DateCreated", 	10, 	keys_content},
+		{"Class",		-1,     keys_content},	// fixme
+		{"Created",		-1,     keys_content},	// fixme
+		{"DateCalendarCreated", -1,     keys_content},
+		{"Description",		90, 	keys_content},
+		{"LastModified",	-1, 	keys_content},	// fixme
+		{"Method", 		-1, 	keys_content},
+		{"ProductID", 		-1, 	keys_content},
 		{"Summary", 		90, 	keys_content},
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
