@@ -92,7 +92,6 @@ static void _osync_trace_init()
 		return;
 	}
 
-	trace = NULL;
 }
 	
 /*! @brief Used for tracing the application
