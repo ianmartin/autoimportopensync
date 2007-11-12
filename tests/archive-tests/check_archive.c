@@ -89,7 +89,7 @@ START_TEST (archive_save_data)
 	
 	const char *testdata = "testdata";
 	unsigned int testsize = strlen(testdata);
-	fail_unless(osync_archive_save_data(archive, "uid", "contact", testdata, testsize, &error) == TRUE, NULL);
+	fail_unless(osync_archive_save_data(archive, 1, "contact", testdata, testsize, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 		
 	osync_archive_unref(archive);
@@ -119,7 +119,7 @@ START_TEST (archive_load_data)
 	
 	const char *testdata = "testdata";
 	unsigned int testsize = strlen(testdata);
-	fail_unless(osync_archive_save_data(archive, "uid", "contact", testdata, testsize, &error) == TRUE, NULL);
+	fail_unless(osync_archive_save_data(archive, 1, "contact", testdata, testsize, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	
 	char *buffer;
@@ -156,7 +156,7 @@ START_TEST (archive_load_data_with_closing_db)
 	
 	const char *testdata = "testdata";
 	unsigned int testsize = strlen(testdata);
-	fail_unless(osync_archive_save_data(archive, "uid", "contact", testdata, testsize, &error) == TRUE, NULL);
+	fail_unless(osync_archive_save_data(archive, 1, "contact", testdata, testsize, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	
 	osync_archive_unref(archive);

@@ -914,8 +914,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						char *buffer = NULL;
 						unsigned int size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
-						const char *uid = osync_change_get_uid(entry_engine->change);
 						const char *objtype = osync_change_get_objtype(entry_engine->change);
+						OSyncMappingEntry *entry = entry_engine->entry;
 						
 						xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(entry_engine->change));
 						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
@@ -923,7 +923,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							goto error;	
 						}
 
-						if(!osync_archive_save_data(engine->archive, uid, objtype, buffer, size, error)) {
+						if(!osync_archive_save_data(engine->archive, osync_mapping_entry_get_id(entry), objtype, buffer, size, error)) {
 							g_free(buffer);	
 							goto error;			
 						}

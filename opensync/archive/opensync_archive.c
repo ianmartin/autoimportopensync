@@ -237,28 +237,25 @@ void osync_archive_unref(OSyncArchive *archive)
  * @brief Stores data of an entry in the group archive database (blob).
  *
  * @param archive The group archive
- * @param uid UID of requested entry
+ * @param id Archive (database) id of entry to save.
  * @param objtype The object type of the entry
  * @param data The data to store 
  * @param size Total size of data 
  * @param error Pointer to an error struct
  * @return Returns TRUE on success otherwise FALSE
  */ 
-osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error)
+osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, const char *objtype, const char *data, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %u, %p)", __func__, archive, uid, objtype, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %p, %u, %p)", __func__, archive, id, objtype, data, size, error);
 	osync_assert(archive);
-	osync_assert(uid);
 	osync_assert(data);
 	osync_assert(size);
 
 	if (!osync_archive_create(archive->db, objtype, error))
 		goto error;
 
-	char *escaped_uid = osync_db_sql_escape(uid);
 	// FIXME: Avoid subselect - this query needs up to 0.5s
-	char *query = g_strdup_printf("REPLACE INTO tbl_archive_%s (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1), ?)", objtype, objtype, escaped_uid);
-	g_free(escaped_uid);
+	char *query = g_strdup_printf("REPLACE INTO tbl_archive_%s (mappingid, data) VALUES(%lli, ?)", objtype, id);
 	
 	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
 		g_free(query);
