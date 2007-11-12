@@ -59,7 +59,7 @@ static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, 
 {
 	*free_input = TRUE;
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
-	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Body", error, NULL);
+	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Description", error, NULL);
 	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(xmlfieldlist, 0);
 	const char *body = osync_xmlfield_get_key_value(xmlfield, "Content");
 	*output = g_strdup(body);
@@ -70,9 +70,28 @@ static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, 
 static osync_bool conv_memo_to_xmlformatnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	*free_input = TRUE;
+	GString *str;
+	const char *p;
+
+	str = g_string_new("");
+
 	OSyncXMLFormat *ret = osync_xmlformat_new("note", error);
-	OSyncXMLField *field = osync_xmlfield_new(ret, "Body", error);
-	osync_xmlfield_set_key_value(field, "Body", input);
+	OSyncXMLField *field = osync_xmlfield_new(ret, "Description", error);
+	for (p = input; p && *p; p++) {
+		switch (*p) {
+                case '\r':
+                        if (*(p+1) == '\n')
+				p++;
+                        osync_trace(TRACE_INTERNAL, "[%s] escape carriage returns!!", __func__);
+                        str = g_string_append (str, "\n");
+                        break;
+                default:
+			str = g_string_append_c (str, *p);
+                        break;
+                }
+        }
+	osync_trace(TRACE_SENSITIVE, "Input : %s", str->str);
+	osync_xmlfield_set_key_value(field, "Content", str->str);
 
 	if (!ret)
 		return FALSE;
