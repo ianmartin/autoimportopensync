@@ -315,6 +315,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_
 {
 	char *lp = *p;
 	GString *str;
+	GString *str_nocr;
 
 	/* read in the value */
 	str = g_string_new ("");
@@ -446,8 +447,27 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_
 			lp = g_utf8_next_char(lp);
 		}
 	}
+
 	if (str) {
-		_read_attribute_value_add (attr, str, charset);
+		// remove CR from the value
+		char *tmpp;
+		str_nocr = g_string_new("");
+		for (tmpp = str->str; tmpp && *tmpp; tmpp++) {
+			switch (*tmpp) {
+			case '\r':
+				if (*(tmpp+1) == '\n')
+					tmpp++;
+				osync_trace(TRACE_INTERNAL, "[%s] escape carriage returns!!", __func__);
+				str_nocr = g_string_append (str_nocr, "\n");
+				break;
+			default:
+				str_nocr = g_string_append_c (str_nocr, *tmpp);
+				break;
+			}
+		}
+
+		_read_attribute_value_add (attr, str_nocr, charset);
+		g_string_free (str_nocr, TRUE);
 		g_string_free (str, TRUE);
 	}
 
@@ -923,6 +943,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		case VFORMAT_TODO_20:
 		case VFORMAT_EVENT_10:
 		case VFORMAT_EVENT_20:
+		case VFORMAT_JOURNAL:
 			str = g_string_append (str, "BEGIN:VCALENDAR\r\n");
 			break;
 		case VFORMAT_NOTE:
@@ -956,7 +977,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			 * param        = param-name "=" param-value *("," param-value)
 			 */
 			if( type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20
-			    || type == VFORMAT_EVENT_20) {
+			    || type == VFORMAT_EVENT_20 || type == VFORMAT_JOURNAL) {
 
 				/**
 				 * Character set can only be specified on the CHARSET
@@ -1136,6 +1157,9 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		case VFORMAT_CARD_21:
 		case VFORMAT_CARD_30:
 			str = g_string_append (str, "END:VCARD\r\n");
+			break;
+		case VFORMAT_JOURNAL:
+			str = g_string_append (str, "END:VJOURNAL\r\nEND:VCALENDAR\r\n");
 			break;
 		case VFORMAT_TODO_10:
 		case VFORMAT_TODO_20:

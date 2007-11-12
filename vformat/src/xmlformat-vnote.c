@@ -22,12 +22,6 @@
 
 #include "xmlformat-vnote.h"
 
-/* ******* Paramter ****** */
-static OSyncXMLField *handle_body_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Body", error);
-}
-
 static void *init_vnote_to_xmlformat(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -40,7 +34,7 @@ static void *init_vnote_to_xmlformat(VFormatType target)
 	//VNOTE components
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
-	insert_attr_handler(hooks->attributes, "BODY", (void *)handle_body_attribute);
+	insert_attr_handler(hooks->attributes, "BODY", (void *)handle_description_attribute);
 	insert_attr_handler(hooks->attributes, "SUMMARY", (void *)handle_summary_attribute);
 	insert_attr_handler(hooks->attributes, "CLASS", (void *)handle_class_attribute);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", (void *)handle_categories_attribute);
@@ -110,13 +104,13 @@ static OSyncHookTables *init_xmlformat_to_vnote(void)
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 
 	//VNOTE component
-	insert_xml_attr_handler(hooks->attributes, "XIrmcLuid", (void *)handle_xml_uid_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Uid", (void *)handle_xml_uid_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", (void *)handle_xml_summary_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Class", (void *)handle_xml_class_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Categories", (void *)handle_xml_categories_attribute);
 	insert_xml_attr_handler(hooks->attributes, "LastModified", (void *)handle_xml_last_modified_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Created", (void *)handle_xml_created_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Body", (void *)handle_xml_body_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Description", (void *)handle_xml_body_attribute);
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;

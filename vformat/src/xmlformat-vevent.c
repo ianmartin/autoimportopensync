@@ -102,7 +102,7 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);
 
-	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
+	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20 || target == VFORMAT_JOURNAL) {
 
 	/* iCalendar
 	 * ---------
@@ -524,7 +524,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
 
 
-	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
+	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20 || target == VFORMAT_JOURNAL) {
 
 
 	/* iCalendar
@@ -535,7 +535,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
 	//insert_xml_attr_handler(hooks->attributes, "CalendarScale", handle_xml_calscale_attribute);
 	//insert_xml_attr_handler(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
-	//insert_xml_attr_handler(hooks->attributes, "Method", handle_xml_method_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Method", handle_xml_method_attribute);
 
 
 	// [RFC 2445] 4.2 Property Parameters (ordered by name!)
@@ -658,6 +658,10 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 	} else if (target == VFORMAT_TODO_20) {
 		osync_trace(TRACE_SENSITIVE, "Input is vtodo20:\n%s", input);
 		xmlformat = osync_xmlformat_new("todo", error);
+	} else if (target == VFORMAT_JOURNAL) {
+		osync_trace(TRACE_SENSITIVE, "Input is vjournal:\n%s", input);
+		xmlformat = osync_xmlformat_new("note", error);
+
 	}
 
 	// Parse the vcalendar
@@ -778,7 +782,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 		vformat_attribute_add_value(attr, "1.0");
 		vformat_add_attribute(vcalendar, attr);
 
-	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
+	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20 || target == VFORMAT_JOURNAL) {
 
 		attr = vformat_attribute_new(NULL, "PRODID");
 		vformat_attribute_add_value(attr, "-//OpenSync//NONSGML OpenSync vformat 0.3//EN");
@@ -790,6 +794,15 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 
 		// TODO: Handle CALSCALE attribute
 		// TODO: Handle METHOD attribute
+		//  FIXME : handle errors or missing field
+		OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Method", error, NULL);
+		if (list) {
+			OSyncXMLField *xmlfield = osync_xmlfieldlist_item(list, 0);
+			osync_xmlfieldlist_free(list);
+			if(xmlfield != NULL) {
+			       xml_handle_attribute(hooks, vcalendar, xmlfield, std_encoding);
+			}
+		}
 
 		// TODO: Handle VTIMEZONE component
 
@@ -801,6 +814,8 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 		vformat_attribute_add_value(attr, "VEVENT");
 	} else if (target == VFORMAT_TODO_10 || target == VFORMAT_TODO_20) {
 		vformat_attribute_add_value(attr, "VTODO");
+	} else if (target == VFORMAT_JOURNAL) {
+		vformat_attribute_add_value(attr, "VJOURNAL");
 	}
 	vformat_add_attribute(vcalendar, attr);
 
@@ -811,6 +826,9 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 
 		// Skip Alarm* and Timezone* xmlfields
 		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm")) {
+			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
+			continue;
+		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Method")) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
 			continue;
 		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Timezone")) {
@@ -842,11 +860,23 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 		osync_trace(TRACE_SENSITIVE, "Output is vtodo10:\n%s", *output);
 	} else if (target == VFORMAT_TODO_20) {
 		osync_trace(TRACE_SENSITIVE, "Output is vtodo20:\n%s", *output);
+	} else if (target == VFORMAT_JOURNAL) {
+		osync_trace(TRACE_SENSITIVE, "Output is vjournal:\n%s", *output);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
+}
+
+osync_bool conv_xmlformat_to_vjournal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_JOURNAL);
+}
+
+osync_bool conv_vjournal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vcalendar_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_JOURNAL);
 }
 
 osync_bool conv_xmlformat_to_vtodo10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
@@ -888,4 +918,5 @@ osync_bool conv_vevent20_to_xmlformat(char *input, unsigned int inpsize, char **
 {
 	return conv_vcalendar_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
 }
+
 

@@ -38,13 +38,14 @@
 
 static void usage (char *name, int ecode)
 {
-	fprintf (stderr, "Usage: %s <file>\n", name);
+	fprintf (stderr, "Usage: %s <file> <switches>\n", name);
 	fprintf (stderr, "--out <file>\tStore the output in this file (No output to stdout)\n");
 	fprintf (stderr, "--to-vcard21\tConvert to vcard 2.1\n");
 	fprintf (stderr, "--to-vcard30\tConvert to vcard 3.0\n");
 	fprintf (stderr, "--to-vevent10\tConvert to vevent 1.0\n");
 	fprintf (stderr, "--to-vevent20\tConvert to vevent 2.0\n");
 	fprintf (stderr, "--to-vnote11\tConvert to vnote 1.1\n");
+	fprintf (stderr, "--to-vjournal\tConvert to vjournal\n");
 	fprintf (stderr, "--to-vtodo10\tConvert to vtodo 1.0\n");
 	fprintf (stderr, "--to-vtodo20\tConvert to vtodo 2.0\n");
 	fprintf (stderr, "--to-xmlformat\tConvert to xmlformat\n");
@@ -58,9 +59,10 @@ typedef enum conv_detection {
 	TARGET_VEVENT_10 = 3,
 	TARGET_VEVENT_20 = 4,
 	TARGET_VNOTE_11 = 5,
-	TARGET_VTODO_10 = 6,
-	TARGET_VTODO_20 = 7,
-	TARGET_XMLFORMAT = 8
+	TARGET_VJOURNAL = 6,
+	TARGET_VTODO_10 = 7,
+	TARGET_VTODO_20 = 8,
+	TARGET_XMLFORMAT = 9
 } conv_detection;
 
 OSyncObjFormat *conv_run_detection(OSyncFormatEnv *env, OSyncChange *change, conv_detection type)
@@ -139,6 +141,36 @@ OSyncObjFormat *conv_run_detection(OSyncFormatEnv *env, OSyncChange *change, con
 		goto out;
 	}
 
+	if (!strcmp(osync_objformat_get_name(sourceformat), "vnote11")) {
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VJOURNAL:
+			targetformat = osync_format_env_find_objformat(env, "vjournal");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-note");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vnote11 into this format. Supported formats: xmlformat, vjournal\n");
+		}
+		goto out;
+	}
+
+	if (!strcmp(osync_objformat_get_name(sourceformat), "vjournal")) {
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VNOTE_11:
+			targetformat = osync_format_env_find_objformat(env, "vnote11");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-note");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vjournal into this format. Supported formats: xmlformat, vnote11\n");
+		}
+		goto out;
+	}
+
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo10")) {
 		switch (type) {
 		case TARGET_AUTO:
@@ -211,6 +243,18 @@ OSyncObjFormat *conv_run_detection(OSyncFormatEnv *env, OSyncChange *change, con
 		goto out;
 	}
 
+	if (!strcmp(osync_objformat_get_name(sourceformat), "xmlformat-journal-doc")) {
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VJOURNAL:
+			targetformat = osync_format_env_find_objformat(env, "vjournal");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert xmlformat-journal-doc into this format. Supported formats: vjournal\n");
+		}
+		goto out;
+	}
+
 	if (!strcmp(osync_objformat_get_name(sourceformat), "xmlformat-todo-doc")) {
 		switch (type) {
 		case TARGET_VTODO_10:
@@ -254,6 +298,8 @@ int main (int argc, char *argv[])
 			type = TARGET_VEVENT_20;
 		} else if (!strcmp (arg, "--to-vnote11")) {
 			type = TARGET_VNOTE_11;
+		} else if (!strcmp (arg, "--to-vjournal")) {
+			type = TARGET_VJOURNAL;
 		} else if (!strcmp (arg, "--to-vtodo10")) {
 			type = TARGET_VTODO_10;
 		} else if (!strcmp (arg, "--to-vtodo20")) {

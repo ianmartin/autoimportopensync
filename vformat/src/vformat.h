@@ -37,7 +37,8 @@ typedef enum {
 	VFORMAT_EVENT_10,
 	VFORMAT_EVENT_20,
 	VFORMAT_TODO_10,
-	VFORMAT_TODO_20
+	VFORMAT_TODO_20,
+	VFORMAT_JOURNAL
 } VFormatType;
 
 typedef struct VFormat {

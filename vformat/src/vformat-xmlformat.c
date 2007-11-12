@@ -181,6 +181,7 @@ static osync_bool xmlformat_vnote_conversion_info(OSyncFormatEnv *env)
 
 	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-note");
 	OSyncObjFormat *vnote = osync_format_env_find_objformat(env, "vnote11");
+	OSyncObjFormat *vjournal = osync_format_env_find_objformat(env, "vjournal");
 
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vnote, conv_xmlformat_to_vnote, &error);
 	if (!conv) {
@@ -199,6 +200,25 @@ static osync_bool xmlformat_vnote_conversion_info(OSyncFormatEnv *env)
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vjournal, conv_xmlformat_to_vjournal, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return FALSE;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vjournal, xmlformat, conv_vjournal_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return FALSE;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
 
 	return TRUE;
 }
