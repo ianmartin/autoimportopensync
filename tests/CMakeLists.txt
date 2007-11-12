@@ -4,7 +4,7 @@ ADD_SUBDIRECTORY( mock-plugin )
 
 ########### support #################	
 ADD_LIBRARY( support SHARED support.c )
-TARGET_LINK_LIBRARIES( support opensync ${CHECK_LIBRARIES} )
+TARGET_LINK_LIBRARIES( support opensync-testing ${CHECK_LIBRARIES} )
 
 ############ unit tests ##########################	
 
