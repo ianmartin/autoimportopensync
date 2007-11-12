@@ -10,6 +10,7 @@ SET( OPENSYNC_PLUGINVERSION 1 )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_SOURCE_DIR}/cmake/modules )
 
+INCLUDE( Compiler )
 INCLUDE( Documentation )
 INCLUDE( OpenSyncDefaults )
 INCLUDE( OpenSyncPackaging )
