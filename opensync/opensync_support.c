@@ -129,7 +129,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	
-	if (!trace_disabled) {
+	if (!trace_disabled || !g_private_get(trace_disabled)) {
 		_osync_trace_init();
 		osync_trace_enable();
 	}
