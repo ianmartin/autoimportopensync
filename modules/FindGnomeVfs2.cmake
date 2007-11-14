@@ -17,7 +17,7 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about gnome-vfs-2.0.pc settings
-#pkg_search_module( GNOMEVFS2 gnome-vfs-2.0 )
+pkg_search_module( GNOMEVFS2 gnome-vfs-2.0 )
 
 # Look for gnomevfs2 include dir and libraries w/o pkgnomevfsig
 IF ( NOT GNOMEVFS2_FOUND )
