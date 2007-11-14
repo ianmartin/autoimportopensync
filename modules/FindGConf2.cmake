@@ -2,7 +2,7 @@
 # Find gconf2 headers, libraries and the answer to all questions.
 #
 #  GCONF2_FOUND               True if gconf2 got found
-#  GCONF2_INCLUDE_DIR         Location of gconf2 headers 
+#  GCONF2_INCLUDEDIR          Location of gconf2 headers 
 #  GCONF2_LIBRARIES           List of libaries to use gconf2
 #  GCONF2_DEFINITIONS         Definitions to compile gconf2 
 #
@@ -15,28 +15,20 @@
 #  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 #
 
-IF ( NOT WIN32 )
-	INCLUDE( UsePkgConfig )
-	# Take care about gconf-2.0.pc settings
-	PKGCONFIG( gconf-2.0 _gconf2_include_DIR _gconf2_link_DIR _gconf2_link_FLAGS _gconf2_cflags )
-ENDIF ( NOT WIN32 )
+INCLUDE( FindPkgConfig )
+# Take care about gconf-2.0.pc settings
+pkg_search_module( GCONF2 gconf-2.0 )
 
-# Look for gconf2 include dir and libraries, and take care about pkg-config first...
-FIND_PATH( GCONF2_INCLUDE_DIR gconf/gconf.h 
-		PATHS ${_gconf2_include_DIR} 
-		PATH_SUFFIXES gconf/2 NO_DEFAULT_PATH )
-
-FIND_PATH( GCONF2_INCLUDE_DIR gconf/gconf.h PATH_SUFFIXES gconf/2 
+# Look for gconf2 include dir and libraries w/o pkgconfig
+IF ( NOT GCONF2_FOUND )
+	FIND_PATH( _gconf2_include_DIR gconf/gconf.h PATH_SUFFIXES gconf/2 
 		PATHS
 		/opt/local/include/
 		/sw/include/
 		/usr/local/include/
-		/usr/include/ )
-
-FIND_LIBRARY( GCONF2_LIBRARIES gconf-2 
-		PATHS ${_gconf2_link_DIR} NO_DEFAULT_PATH )
-
-FIND_LIBRARY( GCONF2_LIBRARIES gconf-2 
+		/usr/include/
+	)
+	FIND_LIBRARY( _gconf2_link_DIR gconf-2
 		PATHS
 		/opt/local/lib
 		/sw/lib
@@ -44,24 +36,45 @@ FIND_LIBRARY( GCONF2_LIBRARIES gconf-2
 		/usr/local/lib
 		/usr/lib64
 		/usr/local/lib64
-		/opt/lib64 )
+		/opt/lib64
+	)
+	IF ( _gconf2_include_DIR AND _gconf2_link_DIR )
+		SET ( _gconf2_FOUND TRUE )
+	ENDIF ( _gconf2_include_DIR AND _gconf2_link_DIR )
 
-# Report results
-IF ( GCONF2_LIBRARIES AND GCONF2_INCLUDE_DIR )	
-	SET( GCONF2_FOUND 1 )
-	IF ( NOT GConf2_FIND_QUIETLY )
-		MESSAGE( STATUS "Found gconf2: ${GCONF2_LIBRARIES}" )
-	ENDIF ( NOT GConf2_FIND_QUIETLY )
-ELSE ( GCONF2_LIBRARIES AND GCONF2_INCLUDE_DIR )	
-	IF ( GConf2_FIND_REQUIRED )
-		MESSAGE( SEND_ERROR "Could NOT find gconf2" )
-	ELSE ( GConf2_FIND_REQUIRED )
+
+	IF ( _gconf2_FOUND )
+		SET ( GCONF2_INCLUDE_DIRS ${_gconf2_include_DIR} )
+		SET ( GCONF2_LIBRARIES ${_gconf2_link_DIR} )
+	ENDIF ( _gconf2_FOUND )
+
+	# Handle dependencies
+	IF ( NOT ORBIT_FOUND )
+		FIND_PACKAGE( ORBit2 REQUIRED)
+		IF ( ORBIT2_FOUND )
+			SET ( GCONF2_INCLUDE_DIRS ${GCONF2_INCLUDE_DIRS} ${ORBIT2_INCLUDE_DIRS} )
+			SET ( GCONF2_LIBRARIES ${GCONF2_LIBRARIES} ${ORBIT2_LIBRARIES} )
+		ENDIF ( ORBIT2_FOUND )
+	ENDIF ( NOT ORBIT_FOUND )
+
+	# Report results
+	IF ( GCONF2_LIBRARIES AND GCONF2_INCLUDE_DIRS AND _gconf2_FOUND )	
+		SET( GCONF2_FOUND 1 )
 		IF ( NOT GConf2_FIND_QUIETLY )
-			MESSAGE( STATUS "Could NOT find gconf2" )	
+			MESSAGE( STATUS "Found gconf2: ${GCONF2_LIBRARIES} ${GCONF2_INCLUDE_DIRS}" )
 		ENDIF ( NOT GConf2_FIND_QUIETLY )
-	ENDIF ( GConf2_FIND_REQUIRED )
-ENDIF ( GCONF2_LIBRARIES AND GCONF2_INCLUDE_DIR )	
+	ELSE ( GCONF2_LIBRARIES AND GCONF2_INCLUDE_DIRS AND _gconf2_FOUND )	
+		IF ( GConf2_FIND_REQUIRED )
+			MESSAGE( FATAL_ERROR "Could NOT find gconf2" )
+		ELSE ( GConf2_FIND_REQUIRED )
+			IF ( NOT GConf2_FIND_QUIETLY )
+				MESSAGE( SEND_ERROR "Could NOT find gconf2" )	
+			ENDIF ( NOT GConf2_FIND_QUIETLY )
+		ENDIF ( GConf2_FIND_REQUIRED )
+	ENDIF ( GCONF2_LIBRARIES AND GCONF2_INCLUDE_DIRS AND _gconf2_FOUND )	
+
+ENDIF ( NOT GCONF2_FOUND )
 
 # Hide advanced variables from CMake GUIs
-MARK_AS_ADVANCED( GCONF2_LIBRARIES GCONF2_INCLUDE_DIR )
+MARK_AS_ADVANCED( GCONF2_LIBRARIES GCONF2_INCLUDE_DIRS )
 
