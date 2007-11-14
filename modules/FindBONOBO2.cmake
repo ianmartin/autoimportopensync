@@ -1,10 +1,10 @@
-# - Try to find gconf2 
-# Find gconf2 headers, libraries and the answer to all questions.
+# - Try to find bonobo2 
+# Find bonobo2 headers, libraries and the answer to all questions.
 #
-#  BONOBO2_FOUND               True if gconf2 got found
-#  BONOBO2_INCLUDEDIR          Location of gconf2 headers 
-#  BONOBO2_LIBRARIES           List of libaries to use gconf2
-#  BONOBO2_DEFINITIONS         Definitions to compile gconf2 
+#  BONOBO2_FOUND               True if bonobo2 got found
+#  BONOBO2_INCLUDEDIR          Location of bonobo2 headers 
+#  BONOBO2_LIBRARIES           List of libaries to use bonobo2
+#  BONOBO2_DEFINITIONS         Definitions to compile bonobo2 
 #
 # Copyright (c) 2007 Juha Tuomala <tuju@iki.fi>
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
@@ -23,14 +23,14 @@
 
 
 INCLUDE( FindPkgConfig )
-# Take care about gconf-2.0.pc settings
+# Take care about libbonobo-2.0.pc settings
 IF ( BONOBO2_MIN_VERSION )
       pkg_search_module( BONOBO2 libbonobo-2.0 >= ${BONOBO2_MIN_VERSION} )
 ELSE ( BONOBO2_MIN_VERSION )
       pkg_search_module( BONOBO2 libbonobo-2.0 )
 ENDIF ( BONOBO2_MIN_VERSION )
 
-# Look for gconf2 include dir and libraries w/o pkgconfig
+# Look for libbonobo2 include dir and libraries w/o pkgconfig
 IF ( NOT BONOBO2_FOUND )
 	FIND_PATH( _bonobo2_include_DIR libbonobo.h PATH_SUFFIXES libbonobo-2.0 
 		PATHS

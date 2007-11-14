@@ -1,10 +1,10 @@
-# - Try to find gconf2 
-# Find gconf2 headers, libraries and the answer to all questions.
+# - Try to find bonobo-activation-2 
+# Find bonobo-activation-2 headers, libraries and the answer to all questions.
 #
-#  BONOBOACTIVATION2_FOUND               True if gconf2 got found
-#  BONOBOACTIVATION2_INCLUDEDIR          Location of gconf2 headers 
-#  BONOBOACTIVATION2_LIBRARIES           List of libaries to use gconf2
-#  BONOBOACTIVATION2_DEFINITIONS         Definitions to compile gconf2 
+#  BONOBOACTIVATION2_FOUND               True if bonobo-activation-2 got found
+#  BONOBOACTIVATION2_INCLUDEDIR          Location of bonobo-activation-2 headers 
+#  BONOBOACTIVATION2_LIBRARIES           List of libaries to use bonobo-activation-2
+#  BONOBOACTIVATION2_DEFINITIONS         Definitions to compile bonobo-activation-2 
 #
 # Copyright (c) 2007 Juha Tuomala <tuju@iki.fi>
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
@@ -23,7 +23,7 @@
 
 
 INCLUDE( FindPkgConfig )
-# Take care about gconf-2.0.pc settings
+# Take care about bonobo-activation-2.0.pc settings
 IF ( BONOBOACTIVATION2_MIN_VERSION )
       pkg_search_module( BONOBOACTIVATION2 bonobo-activation-2.0 >= ${BONOBOACTIVATION2_MIN_VERSION} )
 ELSE ( BONOBOACTIVATION2_MIN_VERSION )
