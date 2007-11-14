@@ -25,9 +25,9 @@
 INCLUDE( FindPkgConfig )
 # Take care about gconf-2.0.pc settings
 IF ( BONOBO2_MIN_VERSION )
-#      pkg_search_module( BONOBO2 libbonobo-2.0 >= ${BONOBO2_MIN_VERSION} )
+      pkg_search_module( BONOBO2 libbonobo-2.0 >= ${BONOBO2_MIN_VERSION} )
 ELSE ( BONOBO2_MIN_VERSION )
-#      pkg_search_module( BONOBO2 libbonobo-2.0 )
+      pkg_search_module( BONOBO2 libbonobo-2.0 )
 ENDIF ( BONOBO2_MIN_VERSION )
 
 # Look for gconf2 include dir and libraries w/o pkgconfig
