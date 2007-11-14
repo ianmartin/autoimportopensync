@@ -17,7 +17,7 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about gconf-2.0.pc settings
-pkg_search_module( ORBIT2 g-2.0 )
+pkg_search_module( ORBIT2 ORBit-2.0 )
 
 # Look for gconf2 include dir and libraries w/o pkgconfig
 IF ( NOT ORBIT2_FOUND )
