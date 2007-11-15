@@ -17,15 +17,14 @@ INCLUDE( FindPkgConfig )
 
 PKG_SEARCH_MODULE( LIBWBXML2 libwbxml2 )
 
-
 IF( NOT LIBWBXML2_FOUND )
-	FIND_PATH( LIBWBXML2_INCLUDE_DIRS wbxml.h
+	FIND_PATH( _libwbxml2_include_DIR wbxml.h
 			PATHS
 			/opt/local/include/
 			/sw/include/
 			/usr/local/include/
 			/usr/include/ )
-	FIND_LIBRARY( LIBWBXML2_LIBRARIES wbxml2
+	FIND_LIBRARY( _libwbxml2_LIBRARY wbxml2
 			PATHS
 			/opt/local/lib
 			/sw/lib
@@ -34,13 +33,33 @@ IF( NOT LIBWBXML2_FOUND )
 			/usr/lib64
 			/usr/local/lib64
 			/opt/lib64 )
+	IF ( _libwbxml2_include_DIR AND _libwbxml2_LIBRARY )
+		SET ( _libwbxml2_FOUND TRUE )
+	ENDIF ( _libwbxml2_include_DIR AND _libwbxml2_LIBRARY )
+
+	IF ( _libwbxml2_FOUND )
+		SET ( LIBWBXML2_INCLUDE_DIRS ${_libwbxml2_include_DIR} )
+		SET ( LIBWBXML2_LIBRARIES ${_libwbxml2_LIBRARY} )
+
+		# find required libxml2
+		IF( NOT LIBXML2_FOUND )
+			FIND_PACKAGE( LibXml2 REQUIRED )
+			IF ( LIBXML2_FOUND )
+				SET ( LIBWBXML2_INCLUDE_DIRS ${LIBWBXML2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} )
+				SET ( LIBWBXML2_LIBRARIES ${LIBWBXML2_LIBRARIES} ${LIBXML2_LIBRARIES} )
+			ENDIF( LIBXML2_FOUND )
+		ENDIF( NOT LIBXML2_FOUND )
+	ENDIF( _libwbxml2_FOUND )
+
+	MARK_AS_ADVANCED( _libwbxml2_include_DIR _libwbxml2_LIBRARY )
+
 	# Report results
-	IF ( LIBWBXML2_LIBRARIES AND LIBWBXML2_INCLUDE_DIRS )	
+	IF ( LIBWBXML2_LIBRARIES AND LIBWBXML2_INCLUDE_DIRS AND _libwbxml2_FOUND )	
 		SET( LIBWBXML_FOUND 1 )
 		IF ( NOT LibWbxml2_FIND_QUIETLY )
-			MESSAGE( STATUS "Found libwbxml2: ${LIBWBXML2_LIBRARIES}" )
+			MESSAGE( STATUS "Found libwbxml2: ${_libwbxml2_LIBRARY}" )
 		ENDIF ( NOT LibWbxml2_FIND_QUIETLY )
-	ELSE ( LIBWBXML2_LIBRARIES AND LIBWBXML2_INCLUDE_DIRS )	
+	ELSE ( LIBWBXML2_LIBRARIES AND LIBWBXML2_INCLUDE_DIRS AND _libwbxml2_FOUND )	
 		IF ( LibWbxml2_FIND_REQUIRED )
 			MESSAGE( SEND_ERROR "Could NOT find libwbxml2" )
 		ELSE ( LibWbxml2_FIND_REQUIRED )
@@ -48,7 +67,7 @@ IF( NOT LIBWBXML2_FOUND )
 				MESSAGE( STATUS "Could NOT find libwbxml2" )	
 			ENDIF ( NOT LibWbxml2_FIND_QUIETLY )
 		ENDIF ( LibWbxml2_FIND_REQUIRED )
-	ENDIF ( LIBWBXML2_LIBRARIES AND LIBWBXML2_INCLUDE_DIRS )
+	ENDIF ( LIBWBXML2_LIBRARIES AND LIBWBXML2_INCLUDE_DIRS AND _libwbxml2_FOUND )
 ENDIF( NOT LIBWBXML2_FOUND )
 
 # Hide advanced variables from CMake GUIs

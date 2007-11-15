@@ -6,7 +6,7 @@
 #  BLUEZ_LIBRARIES           List of libaries to use BlueZ
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
-# Copyright (c) 2007 Bjoern Ricks <b.ricks@fh-osnabrueck.de>
+# Copyright (c) 2007 Bjoern Ricks  <b.ricks@fh-osnabrueck.de>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -14,13 +14,13 @@
 #
 
 INCLUDE( FindPkgConfig )
+
 # Take care about bluez.pc settings
-#PKGCONFIG( bluez _bluez_include_DIR _bluez_link_DIR _bluez_link_FLAGS _bluez_cflags )
 PKG_SEARCH_MODULE( BLUEZ bluez )
 
 # Look for BlueZ include dir and libraries
 IF( NOT BLUEZ_FOUND )
-#	MESSAGE( STATUS "Fallback" )
+
 	FIND_PATH( BLUEZ_INCLUDE_DIRS bluetooth/bluetooth.h )
 	FIND_LIBRARY( BLUEZ_LIBRARIES bluetooth )
 
@@ -39,9 +39,8 @@ IF( NOT BLUEZ_FOUND )
 			ENDIF ( NOT BlueZ_FIND_QUIETLY )
 		ENDIF ( BlueZ_FIND_REQUIRED )
 	ENDIF ( BLUEZ_LIBRARIES AND BLUEZ_INCLUDE_DIRS )
-ENDIF( NOT BLUEZ_FOUND )
 
-	
+ENDIF( NOT BLUEZ_FOUND )
 
 # Hide advanced variables from CMake GUIs
 MARK_AS_ADVANCED( BLUEZ_LIBRARIES BLUEZ_INCLUDE_DIRS )

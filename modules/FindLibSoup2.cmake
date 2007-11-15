@@ -15,20 +15,20 @@
 
 INCLUDE( FindPkgConfig )
 
-#PKG_SEARCH_MODULE( LIBSOUP2 libsoup-2.2 libsoup2 )
-
+PKG_SEARCH_MODULE( LIBSOUP2 libsoup-2.2 libsoup2 )
 
 IF( NOT LIBSOUP2_FOUND )
-	FIND_PATH( _libsoup2_include_DIR libsoup/soup.h PATH_SUFFIXES libsoup libsoup-2.2 )
-	FIND_LIBRARY( _libsoup2_link_DIR soup-2.2)
 
-	IF ( _libsoup2_include_DIR AND _libsoup2_link_DIR )
+	FIND_PATH( _libsoup2_include_DIR libsoup/soup.h PATH_SUFFIXES libsoup libsoup-2.2 )
+	FIND_LIBRARY( _libsoup2_LIBRARY soup-2.2)
+
+	IF ( _libsoup2_include_DIR AND _libsoup2_LIBRARY )
 		SET ( _libsoup2_FOUND TRUE )
-	ENDIF ( _libsoup2_include_DIR AND _libsoup2_link_DIR )
+	ENDIF ( _libsoup2_include_DIR AND _libsoup2_LIBRARY )
 
 	IF ( _libsoup2_FOUND )
 		SET ( LIBSOUP2_INCLUDE_DIRS ${_libsoup2_include_DIR} )
-		SET ( LIBSOUP2_LIBRARIES ${_libsoup2_link_DIR} )
+		SET ( LIBSOUP2_LIBRARIES ${_libsoup2_LIBRARY} )
 	
 		# find requited glib2
 		IF( NOT GLIB2_FOUND )
@@ -58,11 +58,13 @@ IF( NOT LIBSOUP2_FOUND )
 		ENDIF( NOT GNUTLS_FOUND )
 	ENDIF ( _libsoup2_FOUND )
 
+	MARK_AS_ADVANCED( _libsoup2_include_DIR  _libsoup2_LIBRARY )
+
 	# Report results
 	IF ( LIBSOUP2_LIBRARIES AND LIBSOUP2_INCLUDE_DIRS AND _libsoup2_FOUND )	
 		SET( LIBSOUP2_FOUND 1 )
 		IF ( NOT LibSoup2_FIND_QUIETLY )
-			MESSAGE( STATUS "Found libsoup2: ${LIBSOUP2_LIBRARIES}" )
+			MESSAGE( STATUS "Found libsoup2: ${_libsoup2_LIBRARY}" )
 		ENDIF ( NOT LibSoup2_FIND_QUIETLY )
 	ELSE ( LIBSOUP2_LIBRARIES AND LIBSOUP_INCLUDE_DIRS AND _libsoup2_FOUND )	
 		IF ( LibSoup2_FIND_REQUIRED )
