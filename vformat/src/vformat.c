@@ -249,7 +249,7 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 	size_t inbytesleft, outbytesleft;
 
 	inbuf = str->str;
-	p = outbuf = malloc(str->len*2);
+	p = outbuf = malloc((str->len*2)+1);
 	inbytesleft = str->len;
 	outbytesleft = str->len*2;
 
