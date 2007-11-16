@@ -18,69 +18,84 @@
  *
  */
 
+#include "config.h"
+
 #include "syncml_plugin.h"
 #include "syncml_common.h"
-#include "syncml_http_client.h"
-#include "syncml_http_server.h"
-#include "syncml_obex_client.h"
+
+#ifdef ENABLE_HTTP
+#  include "syncml_http_client.h"
+#  include "syncml_http_server.h"
+#endif
+
+#ifdef ENABLE_OBEX
+#  include "syncml_obex_client.h"
+#endif
 
 osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
+    OSyncPlugin *plugin;
 
-	OSyncPlugin *plugin = osync_plugin_new(error);
-	if (!plugin)
-		goto error;
+#ifdef ENABLE_HTTP
+    plugin = osync_plugin_new(error);
 
-        osync_plugin_set_name(plugin, "syncml-http-server");
-        osync_plugin_set_longname(plugin, "SyncML over HTTP Server");
-        osync_plugin_set_description(plugin, "Plugin to synchronize with SyncML over HTTP");
-        
-        osync_plugin_set_initialize(plugin, syncml_http_server_init);
-        osync_plugin_set_finalize(plugin, finalize);
-        osync_plugin_set_discover(plugin, syncml_http_server_discover);
-        
-        osync_plugin_env_register_plugin(env, plugin);
-        osync_plugin_unref(plugin);
+    if (!plugin)
+        goto error;
 
-	plugin = osync_plugin_new(error);
-	if (!plugin)
-		goto error;
+    osync_plugin_set_name(plugin, "syncml-http-server");
+    osync_plugin_set_longname(plugin, "SyncML over HTTP Server");
+    osync_plugin_set_description(plugin, "Plugin to synchronize with SyncML over HTTP");
 
-        osync_plugin_set_name(plugin, "syncml-http-client");
-        osync_plugin_set_longname(plugin, "SyncML over HTTP Client");
-        osync_plugin_set_description(plugin, "Plugin to synchronize with SyncML over HTTP");
-        
-        osync_plugin_set_initialize(plugin, syncml_http_client_init);
-        osync_plugin_set_finalize(plugin, finalize);
-        osync_plugin_set_discover(plugin, syncml_http_client_discover);
-        
-        osync_plugin_env_register_plugin(env, plugin);
-        osync_plugin_unref(plugin);
+    osync_plugin_set_initialize(plugin, syncml_http_server_init);
+    osync_plugin_set_finalize(plugin, finalize);
+    osync_plugin_set_discover(plugin, syncml_http_server_discover);
 
-	plugin = osync_plugin_new(error);
-	if (!plugin)
-		goto error;
+    osync_plugin_env_register_plugin(env, plugin);
+    osync_plugin_unref(plugin);
 
-        osync_plugin_set_name(plugin, "syncml-obex-client");
-        osync_plugin_set_longname(plugin, "SyncML over OBEX Client");
-        osync_plugin_set_description(plugin, "Plugin to synchronize with SyncML over OBEX");
-        
-        osync_plugin_set_initialize(plugin, syncml_obex_client_init);
-        osync_plugin_set_finalize(plugin, finalize);
-        osync_plugin_set_discover(plugin, syncml_obex_client_discover);
-        
-        osync_plugin_env_register_plugin(env, plugin);
-        osync_plugin_unref(plugin);
+    plugin = osync_plugin_new(error);
 
-	return TRUE;
+    if (!plugin)
+        goto error;
+
+    osync_plugin_set_name(plugin, "syncml-http-client");
+    osync_plugin_set_longname(plugin, "SyncML over HTTP Client");
+    osync_plugin_set_description(plugin, "Plugin to synchronize with SyncML over HTTP");
+
+    osync_plugin_set_initialize(plugin, syncml_http_client_init);
+    osync_plugin_set_finalize(plugin, finalize);
+    osync_plugin_set_discover(plugin, syncml_http_client_discover);
+
+    osync_plugin_env_register_plugin(env, plugin);
+    osync_plugin_unref(plugin);
+#endif
+
+#ifdef ENABLE_OBEX
+    plugin = osync_plugin_new(error);
+    if (!plugin)
+        goto error;
+
+    osync_plugin_set_name(plugin, "syncml-obex-client");
+    osync_plugin_set_longname(plugin, "SyncML over OBEX Client");
+    osync_plugin_set_description(plugin, "Plugin to synchronize with SyncML over OBEX");
+
+    osync_plugin_set_initialize(plugin, syncml_obex_client_init);
+    osync_plugin_set_finalize(plugin, finalize);
+    osync_plugin_set_discover(plugin, syncml_obex_client_discover);
+
+    osync_plugin_env_register_plugin(env, plugin);
+    osync_plugin_unref(plugin);
+
+    return TRUE;
+#endif
 
 error:
-	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
-	osync_error_unref(error);
-	return FALSE;
+    osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+    osync_error_unref(error);
+    return FALSE;
 }
 
 int get_version(void)
 {
-	return 1;
+    return 1;
 }
