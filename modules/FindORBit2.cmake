@@ -16,6 +16,7 @@
 #
 
 INCLUDE( FindPkgConfig )
+
 # Take care about gconf-2.0.pc settings
 IF ( ORBIT2_MIN_VERSION )
 	pkg_search_module( ORBIT2 ORBit-2.0 >= ${ORBIT2_MIN_VERSION} )
@@ -68,6 +69,8 @@ IF ( NOT ORBIT2_FOUND )
 			ENDIF ( NOT ORBit2_FIND_QUIETLY )
 		ENDIF ( ORBit2_FIND_REQUIRED )
 	ENDIF ( ORBIT2_LIBRARIES AND ORBIT2_INCLUDE_DIRS AND _orbit2_FOUND )	
+
+	MARK_AS_ADVANCED( _orbit2_include_DIR _orbit2_link_DIR )
 
 ENDIF ( NOT ORBIT2_FOUND )
 
