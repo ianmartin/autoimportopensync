@@ -773,9 +773,10 @@ gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OS
     if (userdata->error) {
       error = userdata->error;
       goto error;
-    } else
-      osync_trace(TRACE_EXIT, "%s : TRUE", __func__);
-      return TRUE;
+    }
+
+    osync_trace(TRACE_EXIT, "%s : TRUE", __func__);
+    return TRUE;
   }
 error:
   osync_error_set(error, OSYNC_ERROR_GENERIC, "Request failed");

@@ -266,7 +266,7 @@ void save_sync_anchors( const irmc_environment *env )
 /**
  * Creates the calendar specific changeinfo for slow- and fastsync
  */
-void create_calendar_changeinfo(int sync_type, OSyncPluginInfo *info, OSyncObjTypeSink *sink, OSyncContext *ctx, char *data, char *luid, int type)
+void create_calendar_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);
   osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
@@ -358,8 +358,6 @@ void create_calendar_changeinfo(int sync_type, OSyncPluginInfo *info, OSyncObjTy
     if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
     else if (type == 'M' || event_size == 0) {
-      OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-      OSyncObjFormat *plain = osync_format_env_find_objformat(formatenv, "plain");
       OSyncData *odata = osync_data_new(data, event_size, plain, &error);
 
 
@@ -636,7 +634,7 @@ gboolean get_generic_changeinfo(irmc_environment *env, OSyncPluginInfo *oinfo, O
 
     // handle object specific part
     if ( strcmp( info->identifier, "event" ) == 0 )
-      create_calendar_changeinfo( SLOW_SYNC, oinfo, sink, ctx, buffer, 0, 0 );
+      create_calendar_changeinfo( SLOW_SYNC, sink, ctx, buffer, 0, 0 );
     else if ( strcmp( info->identifier, "contact" ) == 0 )
       create_addressbook_changeinfo( SLOW_SYNC, sink, ctx, buffer, 0, 0 );
     else if ( strcmp( info->identifier, "note" ) == 0 )
@@ -723,7 +721,7 @@ gboolean get_generic_changeinfo(irmc_environment *env, OSyncPluginInfo *oinfo, O
 
         // handle object specific part
         if ( strcmp( info->identifier, "event" ) == 0 )
-          create_calendar_changeinfo(FAST_SYNC, oinfo, sink, ctx, data, luid, type);
+          create_calendar_changeinfo(FAST_SYNC, sink, ctx, data, luid, type);
         else if ( strcmp( info->identifier, "contact" ) == 0 )
           create_addressbook_changeinfo(FAST_SYNC, sink, ctx, data, luid, type);
         else if ( strcmp( info->identifier, "note" ) == 0 )
@@ -878,15 +876,17 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
   }
   g_free( anchor );
 
-  config->obexhandle = irmc_obex_client(config);
-
-  // connect to the device
   OSyncError *error = NULL;
-  if (!irmc_obex_connect(config->obexhandle, config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, error);
-    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-   return;
+  if (! env->isConnected) {
+
+	  config->obexhandle = irmc_obex_client(config);
+	  // connect to the device
+	  if (!irmc_obex_connect(config->obexhandle, config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
+	    irmc_disconnect(config);
+	    osync_context_report_osyncerror(ctx, error);
+	    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
+	   return;
+	  }
   }
 
   // load the general synchronization anchors
@@ -1378,6 +1378,8 @@ static void *irmcInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
   irmc_environment *env = osync_try_malloc0(sizeof(irmc_environment), error);
   if (!env)
     goto error;
+
+  env->isConnected = FALSE;
 
   // retrieve the config data
   configdata = osync_plugin_info_get_config(info); 
