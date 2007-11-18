@@ -358,7 +358,7 @@ void create_calendar_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncCont
     if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
     else if (type == 'M' || event_size == 0) {
-      OSyncData *odata = osync_data_new(data, event_size, plain, &error);
+      OSyncData *odata = osync_data_new(data, event_size, database->objformat, &error);
 
 
       osync_change_set_data(change, odata);
