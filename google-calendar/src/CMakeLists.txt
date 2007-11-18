@@ -5,14 +5,14 @@ SET( gcalendar_LIB_SRCS
 gcalendar.c
 )
 
-ADD_DEFINITIONS( -DGCAL_HELPER="\\\"${LIBEXEC_INSTALL_DIR}/google-cal-helper\\\"" )
+ADD_DEFINITIONS( -DGCAL_HELPER="\\\"${OPENSYNC_LIBEXEC_DIR}/google-cal-helper\\\"" )
 OPENSYNC_PLUGIN_ADD( gcalendar ${gcalendar_LIB_SRCS} )
 
 TARGET_LINK_LIBRARIES( gcalendar ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${LIBXML2_LIBRARIES} )
 
 # Install plugin and google-cal-helper	
 OPENSYNC_PLUGIN_INSTALL( gcalendar )
-INSTALL( FILES google-cal-helper.py DESTINATION "${LIBEXEC_INSTALL_DIR}" RENAME "google-cal-helper" )
+INSTALL( FILES google-cal-helper.py DESTINATION "${OPENSYNC_LIBEXEC_DIR}" RENAME "google-cal-helper" )
 
 # Install config template	
 OPENSYNC_PLUGIN_CONFIG( google-calendar )
