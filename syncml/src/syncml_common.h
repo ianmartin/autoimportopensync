@@ -26,6 +26,7 @@
 
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-plugin.h>
+#include <opensync/opensync-merger.h>
 #include <opensync/opensync-context.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-helper.h>
@@ -113,6 +114,11 @@ typedef struct SmlPluginEnv {
 	osync_bool isConnected;
 
 	SmlAuthType authType;
+	osync_bool fakeDevice;
+	SmlProtocolVersion syncmlVersion;
+        char *fakeManufacturer;
+        char *fakeModel;
+        char *fakeSoftwareVersion;
 } SmlPluginEnv;
 
 typedef struct SmlDatabase {
@@ -127,6 +133,7 @@ typedef struct SmlDatabase {
 
 	osync_bool gotChanges;
 	osync_bool finalChanges; 
+	unsigned int pendingChanges;
 
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
@@ -175,6 +182,31 @@ extern void batch_commit(
 
 extern void _ds_alert(SmlDsSession *dsession, void *userdata);
 
+extern  void _recv_alert_reply(
+			SmlSession *session,
+			SmlStatus *status, 
+			void *userdata);
+
+extern void _recv_sync(SmlDsSession *dsession,
+			unsigned int numchanges,
+			void *userdata);
+
+extern void _recv_sync_reply(SmlSession *session, 
+			SmlStatus *status, 
+			void *userdata);
+
+extern SmlBool _recv_change(
+			SmlDsSession *dsession, 
+			SmlChangeType type, 
+			const char *uid, 
+			char *data, 
+			unsigned int size, 
+			const char *contenttype, 
+			void *userdata, 
+			SmlError **smlerror);
+
+extern void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata);
+
 extern void _verify_user(
 			SmlAuthenticator *auth, 
 			const char *username, 
@@ -183,6 +215,18 @@ extern void _verify_user(
 			SmlErrorType *reply);
 
 extern const char *_objtype_to_contenttype(const char *objtype);
+
+extern osync_bool syncml_config_parse_database(
+			SmlPluginEnv *env,
+			xmlNode *cur,
+			OSyncError **error);
+
+extern osync_bool init_objformat(
+			OSyncPluginInfo *info,
+			SmlDatabase *database,
+			OSyncError **error);
+
+extern SmlBool flush_session_for_all_databases(SmlPluginEnv *env, SmlError **error);
 
 extern void finalize(void *data);
 

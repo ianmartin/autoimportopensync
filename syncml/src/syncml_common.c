@@ -20,6 +20,20 @@
 
 #include "syncml_common.h"
 
+extern SmlBool flush_session_for_all_databases(SmlPluginEnv *env, SmlError **error)
+{
+	// avoid flushing to early
+	env->num++;
+	if (env->num >= g_list_length(env->databases)) {
+		env->num = 0;
+		if (!smlSessionFlush(env->session, TRUE, error))
+			return FALSE;
+		else
+			return TRUE;
+	}
+	return TRUE;
+}
+
 static void syncml_free_database(SmlDatabase *database)
 {
 	if (database->url)
@@ -35,6 +49,26 @@ static void syncml_free_database(SmlDatabase *database)
 		osync_objtype_sink_unref(database->sink);
 
 	g_free(database);
+}
+
+static void _try_change_ctx_cleanup(SmlDatabase *database)
+{
+	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, finalChanges %i)", __func__,
+		 database->gotChanges, database->finalChanges);
+	
+	// we should try to clenaup getChangesCtx if
+	//     SML_MANAGER_SESSION_FINAL
+	//     SML_DS_EVENT_GOTCHANGES
+	// both events are required for a complete cleanup
+	// finalChanges must be resetted at every new message
+	// until we received a sync command (not alert)
+	if (database->gotChanges && database->finalChanges) {
+		osync_trace(TRACE_INTERNAL,"getChangesCtx report success at _recv_change");
+		osync_context_report_success(database->getChangesCtx);
+		database->getChangesCtx = NULL;
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static SmlChangeType _get_changetype(OSyncChange *change)
@@ -77,7 +111,7 @@ static const char *_format_to_contenttype(OSyncChange *change)
 	return _objtype_to_contenttype(osync_change_get_objtype(change));
 }
 
-osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
+extern osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
 
@@ -159,7 +193,7 @@ static OSyncChangeType _to_osync_changetype(SmlChangeType type)
 	return OSYNC_CHANGE_TYPE_UNKNOWN;
 }
 
-static void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
+extern void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, dsession, event, userdata);
 
@@ -169,11 +203,7 @@ static void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 	switch (event) {
 		case SML_DS_EVENT_GOTCHANGES:
 			database->gotChanges = TRUE;
-			if (database->gotChanges && database->finalChanges) {
-				osync_trace(TRACE_INTERNAL,"getChangesCtx report success at _recv_change");
-				osync_context_report_success(database->getChangesCtx);
-				database->getChangesCtx = NULL;
-			}
+			_try_change_ctx_cleanup(database);
 			break;
 		case SML_DS_EVENT_COMMITEDCHANGES:	
 			break;
@@ -182,7 +212,16 @@ static void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **smlerror)
+static void _recv_map_reply(SmlSession *session, SmlStatus *status, void *userdata)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, status, userdata);
+	
+	printf("Received an reply to our map\n");
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+extern SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **smlerror)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, smlerror);
 	SmlDatabase *database = (SmlDatabase *)userdata;
@@ -235,6 +274,9 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 	}
 	*/
 
+	osync_trace(TRACE_INTERNAL,
+		"%s: objformat: %s", __func__,
+		osync_objformat_get_name(database->objformat));
 	OSyncData *odata = osync_data_new(data, size+1, database->objformat, &error);
 	if (!odata) {
 		osync_change_unref(change);
@@ -256,11 +298,29 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 
 	osync_context_report_change(database->getChangesCtx, change);
 
+	// if this is a client then we should send a map item here
+	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
+	{
+		// ok let's prepare the map
+		if (!smlDsSessionQueueMap(database->session, uid, osync_change_get_uid(change), smlerror))
+			goto smlerror;
+		database->pendingChanges--;
+		if (database->pendingChanges == 0)
+		{
+			if (!smlDsSessionCloseMap(database->session, _recv_map_reply, database, smlerror))
+				goto smlerror;
+			if (!flush_session_for_all_databases(database->env, smlerror))
+				goto smlerror;
+		}
+	}
+
 	osync_change_unref(change);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
+smlerror:
+	osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(smlerror));
 error:
 //	osync_context_report_osyncwarning(ctx, error);
 	osync_error_unref(&error);
@@ -288,27 +348,56 @@ static void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _recv_sync_reply(SmlSession *session, SmlStatus *status, void *userdata)
+extern void _recv_sync_reply(SmlSession *session, SmlStatus *status, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, status, userdata);
+	SmlDatabase *database = userdata;
 	
 	printf("Received an reply to our sync\n");
-	
+	if (smlStatusGetClass(status) != SML_ERRORCLASS_SUCCESS)
+	{
+		// inform user
+		printf("The synchronisation request failed.\n");
+		printf("    Location => %s\n", database->env->url);
+		printf("    Database => %s\n", database->url);
+		printf("    Error => %d\n", smlStatusGetCode(status));
+		if (smlStatusGetCode(status) == SML_ERROR_TIMEOUT &&
+		    (strstr(database->env->url, "ocst") || strstr(database->env->url, "ocas")))
+		{
+			/* this is a potential Oracle Collaboration Suite */
+			/* typical errorcode from OCS if there is something wrong */
+			printf("    Oracle Collaboration Suite detected.\n");
+			printf("    Typical undefined error from OCS (503 - SyncML timeout error).\n");
+			printf("    Please wait 5 minutes before retry - default session timeout.\n");
+		}
+		// stop session
+		// FIXME: this is not available in a clean way today
+		// FIXME: we need a session state
+		// FIXME: osync must be signalled
+		// FIXME: we need a mutex lock on database->env
+		// smlSessionEnd(database->env->session, NULL);
+		// printf("    Session finished.\n");
+		// smlManagerSessionRemove(database->env->manager, database->env->session);
+		// smlManagerStop(database->env->manager);
+		// smlManagerQuit(database->env->manager);
+		// printf("    Manager finished.\n");
+	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
+extern void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, dsession, numchanges, userdata);
 	SmlDatabase *database = (SmlDatabase *)userdata;
 	
 	osync_trace(TRACE_INTERNAL,"Going to receive %i changes - objtype: %s", numchanges, database->objtype);
 	printf("Going to receive %i changes\n", numchanges);
+	database->pendingChanges = numchanges;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *userdata)
+extern void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, session, status, userdata);
 	
@@ -348,8 +437,6 @@ extern SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char
 		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, NULL);
 	}
 	
-	smlDevInfAgentGetDevInf(env->agent);
-	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
 }
@@ -374,6 +461,45 @@ extern void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 
 	switch (type) {
 		case SML_MANAGER_SESSION_FLUSH:
+			// finalChanges must be resetted because every SML_MANAGER_SESSION_FINAL
+			// sets this status to true but not every message is a SYNC message
+			// if we do not reset finalChanges at the beginning of a SYNC
+			// then we set finalChanges at the client on receiving the SYNC alert
+			// and not the sync itself from the server
+			//
+			// perspective: client
+			//
+			// client: sends sync alert
+			//         --> finalChanges = FALSE on SESSION_FLUSH (gotChanges == FALSE)
+			// client: receives sync alert from server
+			//         --> finalChanges = TRUE on SESSION_FINAL (gotChanges == FALSE)
+			// client: sends sync with changes
+			//         --> finalChanges = FALSE on SESSION_FLUSH (gotChanges == FALSE)
+			// client: reives sync with changes from server
+			//         --> finalChanges = TRUE on SESSION_FINAL (gotChanges == TRUE)
+			//         --> finalChanges + gotChanges --> getChangesCtx = NULL
+			osync_trace(TRACE_INTERNAL, "resetting finalChanges if necessary ...");
+			o = env->databases;
+			osync_trace(TRACE_INTERNAL, "    got GList");
+			for (; o; o = o->next) {
+				SmlDatabase *database = o->data;
+				osync_trace(TRACE_INTERNAL, "    got database");
+
+				osync_trace(TRACE_INTERNAL, "old: gotChanges: %i, finalChanges: %i, objtype: %s",
+					database->gotChanges, database->finalChanges, database->objtype);
+
+				// if no changes received and context present
+				// then reset finalChanges
+				osync_trace(TRACE_INTERNAL, "    check conditions");
+				if (!database->gotChanges && database->getChangesCtx) {
+					database->finalChanges = FALSE;
+				}
+				osync_trace(TRACE_INTERNAL, "    performed acction");
+
+				osync_trace(TRACE_INTERNAL, "new: gotChanges: %i, finalChanges: %i, objtype: %s",
+					database->gotChanges, database->finalChanges, database->objtype);
+			}
+			osync_trace(TRACE_INTERNAL, "resetted finalChanges");
 		case SML_MANAGER_CONNECT_DONE:
 			env->gotDisconnect = FALSE;
 			break;
@@ -411,14 +537,20 @@ extern void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			break;
 		case SML_MANAGER_SESSION_NEW:
 			osync_trace(TRACE_INTERNAL, "Just received a new session with ID %s\n", smlSessionGetSessionID(session));
+			if (env->session) {
+				osync_trace(TRACE_INTERNAL, "WARNING: There was an old session %s in the environment.", smlSessionGetSessionID(env->session));
+			}
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);
+			smlSessionUseNumberOfChanges(session, FALSE);
 			
 			if (env->recvLimit)
 				smlSessionSetReceivingLimit(session, env->recvLimit);
-				
 			if (env->maxObjSize)
 				smlSessionSetReceivingMaxObjSize(session, env->maxObjSize);
+			if (env->recvLimit && env->maxObjSize)
+				smlSessionUseLargeObjects(session, TRUE);
+			osync_trace(TRACE_INTERNAL, "maxObjSize %d", env->maxObjSize);
 			
 			env->session = session;
 			smlSessionRef(session);
@@ -441,12 +573,7 @@ extern void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 
 				if (database->getChangesCtx) {
 					database->finalChanges = TRUE;
-					if (database->gotChanges && database->finalChanges) {
-						osync_trace(TRACE_INTERNAL,"getChangesCtx report success at final");
-						osync_context_report_success(database->getChangesCtx);
-						database->getChangesCtx = NULL;
-					}
-
+					_try_change_ctx_cleanup(database);
 				}
 
 
@@ -454,8 +581,6 @@ extern void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 					osync_context_report_success(database->commitCtx);
 					database->commitCtx = NULL;
 				}
-			
-
 			}
 			break;
 		case SML_MANAGER_SESSION_END:
@@ -470,6 +595,8 @@ extern void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 		case SML_MANAGER_SESSION_WARNING:
 			printf("WARNING: %s\n", smlErrorPrint(&error));
 			break;
+		default:
+			printf("Unknown event received: %d.\n", type);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -565,6 +692,7 @@ extern void _verify_user(SmlAuthenticator *auth, const char *username, const cha
 
 extern void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
+	g_assert(ctx);
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 
@@ -576,23 +704,43 @@ extern void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
-	
-	if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
-		smlDsSessionGetAlert(database->session, _recv_alert, database);
-	}
-	
-	smlDsSessionGetEvent(database->session, _ds_event, database);
-	smlDsSessionGetSync(database->session, _recv_sync, database);
-	smlDsSessionGetChanges(database->session, _recv_change, database);
 
-	// avoid flushing to early
-	env->num++;
-
-	if (env->num >= g_list_length(env->databases)) {
-		env->num = 0;
-		if (!smlSessionFlush(env->session, TRUE, &error))
+	// if this is not a server then the DsSession is not always started
+	// sometimes we start the DsSession (e.g. if we are the client)
+	if (!database->session &&
+		smlTransportGetType(env->tsp) == SML_TRANSPORT_HTTP_CLIENT &&
+		 osync_objtype_sink_get_slowsync(database->sink))
+	{
+		// if there is no DsSession and we have a slowsync
+		// then we MUST initiate a sync which forces us
+		// to create a new DsSession
+		database->session = smlDsServerSendAlert(
+					database->server,
+					env->session, 
+					SML_ALERT_SLOW_SYNC,
+                                        NULL, NULL, 
+					_recv_alert_reply, database, 
+					&error);
+		if (!database->session)
 			goto error;
 	}
+
+	if (database->session)
+	{
+		// sometimes the DsSession is established later
+		// so get_changeinfo must be called several times or
+		// we have to workaround the asnychronous behaviour of libsyncml
+		if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
+			smlDsSessionGetAlert(database->session, _recv_alert, database);
+		}
+	
+		smlDsSessionGetEvent(database->session, _ds_event, database);
+		smlDsSessionGetSync(database->session, _recv_sync, database);
+		smlDsSessionGetChanges(database->session, _recv_change, database);
+	}
+
+	if (!flush_session_for_all_databases(env, &error))
+		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -724,8 +872,32 @@ extern void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 		*/	
 		num++;
 	}
+
+	// if there are no changes then we do nothing
+	// especially for http clients it makes no sense
+	// to initiate a new DS session if there is nothing to do
+	if (num == 0)
+	{
+		osync_context_report_success(database->commitCtx);
+		osync_context_unref(database->commitCtx);
+		database->commitCtx = NULL;
+		return;
+	}
+
+	// sometimes we start the DsSession (e.g. if we are the client)
+	if (!database->session)
+	{
+		// let's init the DsSession
+		database->session = smlDsSessionNew(database->server, env->session, &error);
+		if (!database->session)
+			goto error;
+	}
+
+	// FIXME: if this is a SML_DS_CLIENT
+	// FIXME: then we have to initiate a new sync session by an appropriate alert
+	// FIXME: a sync package without a previous alert message is invalid SyncML DS !!!
 	
-	if (!smlDsSessionSendSync(database->session, num, _recv_sync_reply, NULL, &error))
+	if (!smlDsSessionSendSync(database->session, num, _recv_sync_reply, database, &error))
 		goto error;
 
 	for (i = 0; changes[i]; i++) {
@@ -764,13 +936,8 @@ extern void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 		}
 	}
 */
-	env->num++;
-
-	// avoid flushing to early...
-	if(env->num >= g_list_length(env->databases))
-		if (!smlSessionFlush(env->session, TRUE, &error))
-			goto error;
-
+	if (!flush_session_for_all_databases(env, &error))
+		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -782,3 +949,23 @@ oserror:
 	osync_context_report_osyncerror(ctx, oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
+
+extern osync_bool init_objformat(OSyncPluginInfo *info, SmlDatabase *database, OSyncError **error)
+{
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+
+	database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
+	if (!database->objformat) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
+		return FALSE;
+	} else {
+		osync_trace(TRACE_INTERNAL, "%s: objformat is %s for %s", __func__,
+			osync_objformat_get_objtype(database->objformat),
+			osync_objformat_get_name(database->objformat));
+	}
+
+	// TODO:... in case of maemo ("plain text") we have to set "memo"...
+	osync_objtype_sink_add_objformat(database->sink, database->objformat_name);
+
+	return TRUE;
+} 
