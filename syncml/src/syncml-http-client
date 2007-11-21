@@ -22,7 +22,6 @@
   <!-- The SyncML specification only requires the meta information               -->
   <!-- if large objects are enabled.                                             -->
   <!-- Nevertheless the most mobiles send it because of their limited resources. -->
-  <!-- So some servers like Oracle Collaboration Suite require them always.      -->
 
   <recvLimit>40000</recvLimit>
   
@@ -81,11 +80,11 @@
 
    -->
 
-  <!-- this is necessary for some servers because they work with profiles -->
-  <!-- Oracle Collaboration Suite does such things -->
+  <!-- this is necessary for some servers because they work with profiles   -->
+  <!-- Oracle Collaboration Suite does such things                          -->
+  <!-- so if somebody denies your client (e.g. uncertifiedclients=disallow) -->
+  <!-- then simply fake such a superious client ;-D                         -->
   <fake_device>1</fake_device>
-  <!-- warning OpenSync does not support SyncML 1.2 DevInf Specification --> 
-  <!-- BUT devinf sending is a MUST for the client ==> no SyncML 1.2 support -->
   <syncml_version>1.1</syncml_version>
   <fake_manufacturer>NOKIA</fake_manufacturer>
   <fake_model>E60</fake_model>
