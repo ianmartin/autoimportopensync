@@ -395,6 +395,29 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
+static SmlDevInfProperty *_addCTCapPropertyByName(SmlDevInfCTCap *ctcap, const char*name)
+{
+	SmlDevInfProperty *prop = smlDevInfNewProperty();
+	smlDevInfPropertySetPropName(prop, name);
+	smlDevInfCTCapAddProperty(ctcap, prop);
+	return prop;
+}
+
+static SmlDevInfProperty *_addCTCapPropertyByNameValue(SmlDevInfCTCap *ctcap, const char*name, const char *value)
+{
+	SmlDevInfProperty *prop = _addCTCapPropertyByName(ctcap, name);
+	smlDevInfPropertyAddValEnum(prop, value);
+	return prop;
+}
+
+static SmlDevInfPropParam *_addPropertyParam(SmlDevInfProperty *prop, const char *name)
+{
+	SmlDevInfPropParam *param = smlDevInfNewPropParam();
+	smlDevInfPropParamSetParamName(param, name);
+	smlDevInfPropertyAddPropParam(prop, param);
+	return param;
+}
+
 extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
@@ -494,137 +517,139 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	/* capability specification */
 	/* FIXME: this is really poor because of devinf interface of libsyncml */
 	/* FIXME: libsyncml only supports SyncML 1.0 and 1.1 !!! DevInf Spec */
+	SmlDevInfCTCap *ctcap;
+	SmlDevInfProperty *prop;
+	SmlDevInfPropParam *param;
 	/* add VCard 2.1 - e.g. vcard21 */
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_CTTYPE, "text/x-vcard");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "BEGIN");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCARD");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "END");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCARD");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "VERSION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "2.1");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "REV");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "N");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "TITLE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CATEGORIES");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CLASS");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "ORG");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "EMAIL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "URL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "TEL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "CELL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "HOME");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "WORK");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "FAX");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "MODEM");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "VOICE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "ADR");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "HOME");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "WORK");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "BDAY");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "NOTE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "PHOTO");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "TYPE");
+	ctcap = smlDevInfNewCTCap();
+	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
+	smlDevInfCTCapSetVerCT(ctcap, "2.1");
+	_addCTCapPropertyByNameValue(ctcap, "BEGIN", "VCARD");
+	_addCTCapPropertyByNameValue(ctcap, "END", "VCARD");
+	_addCTCapPropertyByNameValue(ctcap, "VERSION", "2.1");
+	_addCTCapPropertyByName(ctcap, "REV");
+	_addCTCapPropertyByName(ctcap, "N");
+	_addCTCapPropertyByName(ctcap, "TITLE");
+	_addCTCapPropertyByName(ctcap, "CATEGORIES");
+	_addCTCapPropertyByName(ctcap, "CLASS");
+	_addCTCapPropertyByName(ctcap, "ORG");
+	_addCTCapPropertyByName(ctcap, "EMAIL");
+	_addCTCapPropertyByName(ctcap, "URL");
+	prop = _addCTCapPropertyByName(ctcap, "TEL");
+	smlDevInfPropertyAddValEnum(prop, "CELL");
+	smlDevInfPropertyAddValEnum(prop, "HOME");
+	smlDevInfPropertyAddValEnum(prop, "WORK");
+	smlDevInfPropertyAddValEnum(prop, "FAX");
+	smlDevInfPropertyAddValEnum(prop, "MODEM");
+	smlDevInfPropertyAddValEnum(prop, "VOICE");
+	prop = _addCTCapPropertyByName(ctcap, "ADR");
+	smlDevInfPropertyAddValEnum(prop, "HOME");
+	smlDevInfPropertyAddValEnum(prop, "WORK");
+	_addCTCapPropertyByName(ctcap, "BDAY");
+	_addCTCapPropertyByName(ctcap, "NOTE");
+	_addCTCapPropertyByNameValue(ctcap, "PHOTO", "TYPE");
+	smlDevInfAddCTCap(devinf, ctcap);
 	/* add VCard 3.0 - e.g. vcard30 */
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_CTTYPE, "text/vcard");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "BEGIN");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCARD");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "END");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCARD");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "VERSION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "3.0");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "REV");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "N");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "TITLE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CATEGORIES");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CLASS");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "ORG");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "URL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "EMAIL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "URL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "TEL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "TYPE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "CELL");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "HOME");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "WORK");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "FAX");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "MODEM");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VOICE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "ADR");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "TYPE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "HOME");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "WORK");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "BDAY");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "NOTE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "PHOTO");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PARAMNAME, "TYPE");
-	/* Oracle collaboration Suite uses the contant type to distinguish */
-	/* the versions of VCalendar                                       */
-	/* text/x-vcalendar --> VERSION 1.0                                */
-	/* text/calendar    --> VERSION 2.0                                */
-	/* SyncML specifies VERSION 1.0 as VCalendar 2.0 and VERSION 2.0   */
-	/* as VCalendar 3.0                                                */
+	ctcap = smlDevInfNewCTCap();
+	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
+	smlDevInfCTCapSetVerCT(ctcap, "3.0");
+	_addCTCapPropertyByNameValue(ctcap, "BEGIN", "VCARD");
+	_addCTCapPropertyByNameValue(ctcap, "END", "VCARD");
+	_addCTCapPropertyByNameValue(ctcap, "VERSION", "3.0");
+	_addCTCapPropertyByName(ctcap, "REV");
+	_addCTCapPropertyByName(ctcap, "N");
+	_addCTCapPropertyByName(ctcap, "TITLE");
+	_addCTCapPropertyByName(ctcap, "CATEGORIES");
+	_addCTCapPropertyByName(ctcap, "CLASS");
+	_addCTCapPropertyByName(ctcap, "ORG");
+	_addCTCapPropertyByName(ctcap, "EMAIL");
+	_addCTCapPropertyByName(ctcap, "URL");
+	prop = _addCTCapPropertyByName(ctcap, "TEL");
+	param = _addPropertyParam(prop, "TYPE");
+	smlDevInfPropParamAddValEnum(param, "CELL");
+	smlDevInfPropParamAddValEnum(param, "HOME");
+	smlDevInfPropParamAddValEnum(param, "WORK");
+	smlDevInfPropParamAddValEnum(param, "FAX");
+	smlDevInfPropParamAddValEnum(param, "MODEM");
+	smlDevInfPropParamAddValEnum(param, "VOICE");
+	prop = _addCTCapPropertyByName(ctcap, "ADR");
+	param = _addPropertyParam(prop, "TYPE");
+	smlDevInfPropParamAddValEnum(param, "HOME");
+	smlDevInfPropParamAddValEnum(param, "WORK");
+	_addCTCapPropertyByName(ctcap, "BDAY");
+	_addCTCapPropertyByName(ctcap, "NOTE");
+	prop = _addCTCapPropertyByName(ctcap, "PHOTO");
+	_addPropertyParam(prop, "TYPE");
+	smlDevInfAddCTCap(devinf, ctcap);
+	/* Oracle collaboration Suite uses the content type to distinguish */
+	/* the versions of vCalendar (and iCalendar)                       */
+	/* text/x-vcalendar --> VERSION 1.0 (vCalendar)                    */
+	/* text/calendar    --> VERSION 2.0 (iCalendar)                    */
 	/* So be VERY VERY CAREFUL if you change something here.           */
-	/* VCalendar 2.0 - e.g. vevent10 (NO TYPO) */
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_CTTYPE, "text/vcalendar");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "BEGIN");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCALENDAR");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VEVENT");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VTODO");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "END");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCALENDAR");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VEVENT");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VTODO");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "VERSION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "1.0");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "TZ");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "LAST-MODIFIED");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DCREATED");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CATEGORIES");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CLASS");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "SUMMARY");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DESCRIPTION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "LOCATION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DTSTART");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DTEND");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "ATTENDEE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "RRULE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "EXDATE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "AALARAM");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DALARM");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DUE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "PRIORITY");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "STATUS");
-	/* VCalendar 3.0 - e.g. vevent20 (NO TYPO) */
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_CTTYPE, "text/calendar");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "BEGIN");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCALENDAR");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VEVENT");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VTODO");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "END");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VCALENDAR");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VEVENT");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "VTODO");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "VERSION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_VALENUM, "2.0");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "TZ");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "LAST-MODIFIED");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DCREATED");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CATEGORIES");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "CLASS");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "SUMMARY");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DESCRIPTION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "LOCATION");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DTSTART");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DTEND");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "ATTENDEE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "RRULE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "EXDATE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "AALARAM");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DALARM");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "DUE");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "PRIORITY");
-	smlDevInfAddCTCap(devinf, SML_DEVINF_CTCAP_PROPNAME, "STATUS");
-
+	/* vCalendar 1.0 - e.g. event10 */
+	ctcap = smlDevInfNewCTCap();
+	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCAL);
+	smlDevInfCTCapSetVerCT(ctcap, "1.0");
+	prop = _addCTCapPropertyByName(ctcap, "BEGIN");
+	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
+	smlDevInfPropertyAddValEnum(prop, "VEVENT");
+	smlDevInfPropertyAddValEnum(prop, "VTODO");
+	prop = _addCTCapPropertyByName(ctcap, "END");
+	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
+	smlDevInfPropertyAddValEnum(prop, "VEVENT");
+	smlDevInfPropertyAddValEnum(prop, "VTODO");
+	_addCTCapPropertyByNameValue(ctcap, "VERSION", "1.0");
+	_addCTCapPropertyByName(ctcap, "TZ");
+	_addCTCapPropertyByName(ctcap, "LAST-MODIFIED");
+	_addCTCapPropertyByName(ctcap, "DCREATED");
+	_addCTCapPropertyByName(ctcap, "CATEGORIES");
+	_addCTCapPropertyByName(ctcap, "CLASS");
+	_addCTCapPropertyByName(ctcap, "SUMMARY");
+	_addCTCapPropertyByName(ctcap, "DESCRIPTION");
+	_addCTCapPropertyByName(ctcap, "LOCATION");
+	_addCTCapPropertyByName(ctcap, "DTSTART");
+	_addCTCapPropertyByName(ctcap, "DTEND");
+	_addCTCapPropertyByName(ctcap, "ATTENDEE");
+	_addCTCapPropertyByName(ctcap, "RRULE");
+	_addCTCapPropertyByName(ctcap, "EXDATE");
+	_addCTCapPropertyByName(ctcap, "AALARM");
+	_addCTCapPropertyByName(ctcap, "DALARM");
+	_addCTCapPropertyByName(ctcap, "DUE");
+	_addCTCapPropertyByName(ctcap, "PRIORITY");
+	_addCTCapPropertyByName(ctcap, "STATUS");
+	smlDevInfAddCTCap(devinf, ctcap);
+	/* vCalendar 2.0 is iCalendar - e.g. event20 */
+	ctcap = smlDevInfNewCTCap();
+	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_ICAL);
+	smlDevInfCTCapSetVerCT(ctcap, "2.0");
+	prop = _addCTCapPropertyByName(ctcap, "BEGIN");
+	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
+	smlDevInfPropertyAddValEnum(prop, "VEVENT");
+	smlDevInfPropertyAddValEnum(prop, "VTODO");
+	prop = _addCTCapPropertyByName(ctcap, "END");
+	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
+	smlDevInfPropertyAddValEnum(prop, "VEVENT");
+	smlDevInfPropertyAddValEnum(prop, "VTODO");
+	_addCTCapPropertyByNameValue(ctcap, "VERSION", "2.0");
+	_addCTCapPropertyByName(ctcap, "TZ");
+	_addCTCapPropertyByName(ctcap, "LAST-MODIFIED");
+	_addCTCapPropertyByName(ctcap, "DCREATED");
+	_addCTCapPropertyByName(ctcap, "CATEGORIES");
+	_addCTCapPropertyByName(ctcap, "CLASS");
+	_addCTCapPropertyByName(ctcap, "SUMMARY");
+	_addCTCapPropertyByName(ctcap, "DESCRIPTION");
+	_addCTCapPropertyByName(ctcap, "LOCATION");
+	_addCTCapPropertyByName(ctcap, "DTSTART");
+	_addCTCapPropertyByName(ctcap, "DTEND");
+	_addCTCapPropertyByName(ctcap, "ATTENDEE");
+	_addCTCapPropertyByName(ctcap, "RRULE");
+	_addCTCapPropertyByName(ctcap, "EXDATE");
+	_addCTCapPropertyByName(ctcap, "AALARM");
+	_addCTCapPropertyByName(ctcap, "DALARM");
+	_addCTCapPropertyByName(ctcap, "DUE");
+	_addCTCapPropertyByName(ctcap, "PRIORITY");
+	_addCTCapPropertyByName(ctcap, "STATUS");
+	smlDevInfAddCTCap(devinf, ctcap);
 	// this is important because the tranport sends it during init
 	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
 		goto error_free_manager;
@@ -658,8 +683,10 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
                         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
                 } else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCAL)) {
-                        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
-                        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+                        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
+                        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
+                        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
+                        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
                 } else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_PLAIN)) {
                         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
                         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");

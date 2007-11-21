@@ -88,6 +88,7 @@ static SmlChangeType _get_changetype(OSyncChange *change)
 
 extern const char *_objtype_to_contenttype(const char *objtype)
 {
+	// WARNING: content-types depend on version of objtype !!!
 	if (!strcmp(objtype, "contact")) {
 		return SML_ELEMENT_TEXT_VCARD;
 	}

@@ -348,8 +348,9 @@ extern void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
 			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
 		} else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCAL)) {
-			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
-			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+			// version 2.0 is ICAL and not VCAL
+			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
+			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
 		} else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_PLAIN)) {
 			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
 			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
