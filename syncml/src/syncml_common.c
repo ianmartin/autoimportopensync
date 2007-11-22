@@ -19,6 +19,7 @@
  */
 
 #include "syncml_common.h"
+#include "syncml_devinf.h"
 
 extern SmlBool flush_session_for_all_databases(SmlPluginEnv *env, SmlError **error)
 {
@@ -86,29 +87,9 @@ static SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-extern const char *_objtype_to_contenttype(const char *objtype)
-{
-	// WARNING: content-types depend on version of objtype !!!
-	if (!strcmp(objtype, "contact")) {
-		return SML_ELEMENT_TEXT_VCARD;
-	}
-	if (!strcmp(objtype, "event")) {
-		return SML_ELEMENT_TEXT_VCAL;
-	}
-	if (!strcmp(objtype, "todo")) {
-		return SML_ELEMENT_TEXT_VCAL;
-	}
-	if (!strcmp(objtype, "note")) {
-		return SML_ELEMENT_TEXT_PLAIN;
-	}
-	if (!strcmp(objtype, "data")) {
-		return SML_ELEMENT_TEXT_PLAIN;
-	}
-	return NULL;
-}
-
 static const char *_format_to_contenttype(OSyncChange *change)
 {
+	// FIXME: the whole function is a bug
 	return _objtype_to_contenttype(osync_change_get_objtype(change));
 }
 
@@ -863,14 +844,6 @@ extern void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 	osync_context_ref(database->commitCtx);
 	
 	for (i = 0; changes[i]; i++) {
-		/*
-		if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_VCARD))
-			numContact++;
-		else if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_VCAL))
-			numCalendar++;
-		else if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_PLAIN))
-			numNote++;
-		*/	
 		num++;
 	}
 
@@ -920,7 +893,13 @@ extern void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 		osync_data_get_data(data, &buf, &size);
 	
 		osync_trace(TRACE_INTERNAL, "Committing entry \"%s\": \"%s\"", osync_change_get_uid(change), buf);
-		if (!smlDsSessionQueueChange(database->session, _get_changetype(change), osync_change_get_uid(change), buf, size, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+		if (!smlDsSessionQueueChange(
+			database->session,
+			_get_changetype(change),
+			osync_change_get_uid(change),
+			buf, size,
+			get_database_pref_content_type(database, &oserror),
+			_recv_change_reply, tracer, &error))
 			goto error;
 		//contexts[i] = NULL;
 

@@ -1,4 +1,5 @@
 #include "syncml_common.h"
+#include "syncml_devinf.h"
 
 static SmlBool _recv_server_alert(SmlDsSession *dsession, SmlAlertType type, const char *last, const char *next, void *userdata)
 {
@@ -395,29 +396,6 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
-static SmlDevInfProperty *_addCTCapPropertyByName(SmlDevInfCTCap *ctcap, const char*name)
-{
-	SmlDevInfProperty *prop = smlDevInfNewProperty();
-	smlDevInfPropertySetPropName(prop, name);
-	smlDevInfCTCapAddProperty(ctcap, prop);
-	return prop;
-}
-
-static SmlDevInfProperty *_addCTCapPropertyByNameValue(SmlDevInfCTCap *ctcap, const char*name, const char *value)
-{
-	SmlDevInfProperty *prop = _addCTCapPropertyByName(ctcap, name);
-	smlDevInfPropertyAddValEnum(prop, value);
-	return prop;
-}
-
-static SmlDevInfPropParam *_addPropertyParam(SmlDevInfProperty *prop, const char *name)
-{
-	SmlDevInfPropParam *param = smlDevInfNewPropParam();
-	smlDevInfPropParamSetParamName(param, name);
-	smlDevInfPropertyAddPropParam(prop, param);
-	return param;
-}
-
 extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
@@ -514,142 +492,6 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	if (!env->agent)
 		goto error_free_manager;
 
-	/* capability specification */
-	/* FIXME: this is really poor because of devinf interface of libsyncml */
-	/* FIXME: libsyncml only supports SyncML 1.0 and 1.1 !!! DevInf Spec */
-	SmlDevInfCTCap *ctcap;
-	SmlDevInfProperty *prop;
-	SmlDevInfPropParam *param;
-	/* add VCard 2.1 - e.g. vcard21 */
-	ctcap = smlDevInfNewCTCap();
-	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
-	smlDevInfCTCapSetVerCT(ctcap, "2.1");
-	_addCTCapPropertyByNameValue(ctcap, "BEGIN", "VCARD");
-	_addCTCapPropertyByNameValue(ctcap, "END", "VCARD");
-	_addCTCapPropertyByNameValue(ctcap, "VERSION", "2.1");
-	_addCTCapPropertyByName(ctcap, "REV");
-	_addCTCapPropertyByName(ctcap, "N");
-	_addCTCapPropertyByName(ctcap, "TITLE");
-	_addCTCapPropertyByName(ctcap, "CATEGORIES");
-	_addCTCapPropertyByName(ctcap, "CLASS");
-	_addCTCapPropertyByName(ctcap, "ORG");
-	_addCTCapPropertyByName(ctcap, "EMAIL");
-	_addCTCapPropertyByName(ctcap, "URL");
-	prop = _addCTCapPropertyByName(ctcap, "TEL");
-	smlDevInfPropertyAddValEnum(prop, "CELL");
-	smlDevInfPropertyAddValEnum(prop, "HOME");
-	smlDevInfPropertyAddValEnum(prop, "WORK");
-	smlDevInfPropertyAddValEnum(prop, "FAX");
-	smlDevInfPropertyAddValEnum(prop, "MODEM");
-	smlDevInfPropertyAddValEnum(prop, "VOICE");
-	prop = _addCTCapPropertyByName(ctcap, "ADR");
-	smlDevInfPropertyAddValEnum(prop, "HOME");
-	smlDevInfPropertyAddValEnum(prop, "WORK");
-	_addCTCapPropertyByName(ctcap, "BDAY");
-	_addCTCapPropertyByName(ctcap, "NOTE");
-	_addCTCapPropertyByNameValue(ctcap, "PHOTO", "TYPE");
-	smlDevInfAddCTCap(devinf, ctcap);
-	/* add VCard 3.0 - e.g. vcard30 */
-	ctcap = smlDevInfNewCTCap();
-	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
-	smlDevInfCTCapSetVerCT(ctcap, "3.0");
-	_addCTCapPropertyByNameValue(ctcap, "BEGIN", "VCARD");
-	_addCTCapPropertyByNameValue(ctcap, "END", "VCARD");
-	_addCTCapPropertyByNameValue(ctcap, "VERSION", "3.0");
-	_addCTCapPropertyByName(ctcap, "REV");
-	_addCTCapPropertyByName(ctcap, "N");
-	_addCTCapPropertyByName(ctcap, "TITLE");
-	_addCTCapPropertyByName(ctcap, "CATEGORIES");
-	_addCTCapPropertyByName(ctcap, "CLASS");
-	_addCTCapPropertyByName(ctcap, "ORG");
-	_addCTCapPropertyByName(ctcap, "EMAIL");
-	_addCTCapPropertyByName(ctcap, "URL");
-	prop = _addCTCapPropertyByName(ctcap, "TEL");
-	param = _addPropertyParam(prop, "TYPE");
-	smlDevInfPropParamAddValEnum(param, "CELL");
-	smlDevInfPropParamAddValEnum(param, "HOME");
-	smlDevInfPropParamAddValEnum(param, "WORK");
-	smlDevInfPropParamAddValEnum(param, "FAX");
-	smlDevInfPropParamAddValEnum(param, "MODEM");
-	smlDevInfPropParamAddValEnum(param, "VOICE");
-	prop = _addCTCapPropertyByName(ctcap, "ADR");
-	param = _addPropertyParam(prop, "TYPE");
-	smlDevInfPropParamAddValEnum(param, "HOME");
-	smlDevInfPropParamAddValEnum(param, "WORK");
-	_addCTCapPropertyByName(ctcap, "BDAY");
-	_addCTCapPropertyByName(ctcap, "NOTE");
-	prop = _addCTCapPropertyByName(ctcap, "PHOTO");
-	_addPropertyParam(prop, "TYPE");
-	smlDevInfAddCTCap(devinf, ctcap);
-	/* Oracle collaboration Suite uses the content type to distinguish */
-	/* the versions of vCalendar (and iCalendar)                       */
-	/* text/x-vcalendar --> VERSION 1.0 (vCalendar)                    */
-	/* text/calendar    --> VERSION 2.0 (iCalendar)                    */
-	/* So be VERY VERY CAREFUL if you change something here.           */
-	/* vCalendar 1.0 - e.g. event10 */
-	ctcap = smlDevInfNewCTCap();
-	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCAL);
-	smlDevInfCTCapSetVerCT(ctcap, "1.0");
-	prop = _addCTCapPropertyByName(ctcap, "BEGIN");
-	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-	smlDevInfPropertyAddValEnum(prop, "VEVENT");
-	smlDevInfPropertyAddValEnum(prop, "VTODO");
-	prop = _addCTCapPropertyByName(ctcap, "END");
-	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-	smlDevInfPropertyAddValEnum(prop, "VEVENT");
-	smlDevInfPropertyAddValEnum(prop, "VTODO");
-	_addCTCapPropertyByNameValue(ctcap, "VERSION", "1.0");
-	_addCTCapPropertyByName(ctcap, "TZ");
-	_addCTCapPropertyByName(ctcap, "LAST-MODIFIED");
-	_addCTCapPropertyByName(ctcap, "DCREATED");
-	_addCTCapPropertyByName(ctcap, "CATEGORIES");
-	_addCTCapPropertyByName(ctcap, "CLASS");
-	_addCTCapPropertyByName(ctcap, "SUMMARY");
-	_addCTCapPropertyByName(ctcap, "DESCRIPTION");
-	_addCTCapPropertyByName(ctcap, "LOCATION");
-	_addCTCapPropertyByName(ctcap, "DTSTART");
-	_addCTCapPropertyByName(ctcap, "DTEND");
-	_addCTCapPropertyByName(ctcap, "ATTENDEE");
-	_addCTCapPropertyByName(ctcap, "RRULE");
-	_addCTCapPropertyByName(ctcap, "EXDATE");
-	_addCTCapPropertyByName(ctcap, "AALARM");
-	_addCTCapPropertyByName(ctcap, "DALARM");
-	_addCTCapPropertyByName(ctcap, "DUE");
-	_addCTCapPropertyByName(ctcap, "PRIORITY");
-	_addCTCapPropertyByName(ctcap, "STATUS");
-	smlDevInfAddCTCap(devinf, ctcap);
-	/* vCalendar 2.0 is iCalendar - e.g. event20 */
-	ctcap = smlDevInfNewCTCap();
-	smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_ICAL);
-	smlDevInfCTCapSetVerCT(ctcap, "2.0");
-	prop = _addCTCapPropertyByName(ctcap, "BEGIN");
-	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-	smlDevInfPropertyAddValEnum(prop, "VEVENT");
-	smlDevInfPropertyAddValEnum(prop, "VTODO");
-	prop = _addCTCapPropertyByName(ctcap, "END");
-	smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-	smlDevInfPropertyAddValEnum(prop, "VEVENT");
-	smlDevInfPropertyAddValEnum(prop, "VTODO");
-	_addCTCapPropertyByNameValue(ctcap, "VERSION", "2.0");
-	_addCTCapPropertyByName(ctcap, "TZ");
-	_addCTCapPropertyByName(ctcap, "LAST-MODIFIED");
-	_addCTCapPropertyByName(ctcap, "DCREATED");
-	_addCTCapPropertyByName(ctcap, "CATEGORIES");
-	_addCTCapPropertyByName(ctcap, "CLASS");
-	_addCTCapPropertyByName(ctcap, "SUMMARY");
-	_addCTCapPropertyByName(ctcap, "DESCRIPTION");
-	_addCTCapPropertyByName(ctcap, "LOCATION");
-	_addCTCapPropertyByName(ctcap, "DTSTART");
-	_addCTCapPropertyByName(ctcap, "DTEND");
-	_addCTCapPropertyByName(ctcap, "ATTENDEE");
-	_addCTCapPropertyByName(ctcap, "RRULE");
-	_addCTCapPropertyByName(ctcap, "EXDATE");
-	_addCTCapPropertyByName(ctcap, "AALARM");
-	_addCTCapPropertyByName(ctcap, "DALARM");
-	_addCTCapPropertyByName(ctcap, "DUE");
-	_addCTCapPropertyByName(ctcap, "PRIORITY");
-	_addCTCapPropertyByName(ctcap, "STATUS");
-	smlDevInfAddCTCap(devinf, ctcap);
 	// this is important because the tranport sends it during init
 	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
 		goto error_free_manager;
@@ -661,42 +503,24 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		/* We now create the ds server at the given location */
 		SmlLocation *loc = smlLocationNew(database->url, NULL, &serror);
 		if (!loc)
-			goto error;
+			goto error_free_auth;
 		
-		database->server = smlDsClientNew(_objtype_to_contenttype(database->objtype), loc, loc, &serror);
+		database->server = smlDsClientNew(
+					get_database_pref_content_type(database, error),
+                                	loc, loc, &serror);
 		if (!database->server)
-			goto error;
+			goto error_free_auth;
 			
 		if (!smlDsServerRegister(database->server, env->manager, &serror))
-			goto error;
+			goto error_free_auth;
 	
 		// this is a client and not a server
 		// but the callback initializes only database->session (DsSession)
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
-		
+
 		/* And we also add the devinfo to the devinf agent */
-                SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
-                if (!datastore)
-                        goto error_free_auth;
-
-                if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCARD)) {
-                        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-                        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-                } else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCAL)) {
-                        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-                        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-                        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
-                        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
-                } else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_PLAIN)) {
-                        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-                        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-                }
-
-                smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
-                smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
-                smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
-
-                smlDevInfAddDataStore(devinf, datastore);
+		if (!add_dev_inf_datastore(devinf, database, error))
+			goto error_free_auth;
 	}
 	
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));

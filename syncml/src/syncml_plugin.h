@@ -102,6 +102,4 @@ static void _verify_user(
 			void *userdata, 
 			SmlErrorType *reply);
 
-static const char *_objtype_to_contenttype(const char *objtype);
-
 #endif //_SYNCML_PLUGIN_H

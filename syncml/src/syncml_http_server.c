@@ -19,6 +19,7 @@
  */
 
 #include "syncml_common.h"
+#include "syncml_devinf.h"
 
 static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
@@ -240,7 +241,9 @@ extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!loc)
 			goto error;
 		
-		database->server = smlDsServerNew(_objtype_to_contenttype(database->objtype), loc, &serror);
+		database->server = smlDsServerNew(
+					get_database_pref_content_type(database, error),
+                                	loc, &serror);
 		if (!database->server)
 			goto error;
 			
@@ -250,18 +253,8 @@ extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
-		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
-		if (!datastore)
-			goto error;
-		
-		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-		
-		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
-		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
-		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
-		
-		smlDevInfAddDataStore(devinf, datastore);
+		if (!add_dev_inf_datastore(devinf, database, error))
+			goto error_free_auth;
 	}
 	
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));

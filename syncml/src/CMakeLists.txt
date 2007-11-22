@@ -1,6 +1,6 @@
 INCLUDE_DIRECTORIES(${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIR} ${LIBSYNCML_INCLUDE_DIR})
 
-SET(SOURCE_FILES syncml_plugin.c syncml_common.c)
+SET(SOURCE_FILES syncml_plugin.c syncml_common.c syncml_devinf.c)
 
 IF (ENABLE_OBEX)
 	SET(SOURCE_FILES ${SOURCE_FILES} syncml_obex_client.c)

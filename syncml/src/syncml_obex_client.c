@@ -19,6 +19,7 @@
  */
 
 #include "syncml_common.h"
+#include "syncml_devinf.h"
 
 static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
@@ -327,7 +328,9 @@ extern void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!loc)
 			goto error_free_auth;
 		
-		database->server = smlDsServerNew(_objtype_to_contenttype(database->objtype), loc, &serror);
+		database->server = smlDsServerNew(
+					get_database_pref_content_type(database, error),
+                                	loc, &serror);
 		if (!database->server)
 			goto error_free_auth;
 
@@ -340,27 +343,8 @@ extern void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
-		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
-		if (!datastore)
+		if (!add_dev_inf_datastore(devinf, database, error))
 			goto error_free_auth;
-		
-		if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCARD)) {
-			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-		} else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCAL)) {
-			// version 2.0 is ICAL and not VCAL
-			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-		} else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_PLAIN)) {
-			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-		}
-
-		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
-		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
-		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
-		
-		smlDevInfAddDataStore(devinf, datastore);
 	}
 
 
