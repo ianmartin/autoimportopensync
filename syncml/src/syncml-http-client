@@ -14,6 +14,16 @@
   
   <!-- The url that you want the server to listen on. This has to be set on the mobile as well. example: "/" -->
   <url>http://127.0.0.1:8080</url>
+
+  <!-- if you have a proxy (e.g. froma firewall) then you can enter it here -->
+  <!-- <proxy>http://127.0.0.1:8080</proxy> -->
+
+  <!-- if you use https then it is strongly recommend to use a -->
+  <!-- file with all trusted certification authorities inside  -->
+  <!-- libsoup is the http library behind libsyncml            -->
+  <!-- libsoup actually only supports a cafile and no explicit -->
+  <!-- peer certificates                                       -->
+  <!-- <cafile>/etc/calist.pem</cafile>                       -->
  
   <!-- Workaround around for servers use local timestamps and _no_ UTC timestamps! -->
   <onlyLocaltime>0</onlyLocaltime>

@@ -76,6 +76,8 @@ typedef struct SmlPluginEnv {
 	SmlTransportObexClientType type;
 	unsigned int port;
 	char *url;
+	char *proxy;
+	char *cafile;
 	
 	unsigned int recvLimit;
 	unsigned int maxObjSize;

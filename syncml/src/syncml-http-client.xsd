@@ -17,6 +17,8 @@
           <xsd:element name="username" type="os:String"/>
           <xsd:element name="password" type="os:Password"/>
           <xsd:element name="url" type="os:String"/>
+          <xsd:element default="" name="cafile" type="os:String"/>
+          <xsd:element default="" name="proxy" type="os:String"/>
           <xsd:element default="0" name="usestringtable" type="os:Boolean"/>
           <xsd:element default="0" name="onlyreplace" type="os:Boolean"/>
           <xsd:element default="0" name="onlyLocaltime" type="os:Boolean"/>

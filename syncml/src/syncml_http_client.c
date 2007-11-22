@@ -41,8 +41,8 @@ static SmlBool _recv_server_alert(SmlDsSession *dsession, SmlAlertType type, con
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	// osync_context_report_osyncerror(env->connectCtx, oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	return FALSE;
 }
 
 static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -54,7 +54,9 @@ static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext 
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
+	env->connectCtx = ctx;
 
+	env->tryDisconnect = TRUE;
 	if (env->isConnected) {
 		osync_context_report_success(ctx);
 		osync_trace(TRACE_EXIT, "%s", __func__);
@@ -63,15 +65,12 @@ static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext 
 		if (!smlTransportHttpClientIsConnected(env->tsp, TRUE, &error))
 			goto error;
 	}
-
 	env->tryDisconnect = FALSE;
-	env->connectCtx = ctx;
 
 	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
 	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
 	/* the context can be null if the function is called from discover */
-	if (env->connectCtx)
-		osync_context_ref(env->connectCtx);
+	osync_context_ref(env->connectCtx);
 	osync_trace(TRACE_INTERNAL, "%s: environment ready", __func__);
 
 	/* prepare credential */
@@ -164,7 +163,9 @@ error_free_san:
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(ctx, oserror);
+	osync_context_report_osyncerror(env->connectCtx, oserror);
+	osync_context_unref(env->connectCtx);
+	env->connectCtx = NULL;
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
@@ -175,6 +176,8 @@ static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char 
 	xmlNodePtr cur = NULL;
 
 	env->url = NULL;
+	env->proxy = NULL;
+	env->cafile = NULL;
 	env->authType = SML_AUTH_TYPE_UNKNOWN;
 	env->username = NULL;
 	env->password = NULL;
@@ -226,6 +229,12 @@ static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char 
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {
 				env->url = g_strdup(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"proxy")) {
+				env->proxy = g_strdup(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"cafile")) {
+				env->cafile = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
@@ -539,9 +548,8 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 
 	SmlTransportHttpClientConfig config;
 	config.url = env->url;
-	// FIXME: actually we do not parse the proxy variable
-	// FIXME: libsyncml supports proxy (only the parser is to stupid)
-	config.proxy = NULL;
+	config.cafile = env->cafile;
+	config.proxy = env->proxy;
 	config.username = env->username;
 	config.password = env->password;
    	env->isConnected = FALSE;
@@ -572,11 +580,31 @@ error:
 	return NULL;
 }
 
+static void _publish_osync_error(void *publicError, OSyncError *error)
+{
+    osync_trace(TRACE_ENTRY, "%s", __func__);
+    OSyncError **destError = publicError;
+    *destError = error;
+    osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 extern osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         
         SmlPluginEnv *env = (SmlPluginEnv *)data;
+
+	// first check if the server is available
+	if (!env->session)
+	{
+		OSyncContext *ctx = osync_context_new(error);
+		osync_context_set_callback(ctx, &_publish_osync_error, error);
+        	osync_trace(TRACE_INTERNAL, "%s- create a fresh connection with a new context (%p)", __func__, ctx);
+		connect_http_client(data, info, ctx);
+		osync_context_unref(ctx);
+		if (!env->isConnected) return FALSE;
+	}
+
         GList *o = env->databases;
         for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
@@ -600,11 +628,6 @@ extern osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info,
         //osync_version_set_hardwareversion(version, "hardwareversion");
         osync_plugin_info_set_version(info, version);
         osync_version_unref(version);
-
-	if (!env->session)
-	{
-		connect_http_client(data, info, NULL);
-	}
 
 	/* let's wait for the device info of the server */
 	while (!smlDevInfAgentGetDevInf(env->agent))
