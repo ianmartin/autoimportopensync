@@ -280,11 +280,19 @@ extern SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase 
     if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD))
     {
         // we prefer actually vCard 2.1
-        // because the most cellphone support it
-        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
-        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
-        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+        // because the most cellphones support it
+        if (strstr(osync_objformat_get_name(database->objformat), "30"))
+        {
+            smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+            smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+            smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
+            smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
+        } else {
+            smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
+            smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
+            smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+            smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+        }
         add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1");
         add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "3.0");
     }
