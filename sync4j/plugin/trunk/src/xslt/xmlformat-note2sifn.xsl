@@ -7,7 +7,7 @@
 <!-- removing unknown elements -->
 <xsl:template match="Class"/>
 <xsl:template match="LastModified"/>
-<xsl:template match="XIrmcLuid"/>
+<xsl:template match="Uid"/>
 
 <xsl:template match="note">
 	<xsl:copy>
@@ -15,7 +15,7 @@
     </xsl:copy>
 </xsl:template>
 
-<xsl:template match="Body/Content">
+<xsl:template match="Description/Content">
 	<Body>
 		<xsl:copy-of select="text()"/>
 	</Body>

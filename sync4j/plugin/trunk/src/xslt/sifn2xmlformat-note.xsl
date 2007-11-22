@@ -12,11 +12,11 @@
 </xsl:template>
 
 <xsl:template match="Body">
-    <Body>
+    <Description>
 		<Content>
 		    <xsl:apply-templates/> 
 		</Content>
-	</Body>
+	</Description>
 </xsl:template>
 
 <xsl:template match="Categories">
