@@ -279,7 +279,8 @@ extern SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase 
 
     if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD))
     {
-        // FIXME: we prefer actually vCard 2.1 - I don't know why
+        // we prefer actually vCard 2.1
+        // because the most cellphone support it
         smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
         smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
