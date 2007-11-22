@@ -214,8 +214,6 @@ extern void _verify_user(
 			void *userdata, 
 			SmlErrorType *reply);
 
-extern const char *_objtype_to_contenttype(const char *objtype);
-
 extern osync_bool syncml_config_parse_database(
 			SmlPluginEnv *env,
 			xmlNode *cur,

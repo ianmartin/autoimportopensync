@@ -87,12 +87,6 @@ static SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-static const char *_format_to_contenttype(OSyncChange *change)
-{
-	// FIXME: the whole function is a bug
-	return _objtype_to_contenttype(osync_change_get_objtype(change));
-}
-
 extern osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
@@ -144,20 +138,6 @@ error_free_database:
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
-}
-
-static const char *_contenttype_to_format(const char *contenttype)
-{
-	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD)) {
-		return "contact";
-	}
-	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL)) {
-		return "event";
-	}
-	if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN)) {
-		return "note";
-	}
-	return NULL;
 }
 
 static OSyncChangeType _to_osync_changetype(SmlChangeType type)
@@ -225,6 +205,12 @@ extern SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 //		osync_change_set_member(change, env->member);
 
 	osync_change_set_uid(change, uid);
+	// FIXME: this is a bug (devinf has the information + we need more info)
+	// FIXME: we need cttype and verct to determine the correct formats
+	// FIXME: the add command includes only cttype
+	// FIXME: cttype does not differ between vCard 2.1 and 3.0
+	// FIXME: so we must rely on database->objformat and trust the format detector
+	// FIXME: devinf does not help here
 	if (contenttype != NULL) {
 		/* We specify the objformat plain for vcard and vcal
 		 * since we cannot be really sure what the device sends
@@ -265,13 +251,12 @@ extern SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 		goto error;
 	}
 
-
-//		if (_to_osync_changetype(type) == OSYNC_CHANGE_TYPE_DELETED)
-	if(contenttype)
-		osync_data_set_objtype(odata, _contenttype_to_format(contenttype));
-	else
-		osync_data_set_objtype(odata, database->objtype);
-
+	// who has commented this out => who can remove it?
+	// if (_to_osync_changetype(type) == OSYNC_CHANGE_TYPE_DELETED)
+	// the contenttype is fully useless here
+	// because the contenttype cannot identify the objtype
+	// because several objformat share the same contenttype
+	osync_data_set_objtype(odata, database->objtype);
 
 	osync_change_set_data(change, odata);
 	osync_change_set_changetype(change, _to_osync_changetype(type));
