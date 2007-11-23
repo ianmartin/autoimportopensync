@@ -17,11 +17,30 @@
 INCLUDE( FindPkgConfig )
 
 # Take care about libsyncml-1.0.pc settings
+IF ( LibSyncMl_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( LibSyncMl_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( LibSyncMl_FIND_REQUIRED )
+
 IF ( LIBSYNCML_MIN_VERSION )
-	PKG_SEARCH_MODULE( LIBSYNCML libsyncml-1.0>=${LIBSYNCML_MIN_VERSION} )
+	PKG_SEARCH_MODULE( LIBSYNCML ${_pkgconfig_REQUIRED} libsyncml-1.0>=${LIBSYNCML_MIN_VERSION} )
+	SET (_pkgconfig_version ">=${LIBSYNCML_MIN_VERSION}")
 ELSE( LIBSYNCML_MIN_VERSION )
-	PKG_SEARCH_MODULE( LIBSYNCML libsyncml-1.0 )
+	PKG_SEARCH_MODULE( LIBSYNCML ${_pkgconfig_REQUIRED} libsyncml-1.0 )
+	SET (_pkgconfig_version "")
 ENDIF ( LIBSYNCML_MIN_VERSION )
+
+IF ( NOT LIBSYNCML_FOUND AND PKG_CONFIG_FOUND )
+	IF ( LibSyncMl_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libsyncml${_pkgconfig_version}" )
+	ELSE ( LibSyncMl_FIND_REQUIRED )
+		IF ( NOT LibSyncMl_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libsyncml${_pkgconfig_version}" )	
+		ENDIF ( NOT LibSyncMl_FIND_QUIETLY )
+	ENDIF ( LibSyncMl_FIND_REQUIRED )
+ENDIF ( NOT LIBSYNCML_FOUND AND PKG_CONFIG_FOUND )
+
 
 # Look for libsyncml include dir and libraries without pkg-config...
 IF ( NOT LIBSYNCML_FOUND AND NOT PKG_CONFIG_FOUND )
