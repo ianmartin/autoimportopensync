@@ -6,7 +6,7 @@
 #  OPENOBEX_LIBRARIES           List of libaries to use OpenObex
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
-# Copyright (c) 2007 Bjoern Ricks <b.ricks@fh-osnabrueck.de>
+# Copyright (c) 2007 Bjoern Ricks  <b.ricks@fh-osnabrueck.de>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -15,11 +15,29 @@
 
 INCLUDE( FindPkgConfig )
 
+IF ( OpenObex_FIND_REQUIRED )
+	SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE( OpenObex_FIND_REQUIRED )
+	SET( _pkgconfig_REQUIRED "" )	
+ENDIF ( OpenObex_FIND_REQUIRED )
+
 IF ( OPENOBEX_MIN_VERSION )
-	PKG_SEARCH_MODULE( OPENOBEX openobex>=${OPENOBEX_MIN_VERSION} )
+	PKG_SEARCH_MODULE( OPENOBEX openobex>=${OPENOBEX_MIN_VERSION} ${_pkgconfig_REQUIRED} )
+	SET (_pkgconfig_version ">=${OPENOBEX_MIN_VERSION}" )
 ELSE ( OPENOBEX_MIN_VERSION )
-	PKG_SEARCH_MODULE( OPENOBEX openobex )
+	PKG_SEARCH_MODULE( OPENOBEX openobex ${_pkgconfig_REQUIRED} )
+	SET (_pkgconfig_version "" )
 ENDIF ( OPENOBEX_MIN_VERSION )
+
+IF ( NOT OPENOBEX_FOUND AND PKG_CONFIG_FOUND )
+	IF ( OpenObex_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find OpenObex${_pkgconfig_version}" )
+	ELSE ( OpenObex_FIND_REQUIRED )
+		IF ( NOT OpenObex_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find OpenObex${_pkgconfig_version}" )	
+		ENDIF ( NOT OpenObex_FIND_QUIETLY )
+	ENDIF ( OpenObex_FIND_REQUIRED )
+ENDIF ( NOT OPENOBEX_FOUND AND PKG_CONFIG_FOUND )
 
 IF( NOT OPENOBEX_FOUND AND NOT PKG_CONFIG_FOUND )
 	# Fallback if pkg-config doesn't exist
@@ -54,13 +72,11 @@ IF( NOT OPENOBEX_FOUND AND NOT PKG_CONFIG_FOUND )
 			MESSAGE( FATAL_ERROR "Could NOT find OpenObex" )
 		ELSE ( OpenObex_FIND_REQUIRED )
 			IF ( NOT OpenObex_FIND_QUIETLY )
-				MESSAGE( STATUS "Could NOT find OpenObex" )	
+				MESSAGE( SEND_ERROR "Could NOT find OpenObex" )	
 			ENDIF ( NOT OpenObex_FIND_QUIETLY )
 		ENDIF ( OpenObex_FIND_REQUIRED )
 	ENDIF ( OPENOBEX_LIBRARIES AND OPENOBEX_INCLUDE_DIRS )	
 ENDIF( NOT OPENOBEX_FOUND AND NOT PKG_CONFIG_FOUND )
-
-
 
 # Hide advanced variables from CMake GUIs
 MARK_AS_ADVANCED( OPENOBEX_LIBRARIES OPENOBEX_INCLUDE_DIRS )
