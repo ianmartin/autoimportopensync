@@ -25,7 +25,7 @@
 INCLUDE( FindPkgConfig )
 # Take care about bonobo-activation-2.0.pc settings
 IF ( BONOBOACTIVATION2_MIN_VERSION )
-      pkg_search_module( BONOBOACTIVATION2 bonobo-activation-2.0 >= ${BONOBOACTIVATION2_MIN_VERSION} )
+      pkg_search_module( BONOBOACTIVATION2 bonobo-activation-2.0>=${BONOBOACTIVATION2_MIN_VERSION} )
 ELSE ( BONOBOACTIVATION2_MIN_VERSION )
       pkg_search_module( BONOBOACTIVATION2 bonobo-activation-2.0 )
 ENDIF ( BONOBOACTIVATION2_MIN_VERSION )

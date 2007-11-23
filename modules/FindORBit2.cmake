@@ -19,7 +19,7 @@ INCLUDE( FindPkgConfig )
 
 # Take care about gconf-2.0.pc settings
 IF ( ORBIT2_MIN_VERSION )
-	pkg_search_module( ORBIT2 ORBit-2.0 >= ${ORBIT2_MIN_VERSION} )
+	pkg_search_module( ORBIT2 ORBit-2.0>=${ORBIT2_MIN_VERSION} )
 ELSE ( ORBIT2_MIN_VERSION )
 	pkg_search_module( ORBIT2 ORBit-2.0 )
 ENDIF ( ORBIT2_MIN_VERSION )

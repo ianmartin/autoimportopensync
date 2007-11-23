@@ -25,7 +25,7 @@
 INCLUDE( FindPkgConfig )
 # Take care about libgnome-2.0.pc settings
 IF ( LIBGNOME2_MIN_VERSION )
-      pkg_search_module( LIBGNOME2 libgnome-2.0 >= ${LIBGNOME2_MIN_VERSION} )
+      pkg_search_module( LIBGNOME2 libgnome-2.0>=${LIBGNOME2_MIN_VERSION} )
 ELSE ( LIBGNOME2_MIN_VERSION )
       pkg_search_module( LIBGNOME2 libgnome-2.0 )
 ENDIF ( LIBGNOME2_MIN_VERSION )
