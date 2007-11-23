@@ -17,7 +17,23 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libedata-book-1.2.pc settings
-pkg_search_module( LIBEDATABOOK1.2 libedata-book-1.2 )
+IF ( EDataBook1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( EDataBook1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( EDataBook1.2_FIND_REQUIRED )
+
+pkg_search_module( LIBEDATABOOK1.2 ${_pkgconfig_REQUIRED} libedata-book-1.2 )
+
+IF ( NOT LIBEDATABOOK1.2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( EDataBook1.2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libedatabook-1.2" )
+	ELSE ( EDataBook1.2_FIND_REQUIRED )
+		IF ( NOT EDataBook1.2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libedatabook-1.2" )
+		ENDIF ( NOT EDataBook1.2_FIND_QUIETLY )
+	ENDIF ( EDataBook1.2_FIND_REQUIRED )
+ENDIF ( NOT LIBEDATABOOK1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libedatabook1.2 include dir and libraries w/o pkg-config.

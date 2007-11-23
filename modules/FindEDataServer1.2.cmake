@@ -17,7 +17,23 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libedataserver-1.2.pc settings
-pkg_search_module( LIBEDATASERVER1.2 libedataserver-1.2 )
+IF ( EDataServer1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( EDataServer1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( EDataServer1.2_FIND_REQUIRED )
+
+pkg_search_module( LIBEDATASERVER1.2 ${_pkgconfig_REQUIRED} libedataserver-1.2 )
+
+IF ( NOT LIBEDATASERVER1.2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( EDataServer1.2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libedataserver-1.2" )
+	ELSE ( EDataServer1.2_FIND_REQUIRED )
+		IF ( NOT EDataServer1.2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libedataserver-1.2" )
+		ENDIF ( NOT EDataServer1.2_FIND_QUIETLY )
+	ENDIF ( EDataServer1.2_FIND_REQUIRED )
+ENDIF ( NOT LIBEDATASERVER1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libedataserver1.2 include dir and libraries w/o pkg-config.

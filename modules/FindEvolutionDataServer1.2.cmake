@@ -17,7 +17,23 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about evolution-data-server-1.2.pc settings
-pkg_search_module( EVOLUTIONDATASERVER1.2 evolution-data-server-1.2 )
+IF ( EvolutionDataServer1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( EvolutionDataServer1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( EvolutionDataServer1.2_FIND_REQUIRED )
+
+pkg_search_module( EVOLUTIONDATASERVER1.2 ${_pkgconfig_REQUIRED} evolution-data-server-1.2 )
+
+IF ( NOT EVOLUTIONDATASERVER1.2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( EvolutionDataServer1.2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find evolutiondataserver-1.2" )
+	ELSE ( EvolutionDataServer1.2_FIND_REQUIRED )
+		IF ( NOT EvolutionDataServer1.2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find evolutiondataserver-1.2" )
+		ENDIF ( NOT EvolutionDataServer1.2_FIND_QUIETLY )
+	ENDIF ( EvolutionDataServer1.2_FIND_REQUIRED )
+ENDIF ( NOT EVOLUTIONDATASERVER1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for evolutiondataserver1.2 include dir and libraries w/o pkg-config.

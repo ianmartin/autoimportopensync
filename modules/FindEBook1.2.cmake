@@ -17,7 +17,23 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libebook-1.2.pc settings
-pkg_search_module( LIBEBOOK1.2 libebook-1.2 )
+IF ( EBook1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( EBook1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( EBook1.2_FIND_REQUIRED )
+
+pkg_search_module( LIBEBOOK1.2 ${_pkgconfig_REQUIRED} libebook-1.2 )
+
+IF ( NOT LIBEBOOK1.2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( EBook1.2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libebook-1.2" )
+	ELSE ( EBook1.2_FIND_REQUIRED )
+		IF ( NOT EBook1.2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libebook-1.2" )
+		ENDIF ( NOT EBook1.2_FIND_QUIETLY )
+	ENDIF ( EBook1.2_FIND_REQUIRED )
+ENDIF ( NOT LIBEBOOK1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libebook1.2 include dir and libraries w/o pkg-config.

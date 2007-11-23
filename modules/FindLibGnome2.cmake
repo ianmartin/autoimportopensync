@@ -24,11 +24,30 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libgnome-2.0.pc settings
+IF ( LibGnome2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( LibGnome2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( LibGnome2_FIND_REQUIRED )
+
 IF ( LIBGNOME2_MIN_VERSION )
-      pkg_search_module( LIBGNOME2 libgnome-2.0>=${LIBGNOME2_MIN_VERSION} )
+	pkg_search_module( LIBGNOME2 ${_pkgconfig_REQUIRED} libgnome-2.0>=${LIBGNOME2_MIN_VERSION} )
+	SET (_pkgconfig_version ">=${LIBGNOME2_MIN_VERSION}")
 ELSE ( LIBGNOME2_MIN_VERSION )
-      pkg_search_module( LIBGNOME2 libgnome-2.0 )
+	pkg_search_module( LIBGNOME2 ${_pkgconfig_REQUIRED} libgnome-2.0 )
+	SET (_pkgconfig_version "")
 ENDIF ( LIBGNOME2_MIN_VERSION )
+
+IF ( NOT LIBGNOME2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( LibGnome2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libgnome2${_pkgconfig_version}" )
+	ELSE ( LibGnome2_FIND_REQUIRED )
+		IF ( NOT LibGnome2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libgnome2${_pkgconfig_version}" )	
+		ENDIF ( NOT LibGnome2_FIND_QUIETLY )
+	ENDIF ( LibGnome2_FIND_REQUIRED )
+ENDIF ( NOT LIBGNOME2_FOUND AND PKG_CONFIG_FOUND )
+
 
 # Look for libgnome2 include dir and libraries w/o pkgconfig
 IF ( NOT LIBGNOME2_FOUND AND NOT PKG_CONFIG_FOUND )

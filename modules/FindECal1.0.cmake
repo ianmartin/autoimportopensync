@@ -17,7 +17,23 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libecal-1.0.pc settings
-pkg_search_module( LIBECAL1.0 libecal-1.0 )
+IF ( ECal1.0_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( ECal1.0_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( ECal1.0_FIND_REQUIRED )
+
+pkg_search_module( LIBECAL1.0 ${_pkgconfig_REQUIRED} libecal-1.0 )
+
+IF ( NOT LIBECAL1.0_FOUND AND PKG_CONFIG_FOUND )
+	IF ( ECal1.0_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libcal-1.0" )
+	ELSE ( ECal1.0_FIND_REQUIRED )
+		IF ( NOT ECal1.0_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libcal-1.0" )
+		ENDIF ( NOT ECal1.0_FIND_QUIETLY )
+	ENDIF ( ECal1.0_FIND_REQUIRED )
+ENDIF ( NOT LIBECAL1.0_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libecal1.0 include dir and libraries w/o pkg-config.

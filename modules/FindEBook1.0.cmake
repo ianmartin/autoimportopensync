@@ -17,11 +17,27 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libebook-1.0.pc settings
-pkg_search_module( LIBEBOOK1.0 libebook-1.0 )
+IF ( EBook1.0_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( EBook1.0_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( EBook1.0_FIND_REQUIRED )
+
+pkg_search_module( LIBEBOOK1.0 ${_pkgconfig_REQUIRED} libebook-1.0 )
+
+IF ( NOT LIBEBOOK1.0_FOUND AND PKG_CONFIG_FOUND )
+	IF ( EBook1.0_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libebook-1.0" )
+	ELSE ( EBook1.0_FIND_REQUIRED )
+		IF ( NOT EBook1.0_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libebook-1.0" )	
+		ENDIF ( NOT EBook1.0_FIND_QUIETLY )
+	ENDIF ( EBook1.0_FIND_REQUIRED )
+ENDIF ( NOT LIBEBOOK1.0_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libebook1.0 include dir and libraries w/o pkg-config.
-IF ( NOT LIBEBOOK1.0_FOUND )
+IF ( NOT LIBEBOOK1.0_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _libebook1.0_include_DIR libebook/e-book.h 
 			PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.0
 			PATHS

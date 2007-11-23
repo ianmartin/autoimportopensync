@@ -17,7 +17,23 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libedata-cal-1.2.pc settings
-pkg_search_module( LIBEDATACAL1.2 libedata-cal-1.2 )
+IF ( EDataCal1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( EDataCal1.2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( EDataCal1.2_FIND_REQUIRED )
+
+pkg_search_module( LIBEDATACAL1.2 ${_pkgconfig_REQUIRED} libedata-cal-1.2 )
+
+IF ( NOT LIBEDATACAL1.2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( EDataCal1.2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find libedatacal-1.2" )
+	ELSE ( EDataCal1.2_FIND_REQUIRED )
+		IF ( NOT EDataCal1.2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find libedatacal-1.2" )
+		ENDIF ( NOT EDataCal1.2_FIND_QUIETLY )
+	ENDIF ( EDataCal1.2_FIND_REQUIRED )
+ENDIF ( NOT LIBEDATACAL1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libedatacal1.2 include dir and libraries w/o pkg-config.

@@ -24,11 +24,30 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about libbonobo-2.0.pc settings
+IF ( BONOBO2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( BONOBO2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( BONOBO2_FIND_REQUIRED )
+
 IF ( BONOBO2_MIN_VERSION )
-      pkg_search_module( BONOBO2 libbonobo-2.0>=${BONOBO2_MIN_VERSION} )
+	pkg_search_module( BONOBO2 ${_pkgconfig_REQUIRED} libbonobo-2.0>=${BONOBO2_MIN_VERSION} )
+	SET (_pkgconfig_version ">=${BONOBO2_MIN_VERSION}")
 ELSE ( BONOBO2_MIN_VERSION )
-      pkg_search_module( BONOBO2 libbonobo-2.0 )
+	pkg_search_module( BONOBO2 ${_pkgconfig_REQUIRED} libbonobo-2.0 )
+	SET (_pkgconfig_version "")
 ENDIF ( BONOBO2_MIN_VERSION )
+
+IF ( NOT BONOBO2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( BONOBO2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find bonobo2${_pkgconfig_version}" )
+	ELSE ( BONOBO2_FIND_REQUIRED )
+		IF ( NOT BONOBO2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find bonobo2${_pkgconfig_version}" )	
+		ENDIF ( NOT BONOBO2_FIND_QUIETLY )
+	ENDIF ( BONOBO2_FIND_REQUIRED )
+ENDIF ( NOT BONOBO2_FOUND AND PKG_CONFIG_FOUND )
+
 
 # Look for libbonobo2 include dir and libraries w/o pkgconfig
 IF ( NOT BONOBO2_FOUND AND NOT PKG_CONFIG_FOUND )
