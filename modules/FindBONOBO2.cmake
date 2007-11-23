@@ -31,7 +31,7 @@ ELSE ( BONOBO2_MIN_VERSION )
 ENDIF ( BONOBO2_MIN_VERSION )
 
 # Look for libbonobo2 include dir and libraries w/o pkgconfig
-IF ( NOT BONOBO2_FOUND )
+IF ( NOT BONOBO2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _bonobo2_include_DIR libbonobo.h PATH_SUFFIXES libbonobo-2.0 
 		PATHS
 		/opt/local/include/

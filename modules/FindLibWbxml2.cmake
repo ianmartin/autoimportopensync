@@ -23,7 +23,7 @@ ENDIF ( LIBWBXML2_MIN_VERSION )
 
 
 
-IF( NOT LIBWBXML2_FOUND )
+IF( NOT LIBWBXML2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _libwbxml2_include_DIR wbxml.h
 			PATHS
 			/opt/local/include/

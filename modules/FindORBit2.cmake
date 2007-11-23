@@ -25,7 +25,7 @@ ELSE ( ORBIT2_MIN_VERSION )
 ENDIF ( ORBIT2_MIN_VERSION )
 
 # Look for gconf2 include dir and libraries w/o pkgconfig
-IF ( NOT ORBIT2_FOUND )
+IF ( NOT ORBIT2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _orbit2_include_DIR orbit/orbit.h PATH_SUFFIXES orbit-2.0 )
 	FIND_LIBRARY( _orbit2_link_DIR ORBit-2)
 	IF ( _orbit2_include_DIR AND _orbit2_link_DIR )

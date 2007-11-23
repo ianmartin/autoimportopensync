@@ -31,7 +31,7 @@ ELSE ( LIBGNOME2_MIN_VERSION )
 ENDIF ( LIBGNOME2_MIN_VERSION )
 
 # Look for libgnome2 include dir and libraries w/o pkgconfig
-IF ( NOT LIBGNOME2_FOUND )
+IF ( NOT LIBGNOME2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _libgnome2_include_DIR libgnome/libgnome.h PATH_SUFFIXES libgnome-2.0 
 		PATHS
 		/opt/local/include/
