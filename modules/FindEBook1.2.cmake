@@ -37,7 +37,7 @@ ENDIF ( NOT LIBEBOOK1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libebook1.2 include dir and libraries w/o pkg-config.
-IF ( NOT LIBEBOOK1.2_FOUND )
+IF ( NOT LIBEBOOK1.2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _libebook1.2_include_DIR libebook/e-book.h 
 			PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2
 			PATHS
@@ -107,7 +107,7 @@ IF ( NOT LIBEBOOK1.2_FOUND )
 		ENDIF ( EBook1.2_FIND_REQUIRED )
 	ENDIF ( LIBEBOOK1.2_LIBRARIES AND LIBEBOOK1.2_INCLUDE_DIRS AND _libebook1.2_FOUND )	
 
-ENDIF ( NOT LIBEBOOK1.2_FOUND )
+ENDIF ( NOT LIBEBOOK1.2_FOUND AND NOT PKG_CONFIG_FOUND )
 # Hide advanced variables from CMake GUIs
 MARK_AS_ADVANCED( LIBEBOOK1.2_LIBRARIES LIBEBOOK1.2_INCLUDE_DIRS )
 

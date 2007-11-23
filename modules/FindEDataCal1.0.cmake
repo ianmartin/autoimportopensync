@@ -37,7 +37,7 @@ ENDIF ( NOT LIBEDATACAL1.0_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libedatacal1.0 include dir and libraries w/o pkg-config.
-IF ( NOT LIBEDATACAL1.0_FOUND )
+IF ( NOT LIBEDATACAL1.0_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _libedatacal1.0_include_DIR libedata-cal/e-data-cal.h 
 			PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.0
 			PATHS
@@ -121,7 +121,7 @@ IF ( NOT LIBEDATACAL1.0_FOUND )
 		ENDIF ( EDataCal1.0_FIND_REQUIRED )
 	ENDIF ( LIBEDATACAL1.0_LIBRARIES AND LIBEDATACAL1.0_INCLUDE_DIRS AND _libedatacal1.0_FOUND )	
 
-ENDIF ( NOT LIBEDATACAL1.0_FOUND )
+ENDIF ( NOT LIBEDATACAL1.0_FOUND AND NOT PKG_CONFIG_FOUND )
 # Hide advanced variables from CMake GUIs
 MARK_AS_ADVANCED( LIBEDATACAL1.0_LIBRARIES LIBEDATACAL1.0_INCLUDE_DIRS )
 

@@ -37,7 +37,7 @@ ENDIF ( NOT LIBECAL1.2_FOUND AND PKG_CONFIG_FOUND )
 
 
 # Look for libecal1.2 include dir and libraries w/o pkg-config.
-IF ( NOT LIBECAL1.2_FOUND )
+IF ( NOT LIBECAL1.2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _libecal1.2_include_DIR libecal/e-cal.h 
 			PATH_SUFFIXES evolution-data-server-1.12 evolution-data-server-1.10 evolution-data-server-1.8 evolution-data-server-1.6 evolution-data-server-1.4 evolution-data-server-1.2
 			PATHS
@@ -107,7 +107,7 @@ IF ( NOT LIBECAL1.2_FOUND )
 		ENDIF ( ECal1.2_FIND_REQUIRED )
 	ENDIF ( LIBECAL1.2_LIBRARIES AND LIBECAL1.2_INCLUDE_DIRS AND _libecal1.2_FOUND )	
 
-ENDIF ( NOT LIBECAL1.2_FOUND )
+ENDIF ( NOT LIBECAL1.2_FOUND AND NOT PKG_CONFIG_FOUND )
 # Hide advanced variables from CMake GUIs
 MARK_AS_ADVANCED( LIBECAL1.2_LIBRARIES LIBECAL1.2_INCLUDE_DIRS )
 
