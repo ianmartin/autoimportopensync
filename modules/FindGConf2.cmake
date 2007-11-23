@@ -17,7 +17,24 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about gconf-2.0.pc settings
-pkg_search_module( GCONF2 gconf-2.0 )
+IF ( GConf2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( GConf2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( GConf2_FIND_REQUIRED )
+
+pkg_search_module( GCONF2 ${_pkgconfig_REQUIRED} gconf-2.0 )
+
+IF ( NOT GCONF2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( GConf2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find gconf2" )
+	ELSE ( GConf2_FIND_REQUIRED )
+		IF ( NOT GConf2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find gconf2" )	
+		ENDIF ( NOT GConf2_FIND_QUIETLY )
+	ENDIF ( GConf2_FIND_REQUIRED )
+ENDIF ( NOT GCONF2_FOUND AND PKG_CONFIG_FOUND )
+
 
 # Look for gconf2 include dir and libraries w/o pkgconfig
 IF ( NOT GCONF2_FOUND )

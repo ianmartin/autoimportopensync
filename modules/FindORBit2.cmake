@@ -18,11 +18,30 @@
 INCLUDE( FindPkgConfig )
 
 # Take care about gconf-2.0.pc settings
+IF ( ORBit2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( ORBit2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( ORBit2_FIND_REQUIRED )
+
 IF ( ORBIT2_MIN_VERSION )
-	pkg_search_module( ORBIT2 ORBit-2.0>=${ORBIT2_MIN_VERSION} )
+	pkg_search_module( ORBIT2 ${_pkgconfig_REQUIRED} ORBit-2.0>=${ORBIT2_MIN_VERSION} )
+	SET (_pkgconfig_version ">=${ORBIT2_MIN_VERSION}")
 ELSE ( ORBIT2_MIN_VERSION )
-	pkg_search_module( ORBIT2 ORBit-2.0 )
+	pkg_search_module( ORBIT2 ${_pkgconfig_REQUIRED} ORBit-2.0 )
+	SET (_pkgconfig_version "")
 ENDIF ( ORBIT2_MIN_VERSION )
+
+IF ( NOT ORBIT2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( ORBit2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find ORBit2${_pkgconfig_version}" )
+	ELSE ( ORBit2_FIND_REQUIRED )
+		IF ( NOT ORBit2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find ORBit2${_pkgconfig_version}" )	
+		ENDIF ( NOT ORBit2_FIND_QUIETLY )
+	ENDIF ( ORBit2_FIND_REQUIRED )
+ENDIF ( NOT ORBIT2_FOUND AND PKG_CONFIG_FOUND )
+
 
 # Look for gconf2 include dir and libraries w/o pkgconfig
 IF ( NOT ORBIT2_FOUND AND NOT PKG_CONFIG_FOUND )

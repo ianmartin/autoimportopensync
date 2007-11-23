@@ -17,9 +17,26 @@
 
 INCLUDE( FindPkgConfig )
 # Take care about gnome-vfs-2.0.pc settings
-pkg_search_module( GNOMEVFS2 gnome-vfs-2.0 )
+IF ( GnomeVfs2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE ( GnomeVfs2_FIND_REQUIRED )
+  SET( _pkgconfig_REQUIRED "" )
+ENDIF ( GnomeVfs2_FIND_REQUIRED )
 
-# Look for gnomevfs2 include dir and libraries w/o pkgnomevfsig
+pkg_search_module( GNOMEVFS2 ${_pkgconfig_REQUIRED} gnome-vfs-2.0 )
+
+IF ( NOT GNOMEVFS2_FOUND AND PKG_CONFIG_FOUND )
+	IF ( GnomeVfs2_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "Could NOT find gnomevfs2" )
+	ELSE ( GnomeVfs2_FIND_REQUIRED )
+		IF ( NOT GnomeVfs2_FIND_QUIETLY )
+			MESSAGE( SEND_ERROR "Could NOT find gnomevfs2" )	
+		ENDIF ( NOT GnomeVfs2_FIND_QUIETLY )
+	ENDIF ( GnomeVfs2_FIND_REQUIRED )
+ENDIF ( NOT GNOMEVFS2_FOUND AND PKG_CONFIG_FOUND )
+
+
+# Look for gnomevfs2 include dir and libraries w/o pkgconfig
 IF ( NOT GNOMEVFS2_FOUND )
 	FIND_PATH( _gnomevfs2_include_DIR libgnomevfs/gnome-vfs.h PATH_SUFFIXES gnome-vfs-2.0 
 		PATHS
