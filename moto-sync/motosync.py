@@ -937,7 +937,6 @@ class PhoneComms:
         """
         self.open_calendar()
         pos = data[0]
-        self.delete_event(pos)
         # HACK: only the name of the event (data[1]) should be unicode
         for n in range(2, len(data)):
             if type(data[n]) == types.UnicodeType:
@@ -2193,6 +2192,9 @@ class PhoneAccess:
             positions = self.__uid_to_pos(change.uid, objtype)
             # check if the number of positions required has changed
             pos_diff = entry.num_pos() - len(positions)
+            if objtype == 'event':
+                assert(pos_diff == 0 and len(positions) == 1)
+                self.comms.delete_event(positions[0])
             if pos_diff > 0:
                 # need to allocate more positions
                 positions.extend(self.positions[objtype].alloc(pos_diff))
