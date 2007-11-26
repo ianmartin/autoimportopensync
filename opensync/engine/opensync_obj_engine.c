@@ -915,7 +915,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						unsigned int size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
 						const char *objtype = osync_change_get_objtype(entry_engine->change);
-						OSyncMappingEntry *entry = entry_engine->entry;
+						OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 						
 						xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(entry_engine->change));
 						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
@@ -923,7 +923,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							goto error;	
 						}
 
-						if(!osync_archive_save_data(engine->archive, osync_mapping_entry_get_id(entry), objtype, buffer, size, error)) {
+						if(!osync_archive_save_data(engine->archive, osync_mapping_get_id(mapping), objtype, buffer, size, error)) {
 							g_free(buffer);	
 							goto error;			
 						}
