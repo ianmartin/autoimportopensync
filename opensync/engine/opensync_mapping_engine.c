@@ -327,10 +327,16 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		 * dgollub: Set masterChange UID for existChange if entry_engine->entry doesn't have 
 		 * mapping uid, even if the newChangeType is UNKOWN. Bug: #571  
 		 *
+		 * prahal : rely on the fact that there are no mapping nor the entry existed to detect new change
+		 *	    Also avoid changing the id of the change if one existed and there where no mapping :
+		 *	    this way we send the id known to the member in case of a "modify". Fixing syncml plugin
+		 *	    freezing the phone and mozilla sync receiving an id it cannot do anything with for modify
+		 *	    in slow sync (no existing mapping).
+		 *
 		 */
-		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED || !osync_mapping_entry_get_uid(entry_engine->entry))
+		if ((!osync_mapping_entry_get_uid(entry_engine->entry) && !osync_change_get_uid(existChange))  ) 
 			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
-		else
+		else if(osync_mapping_entry_get_uid(entry_engine->entry)) 
 			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
 
 		osync_change_set_data(existChange, newData);
