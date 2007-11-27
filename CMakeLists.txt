@@ -55,7 +55,7 @@ CHECK_FUNCTION_EXISTS( flock HAVE_FLOCK )
 
 
 CONFIGURE_FILE( "config.h.cmake" "config.h" )
-CONFIGURE_FILE( "opensync-1.0.pc.in" "opensync-1.0.pc" )
+CONFIGURE_FILE( "opensync-1.0.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/opensync-1.0.pc" )
 
 ########## INSTALL ##############################
 	
