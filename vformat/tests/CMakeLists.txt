@@ -3,10 +3,10 @@ INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CHECK_INC
 ########### support #################	
 ADD_DEFINITIONS( -DOPENSYNC_FORMATSDIR="\\\"${OPENSYNC_FORMATSDIR}\\\"" )
 
-ADD_LIBRARY( support SHARED support.c )
+ADD_LIBRARY( support STATIC support.c )
 TARGET_LINK_LIBRARIES( support opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} )
 
-ADD_LIBRARY( conversion SHARED conversion.c )
+ADD_LIBRARY( conversion STATIC conversion.c )
 TARGET_LINK_LIBRARIES( conversion opensync ${CHECK_LIBRARIES} ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} )
 
 ############ unit tests ##########################	
