@@ -40,7 +40,9 @@ OSyncXMLField *handle_attribute_simple_content_timestamp(OSyncXMLFormat *xmlform
                 osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
                 return NULL;
         }
-        osync_xmlfield_set_key_value(xmlfield, "Content", osync_time_timestamp(vformat_attribute_get_nth_value(attr, 0)));
+	char *timestamp = osync_time_timestamp(vformat_attribute_get_nth_value(attr, 0));
+        osync_xmlfield_set_key_value(xmlfield, "Content", timestamp);
+	free(timestamp);
         return xmlfield;
 }
 
