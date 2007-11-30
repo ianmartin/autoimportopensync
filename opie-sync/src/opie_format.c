@@ -415,14 +415,15 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int
 			const char *emailaddr = osync_xmlfield_get_key_value(in_xmlfield, "Content");
 			g_string_append(emails, emailaddr);
 			g_string_append_c(emails, ' ');
-			
-			if(!strcasecmp(osync_xmlfield_get_attr(in_xmlfield, "Preferred"), "true")) {
+
+                        const char *pref = osync_xmlfield_get_attr(in_xmlfield, "Preferred");
+			if(pref && (!strcasecmp(pref, "true"))) {
 				xmlSetProp(on_contact, "DefaultEmail", emailaddr);
 			}
 		}
 		else if(!strcmp("Address", fieldname)) {
 			const char *addrloc = osync_xmlfield_get_attr(in_xmlfield, "Type");
-			if (!strcmp(addrloc, "Work")) {
+			if (addrloc && (!strcmp(addrloc, "Work"))) {
 				xmlfield_key_to_attr(in_xmlfield, "Street",     on_contact, "BusinessStreet");
 				xmlfield_key_to_attr(in_xmlfield, "Locality",   on_contact, "BusinessCity");
 				xmlfield_key_to_attr(in_xmlfield, "Region",     on_contact, "BusinessState");
