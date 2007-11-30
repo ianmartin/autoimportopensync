@@ -233,27 +233,12 @@ error:
 char *get_remote_notes_path(OpiePluginEnv *env)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
-	char* root_path;
-	
-	if ( env->use_qcop ) {
-		root_path = qcop_get_root(env->qcopconn);
-		if(!root_path) {
-			fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-			osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-			return NULL;
-		}
-		osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-	}
-	else
-		root_path = g_strdup( "" );
-	
+
 	char *notes_path;
 	if(env->notes_type == NOTES_TYPE_OPIE_NOTES)
-		notes_path = g_build_filename(root_path, "Documents/text/plain", NULL);
+		notes_path = g_build_filename(env->dev_root_path, "Documents/text/plain", NULL);
 	else
-		notes_path = g_strdup(root_path);
-	
-	g_free(root_path);
+		notes_path = g_strdup(env->dev_root_path);
 	
 	osync_trace(TRACE_EXIT, "%s(%s)", __func__, notes_path);
 	return notes_path;
@@ -585,21 +570,7 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **da
 
 	if (env->host && env->username && env->password )
 	{
-		char* separator_path;
-		if ( env->use_qcop ) 
-		{
-			char* root_path = qcop_get_root(env->qcopconn);
-			if(!root_path) {
-				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-				return FALSE;
-			}
-			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-			separator_path = g_strdup_printf("%s/", root_path);
-			g_free(root_path);
-		} else {
-			separator_path = g_strdup( "/" );
-		}
+		char* separator_path = g_strdup_printf("%s/", env->dev_root_path);
 
 		/* fetch each of the requested files */
 		ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s",
@@ -987,20 +958,7 @@ gboolean ftp_put_file(OpiePluginEnv* env, const char *remotefile, char *data)
 	
 	if (env->host && env->username && env->password )
 	{
-		if ( env->use_qcop ) 
-		{
-			char* root_path = qcop_get_root(env->qcopconn);
-			if(!root_path) {
-				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
-				osync_trace(TRACE_EXIT_ERROR, "qcop_get_root: %s", env->qcopconn->resultmsg);
-				return FALSE;
-			}
-			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
-			separator_path = g_strdup_printf("%s/", root_path);
-			g_free(root_path);
-		} else {
-			separator_path = g_strdup( "/" );
-		}
+		char* separator_path = g_strdup_printf("%s/", env->dev_root_path);
 		
 		char *ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s",
 		                          env->username,

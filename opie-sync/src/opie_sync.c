@@ -190,8 +190,19 @@ static osync_bool device_connect(OpiePluginEnv *env, OSyncError **error)
 			qcop_stop_sync(env->qcopconn);
 			goto error;
 		}
-		
+
+		env->dev_root_path = qcop_get_root(env->qcopconn);
+		if(!env->dev_root_path) {
+			char *errmsg = g_strdup_printf("qcop_get_root failed: %s\n", env->qcopconn->resultmsg);
+			osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+			g_free(errmsg);
+			qcop_stop_sync(env->qcopconn);
+			goto error;
+		}
+		osync_trace( TRACE_INTERNAL, "QCop root path = %s", env->dev_root_path );
 	}
+	else
+		env->dev_root_path = g_strdup( "" );
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;

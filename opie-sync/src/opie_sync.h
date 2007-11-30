@@ -78,6 +78,7 @@ struct OpiePluginEnv {
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;
 	gboolean          connected;
+	gchar*            dev_root_path;
 
 	xmlDoc*           categories_doc;
 
