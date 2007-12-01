@@ -1138,7 +1138,6 @@ osync_bool irmcGenericCommitChange(irmc_environment *env, OSyncObjTypeSink *sink
       // send the delete request
       if (!irmc_obex_put(config->obexhandle, name, 0, size ? buf : NULL, size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
-        g_free(buf);
         osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s FALSE: %s", __func__, osync_error_print(&error));
         return FALSE;
@@ -1157,7 +1156,6 @@ osync_bool irmcGenericCommitChange(irmc_environment *env, OSyncObjTypeSink *sink
       // send the add request
       if (!irmc_obex_put(config->obexhandle, name, 0, size ? buf : NULL, size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
-        g_free(buf);
         osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s FALSE: %s", __func__, osync_error_print(&error));
 	return FALSE;
