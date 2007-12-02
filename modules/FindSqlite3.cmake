@@ -32,14 +32,14 @@ ENDIF ( SQLITE3_MIN_VERSION )
 
 # Look for sqlite3 include dir and libraries w/o pkgconfig
 IF ( NOT SQLITE3_FOUND AND NOT PKG_CONFIG_FOUND )
-	FIND_PATH( _sqlite3_include_DIR gconf/gconf.h PATH_SUFFIXES gconf/2 
+	FIND_PATH( _sqlite3_include_DIR sqlite3.h 
 		PATHS
 		/opt/local/include/
 		/sw/include/
 		/usr/local/include/
 		/usr/include/
 	)
-	FIND_LIBRARY( _sqlite3_link_DIR gconf-2
+	FIND_LIBRARY( _sqlite3_link_DIR sqlite3 
 		PATHS
 		/opt/local/lib
 		/sw/lib
