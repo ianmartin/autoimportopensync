@@ -174,10 +174,15 @@ extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                 if (!sink)
                         goto error_free_env;
                 
-                database->sink = sink;
                 
+		database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
+		if (!database->objformat) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
+			return FALSE;
+		}
+
 		// TODO:... in case of maemo ("plain text") we have to set "memo"...
-                osync_objtype_sink_add_objformat(sink, "plain");
+                osync_objtype_sink_add_objformat(sink, database->objformat_name);
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
@@ -188,6 +193,7 @@ extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		functions.batch_commit = batch_commit;
                 
                 osync_objtype_sink_set_functions(sink, functions, database);
+                database->sink = sink;
                 osync_plugin_info_add_objtype(info, sink);
 	}
 	
