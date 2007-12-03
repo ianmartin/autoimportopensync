@@ -152,6 +152,7 @@ extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
 	
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), error);
 	if (!env)
 		goto error;
