@@ -32,6 +32,10 @@ static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext 
 	 * we can only answer it as soon as the device returned an answer to our san */
 	env->connectCtx = ctx;
 
+	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
+	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
+	osync_context_ref(env->connectCtx);
+
 	/* For the http server we can report success right away since we know
 	 * that we already received an alert (otherwise we could not have triggered
 	 * the synchronization) */
