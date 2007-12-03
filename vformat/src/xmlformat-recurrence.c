@@ -32,7 +32,7 @@
  * convert_vcal_rrule_to_xml         get interval and call functions above
  */
 
-int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rule)
+static int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rule)
 {
         int frequency_state = 0;
 	char next = *(rule + 1);
@@ -68,7 +68,7 @@ int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rule)
 	return frequency_state;
 }
 
-char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, int size, int freqstate)
+static char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, int size, int freqstate)
 {
 	int i;
 	GString *fm_buffer = g_string_new("");
@@ -107,7 +107,7 @@ char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, int size
 	return g_string_free(fm_buffer, FALSE);
 }
 
-void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *duration_block)
+static void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *duration_block)
 {
 	int count;
 	int offset = 0; 
@@ -144,8 +144,16 @@ void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *duration
 	g_free(until);
 }
 
-void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule)
+OSyncXMLField *convert_vcal_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error)
 {
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, rulename, error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
+	const char *rule = vformat_attribute_get_nth_value(attr, 0);
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, xmlfield, rule);
 
 	int frequency_state = 0, counter = 0;
@@ -199,6 +207,8 @@ void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule)
 	}
 
 	g_strfreev(blocks);
+
+	return xmlfield;
 }
 
 

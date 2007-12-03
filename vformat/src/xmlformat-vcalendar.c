@@ -64,17 +64,8 @@ OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
 
-	const char *rule = vformat_attribute_get_nth_value(attr, 0);
-
-        convert_vcal_rrule_to_xml(xmlfield, rule);
-
-	return xmlfield;
+	return convert_vcal_rrule_to_xml(xmlformat, attr, "RecurrenceRule", error);
 }
 // End of vCal only attributes
 

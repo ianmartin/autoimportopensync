@@ -23,10 +23,7 @@
 #ifndef XMLFORMAT_RECURRENCE_H_
 #define XMLFORMAT_RECURRENCE_H_
 
-int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rule);
-char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, int size, int freqstate);
-void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *duration_block);
-void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule);
+OSyncXMLField *convert_vcal_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error);
 OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error);
 
 #endif // XMLFORMAT_RECURRENCE_H_
