@@ -160,7 +160,7 @@ extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
 		
 	if (!syncml_http_server_parse_config(env, configdata, error))
-		goto error_free_transport;
+		goto error_free_env;
 
 	env->num = 0;	
 
