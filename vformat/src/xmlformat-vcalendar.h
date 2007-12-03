@@ -25,6 +25,7 @@
 #define XMLFORMAT_VCALENDAR_H_
 
 #include "xmlformat-common.h"
+#include "xmlformat-recurrence.h"
 
 // Handler functions pointer
 typedef void (* param_handler_fn) (OSyncXMLField *xmlfield, VFormatParam *param);
