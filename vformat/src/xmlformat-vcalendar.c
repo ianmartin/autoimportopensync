@@ -1017,12 +1017,18 @@ VFormatAttribute *handle_xml_dcreated_attribute(VFormat *vevent, OSyncXMLField *
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "DCREATED", encoding);
 }
 
-VFormatAttribute *handle_xml_rrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+// ical
+VFormatAttribute *handle_xml_rrule_ical_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
-	/* TODO */
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "RRULE");
-	vformat_add_attribute(vevent, attr);
-	return attr;
+	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
+	return conv_xml_rrule_to_ical(vevent, xmlfield, "RRULE", encoding); 
+}
+
+// vcal
+VFormatAttribute *handle_xml_rrule_vcal_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
+	return conv_xml_rrule_to_vcal(vevent, xmlfield, "RRULE", encoding); 
 }
 
 VFormatAttribute *handle_xml_rdate_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)

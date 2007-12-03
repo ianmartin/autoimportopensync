@@ -24,6 +24,8 @@
 #define XMLFORMAT_RECURRENCE_H_
 
 OSyncXMLField *convert_vcal_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error);
+VFormatAttribute *conv_xml_rrule_to_vcal(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding);
 OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error);
+VFormatAttribute *conv_xml_rrule_to_ical(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding);
 
 #endif // XMLFORMAT_RECURRENCE_H_

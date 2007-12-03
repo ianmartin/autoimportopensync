@@ -211,6 +211,24 @@ OSyncXMLField *convert_vcal_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttri
 	return xmlfield;
 }
 
+VFormatAttribute *conv_xml_rrule_to_vcal(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding)
+{
+/*
+	g_assert(vformat);
+	g_assert(xmlfield);
+	g_assert(name);
+
+	osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", name);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	add_values(attr, xmlfield, encoding);
+	vformat_add_attribute(vformat, attr);
+	return attr;
+*/
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	vformat_add_attribute(vformat, attr);
+	return attr;	
+}
+
 
 /*
  * Basic & Extended Recurrence Rules (iCalendar)
@@ -317,5 +335,23 @@ OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttri
 	}
 
 	return xmlfield;
+}
+
+VFormatAttribute *conv_xml_rrule_to_ical(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding)
+{
+/*
+	g_assert(vformat);
+	g_assert(xmlfield);
+	g_assert(name);
+
+	osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", name);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	add_values(attr, xmlfield, encoding);
+	vformat_add_attribute(vformat, attr);
+	return attr;
+*/
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	vformat_add_attribute(vformat, attr);
+	return attr;
 }
 

@@ -501,7 +501,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	// TODO -> RNUM
 	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_vcal_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
@@ -595,7 +595,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceId", handle_xml_recurid_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_ical_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
 	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RStatus", handle_xml_rstatus_attribute); // ical only
