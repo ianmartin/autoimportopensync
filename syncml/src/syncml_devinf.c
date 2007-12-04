@@ -13,7 +13,10 @@ extern const char *get_database_pref_content_type(
     const char *name = osync_objformat_get_name(database->objformat);
 
     if (!strcmp(objtype, "contact")) {
-        ct = SML_ELEMENT_TEXT_VCARD;
+        if (strstr(name, "21") > 0)
+            ct = SML_ELEMENT_TEXT_VCARD;
+        else
+            ct = SML_ELEMENT_TEXT_VCARD_30;
     } else if (!strcmp(objtype, "event") ||
                !strcmp(objtype, "todo")) {
         if (strstr(name, "10") > 0)
@@ -139,12 +142,12 @@ static void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *
         _add_ctcap_property_by_name_value(ctcap, "PHOTO", "TYPE");
         smlDevInfAddCTCap(devinf, ctcap);
     }
-    else if (!strcmp(cttype, SML_ELEMENT_TEXT_VCARD) &&
+    else if (!strcmp(cttype, SML_ELEMENT_TEXT_VCARD_30) &&
              !strcmp(verct, "3.0"))
     {
         osync_trace(TRACE_INTERNAL, "vCard 3.0 detected");
         ctcap = smlDevInfNewCTCap();
-        smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
+        smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD_30);
         smlDevInfCTCapSetVerCT(ctcap, "3.0");
         _add_ctcap_property_by_name_value(ctcap, "BEGIN", "VCARD");
         _add_ctcap_property_by_name_value(ctcap, "END", "VCARD");
@@ -281,20 +284,21 @@ extern SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase 
     {
         // we prefer actually vCard 2.1
         // because the most cellphones support it
-        if (strstr(osync_objformat_get_name(database->objformat), "30"))
-        {
-            smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-            smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-            smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
-            smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
-        } else {
-            smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
-            smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "3.0");
-            smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-            smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-        }
+        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
         add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "3.0");
+        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+    }
+    else if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD_30))
+    {
+        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1");
+        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0");
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_VCAL))
     {
