@@ -1,75 +1,84 @@
 #include "syncml_common.h"
 #include "syncml_devinf.h"
 
-static SmlBool _recv_server_alert(SmlDsSession *dsession, SmlAlertType type, const char *last, const char *next, void *userdata)
-{
-        osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %s, %p)", __func__, dsession, type, last, next, userdata);
-        SmlDatabase *database = (SmlDatabase*) userdata;
-        SmlPluginEnv *env = database->env;
-        SmlBool ret = TRUE;
-	SmlError *error = NULL;
-	OSyncError *oserror = NULL;
-
-	// this is for client which receive alerts from servers
-	// _recv_alert is for servers only
-       	char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
-
-	if ((!last || !osync_anchor_compare(env->anchor_path, key, last)) && type == SML_ALERT_TWO_WAY)
-		ret = FALSE;
-
-	osync_bool ans = osync_objtype_sink_get_slowsync(database->sink);
-	if (ans && type != SML_ALERT_SLOW_SYNC)
-		ret = FALSE;
-
-	if (!ret || type != SML_ALERT_TWO_WAY)
-		osync_objtype_sink_set_slowsync(database->sink, TRUE);
-
-       osync_anchor_update(env->anchor_path, key, next);
-       	g_free(key);
-
-	// this is a client
-	// so we have to initiate the sync
-	if (!smlDsSessionSendSync(database->session, 0, _recv_sync_reply, database, &error))
-		goto error;
-	if (!smlDsSessionCloseSync(database->session, &error))
-		goto error;
-	if (!flush_session_for_all_databases(env, &error))
-		goto error;
-
-        osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
-        return ret;
-error:
-	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-	smlErrorDeref(&error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-	return FALSE;
-}
+/* Some informations about the SyncML protocol
+ * 
+ * A synchronization with SyncML which is initiated by the client
+ * requires the following actions (two way sync):
+ * 
+ * 1. client sends sync alert
+ * 2. server sends sync alert
+ * 3. client sends changes
+ * 4. server sends status and changes
+ * 5. client sends status and map
+ * 6. server sends status
+ *
+ * OpenSync uses the following communication pattern:
+ *
+ * 1. OpenSync requests all changes
+ * 2. The other side sends all changes
+ * 3. OpenSync performs all necessary operations
+ * 4. OpenSync sends all necessary changes
+ *
+ * OpenSync'c behaviour is always the behaviour of an SyncML server
+ * even if we use OpenSync as a SyncML client. This requires some special
+ * use cases of SyncML (OpenSync as SyncML client):
+ *
+ * 1. OpenSync sends sync alert
+ * 2. SyncML server sends sync alert
+ * 3. OpenSync sends numberOfChanges 0 (no changes at client)
+ * 4. SyncML server sends all of its changes
+ * 5.1 OpenSync sends ok and the mapping entries of the changes
+ * 5.2 OpenSync perform the necessary comparisons internally
+ * 6.1 SyncML server sends ok (will be ignored/tolerated by OpenSync)
+ * 6.2 OpenSync sends sync alert
+ * 7. SyncML server sends sync alert
+ * 8. OpenSync sends changes
+ * 9. SyncML server sends changes
+ * 10. OpenSync sends ok and mapping
+ * 11. SyncML server sends ok
+ *
+ * The problem is that we do no like a complete second implementation
+ * only for the client. So the solution is that we know states and events
+ * in the SyncML communication. Clients and servers simply start in
+ * different modes.
+ *
+ * Client
+ *     - before send initiate sync alert
+ *     - if receive sync alert send changes
+ *     - if receive changes prepare map and opensync
+ * Server
+ *     - before sending data check for open sync session
+ *     - if open sync session send changes
+ *     - if no open sync session then create an error (no SAN)
+ *
+ */
 
 static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	// WARNING: this is a synchronous function !!!
-	// if the function returns then the client must be connected
-
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
-	env->connectCtx = ctx;
+	g_mutex_lock(env->mutex);
 
 	env->tryDisconnect = TRUE;
 	if (env->isConnected) {
+		// if the first connect failed then it is enough to signal this
+		// we only signal that a connect was run before
+		g_mutex_unlock(env->mutex);
+		osync_trace(TRACE_INTERNAL, "connect called twice with different context");
 		osync_context_report_success(ctx);
-		osync_trace(TRACE_EXIT, "%s", __func__);
+		osync_trace(TRACE_EXIT, "%s - http client already connected", __func__);
 		return;
 	} else {
 		if (!smlTransportHttpClientIsConnected(env->tsp, TRUE, &error))
 			goto error;
 	}
+	/* we need to ref the context here because we signal the success later */
+	/* later means we signal the success in another function */
 	env->tryDisconnect = FALSE;
-
-	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
-	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
-	/* the context can be null if the function is called from discover */
+	env->connectCtx = ctx;
 	osync_context_ref(env->connectCtx);
 	osync_trace(TRACE_INTERNAL, "%s: environment ready", __func__);
 
@@ -109,27 +118,6 @@ static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext 
 	smlSessionFlush(env->session, TRUE, &error);
 	osync_trace(TRACE_INTERNAL, "%s: session ready", __func__);
 
-	/* I think we can remove notification code because */
-	/* this is a client and not a server (SAN - server alerted notification :) */
-	/* DO NOT ACTIVATE THE NOTIFICATION CODE */
-	/* The notification damages the devinf handling */
-	/* looks like a problem with the status or results handling */
-
-	/* send an syncml alert notification */
-	//env->san = smlNotificationNew(SML_SAN_VERSION_11,
-        //                              SML_SAN_UIMODE_UNSPECIFIED,
-        //                              SML_SAN_INITIATOR_USER,
-        //                              2, // sessionID 1 is the normal session
-        //                              env->identifier, "/", SML_MIMETYPE_XML, &error);
-	//if (!env->san)
-	//	goto error;
-	//osync_trace(TRACE_INTERNAL, "%s: notification created", __func__);
-	//if (cred)
-	//	smlNotificationSetCred(env->san, cred);
-	//smlNotificationSetManager(env->san, env->manager);
-	//gboolean sanUsed = FALSE;
-	//osync_trace(TRACE_INTERNAL, "%s: notification prepared", __func__);
-
 	GList *o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
@@ -137,29 +125,18 @@ static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext 
 		{
 			smlDsSessionGetAlert(database->session, _recv_alert, database);
 		}
-		//if (!smlDsServerAddSan(database->server, env->san, &error))
-		//	goto error_free_san;
-		//sanUsed = TRUE;
 	}
-	//osync_trace(TRACE_INTERNAL, "%s: notifications added", __func__);
-	//if (sanUsed && !smlNotificationSend(env->san, env->tsp, &error))
-	//	goto error_free_san;
-	//smlNotificationFree(env->san);
-	//env->san = NULL;
-	//osync_trace(TRACE_INTERNAL, "%s: notifications send", __func__);
 
 	// do not move this to an upper location or
 	// otherwise errors are not detected correctly
 	env->isConnected = TRUE;
+	osync_context_report_success(env->connectCtx);
+	osync_context_unref(env->connectCtx);
+	env->connectCtx = NULL;
 	
+	g_mutex_unlock(env->mutex);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-error_free_san:
-	//smlNotificationFree(env->san);
-	//env->san = NULL;
-	// smlManagerSessionRemove(env->manager, session);
-	// unref is already executed by the manager
-	// smlSessionUnref(session);
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
@@ -167,6 +144,7 @@ error:
 	osync_context_unref(env->connectCtx);
 	env->connectCtx = NULL;
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	g_mutex_unlock(env->mutex);
 }
 
 static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
@@ -330,8 +308,9 @@ extern void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info,
 	/* let's wait for the device info of the server */
 	while (!smlDevInfAgentGetDevInf(env->agent) && !smlSessionCheck(env->session))
 	{
-		printf("SyncML HTTP client is waiting for server's device info.\n");
-		sleep(10);
+		unsigned int sleeping = 5;
+		printf("SyncML HTTP client is waiting for server's device info (%d seconds).\n", sleeping);
+		sleep(sleeping);
 	}
 	SmlDevInf *devinf = smlDevInfAgentGetDevInf(env->agent);
 	unsigned int stores = smlDevInfNumDataStores(devinf);
@@ -386,13 +365,13 @@ extern void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info,
 	if (database->session)
 	{
 		// this is for server's alerts
-		smlDsSessionGetAlert(database->session, _recv_server_alert, database);
+		smlDsSessionGetAlert(database->session, _recv_alert_from_server, database);
 		smlDsSessionGetEvent(database->session, _ds_event, database);
 		smlDsSessionGetSync(database->session, _recv_sync, database);
 		smlDsSessionGetChanges(database->session, _recv_change, database);
 	}
 
-	if (!flush_session_for_all_databases(env, &error))
+	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -422,6 +401,7 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 
 	env->num = 0;	
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	env->mutex = g_mutex_new();
 
 	GList *o = env->databases;
 	for (; o; o = o->next) {
@@ -497,17 +477,21 @@ extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	else
 		smlDevInfSetSupportsLargeObjs(devinf, TRUE);
 	
+	osync_trace(TRACE_INTERNAL, "creating devinf agent");
 	env->agent = smlDevInfAgentNew(devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 
 	// this is important because the tranport sends it during init
+	osync_trace(TRACE_INTERNAL, "register devinf agent");
 	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
 		goto error_free_manager;
+	osync_trace(TRACE_INTERNAL, "after register devinf agent");
 
 	o = env->databases;
 	for (; o; o = o->next) { 
 		SmlDatabase *database = o->data;
+		osync_trace(TRACE_INTERNAL, "preparing DsServer %s", database->url);
 
 		/* We now create the ds server at the given location */
 		SmlLocation *loc = smlLocationNew(database->url, NULL, &serror);

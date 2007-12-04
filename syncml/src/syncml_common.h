@@ -85,7 +85,6 @@ typedef struct SmlPluginEnv {
 	SmlBool gotFinal;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
-
 	
 	OSyncMember *member;
 	char *anchor_path;
@@ -107,6 +106,8 @@ typedef struct SmlPluginEnv {
 	SmlNotification *san;
 
 	GList *databases;
+	GList *ignoredDatabases;
+	const char *sessionUser;
 
 	int num;
 
@@ -121,6 +122,8 @@ typedef struct SmlPluginEnv {
         char *fakeManufacturer;
         char *fakeModel;
         char *fakeSoftwareVersion;
+
+	GMutex *mutex;
 } SmlPluginEnv;
 
 typedef struct SmlDatabase {
@@ -133,6 +136,8 @@ typedef struct SmlDatabase {
 	char *objtype;	
 	char *url;
 
+	OSyncChange **syncChanges;
+	OSyncContext **syncContexts;
 	osync_bool gotChanges;
 	osync_bool finalChanges; 
 	unsigned int pendingChanges;
@@ -140,7 +145,6 @@ typedef struct SmlDatabase {
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
 	OSyncContext *disconnectCtx;
-
 } SmlDatabase;
 
 extern SmlBool _recv_alert(
@@ -175,6 +179,11 @@ extern void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
 extern void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
+extern SmlBool send_sync_message(
+                        SmlDatabase *database,
+                        void *func_ptr,
+                        OSyncError **oserror);
+
 extern void batch_commit(
 			void *data, 
 			OSyncPluginInfo *info, 
@@ -187,6 +196,13 @@ extern void _ds_alert(SmlDsSession *dsession, void *userdata);
 extern  void _recv_alert_reply(
 			SmlSession *session,
 			SmlStatus *status, 
+			void *userdata);
+
+extern SmlBool _recv_alert_from_server(
+			SmlDsSession *dsession,
+			SmlAlertType type,
+			const char *last,
+			const char *next,
 			void *userdata);
 
 extern void _recv_sync(SmlDsSession *dsession,
@@ -226,7 +242,10 @@ extern osync_bool init_objformat(
 			SmlDatabase *database,
 			OSyncError **error);
 
-extern SmlBool flush_session_for_all_databases(SmlPluginEnv *env, SmlError **error);
+extern SmlBool flush_session_for_all_databases(
+			SmlPluginEnv *env,
+			SmlBool activeDatabase,
+			SmlError **error);
 
 extern void finalize(void *data);
 

@@ -334,11 +334,11 @@ extern SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase 
     // configure supported sync modes
     smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
     smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
-    smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
     // server alerted sync means that the client has to interpret alerts !!!
     // FIXME: we receive alerts but we do nothing with it
     if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
-        smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_ONE_WAY_FROM_CLIENT, TRUE);
+        // smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_ONE_WAY_FROM_CLIENT, TRUE);
+        osync_trace(TRACE_INTERNAL, "SyncML clients only support SLOW and TWO WAY SYNC");
     else
         smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
 

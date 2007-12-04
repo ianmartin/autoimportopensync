@@ -1,5 +1,12 @@
 <?xml version="1.0"?>
 <config>
+  <!-- TODO - or better what does not work      -->
+  <!--                                          -->
+  <!--     no changes are written to the server -->
+  <!--     only slow-sync works                 -->
+  <!--     update mode is not working           -->
+
+
   <!-- authentication type to use. Leave empty to not require an authentication -->
   <!-- supported values are:                                  -->
   <!--   BASIC - unsecure but widely supported                -->
