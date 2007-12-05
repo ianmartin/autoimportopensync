@@ -20,7 +20,6 @@
 
 #include "config.h"
 
-#include "syncml_plugin.h"
 #include "syncml_common.h"
 
 #ifdef ENABLE_HTTP

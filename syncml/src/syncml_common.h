@@ -147,106 +147,56 @@ typedef struct SmlDatabase {
 	OSyncContext *disconnectCtx;
 } SmlDatabase;
 
-extern SmlBool _recv_alert(
-			SmlDsSession *dsession, 
-			SmlAlertType type, 
-			const char *last, 
-			const char *next, 
-			void *userdata);
+gboolean _sessions_prepare(GSource *source, gint *timeout_);
 
-extern void _manager_event(
-			SmlManager *manager, 
-			SmlManagerEventType type, 
-			SmlSession *session, 
-			SmlError *error, 
-			void *userdata);
+gboolean _sessions_check(GSource *source);
 
-extern gboolean _sessions_prepare(GSource *source, gint *timeout_);
-
-extern gboolean _sessions_check(GSource *source);
-
-extern gboolean _sessions_dispatch(
+gboolean _sessions_dispatch(
 			GSource *source, 
 			GSourceFunc callback, 
 			gpointer user_data);
 
-extern void get_changeinfo(
+void get_changeinfo(
 			void *data, 
 			OSyncPluginInfo *info, 
 			OSyncContext *ctx);
 
-extern void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
-extern void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
-extern SmlBool send_sync_message(
+SmlBool send_sync_message(
                         SmlDatabase *database,
                         void *func_ptr,
                         OSyncError **oserror);
 
-extern void batch_commit(
+void batch_commit(
 			void *data, 
 			OSyncPluginInfo *info, 
 			OSyncContext *ctx, 
 			OSyncContext **contexts, 
 			OSyncChange **changes);
 
-extern void _ds_alert(SmlDsSession *dsession, void *userdata);
-
-extern  void _recv_alert_reply(
-			SmlSession *session,
-			SmlStatus *status, 
-			void *userdata);
-
-extern SmlBool _recv_alert_from_server(
-			SmlDsSession *dsession,
-			SmlAlertType type,
-			const char *last,
-			const char *next,
-			void *userdata);
-
-extern void _recv_sync(SmlDsSession *dsession,
-			unsigned int numchanges,
-			void *userdata);
-
-extern void _recv_sync_reply(SmlSession *session, 
-			SmlStatus *status, 
-			void *userdata);
-
-extern SmlBool _recv_change(
-			SmlDsSession *dsession, 
-			SmlChangeType type, 
-			const char *uid, 
-			char *data, 
-			unsigned int size, 
-			const char *contenttype, 
-			void *userdata, 
-			SmlError **smlerror);
-
-extern void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata);
-
-extern void _verify_user(
-			SmlAuthenticator *auth, 
-			const char *username, 
-			const char *password, 
-			void *userdata, 
-			SmlErrorType *reply);
-
-extern osync_bool syncml_config_parse_database(
+osync_bool syncml_config_parse_database(
 			SmlPluginEnv *env,
 			xmlNode *cur,
 			OSyncError **error);
 
-extern osync_bool init_objformat(
+osync_bool init_objformat(
 			OSyncPluginInfo *info,
 			SmlDatabase *database,
 			OSyncError **error);
 
-extern SmlBool flush_session_for_all_databases(
+SmlBool flush_session_for_all_databases(
 			SmlPluginEnv *env,
 			SmlBool activeDatabase,
 			SmlError **error);
 
-extern void finalize(void *data);
+/* this is a helper function which adds an object to a GList */
+/* the function guarantees that an object exists only once in */
+/* this GList. No double entrees. */
+GList *g_list_add(GList *databases, void *database);
+
+void finalize(void *data);
 
 #endif //_SYNCML_COMMON_H

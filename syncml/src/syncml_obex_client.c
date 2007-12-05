@@ -19,9 +19,10 @@
  */
 
 #include "syncml_common.h"
+#include "syncml_callbacks.h"
 #include "syncml_devinf.h"
 
-static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
@@ -70,7 +71,7 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
-static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
+osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, config, error);
 	xmlDocPtr doc = NULL;
@@ -192,7 +193,7 @@ error:
 	return FALSE;
 }
 
-extern void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
@@ -392,7 +393,7 @@ error:
 	return NULL;
 }
 
-extern osync_bool syncml_obex_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+osync_bool syncml_obex_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         

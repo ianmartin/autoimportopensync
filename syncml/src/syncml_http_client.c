@@ -1,4 +1,5 @@
 #include "syncml_common.h"
+#include "syncml_callbacks.h"
 #include "syncml_devinf.h"
 
 /* Some informations about the SyncML protocol
@@ -54,7 +55,7 @@
  *
  */
 
-static void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
@@ -147,7 +148,7 @@ error:
 	g_mutex_unlock(env->mutex);
 }
 
-static osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
+osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, config, error);
 	xmlDocPtr doc = NULL;
@@ -291,7 +292,7 @@ error:
 	return FALSE;
 }
 
-extern void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
         SmlPluginEnv *env = (SmlPluginEnv *)data;
@@ -384,7 +385,7 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
-extern void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
@@ -564,7 +565,7 @@ error:
 	return NULL;
 }
 
-static void _publish_osync_error(void *publicError, OSyncError *error)
+void _publish_osync_error(void *publicError, OSyncError *error)
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
     OSyncError **destError = publicError;
@@ -572,7 +573,7 @@ static void _publish_osync_error(void *publicError, OSyncError *error)
     osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-extern osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         

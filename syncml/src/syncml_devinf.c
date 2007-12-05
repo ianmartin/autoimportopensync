@@ -1,6 +1,6 @@
 #include "syncml_common.h"
 
-extern const char *get_database_pref_content_type(
+const char *get_database_pref_content_type(
 				SmlDatabase *database,
 				OSyncError **error)
 {
@@ -38,7 +38,7 @@ extern const char *get_database_pref_content_type(
     return ct;
 }
 
-static SmlDevInfProperty *_add_ctcap_property_by_name(
+SmlDevInfProperty *_add_ctcap_property_by_name(
 				SmlDevInfCTCap *ctcap,
 				const char *name)
 {
@@ -54,7 +54,7 @@ static SmlDevInfProperty *_add_ctcap_property_by_name(
     return prop;
 }
 
-static SmlDevInfProperty *_add_ctcap_property_by_name_value(
+SmlDevInfProperty *_add_ctcap_property_by_name_value(
 				SmlDevInfCTCap *ctcap,
 				const char*name,
 				const char *value)
@@ -71,7 +71,7 @@ static SmlDevInfProperty *_add_ctcap_property_by_name_value(
     return prop;
 }
 
-static SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const char *name)
+SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const char *name)
 {
     osync_trace(TRACE_ENTRY, "%s (%s)", __func__, name);
     g_assert(prop);
@@ -87,7 +87,7 @@ static SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const ch
 
 // FIXME: this function too static
 // FIXME: the properties should be load from the format plugin
-static void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
+void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
 {
     osync_trace(TRACE_ENTRY, "%s (%s %s)", __func__, cttype, verct);
     g_assert(devinf);
@@ -267,7 +267,7 @@ static void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *
     osync_trace(TRACE_EXIT, "%s - content type newly added to devinf", __func__);
 }
 
-extern SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase *database, OSyncError **error)
+SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase *database, OSyncError **error)
 {
     osync_trace(TRACE_ENTRY, "%s (%p, %p)", __func__, devinf, database);
     g_assert(database);

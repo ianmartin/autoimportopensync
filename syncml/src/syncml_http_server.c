@@ -19,9 +19,10 @@
  */
 
 #include "syncml_common.h"
+#include "syncml_callbacks.h"
 #include "syncml_devinf.h"
 
-static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
@@ -58,7 +59,7 @@ static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext 
 	return;
 }
 
-static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
+osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, config, error);
 	xmlDocPtr doc = NULL;
@@ -151,7 +152,7 @@ error:
 	return FALSE;
 }
 
-extern void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
@@ -315,7 +316,7 @@ error:
 	return NULL;
 }
 
-extern osync_bool syncml_http_server_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+osync_bool syncml_http_server_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         

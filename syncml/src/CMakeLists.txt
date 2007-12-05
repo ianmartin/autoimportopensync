@@ -1,7 +1,7 @@
 LINK_DIRECTORIES( ${GLIB2_LIBRARY_DIRS} ${LIBXML2_LIBRARY_DIRS} ${LIBSYNCML_LIBRARY_DIRS})
 INCLUDE_DIRECTORIES(${OPENSYNC_INCLUDE_DIR} ${GLIB2_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIRS} ${LIBSYNCML_INCLUDE_DIRS})
 
-SET(SOURCE_FILES syncml_plugin.c syncml_common.c syncml_devinf.c)
+SET(SOURCE_FILES syncml_plugin.c syncml_common.c syncml_devinf.c syncml_callbacks.c)
 
 IF (ENABLE_OBEX)
 	SET(SOURCE_FILES ${SOURCE_FILES} syncml_obex_client.c)
