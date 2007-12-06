@@ -53,6 +53,10 @@ ENDIF ( BUILD_DOCUMENTATION )
 INCLUDE( CheckFunctionExists )
 CHECK_FUNCTION_EXISTS( flock HAVE_FLOCK )
 
+# add uninstall target
+CONFIGURE_FILE(	"${CMAKE_SOURCE_DIR}/cmake/modules/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
 
 CONFIGURE_FILE( "config.h.cmake" "config.h" )
 CONFIGURE_FILE( "opensync-1.0.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/opensync-1.0.pc" )
