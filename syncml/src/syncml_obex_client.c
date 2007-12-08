@@ -27,13 +27,17 @@ void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
-
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
+	g_mutex_lock(env->mutex);
 
 	if (env->isConnected) {
+		// if the first connect failed then it is enough to signal this
+		// we only signal that a connect was run before
+		g_mutex_unlock(env->mutex);
+		osync_trace(TRACE_INTERNAL, "connect called twice with different context");
 		osync_context_report_success(ctx);
-		osync_trace(TRACE_EXIT, "%s", __func__);
+		osync_trace(TRACE_EXIT, "%s - obex client already connected", __func__);
 		return;
 	}
 
@@ -58,6 +62,8 @@ void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	smlNotificationFree(env->san);
 	env->san = NULL;
 
+	
+	g_mutex_unlock(env->mutex);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -69,6 +75,7 @@ error:
 	smlErrorDeref(&error);
 	osync_context_report_osyncerror(ctx, oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	g_mutex_unlock(env->mutex);
 }
 
 osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
@@ -211,6 +218,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->num = 0;	
 	env->isConnected = FALSE;
+	env->mutex = g_mutex_new();
 
 	SmlTransportObexClientConfig config;
 	config.type = env->type;
@@ -248,9 +256,11 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 SmlDatabase *database = o->data;
 		database->gotChanges = FALSE;
 		database->finalChanges = FALSE;
+
                 OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
                 if (!sink)
                         goto error_free_env;
+                
 
 		database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
 		if (!database->objformat) {
