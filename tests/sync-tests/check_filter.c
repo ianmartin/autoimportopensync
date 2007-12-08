@@ -259,6 +259,13 @@ START_TEST (filter_save_and_load)
 }
 END_TEST
 
+/* TODO: Test filtering of different objtypes within one resource/database/path.
+   Mixed objtypes in mock-sync (based on file-sync) currenlty not supported.
+   Reimplement this when: data(wildcard objtype) <-> certain-objtype syncing is working again.
+
+   Make this implementation independet of vformat plugin (feel free to rename vcard to mockobjtypeX).
+   This filtering isn't about obfjromat filtering - it's about objtype filtering.
+*/
 START_TEST (filter_sync_vcard_only)
 {
 	char *testbed = setup_testbed("filter_sync_vcard_only");
@@ -275,6 +282,9 @@ START_TEST (filter_sync_vcard_only)
 	
 	/* TODO filtering isn't member sepcific anymore
 	OSyncMember *rightmember = osync_group_nth_member(group, 1);
+
+        osync_filter_add(group, NULL, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+        osync_filter_add(group, NULL, rightmember, NULL, NULL, "contact", OSYNC_FILTER_ALLOW);
 	*/
 	
 	OSyncFilter *filter1 = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
@@ -404,7 +414,7 @@ Suite *filter_suite(void)
 	create_case(s, "filter_sync_deny_all", filter_sync_deny_all);
 	create_case(s, "filter_sync_custom", filter_sync_custom);
 	create_case(s, "filter_save_and_load", filter_save_and_load);
-	create_case(s, "filter_sync_vcard_only", filter_sync_vcard_only);
+	//create_case(s, "filter_sync_vcard_only", filter_sync_vcard_only); // TODO, see testcase description
 	create_case(s, "filter_destobjtype_delete", filter_destobjtype_delete);
 	
 	return s;
