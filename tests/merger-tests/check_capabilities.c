@@ -54,6 +54,8 @@ START_TEST (capabilities_parse)
 	
 	osync_capabilities_unref(capabilities);
 
+	g_free(buffer);
+
 	destroy_testbed(testbed);
 }
 END_TEST

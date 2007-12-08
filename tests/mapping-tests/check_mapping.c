@@ -122,6 +122,7 @@ START_TEST (mapping_compare)
 	fail_unless(error == NULL, NULL);
 	//osync_mapping_entry_update(entry, change);
 	
+	osync_format_env_free(formatenv);
 	
 	destroy_testbed(testbed);
 }

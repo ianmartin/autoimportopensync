@@ -35,6 +35,8 @@ START_TEST (xmlformat_parse)
 	
 	osync_xmlformat_unref(xmlformat);
 
+	g_free(buffer);
+
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -55,6 +57,8 @@ START_TEST (xmlformat_sort)
 	osync_xmlformat_sort(xmlformat);
 	
 	osync_xmlformat_unref(xmlformat);
+
+	g_free(buffer);
 
 	destroy_testbed(testbed);
 }
@@ -350,6 +354,8 @@ START_TEST (xmlfield_sort)
 	}
 	
 	osync_xmlformat_unref(xmlformat);
+
+	g_free(buffer);
 
 	destroy_testbed(testbed);
 }

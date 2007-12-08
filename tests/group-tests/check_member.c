@@ -12,6 +12,7 @@ START_TEST (test_create)
   OSyncMember *member = NULL;
   member = osync_member_new(NULL);
   fail_unless(member != NULL, "Member == NULL on creation");
+  osync_member_unref(member);
 }
 END_TEST
 

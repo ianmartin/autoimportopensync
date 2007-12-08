@@ -49,6 +49,8 @@ START_TEST (engine_new)
 	osync_engine_ref(engine);
 	osync_engine_unref(engine);
 	osync_engine_unref(engine);
+
+	osync_group_unref(group);
 	
 	destroy_testbed(testbed);
 }
@@ -96,6 +98,8 @@ START_TEST (engine_init)
 	fail_unless(error == NULL, NULL);
 	
 	osync_engine_unref(engine);
+
+	osync_group_unref(group);
 	
 	destroy_testbed(testbed);
 }
