@@ -593,6 +593,7 @@ START_TEST (single_init_error)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(!osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
@@ -621,6 +622,7 @@ START_TEST (double_init_error)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(!osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
@@ -649,6 +651,7 @@ START_TEST (no_config_error)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(!osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
@@ -677,6 +680,7 @@ START_TEST (no_objtype_error)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(!osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
@@ -705,6 +709,7 @@ START_TEST (dual_connect_error)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
