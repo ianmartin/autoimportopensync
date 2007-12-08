@@ -40,4 +40,6 @@ struct OSyncVersion{
 	char *identifier;
 };
 
+OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir);
+
 #endif /*OPENSYNC_VERSION_INTERNALS_H_*/

@@ -337,11 +337,12 @@ error:
 }
 
 
-OSyncList *osync_version_load_from_descriptions(OSyncError **error)
+OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir)
 {
 	GDir *dir = NULL;
 	GError *gerror = NULL;
-	const char *path = OPENSYNC_DESCRIPTIONSDIR; 
+	const char *descpath = descriptiondir ? descriptiondir : OPENSYNC_DESCRIPTIONSDIR; 
+	const char *schemapath = schemadir ? schemadir : OPENSYNC_SCHEMASDIR; 
 	char *filename = NULL;
 	const gchar *de = NULL;
 	OSyncList *versions = NULL;
@@ -353,15 +354,15 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	dir = g_dir_open(path, 0, &gerror);
+	dir = g_dir_open(descpath, 0, &gerror);
 	if (!dir) {
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", path, gerror->message);
+		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", descpath, gerror->message);
 		g_error_free(gerror);
 		goto error;
 	}
 	
 	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s", path, de);
+		filename = g_strdup_printf ("%s/%s", descpath, de);
 		
 		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.xml", filename)) {
 			g_free(filename);
@@ -382,7 +383,7 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 			continue;
 		}
 
-		char *schemafilepath = g_strdup_printf("%s%c%s", OPENSYNC_SCHEMASDIR, G_DIR_SEPARATOR, "descriptions.xsd");
+		char *schemafilepath = g_strdup_printf("%s%c%s", schemapath, G_DIR_SEPARATOR, "descriptions.xsd");
  		osync_bool res = osync_xml_validate_document(doc, schemafilepath);
  		g_free(schemafilepath);
 
@@ -437,6 +438,12 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
+
+OSyncList *osync_version_load_from_descriptions(OSyncError **error)
+{
+	return _osync_version_load_from_descriptions(error, NULL, NULL);
+}
+
 
 OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncError **error)
 {
