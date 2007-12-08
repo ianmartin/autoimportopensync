@@ -277,7 +277,7 @@ START_TEST (xmlformat_event_schema)
 
 	g_free(buffer);
 
-	fail_unless(osync_xmlformat_validate(xmlformat) != FALSE, NULL);
+	fail_unless(_osync_xmlformat_validate(xmlformat, testbed) != FALSE, NULL);
 
 	osync_xmlformat_unref(xmlformat);
 

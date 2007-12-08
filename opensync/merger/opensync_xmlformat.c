@@ -91,6 +91,28 @@ static int _osync_xmlformat_subtract_points(OSyncXMLField *xmlfield, OSyncXMLPoi
 	return p;
 }
 
+/**
+ * @brief Validate the xmlformat against its schema in inidivual path
+ * @param xmlformat The pointer to a xmlformat object 
+ * @param path The individual schema path. If NULL the default OPENSYNC_SCHEMASDIR is used.
+ * @return TRUE if xmlformat valid else FALSE
+ */
+osync_bool _osync_xmlformat_validate(OSyncXMLFormat *xmlformat, const char *path)
+{
+	osync_assert(xmlformat);
+	
+	char *schemafilepath = g_strdup_printf("%s%c%s%s%s",
+		path ? path : OPENSYNC_SCHEMASDIR,
+		G_DIR_SEPARATOR,
+		"xmlformat-",
+		osync_xmlformat_get_objtype(xmlformat),
+		".xsd");
+ 	osync_bool res = osync_xml_validate_document(xmlformat->doc, schemafilepath);
+ 	g_free(schemafilepath);
+	
+	return res;
+}
+
 /*@}*/
 
 /**
@@ -377,17 +399,8 @@ osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, un
 osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
 {
 	osync_assert(xmlformat);
-	
-	char *schemafilepath = g_strdup_printf("%s%c%s%s%s",
-		OPENSYNC_SCHEMASDIR,
-		G_DIR_SEPARATOR,
-		"xmlformat-",
-		osync_xmlformat_get_objtype(xmlformat),
-		".xsd");
- 	osync_bool res = osync_xml_validate_document(xmlformat->doc, schemafilepath);
- 	g_free(schemafilepath);
-	
-	return res;
+
+	return _osync_xmlformat_validate(xmlformat, NULL);
 }
 
 /**
