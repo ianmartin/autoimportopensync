@@ -128,6 +128,8 @@ START_TEST (archive_load_data)
 	fail_unless(error == NULL, NULL);
 	fail_unless(size == testsize);
 	fail_unless(memcmp(buffer, testdata, testsize) == 0);
+
+	g_free(buffer);
 		
 	osync_archive_unref(archive);
 
@@ -170,6 +172,8 @@ START_TEST (archive_load_data_with_closing_db)
 	fail_unless(error == NULL, NULL);
 	fail_unless(size == testsize);
 	fail_unless(memcmp(buffer, testdata, testsize) == 0);
+
+	g_free(buffer);
 		
 	osync_archive_unref(archive);
 
