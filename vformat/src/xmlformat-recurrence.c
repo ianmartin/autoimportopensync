@@ -487,20 +487,67 @@ OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttri
 	return xmlfield;
 }
 
+
+/*
+ * Basic & Extended Recurrence Rules (iCalendar)
+ *
+ * The functions below are necessary for converting a xmlformat-event 
+ * to a iCalendar Recurrence Rule.
+ *
+ * Description:
+ * convert_xml_rrule_to_ical         converts a rrule in xmlformat to ical
+ */
+
 VFormatAttribute *convert_xml_rrule_to_ical(VFormat *vformat, OSyncXMLField *xmlfield, const char *rulename, const char *encoding)
 {
-/*
-	g_assert(vformat);
-	g_assert(xmlfield);
-	g_assert(name);
-
-	osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", name);
-	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
-	add_values(attr, xmlfield, encoding);
-	vformat_add_attribute(vformat, attr);
-	return attr;
-*/
 	VFormatAttribute *attr = vformat_attribute_new(NULL, rulename);
+
+	int i, attributes = osync_xmlfield_get_key_count(xmlfield);
+	for (i = 0; i < attributes; i++) {
+		const char *attrname = osync_xmlfield_get_nth_key_name(xmlfield, i);
+		const char *attrvalue = osync_xmlfield_get_nth_key_value(xmlfield, i);
+		if (attrname != NULL && attrvalue != NULL) {
+			GString *value = g_string_new("");
+			if (!strcmp(attrname, "Frequency")) {
+				value = g_string_append(value, "FREQ=");
+			} else if (!strcmp(attrname, "Until")) {
+				value = g_string_append(value, "UNTIL=");
+			} else if (!strcmp(attrname, "Count")) {
+				value = g_string_append(value, "COUNT=");
+			} else if (!strcmp(attrname, "Interval")) {
+				value = g_string_append(value, "INTERVAL=");
+			} else if (!strcmp(attrname, "BySecond")) {
+				value = g_string_append(value, "BYSECOND=");
+			} else if (!strcmp(attrname, "ByMinute")) {
+				value = g_string_append(value, "BYMINUTE=");
+			} else if (!strcmp(attrname, "ByHour")) {
+				value = g_string_append(value, "BYHOUR=");
+			} else if (!strcmp(attrname, "ByDay")) {
+				value = g_string_append(value, "BYDAY=");
+			} else if (!strcmp(attrname, "ByMonthDay")) {
+				value = g_string_append(value, "BYMONTHDAY=");
+			} else if (!strcmp(attrname, "ByYearDay")) {
+				value = g_string_append(value, "BYYEARDAY=");
+			} else if (!strcmp(attrname, "ByWeekNo")) {
+				value = g_string_append(value, "BYWEEKNO=");
+			} else if (!strcmp(attrname, "ByMonth")) {
+				value = g_string_append(value, "BYMONTH=");
+			} else if (!strcmp(attrname, "BySetPos")) {
+				value = g_string_append(value, "BYSETPOS=");
+			} else if (!strcmp(attrname, "WKST")) {
+				value = g_string_append(value, "WKST=");
+			} else {
+				osync_trace(TRACE_INTERNAL, "WARNING: found unknown value: %s", attrname);
+				g_string_free(value, TRUE);
+				continue;
+			}
+
+			value = g_string_append(value, attrvalue);
+			vformat_attribute_add_value(attr, value->str);
+			g_string_free(value, TRUE);
+		}
+	}
+
 	vformat_add_attribute(vformat, attr);
 	return attr;
 }
