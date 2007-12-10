@@ -459,7 +459,7 @@ int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error)
  */
 osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %u, %p)", __func__, db, query, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %u, %p)", __func__, db, query, size, error);
 	osync_trace(OSYNC_SENSITIVE, "data parameter : %s", data);
 
 	osync_assert(db);
