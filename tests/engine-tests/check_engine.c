@@ -1913,7 +1913,7 @@ Suite *engine_suite(void)
 	create_case(s, "engine_sync_reuse", engine_sync_reuse);
 	
 	// This test cases would timeout within 30seconds (default timeout) - at least if OSYNC_TRACE is enabled -> higher timeout
-	create_case_timeout(s, "engine_sync_stress", engine_sync_stress, 60);
+	create_case_timeout(s, "engine_sync_stress", engine_sync_stress, 120);
 
 	create_case_timeout(s, "engine_sync_read_write_stress", engine_sync_read_write_stress, 300);
 	create_case(s, "engine_sync_read_write", engine_sync_read_write);
