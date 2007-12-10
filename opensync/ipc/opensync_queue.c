@@ -839,10 +839,18 @@ OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 	 * If we are sending, we can only receive a POLLERR which means that the remote side has
 	 * disconnected. Since we mainly dispatch the write IO, we dont want to block here. */
 	int ret = poll(&pfd, 1, queue->type == OSYNC_QUEUE_SENDER ? 0 : 100);
-	
-	if (ret == 0)
+
+	if (ret == 0) 
 		return OSYNC_QUEUE_EVENT_NONE;	
-	
+
+	/* Ignore interrupts. */
+	if  (ret < 0 && errno == EINTR) 
+		return OSYNC_QUEUE_EVENT_NONE;
+
+	if (ret < 0 )
+		osync_trace(TRACE_ERROR, "queue poll failed - system error :%i %s", errno, strerror(errno));
+
+
 	if (pfd.revents & POLLERR)
 		return OSYNC_QUEUE_EVENT_ERROR;
 	else if (pfd.revents & POLLHUP)
