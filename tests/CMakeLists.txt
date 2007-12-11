@@ -4,7 +4,7 @@ INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} ${CHECK_INCLUDE_DIR} ${GLIB2_IN
 ADD_SUBDIRECTORY( mock-plugin )
 
 ########### support #################	
-ADD_LIBRARY( support SHARED support.c )
+ADD_LIBRARY( support STATIC support.c )
 TARGET_LINK_LIBRARIES( support opensync-testing ${CHECK_LIBRARIES} )
 
 ############ unit tests ##########################	
