@@ -90,6 +90,7 @@ START_TEST (engine_init)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -292,6 +293,7 @@ START_TEST (engine_sync)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -588,6 +590,7 @@ static void discover_member(const char *testbed, OSyncDebugGroup *debug, OSyncMe
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_discover_and_block(engine, member, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -608,6 +611,7 @@ START_TEST (engine_sync_multi_obj)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -997,6 +1001,7 @@ START_TEST (engine_sync_out_of_order)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1218,6 +1223,7 @@ START_TEST (engine_sync_reuse)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1259,6 +1265,7 @@ START_TEST (engine_sync_stress)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
