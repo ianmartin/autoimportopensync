@@ -356,9 +356,10 @@ OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char 
 	
 	dir = g_dir_open(descpath, 0, &gerror);
 	if (!dir) {
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", descpath, gerror->message);
+		/* If description directory doesn't exist (e.g. unittests), just ignore this. */
+		osync_trace(TRACE_EXIT, "Unable to open directory %s: %s", descpath, gerror->message);
 		g_error_free(gerror);
-		goto error;
+		return NULL;
 	}
 	
 	while ((de = g_dir_read_name(dir))) {
