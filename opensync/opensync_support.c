@@ -521,44 +521,15 @@ void osync_thread_start(OSyncThread *thread)
 
 
 
-static
-gboolean _stopthread_prepare(GSource *source, gint *timeout_)
-{
-        *timeout_ = 0;
-        return TRUE;
-}
-
-static
-gboolean _stopthread_check(GSource *source)
-{
-                return TRUE;
-}
-
-static
-gboolean _stopthread_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
-{
-	return callback(user_data);
-}
-
 void osync_thread_stop(OSyncThread *thread)
 {
 	GSource *source = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
 	osync_assert(thread);
 
-	// create a fake idle source (a g_idle_source_new rel idle source would
-	// not fire up if there no other source of events dixit gimpnet #gtk ebassi).
-	// This way we call the osyncThreadStopCallback to close the thread gmainloop
-	// (and thus close the thread itself as it was the function given to g_thread_create).
-        GSourceFuncs *stopthread_functions = g_malloc0(sizeof(GSourceFuncs));
-        stopthread_functions->prepare = _stopthread_prepare;
-        stopthread_functions->check = _stopthread_check;
-        stopthread_functions->dispatch = _stopthread_dispatch;
-        stopthread_functions->finalize = NULL;
-        source = g_source_new(stopthread_functions, sizeof(GSource)+sizeof(OSyncThread));
+        source = g_idle_source_new();
 	g_source_set_callback(source, osyncThreadStopCallback, thread, NULL);
         g_source_attach(source, thread->context);
-
 
 	g_thread_join(thread->thread);
 	thread->thread = NULL;
