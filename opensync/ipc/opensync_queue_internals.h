@@ -42,6 +42,8 @@ struct OSyncQueue {
 	GSourceFuncs *read_functions;
 	GSource *read_source;
 	
+	GMutex *disconnectLock;
+
 	osync_bool connected;
 };
 

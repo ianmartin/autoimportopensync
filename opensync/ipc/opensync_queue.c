@@ -473,6 +473,8 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	queue->outgoing = g_async_queue_new();
 	queue->incoming = g_async_queue_new();
 
+	queue->disconnectLock = g_mutex_new();
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, queue);
 	return queue;
 
@@ -561,6 +563,8 @@ void osync_queue_free(OSyncQueue *queue)
 	
 	g_mutex_free(queue->pendingLock);
 	
+	g_mutex_free(queue->disconnectLock);
+
 	g_main_context_unref(queue->context);
 
 	_osync_queue_stop_incoming(queue);
@@ -585,6 +589,7 @@ void osync_queue_free(OSyncQueue *queue)
 		g_free(queue->name);
 		
 	g_free(queue);
+	queue = NULL;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -717,7 +722,8 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
 	osync_assert(queue);
-	
+
+	g_mutex_lock(queue->disconnectLock);
 	if (queue->thread) {
 		osync_thread_stop(queue->thread);
 		osync_thread_free(queue->thread);
@@ -750,6 +756,7 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 	
 	queue->fd = -1;
 	queue->connected = FALSE;
+	g_mutex_unlock(queue->disconnectLock);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
