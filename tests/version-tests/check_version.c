@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include <opensync/opensync-version.h>
+#include <opensync/version/opensync-version_internals.h>
 
 START_TEST (version_new)
 {
