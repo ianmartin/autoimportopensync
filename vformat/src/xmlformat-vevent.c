@@ -475,7 +475,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter); // (ATTENDEE)
 	// TODO -> STATUS // (ATTENDEE)
-	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_parameter); // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_vcal_parameter); // (ATTENDEE)
 	// TODO -> EXPECT // (ATTENDEE)
 
 

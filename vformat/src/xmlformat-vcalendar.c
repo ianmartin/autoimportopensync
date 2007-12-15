@@ -114,9 +114,16 @@ void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	// FIXME: TRUE/FALSE vs. YES/NO - different handling in vcal 10|20?
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
+	const char *rsvp = vformat_attribute_param_get_nth_value(param, 0);
+
+	if (!strcmp(rsvp, "YES")) {
+		osync_xmlfield_set_attr(xmlfield, "Rsvp", "TRUE");
+	} else if (!strcmp(rsvp, "NO")) {
+		osync_xmlfield_set_attr(xmlfield, "Rsvp", "FALSE");
+	} else {	
+		osync_xmlfield_set_attr(xmlfield, "Rsvp", rsvp);
+	}
 }
 
 void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -891,6 +898,19 @@ void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
 	const char *content = osync_xmlfield_get_attr(xmlfield, "Rsvp");
 	vformat_attribute_add_param_with_value(attr, "RSVP", content);
+}
+
+void handle_xml_rsvp_vcal_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Rsvp");
+	if (!strcmp(content, "TRUE")) {
+		vformat_attribute_add_param_with_value(attr, "RSVP", "YES");
+	} else if (!strcmp(content, "FALSE")) {
+		vformat_attribute_add_param_with_value(attr, "RSVP", "NO");
+	} else {
+		vformat_attribute_add_param_with_value(attr, "RSVP", content);
+	}
 }
 
 void handle_xml_sent_by_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)

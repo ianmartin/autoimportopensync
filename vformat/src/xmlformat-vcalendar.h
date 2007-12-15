@@ -204,6 +204,7 @@ void handle_xml_related_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfiel
 void handle_xml_reltype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_role_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
+void handle_xml_rsvp_vcal_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_sent_by_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 
