@@ -344,7 +344,9 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	//osync_version_set_hardwareversion(version, "hardwareversion");
 	osync_plugin_info_set_version(info, version);
 	osync_version_unref(version);
-	
+
+/* generate wrong capabilities format : those are evolution2 capabilities format not xmlformat capabilities
+ * FIXME : either create a mapping between evolution2 capabilities and xmlformat one or ship an evolution2 xmlformat type capabilities file and load it there
 	EBook* ebook;
 	if (!(ebook = e_book_new_default_addressbook(&gerror))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
@@ -374,7 +376,7 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	
 	osync_plugin_info_set_capabilities(info, capabilities);
 	osync_capabilities_unref(capabilities);
-	
+*/
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
