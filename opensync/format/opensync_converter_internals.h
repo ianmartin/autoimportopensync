@@ -28,7 +28,7 @@ struct OSyncFormatConverter {
 	OSyncObjFormat *target_format;
 	OSyncFormatConvertFunc convert_func;
 	OSyncFormatDetectFunc detect_func;
-	ConverterType type;
+	OSyncConverterType type;
 	int ref_count;
 };
 

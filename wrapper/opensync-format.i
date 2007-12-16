@@ -1,4 +1,4 @@
-typedef enum {} ConverterType;
+typedef enum {} OSyncConverterType;
 
 %constant int CONVERTER_CONV = OSYNC_CONVERTER_CONV;
 %constant int CONVERTER_ENCAP = OSYNC_CONVERTER_ENCAP;
@@ -30,7 +30,7 @@ typedef struct {} FormatConverter;
 		return ret;
 	}
 
-	ConverterType get_type() {
+	OSyncConverterType get_type() {
 		return osync_converter_get_type(self);
 	}
 

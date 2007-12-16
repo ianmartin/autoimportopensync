@@ -30,19 +30,19 @@ typedef enum {
 	OSYNC_CONVERTER_DECAP = 3,
 	/** Detector */
 	OSYNC_CONVERTER_DETECTOR = 4
-} ConverterType;
+} OSyncConverterType;
 
 typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size);
 typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 
-OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
+OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error);
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_ref(OSyncFormatConverter *converter);
 OSYNC_EXPORT void osync_converter_unref(OSyncFormatConverter *converter);
 
 OSYNC_EXPORT OSyncObjFormat *osync_converter_get_sourceformat(OSyncFormatConverter *converter);
 OSYNC_EXPORT OSyncObjFormat *osync_converter_get_targetformat(OSyncFormatConverter *converter);
-OSYNC_EXPORT ConverterType osync_converter_get_type(OSyncFormatConverter *converter);
+OSYNC_EXPORT OSyncConverterType osync_converter_get_type(OSyncFormatConverter *converter);
 
 OSYNC_EXPORT OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncData *data);
 OSYNC_EXPORT osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *data, const char *config, OSyncError **error);

@@ -42,7 +42,7 @@
  * @param error Pointer to an error struct
  * @returns The pointer to the newly allocated converter or NULL in case of error
  */
-OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error)
+OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error)
 {
 	OSyncFormatConverter *converter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %p, %p)", __func__, type, sourceformat, targetformat, convert_func, error);
@@ -153,7 +153,7 @@ OSyncObjFormat *osync_converter_get_targetformat(OSyncFormatConverter *converter
  * @param converter Pointer to the converter
  * @returns The type of the specified converter
  */
-ConverterType osync_converter_get_type(OSyncFormatConverter *converter)
+OSyncConverterType osync_converter_get_type(OSyncFormatConverter *converter)
 {
 	osync_assert(converter);
 	return converter->type;
