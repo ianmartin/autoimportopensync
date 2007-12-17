@@ -35,6 +35,7 @@ OSYNC_EXPORT OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield);
 
 OSYNC_EXPORT const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr);
 OSYNC_EXPORT void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const char *value);
+OSYNC_EXPORT osync_bool osync_xmlfield_set_child_attr(OSyncXMLField *xmlfield, const char *child, const char *attr, const char *value);
 OSYNC_EXPORT int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield);
 OSYNC_EXPORT const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth);
 OSYNC_EXPORT const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth);

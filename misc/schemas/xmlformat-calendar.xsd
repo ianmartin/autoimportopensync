@@ -29,10 +29,10 @@
     <xsd:sequence>
       <!-- Action was already set by renaming the xmlfield to e.g. AlarmAudio -->
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
-      <!-- TODO only allow Attachment element if Action is SOUND or PROCEDURE --> 
+      <!-- TODO only allow Attachment element if Action is AUDIO or PROCEDURE --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="Attachment"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttendee" type="xsd:string"/>
-      <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
+      <!-- TODO only allow Description element if Action is DISPLAY or EMAIL --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeatDuration" type="xsd:string"/>
@@ -43,6 +43,7 @@
     <!-- Following fields are required for AlarmDescription -->
     <xsd:attribute name="AlternativeTextRep" type="xsd:string"/>
     <xsd:attribute name="Language" type="xsd:string"/>
+    <xsd:attribute name="Type" type="xsd:string"/>
   </xsd:complexType>
 
   <!-- Use AlarmRelatedEnd if the alarm got triggered related to the end point of the appointment.
@@ -52,7 +53,7 @@
   <xsd:complexType name="AlarmRelatedEnd">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
-      <!-- TODO only allow Attachment element if Action is SOUND or PROCEDURE --> 
+      <!-- TODO only allow Attachment element if Action is AUDIO or PROCEDURE --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="Attachment"/>
       <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="MultiText"/>
@@ -96,11 +97,11 @@
     </xsd:restriction>
   </xsd:simpleType>
    
-  <xsd:complexType name="Attachment">
-    <xsd:sequence>
+  <xsd:complexType name="Attachment" mixed="true">
+<!--    <xsd:sequence>
       <xsd:element minOccurs="1" name="Content" type="xsd:anyURI"/>
     </xsd:sequence>
-    <xsd:attribute name="Value" type="AttachmentType"/>
+-->    <xsd:attribute name="Value" type="AttachmentType"/>
     <xsd:attribute name="FormatType" type="xsd:string"/>
     <xsd:attribute name="Encoding" type="xsd:string"/>
   </xsd:complexType>
@@ -123,6 +124,15 @@
       <xsd:list itemType="CalAddress"/>
   </xsd:simpleType>
 
+  <xsd:simpleType name="VcalExpectType">
+    <xsd:restriction base="xsd:string">
+    	<xsd:enumeration value="FYI"/>
+    	<xsd:enumeration value="REQUIRE"/>
+    	<xsd:enumeration value="REQUEST"/>
+    	<xsd:enumeration value="IMMEDIATE"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <xsd:simpleType name="RoleType">
     <xsd:restriction base="xsd:string">
     	<xsd:enumeration value="CHAIR"/>
@@ -132,12 +142,36 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <xsd:simpleType name="VcalRoleType">
+    <xsd:restriction base="xsd:string">
+    	<xsd:enumeration value="ATTENDEE"/>
+    	<xsd:enumeration value="ORGANIZER"/>
+    	<xsd:enumeration value="OWNER"/>
+    	<xsd:enumeration value="DELEGATE"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <xsd:simpleType name="ParticipationStatusType">
     <xsd:restriction base="xsd:string">
     	<xsd:enumeration value="NEEDS-ACTION"/>
 	<xsd:enumeration value="ACCEPTED"/>
-	<xsd:enumeration value="DECLINED"/>
 	<xsd:enumeration value="TENTATIVE"/>
+	<xsd:enumeration value="DECLINED"/>
+	<xsd:enumeration value="DELEGATED"/>
+	<xsd:enumeration value="COMPLETED"/>
+	<xsd:enumeration value="IN-PROCESS"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="VcalParticipationStatusType">
+    <xsd:restriction base="xsd:string">
+	<xsd:enumeration value="ACCEPTED"/>
+    	<xsd:enumeration value="NEEDS ACTION"/>
+	<xsd:enumeration value="SENT"/>
+	<xsd:enumeration value="TENTATIVE"/>
+	<xsd:enumeration value="CONFIRMED"/>
+	<xsd:enumeration value="DECLINED"/>
+	<xsd:enumeration value="COMPLETED"/>
 	<xsd:enumeration value="DELEGATED"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -148,7 +182,10 @@
     </xsd:sequence>
     <xsd:attribute name="CUType" type="CalendarUserType"/>
     <xsd:attribute name="Member" type="CalAddressList"/>
+    <xsd:attribute name="Expect" type="VcalExpectType"/>
     <xsd:attribute name="Role" type="RoleType"/>
+    <xsd:attribute name="X-Role" type="VcalRoleType"/>
+    <xsd:attribute name="Status" type="VcalParticipationStatusType"/>
     <xsd:attribute name="PartStat" type="ParticipationStatusType"/>
     <xsd:attribute name="Rsvp" type="Bool"/>
     <xsd:attribute name="DelegatedTo" type="CalAddressList"/>
