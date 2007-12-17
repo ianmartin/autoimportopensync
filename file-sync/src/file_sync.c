@@ -325,8 +325,11 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 			break;
 		case OSYNC_CHANGE_TYPE_ADDED:
 			if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-				osync_error_set(&error, OSYNC_ERROR_EXISTS, "Entry already exists");
-				goto error;
+                                 const char *newid = g_strdup_printf ("%s-new", osync_change_get_uid(change));
+                                 osync_change_set_uid(change, newid);
+                                 osync_filesync_write(data, info, ctx, change);
+                                //osync_error_set(&error, OSYNC_ERROR_EXISTS, "Entry already exists : %s", filename);
+                                //goto error;
 			}
 			/* No break. Continue below */
 		case OSYNC_CHANGE_TYPE_MODIFIED:
