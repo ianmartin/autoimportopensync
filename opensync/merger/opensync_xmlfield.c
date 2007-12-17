@@ -300,33 +300,6 @@ void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const ch
 }
 
 /**
- * @brief Set the attribute name and the attribute value of a xmlfield child
- * @param xmlfield The pointer to a xmlfield object
- * @param child The name of the xmlfield child
- * @param attr The name of the attribute
- * @param value The value of the attribute
- * @return true on success and false on failure (child not found)
- */
-osync_bool osync_xmlfield_set_child_attr(OSyncXMLField *xmlfield, const char *child, const char *attr, const char *value)
-{
-	osync_assert(xmlfield);
-	osync_assert(child);
-	osync_assert(attr);
-	osync_assert(value);
-
-	xmlNodePtr cur = xmlfield->node->children;
-	if (cur == NULL) return FALSE;
-	for(; cur != NULL; cur = cur->next) {
-		if(!xmlStrcmp(cur->name, BAD_CAST child))
-		{
-			xmlSetProp(cur, BAD_CAST attr, BAD_CAST value);
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
-/**
  * @brief Get the count of attributes of a xmlfield
  * @param xmlfield The pointer to a xmlfield object
  * @return The count of attributes of the xmlfield
