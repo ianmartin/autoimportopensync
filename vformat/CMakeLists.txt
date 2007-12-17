@@ -27,7 +27,3 @@ ENDIF ( CHECK_FOUND )
 OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
 
 
-### CPack ########################################
-
-OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
-
