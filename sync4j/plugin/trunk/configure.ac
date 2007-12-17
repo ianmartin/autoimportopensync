@@ -17,7 +17,7 @@ dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 dnl
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync SyncML client Plugin], 0.32, [], syncml-client-plugin)
+AC_INIT([OpenSync SyncML client Plugin], 0.35, [], syncml-client-plugin)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/syncml-client-plugin.cpp)
 AC_CONFIG_HEADER(config.h)

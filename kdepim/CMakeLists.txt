@@ -1,6 +1,6 @@
 PROJECT( libopensync-plugin-kdepim )
 
-SET( VERSION "0.34" )
+SET( VERSION "0.35" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 

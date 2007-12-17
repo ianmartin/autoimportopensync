@@ -1,6 +1,6 @@
 PROJECT( libopensync-plugin-syncml C )
 
-SET( VERSION "0.34" )
+SET( VERSION "0.35" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_INSTALL_PREFIX}/share/opensync-1.0/cmake/modules/")
