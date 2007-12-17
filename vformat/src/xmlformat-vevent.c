@@ -52,7 +52,9 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "CHARSET", HANDLE_IGNORE); // handle_vcal_charset_parameter
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
 	insert_param_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
+	insert_param_handler(hooks->parameters, "X-ROLE", handle_vcal_xrole_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
+	insert_param_handler(hooks->parameters, "X-STATUS", handle_vcal_xstatus_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "EXPECT", handle_vcal_expect_parameter); // (ATTENDEE)
 
@@ -137,7 +139,10 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "FBTYPE", handle_fb_type_parameter); // fbtypeparam -> TODO xsd
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_language_parameter); // languageparam
 	insert_param_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
-	insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
+	if (target == VFORMAT_EVENT_20)
+		insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_vevent_parameter); // partstatparam
+	else
+		insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
 	insert_param_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
 	insert_param_handler(hooks->parameters, "RELATED", handle_trigrel_parameter); // trigrelparam -> TODO xsd
 	insert_param_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
@@ -473,11 +478,17 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->parameters, "Encoding", handle_xml_encoding_parameter);
 	// TODO -> CHARSET
 	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter); // (ATTENDEE)
-	// TODO -> STATUS // (ATTENDEE)
-	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_vcal_parameter); // (ATTENDEE)
-	// TODO -> EXPECT // (ATTENDEE)
-
+	// Role was redefined in iCal and so we need two different parameters
+	// X-Role (vCal) --> vCal ROLE
+	// Role (iCal)   --> vCal X-ROLE
+	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_vcal_xrole_parameter); // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "X-Role", handle_xml_vcal_role_parameter); // (ATTENDEE)
+	// vCal Status was renamed to iCal PartStat (mapping is partly possible)
+	// X-STATUS usually contains PARTSTAT
+	insert_xml_attr_handler(hooks->parameters, "Status", handle_xml_vcal_status_parameter); // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_vcal_xstatus_parameter); // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_vcal_rsvp_parameter); // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "Expect", handle_xml_vcal_expect_parameter); // (ATTENDEE)
 
         // [vcal-1.0] calprop (same order as in spec!)
 	// TODO -> DAYLIGHT

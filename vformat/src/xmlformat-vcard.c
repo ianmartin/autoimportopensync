@@ -55,37 +55,37 @@ static void handle_emailtype_internet_parameter(OSyncXMLField *xmlfield, VFormat
 
 static void handle_location_home_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Location parameter");
 	osync_xmlfield_set_attr(xmlfield, "Location", "Home");
 }
 
 static void handle_location_work_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Location parameter");
 	osync_xmlfield_set_attr(xmlfield, "Location", "Work");
 }
 
 static void handle_location_other_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Location parameter");
 	osync_xmlfield_set_attr(xmlfield, "Location", "Other");
 }
 
 static void handle_preferred_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Preferred parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Preferred parameter");
 	osync_xmlfield_set_attr(xmlfield, "Preferred", "true");
 }
 
 static void handle_radio_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Radio parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Radio parameter");
 	osync_xmlfield_set_attr(xmlfield, "Type", "Radio");
 }
 
 static void handle_telex_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Telex parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Telex parameter");
 	osync_xmlfield_set_attr(xmlfield, "Type", "Telex");
 }
 
@@ -102,25 +102,25 @@ static void handle_telex_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 static void handle_type_car_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter");
 	osync_xmlfield_set_attr(xmlfield, "Type", "Car");
 }
 
 static void handle_type_cellular_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter");
 	osync_xmlfield_set_attr(xmlfield, "Type", "Cellular");
 }
 
 static void handle_type_fax_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter");
 	osync_xmlfield_set_attr(xmlfield, "Type", "Fax");
 }
 
 static void handle_type_voice_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter");
 	osync_xmlfield_set_attr(xmlfield, "Type", "Voice");
 }
 
