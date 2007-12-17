@@ -251,8 +251,7 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 	set_session_user(env, __func__);
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
+	SmlDatabase *database = get_database_from_plugin_info(info);
 
 	database->getChangesCtx = ctx;
 	osync_context_ref(database->getChangesCtx);
@@ -260,39 +259,10 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 
-	// if this is not a server then the DsSession is not always started
-	// sometimes we start the DsSession (e.g. if we are the client)
-	if (!database->session &&
-		smlTransportGetType(env->tsp) == SML_TRANSPORT_HTTP_CLIENT &&
-		 osync_objtype_sink_get_slowsync(database->sink))
-	{
-		// if there is no DsSession and we have a slowsync
-		// then we MUST initiate a sync which forces us
-		// to create a new DsSession
-		database->session = smlDsServerSendAlert(
-					database->server,
-					env->session, 
-					SML_ALERT_SLOW_SYNC,
-                                        NULL, NULL, 
-					_recv_alert_reply, database, 
-					&error);
-		if (!database->session)
-			goto error;
-	}
-
-	if (database->session)
-	{
-		// sometimes the DsSession is established later
-		// so get_changeinfo must be called several times or
-		// we have to workaround the asnychronous behaviour of libsyncml
-		if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
-			smlDsSessionGetAlert(database->session, _recv_alert, database);
-		}
-	
-		smlDsSessionGetEvent(database->session, _ds_event, database);
-		smlDsSessionGetSync(database->session, _recv_sync, database);
-		smlDsSessionGetChanges(database->session, _recv_change, database);
-	}
+	smlDsSessionGetAlert(database->session, _recv_alert, database);
+	smlDsSessionGetEvent(database->session, _ds_event, database);
+	smlDsSessionGetSync(database->session, _recv_sync, database);
+	smlDsSessionGetChanges(database->session, _recv_change, database);
 
 	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;
@@ -317,8 +287,7 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
+	SmlDatabase *database = get_database_from_plugin_info(info);
 
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
@@ -503,8 +472,7 @@ void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncCon
 
     SmlError  *error = NULL;
     OSyncError  *oserror = NULL;
-    OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-    SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
+    SmlDatabase *database = get_database_from_plugin_info(info);
     set_session_user(database->env, __func__);
 
     unsigned int num = get_num_changes(changes);
@@ -622,4 +590,13 @@ osync_bool init_objformat(OSyncPluginInfo *info, SmlDatabase *database, OSyncErr
 	osync_objtype_sink_add_objformat(database->sink, database->objformat_name);
 
 	return TRUE;
+}
+
+SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info)
+{
+    osync_trace(TRACE_ENTRY, "%s", __func__);
+    OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+    SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
+    osync_trace(TRACE_EXIT, "%s - %s", __func__, database->url);
+    return database;
 } 

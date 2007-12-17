@@ -209,10 +209,15 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         _add_ctcap_property_by_name(ctcap, "LOCATION");
         _add_ctcap_property_by_name(ctcap, "DTSTART");
         _add_ctcap_property_by_name(ctcap, "DTEND");
-        _add_ctcap_property_by_name(ctcap, "ATTENDEE");
+        prop = _add_ctcap_property_by_name(ctcap, "ATTENDEE");
+	_add_property_param(prop, "EXCEPT");
+	_add_property_param(prop, "RSVP");
+	_add_property_param(prop, "STATUS");
+	_add_property_param(prop, "ROLE");
         _add_ctcap_property_by_name(ctcap, "RRULE");
         _add_ctcap_property_by_name(ctcap, "EXDATE");
         _add_ctcap_property_by_name(ctcap, "AALARM");
+        _add_ctcap_property_by_name(ctcap, "ATTACH");
         _add_ctcap_property_by_name(ctcap, "DALARM");
         _add_ctcap_property_by_name(ctcap, "DUE");
         _add_ctcap_property_by_name(ctcap, "PRIORITY");

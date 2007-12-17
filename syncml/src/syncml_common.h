@@ -101,8 +101,6 @@ typedef struct SmlPluginEnv {
 	SmlManager *manager;
 	SmlSession *session;
 	
-	OSyncContext *connectCtx;
-
 	SmlNotification *san;
 
 	GList *databases;
@@ -135,6 +133,8 @@ typedef struct SmlDatabase {
 	OSyncObjTypeSink *sink;
 	char *objtype;	
 	char *url;
+
+	OSyncContext *connectCtx;
 
 	OSyncChange **syncChanges;
 	OSyncContext **syncContexts;
@@ -191,6 +191,8 @@ SmlBool flush_session_for_all_databases(
 			SmlPluginEnv *env,
 			SmlBool activeDatabase,
 			SmlError **error);
+
+SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info);
 
 /* this is a helper function which adds an object to a GList */
 /* the function guarantees that an object exists only once in */

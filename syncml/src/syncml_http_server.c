@@ -26,16 +26,17 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	SmlDatabase *database = get_database_from_plugin_info(info);
 
 	env->tryDisconnect = FALSE;
 
 	/* For the obex client, we will store the context at this point since
 	 * we can only answer it as soon as the device returned an answer to our san */
-	env->connectCtx = ctx;
+	database->connectCtx = ctx;
 
 	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
 	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
-	osync_context_ref(env->connectCtx);
+	osync_context_ref(database->connectCtx);
 
 	/* For the http server we can report success right away since we know
 	 * that we already received an alert (otherwise we could not have triggered
@@ -51,9 +52,11 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	/* If we already received the final, we just report success. otherwise
 	 * we let the final report success */
 	if (env->gotFinal)
-		osync_context_report_success(ctx);
-	else
-		env->connectCtx = ctx;
+	{
+		osync_context_report_success(database->connectCtx);
+		osync_context_unref(database->connectCtx);
+		database->connectCtx = NULL;
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -168,7 +171,9 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!syncml_http_server_parse_config(env, configdata, error))
 		goto error_free_env;
 
-	env->num = 0;	
+	env->num = 0;
+	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	env->mutex = g_mutex_new();
 
 	GList *o = env->databases;
 	for (; o; o = o->next) {
@@ -209,6 +214,7 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->tsp = smlTransportNew(SML_TRANSPORT_HTTP_SERVER, &serror);
 	if (!env->tsp)
 		goto error;
+	smlTransportRunAsync(env->tsp, &serror);
 	
 	/* The manager responsible for handling the other objects */
 	env->manager = smlManagerNew(env->tsp, &serror);

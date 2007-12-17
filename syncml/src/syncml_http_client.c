@@ -59,6 +59,7 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	SmlDatabase *database = get_database_from_plugin_info(info);
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 	g_mutex_lock(env->mutex);
@@ -79,8 +80,8 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	/* we need to ref the context here because we signal the success later */
 	/* later means we signal the success in another function */
 	env->tryDisconnect = FALSE;
-	env->connectCtx = ctx;
-	osync_context_ref(env->connectCtx);
+	database->connectCtx = ctx;
+	osync_context_ref(database->connectCtx);
 	osync_trace(TRACE_INTERNAL, "%s: environment ready", __func__);
 
 	/* prepare credential */
@@ -131,9 +132,9 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	// do not move this to an upper location or
 	// otherwise errors are not detected correctly
 	env->isConnected = TRUE;
-	osync_context_report_success(env->connectCtx);
-	osync_context_unref(env->connectCtx);
-	env->connectCtx = NULL;
+	osync_context_report_success(database->connectCtx);
+	osync_context_unref(database->connectCtx);
+	database->connectCtx = NULL;
 	
 	g_mutex_unlock(env->mutex);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -141,9 +142,9 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(env->connectCtx, oserror);
-	osync_context_unref(env->connectCtx);
-	env->connectCtx = NULL;
+	osync_context_report_osyncerror(database->connectCtx, oserror);
+	osync_context_unref(database->connectCtx);
+	database->connectCtx = NULL;
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 	g_mutex_unlock(env->mutex);
 }
@@ -297,8 +298,7 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
         SmlPluginEnv *env = (SmlPluginEnv *)data;
 
-        OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-        SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
+        SmlDatabase *database = get_database_from_plugin_info(info);
 
         database->getChangesCtx = ctx;
         osync_context_ref(database->getChangesCtx);
@@ -363,14 +363,10 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 			goto error;
 	}
 
-	if (database->session)
-	{
-		// this is for server's alerts
-		smlDsSessionGetAlert(database->session, _recv_alert_from_server, database);
-		smlDsSessionGetEvent(database->session, _ds_event, database);
-		smlDsSessionGetSync(database->session, _recv_sync, database);
-		smlDsSessionGetChanges(database->session, _recv_change, database);
-	}
+	smlDsSessionGetAlert(database->session, _recv_alert_from_server, database);
+	smlDsSessionGetEvent(database->session, _ds_event, database);
+	smlDsSessionGetSync(database->session, _recv_sync, database);
+	smlDsSessionGetChanges(database->session, _recv_change, database);
 
 	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;
@@ -444,14 +440,14 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		goto error;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
 	
-	/* The authenticator */
-	/* disabled because the transport layer handles the authentication */
-	env->auth = smlAuthNew(&serror);
-	if (!env->auth)
-		goto error;
-	smlAuthSetEnable(env->auth, FALSE);
-	if (!smlAuthRegister(env->auth, env->manager, &serror))
-		goto error_free_auth;
+	///* The authenticator */
+	///* disabled because the transport layer handles the authentication */
+	//env->auth = smlAuthNew(&serror);
+	//if (!env->auth)
+	//	goto error;
+	//smlAuthSetEnable(env->auth, FALSE);
+	//if (!smlAuthRegister(env->auth, env->manager, &serror))
+	//	goto error_free_auth;
 	
 	/* Now create the devinf handler */
 	SmlDevInf *devinf;
@@ -551,7 +547,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	return (void *)env;
 
 error_free_auth:
-	smlAuthFree(env->auth);
+	//smlAuthFree(env->auth);
 error_free_manager:
 	smlManagerFree(env->manager);
 error_free_transport:

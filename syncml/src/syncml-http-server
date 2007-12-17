@@ -30,19 +30,21 @@
   <database>
      <name>Contacts</name>
      <objtype>contact</objtype>
+     <objformat>vcard21</objformat>
   </database>
   
   <!-- Calendar database -->
   <database>
      <name>Calendar</name>
      <objtype>event</objtype>
+     <objformat>vevent20</objformat>
   </database>
 
-  
   <!-- Note database -->
   <database>
      <name>Notes</name>
      <objtype>note</objtype>
+     <objformat>vnote10</objformat>
   </database>
 
 </config>

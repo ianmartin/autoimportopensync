@@ -134,14 +134,14 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			osync_trace(TRACE_INTERNAL, "Session %s reported final", smlSessionGetSessionID(session));
 			env->gotFinal = TRUE;
 
-			// FIXME: if we do this then we get a SegFault
-			// FIXME: perhaps OpenSync is too fast and released the context already
-			// FIXME: this can make sense because this is a connect context
-			// FIXME: so if the connect was successful why should there be a connectCtx
-			//if (env->connectCtx) {
-			//	osync_context_report_success(env->connectCtx);
-			//	env->connectCtx = NULL;
-			//}
+			o = env->databases;
+			for (; o; o = o->next) {
+				SmlDatabase *database = o->data;
+				if (database->connectCtx) {
+					osync_context_report_success(database->connectCtx);
+					database->connectCtx = NULL;
+				}
+			}
 
 			o = env->databases;
 			for (; o; o = o->next) {
@@ -186,16 +186,15 @@ error:;
 	OSyncError *oserror = NULL;
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
 	
-	if (env->connectCtx) {
-		osync_context_report_osyncerror(env->connectCtx, oserror);
-		env->connectCtx = NULL;
-	}
-
-	
 	o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
 
+		if (database->connectCtx)
+		{
+			osync_context_report_osyncerror(database->connectCtx, oserror);
+			database->connectCtx = NULL;
+		}
 		
 		if (database->getChangesCtx) {
 			osync_context_report_osyncerror(database->getChangesCtx, oserror);
@@ -275,7 +274,6 @@ SmlBool _recv_alert_from_server(
 
     SmlDatabase *database = (SmlDatabase*) userdata;
     SmlPluginEnv *env = database->env;
-    SmlBool ret = TRUE;
     SmlError *error = NULL;
     OSyncError *oserror = NULL;
 
@@ -314,7 +312,7 @@ SmlBool _recv_alert_from_server(
         goto oserror;
 
     osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
-    return ret;
+    return TRUE;
 error:
     osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
     smlErrorDeref(&error);
@@ -335,17 +333,14 @@ SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last,
 	if ((!last || !osync_anchor_compare(env->anchor_path, key, last)) && type == SML_ALERT_TWO_WAY)
 		ret = FALSE;
 	
-	osync_bool ans = osync_objtype_sink_get_slowsync(database->sink);
-	if (ans)
-		ret = FALSE;
-	
 	if (!ret || type != SML_ALERT_TWO_WAY)
 		osync_objtype_sink_set_slowsync(database->sink, TRUE);
 	
+	osync_trace(TRACE_INTERNAL, "%s: updating sync anchor %s to %s", __func__, key, next);
 	osync_anchor_update(env->anchor_path, key, next);
 	g_free(key);
 	
-	if (!ret) {
+	if (osync_objtype_sink_get_slowsync(database->sink)) {
 		smlDsSessionSendAlert(dsession, SML_ALERT_SLOW_SYNC, last, next, _recv_alert_reply, database, NULL);
 	} else {
 		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, NULL);

@@ -27,6 +27,7 @@ void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	SmlDatabase *database = get_database_from_plugin_info(info);
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 	g_mutex_lock(env->mutex);
@@ -45,11 +46,11 @@ void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	/* For the obex client, we will store the context at this point since
 	 * we can only answer it as soon as the device returned an answer to our san */
-	env->connectCtx = ctx;
+	database->connectCtx = ctx;
 
 	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
 	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
-	osync_context_ref(env->connectCtx);
+	osync_context_ref(database->connectCtx);
 	
 	if (!smlTransportConnect(env->tsp, &error))
 		goto error;
@@ -260,7 +261,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
                 if (!sink)
                         goto error_free_env;
-                
 
 		database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
 		if (!database->objformat) {
@@ -389,11 +389,11 @@ error_free_san:
 	smlNotificationFree(env->san);
 	env->san = NULL;
 error_free_auth:
-	smlAuthFree(env->auth);
 error_free_manager:
-	smlManagerFree(env->manager);
 error_free_transport:
-	smlTransportFree(env->tsp);
+	if (env->auth) smlAuthFree(env->auth);
+	if (env->manager) smlManagerFree(env->manager);
+	if (env->tsp) smlTransportFree(env->tsp);
 error_free_env:
 	finalize(env);
 error:
