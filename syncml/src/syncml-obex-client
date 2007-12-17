@@ -1,20 +1,9 @@
 <?xml version="1.0"?>
 <config>
-  <!-- sets the connection type to use. -->
-  <!-- please note that actually OBEX over network is not supported -->
-  <!-- 1 means obex over serial cable -->
-  <!-- 2 means obex over bluetooth    -->
-  <!-- 3 means obex over IRDA         -->
-  <!-- 4 means obex over network      -->
-  <!-- 5 means obex over usb          -->
-  <type>2</type>
-  
-  <!-- (Only for bluetooth) The bluetooth address if the bluetooth mode is selected.
-       `hciconfig scan` to search bluetooth devices.  -->
+  <!-- (Only for bluetooth) The bluetooth address if the bluetooth mode is selected -->
   <bluetooth_address></bluetooth_address>
   
-  <!-- (Only for bluetooth) The bluetooth channel to use.
-       `sdptool browse $MAC` to search for the correct channel -->
+  <!-- (Only for bluetooth) The bluetooth channel to use. `sdptool browse $MAC` to search for the correct channel -->
   <bluetooth_channel></bluetooth_channel>
   
   <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (you will need access to the USB raw device) to find it. -->
@@ -34,7 +23,10 @@
   
   <!-- the password for the username -->
   <password></password>
- 
+  
+  <!-- sets the connection type to use. 5 means obex over usb, 2 means obex over bluetooth -->
+  <type>2</type>
+  
   <!-- If wbxml is enabled, defines wether the wbxml should use string tables -->
   <usestringtable>0</usestringtable>
   

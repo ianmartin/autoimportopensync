@@ -3,26 +3,16 @@ PROJECT( libopensync-plugin-syncml C )
 SET( VERSION "0.35" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
-SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_INSTALL_PREFIX}/share/opensync-1.0/cmake/modules/")
-
-INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} )
 
 # find requirements
-SET ( LIBSYNCML_MIN_VERSION "0.4.6" )
+SET ( LIBSYNCML_MIN_VERSION "0.4.5" )
 
 FIND_PACKAGE( OpenSync REQUIRED )
 FIND_PACKAGE( GLIB2 REQUIRED )
 FIND_PACKAGE( LibXml2 REQUIRED )
-# TODO - check whether LibSyncml supports obex and/or http
 FIND_PACKAGE( LibSyncMl REQUIRED )
 
 INCLUDE( OpenSyncInternal )
-
-# Defaults
-SET( ENABLE_OBEX TRUE CACHE BOOL "OBEX Transport" )
-SET( ENABLE_HTTP TRUE CACHE BOOL "HTTP Transport" )
-
-CONFIGURE_FILE("config.h.cmake" "config.h")
 
 ADD_SUBDIRECTORY( src )
 

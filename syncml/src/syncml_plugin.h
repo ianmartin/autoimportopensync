@@ -18,15 +18,14 @@
  *
  */
  
-#ifndef _SYNCML_COMMON_H
-#define _SYNCML_COMMON_H
+#ifndef _SYNCML_PLUGIN_H
+#define _SYNCML_PLUGIN_H
 //#include <config.h>
 
 #include <opensync/opensync.h>
 
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-plugin.h>
-#include <opensync/opensync-merger.h>
 #include <opensync/opensync-context.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-helper.h>
@@ -46,7 +45,6 @@
 
 #include <libsyncml/obex_client.h>
 #include <libsyncml/http_server.h>
-#include <libsyncml/http_client.h>
 
 #include <libsyncml/sml_auth.h>
 #include <libsyncml/sml_devinf_obj.h>
@@ -76,8 +74,6 @@ typedef struct SmlPluginEnv {
 	SmlTransportObexClientType type;
 	unsigned int port;
 	char *url;
-	char *proxy;
-	char *cafile;
 	
 	unsigned int recvLimit;
 	unsigned int maxObjSize;
@@ -85,6 +81,7 @@ typedef struct SmlPluginEnv {
 	SmlBool gotFinal;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
+
 	
 	OSyncMember *member;
 	char *anchor_path;
@@ -101,11 +98,11 @@ typedef struct SmlPluginEnv {
 	SmlManager *manager;
 	SmlSession *session;
 	
+	OSyncContext *connectCtx;
+
 	SmlNotification *san;
 
 	GList *databases;
-	GList *ignoredDatabases;
-	const char *sessionUser;
 
 	int num;
 
@@ -113,15 +110,6 @@ typedef struct SmlPluginEnv {
 	unsigned int numEventEntries;
 
 	osync_bool isConnected;
-
-	SmlAuthType authType;
-	osync_bool fakeDevice;
-	SmlProtocolVersion syncmlVersion;
-        char *fakeManufacturer;
-        char *fakeModel;
-        char *fakeSoftwareVersion;
-
-	GMutex *mutex;
 } SmlPluginEnv;
 
 typedef struct SmlDatabase {
@@ -134,71 +122,13 @@ typedef struct SmlDatabase {
 	char *objtype;	
 	char *url;
 
-	OSyncContext *connectCtx;
-
-	OSyncChange **syncChanges;
-	OSyncContext **syncContexts;
 	osync_bool gotChanges;
 	osync_bool finalChanges; 
-	unsigned int pendingChanges;
 
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
 	OSyncContext *disconnectCtx;
+
 } SmlDatabase;
 
-gboolean _sessions_prepare(GSource *source, gint *timeout_);
-
-gboolean _sessions_check(GSource *source);
-
-gboolean _sessions_dispatch(
-			GSource *source, 
-			GSourceFunc callback, 
-			gpointer user_data);
-
-void get_changeinfo(
-			void *data, 
-			OSyncPluginInfo *info, 
-			OSyncContext *ctx);
-
-void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
-
-void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
-
-SmlBool send_sync_message(
-                        SmlDatabase *database,
-                        void *func_ptr,
-                        OSyncError **oserror);
-
-void batch_commit(
-			void *data, 
-			OSyncPluginInfo *info, 
-			OSyncContext *ctx, 
-			OSyncContext **contexts, 
-			OSyncChange **changes);
-
-osync_bool syncml_config_parse_database(
-			SmlPluginEnv *env,
-			xmlNode *cur,
-			OSyncError **error);
-
-osync_bool init_objformat(
-			OSyncPluginInfo *info,
-			SmlDatabase *database,
-			OSyncError **error);
-
-SmlBool flush_session_for_all_databases(
-			SmlPluginEnv *env,
-			SmlBool activeDatabase,
-			SmlError **error);
-
-SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info);
-
-/* this is a helper function which adds an object to a GList */
-/* the function guarantees that an object exists only once in */
-/* this GList. No double entrees. */
-GList *g_list_add(GList *databases, void *database);
-
-void finalize(void *data);
-
-#endif //_SYNCML_COMMON_H
+#endif //_SYNCML_PLUGIN_H
