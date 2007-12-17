@@ -1270,6 +1270,11 @@ void osync_client_unref(OSyncClient *client)
 	if (g_atomic_int_dec_and_test(&(client->ref_count))) {
 		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
 		
+		if(client->disconnectThread) {
+			g_thread_join(client->disconnectThread);
+			client->disconnectThread = NULL;
+		}
+
 		if (client->incoming) {
 			if (osync_queue_is_connected(client->incoming))
 				osync_queue_disconnect(client->incoming, NULL);
@@ -1390,7 +1395,9 @@ static gboolean osyncClientDisconnectCallback(gpointer data)
 	if (client->outgoing) {
 		/* We now wait until the other side disconnect our outgoing queue */
 		while (osync_queue_is_connected(client->outgoing)) { g_usleep(100); }
-		
+
+		/* Gives some time if anyone wants to grab the HUP message from the outgoing part of the pipe */
+		g_usleep(200);	
 		/* Now we can safely disconnect our outgoing queue */
 		osync_queue_disconnect(client->outgoing, NULL);
 	}
@@ -1398,17 +1405,31 @@ static gboolean osyncClientDisconnectCallback(gpointer data)
 	return FALSE;
 }
 
-void osync_client_disconnect(OSyncClient *client)
+/* The aim of this thread is to avoid blocking the all the engine event sources with the osyncClientDisconnectCallback internal loop */
+static void client_disconnect_workerthread(gpointer data) 
 {
+	OSyncClient *client = data;
+	GMainContext *context = g_main_context_new();
 	GSource *source = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
-	
 	source = g_idle_source_new();
 	g_source_set_callback(source, osyncClientDisconnectCallback, client, NULL);
-	g_source_attach(source, client->context);
-	
+	g_source_attach(source, context);
+	OSyncThread *thread = osync_thread_new(context, NULL);
+	osync_thread_start(thread);
+
+	osync_thread_stop(thread);
+	osync_thread_free(thread);
+	thread = NULL;	
 	g_source_unref(source);
-			
+}
+
+	
+void osync_client_disconnect(OSyncClient *client)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
+	
+	client->disconnectThread = g_thread_create((GThreadFunc)client_disconnect_workerthread, client, TRUE, NULL);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

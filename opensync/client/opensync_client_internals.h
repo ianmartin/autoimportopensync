@@ -26,6 +26,7 @@ struct OSyncClient {
 	OSyncQueue *outgoing;
 	GMainContext *context;
 	GMainLoop *syncloop;
+	GThread *disconnectThread;
 	int ref_count;
 	OSyncPlugin *plugin;
 	OSyncPluginInfo *plugin_info;
