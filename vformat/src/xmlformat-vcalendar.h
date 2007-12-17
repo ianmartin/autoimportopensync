@@ -42,9 +42,7 @@ void handle_vcal_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 void handle_vcal_charset_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_vcal_xrole_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_vcal_xstatus_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
@@ -119,7 +117,6 @@ void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_partstat_vevent_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
@@ -132,6 +129,7 @@ void handle_trigrel_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler);
 void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler);
 void insert_attr_component_handler(GHashTable *table, const char *attrname, attr_component_handler_fn handler);
+
 
 VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_prodid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
@@ -188,15 +186,6 @@ VFormatAttribute *handle_xml_adescription_attribute(VFormat *vevent, OSyncXMLFie
 VFormatAttribute *handle_xml_aattendee_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_asummary_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 
-// vCalendar handler
-void handle_xml_vcal_expect_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
-void handle_xml_vcal_role_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
-void handle_xml_vcal_xrole_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
-void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
-void handle_xml_vcal_status_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
-void handle_xml_vcal_xstatus_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
-
-// vCalendar and iCalendar handler
 void handle_xml_tzid_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_altrep_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_cn_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);

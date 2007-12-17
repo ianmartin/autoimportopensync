@@ -43,9 +43,6 @@ OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 	} 
 
 	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 3));
-	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
-	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 1)); 
 	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
 	return xmlfield; 
 }
@@ -75,36 +72,8 @@ OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 // vCal parameters
 void handle_vcal_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	// the type is usually necessary for attachments (of aalarm)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	const char *type = vformat_attribute_param_get_nth_value(param, 0);
-	// FIXME: the Type information is redundant and should be erased
-	osync_xmlfield_set_attr(xmlfield, "Type", type);
-	const char *child = "AlarmAttach";
-	const char *attr = "FormatType";
-	if (strcasecmp(osync_xmlfield_get_name(xmlfield), "Alarm"))
-		child = "Attach";
-	// iCal likes content-types and so we make it happy
-	if (!strcasecmp("PCM", type))
-	{
-		osync_xmlfield_set_child_attr(xmlfield, child, attr, "audio/basic");
-	}
-	else if (!strcasecmp("WAVE", type))
-	{
-		osync_xmlfield_set_child_attr(xmlfield, child, attr, "audio/x-wav");
-	}
-	else if (!strcasecmp("AIFF", type))
-	{
-		osync_xmlfield_set_child_attr(xmlfield, child, attr, "audio/x-aiff");
-	}
-	else
-	{
-		gchar *lower = g_utf8_strdown(type, -1);
-		gchar *mime = g_strconcat("audio/", lower, NULL);
-		osync_xmlfield_set_child_attr(xmlfield, child, attr, mime);
-		g_free(lower);
-		g_free(mime);
-	}
+	osync_xmlfield_set_attr(xmlfield, "Type", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 void handle_vcal_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -133,94 +102,28 @@ void handle_vcal_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 
 void handle_vcal_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	// we write the vCal role into X-Role because Role is defined as iCal role
-	osync_trace(TRACE_ENTRY, "%s: mapping vcal role to ical role", __func__);
-	if (!osync_xmlfield_get_attr(xmlfield, "Role"))
-	{
-		// set default iCal role
-		osync_trace(TRACE_INTERNAL, "Setting default iCal role");
-		osync_xmlfield_set_attr(xmlfield, "Role", "REQ-PARTICIPANT");
-	}
-	const char *role = vformat_attribute_param_get_nth_value(param, 0);
-	osync_trace(TRACE_INTERNAL, "Setting X-Role parameter to %s", role);
-	osync_xmlfield_set_attr(xmlfield, "X-Role", role);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-void handle_vcal_xrole_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	// X-ROLE usually includes the iCal role which must be placed into Role
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Role", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_ENTRY, "%s: Handling vcal status parameter", __func__);
-	const char *status = vformat_attribute_param_get_nth_value(param, 0);
-	const char *partstat = NULL;
-	osync_trace(TRACE_INTERNAL, "%s: STATUS is %s", __func__, status);
-	osync_xmlfield_set_attr(xmlfield, "Status", status);
-	if (!osync_xmlfield_get_attr(xmlfield, "PartStat"))
-	{
-		// mapping vCal STATUS to iCal PartStat
-		if (!strcasecmp("NEEDS ACTION", status))
-		{
-			partstat = "NEEDS-ACTION";
-		}
-		else if (!strcasecmp("SENT", status))
-		{
-			partstat = "IN-PROCESS";
-		}
-		else if (!strcasecmp("CONFIRMED", status))
-		{
-			partstat = "ACCEPTED";
-		}
-		else
-		{
-			partstat = status;
-		}
-		osync_trace(TRACE_INTERNAL, "%s: PARTSTAT is %s", __func__, partstat);
-		osync_xmlfield_set_attr(xmlfield, "PartStat", partstat);
-	}
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-void handle_vcal_xstatus_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	// vCal X-STATUS usually contains iCal PARTSTAT
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
+	osync_xmlfield_set_attr(xmlfield, "Status", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_ENTRY, "%s: Handling %s parameter",
-		__func__, vformat_attribute_param_get_name(param));
-	// xmlformat-calendar.xsd defines this field as Bool
-	// this requires true or false as values
-	// vCal 1.0 uses YES and NO
-	// we convert these values to true or false
-	if (!strcasecmp("YES", vformat_attribute_param_get_nth_value(param, 0)))
-	{
-		// we convert a yes to a true
-		osync_trace(TRACE_INTERNAL, "%s: YES --> TRUE", __func__);
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	const char *rsvp = vformat_attribute_param_get_nth_value(param, 0);
+
+	if (!strcmp(rsvp, "YES")) {
 		osync_xmlfield_set_attr(xmlfield, "Rsvp", "TRUE");
-	}
-	else if (!strcasecmp("NO", vformat_attribute_param_get_nth_value(param, 0)))
-	{
-		// we convert a no to a false
-		osync_trace(TRACE_INTERNAL, "%s: NO --> FALSE", __func__);
+	} else if (!strcmp(rsvp, "NO")) {
 		osync_xmlfield_set_attr(xmlfield, "Rsvp", "FALSE");
+	} else {	
+		osync_xmlfield_set_attr(xmlfield, "Rsvp", rsvp);
 	}
-	else
-	{
-		// we do not expect errors here :(
-		osync_trace(TRACE_INTERNAL, "%s: YES/NO expected but %s received -> simple copy",
-			__func__, vformat_attribute_param_get_nth_value(param, 0));
-		osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
-	}
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -695,47 +598,8 @@ void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
-
-	osync_trace(TRACE_ENTRY, "%s: Handling ical partstat parameter", __func__);
-	const char *partstat = vformat_attribute_param_get_nth_value(param, 0);
-	const char *status = NULL;
-	osync_trace(TRACE_INTERNAL, "%s: PARTSTAT is %s", __func__, partstat);
-	osync_xmlfield_set_attr(xmlfield, "PartStat", partstat);
-	if (!osync_xmlfield_get_attr(xmlfield, "Status"))
-	{
-		// mapping iCal PARTSTAT to vCal STATUS
-		if (!strcasecmp("NEEDS-ACTION", partstat))
-		{
-			status = "NEEDS ACTION";
-		}
-		else if (!strcasecmp("IN-PROCESS", partstat))
-		{
-			status = "SENT";
-		}
-		else
-		{
-			status = partstat;
-		}
-		osync_trace(TRACE_INTERNAL, "%s: STATUS is %s", __func__, status);
-		osync_xmlfield_set_attr(xmlfield, "Status", status);
-	}
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-void handle_partstat_vevent_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_ENTRY, "%s", __func__);
-	const char *partstat = vformat_attribute_param_get_nth_value(param, 0);
-	if (!osync_xmlfield_get_attr(xmlfield, "Status") &&
-	    !strcasecmp("ACCEPTED", partstat))
-	{
-		// vCal 1.0 VEVENT knows a status CONFIRMED instead of ACCEPTED
-		osync_trace(TRACE_INTERNAL, "%s: PARTSTAT is %s --> CONFIRMED", __func__, partstat);
-		osync_xmlfield_set_attr(xmlfield, "Status", "CONFIRMED");
-	}
-	handle_partstat_parameter(xmlfield, param);
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -760,20 +624,11 @@ void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Role", vformat_attribute_param_get_nth_value(param, 0));
-	if (!osync_xmlfield_get_attr(xmlfield, "X-Role"))
-	{
-		// set default vCal role
-		osync_trace(TRACE_INTERNAL, "%s: setting default vCal role", __func__);
-		osync_xmlfield_set_attr(xmlfield, "X-Role", "ATTENDEE");
-	}
 }
 
 void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	// normal true/false expected
-	// vCal 1.0 uses YES/NO (see vcal function)
-	osync_trace(TRACE_INTERNAL, "%s: true/false expected(%s)",
-		__func__, vformat_attribute_param_get_nth_value(param, 0));
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
 }
 
@@ -975,13 +830,6 @@ void handle_xml_encoding_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfie
 	vformat_attribute_add_param_with_value(attr, "ENCODING", content);
 }
 
-void handle_xml_vcal_expect_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Expect xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Expect");
-	vformat_attribute_add_param_with_value(attr, "EXPECT", content);
-}
-
 void handle_xml_format_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling FormatType xml parameter");
@@ -1017,20 +865,6 @@ void handle_xml_partstat_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfie
 	vformat_attribute_add_param_with_value(attr, "PARTSTAT", content);
 }
 
-void handle_xml_vcal_xstatus_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling X-Status xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "PartStat");
-	vformat_attribute_add_param_with_value(attr, "X-STATUS", content);
-}
-
-void handle_xml_vcal_status_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Status xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Status");
-	vformat_attribute_add_param_with_value(attr, "STATUS", content);
-}
-
 void handle_xml_range_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Range xml parameter");
@@ -1059,22 +893,6 @@ void handle_xml_role_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	vformat_attribute_add_param_with_value(attr, "ROLE", content);
 }
 
-void handle_xml_vcal_role_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	// vCal role is different from iCal role
-	osync_trace(TRACE_INTERNAL, "Handling Role xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "X-Role");
-	vformat_attribute_add_param_with_value(attr, "ROLE", content);
-}
-
-void handle_xml_vcal_xrole_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	// mapping iCal role to vCal X-ROLE
-	osync_trace(TRACE_INTERNAL, "Handling X-Role xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Role");
-	vformat_attribute_add_param_with_value(attr, "X-ROLE", content);
-}
-
 void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
@@ -1082,34 +900,17 @@ void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	vformat_attribute_add_param_with_value(attr, "RSVP", content);
 }
 
-void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+void handle_xml_rsvp_vcal_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	osync_trace(TRACE_ENTRY, "%s: Handling Rsvp xml parameter", __func__);
+	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
 	const char *content = osync_xmlfield_get_attr(xmlfield, "Rsvp");
-	// xmlformat-calendar.xsd defines this field as Bool
-	// this requires true or false as values
-	// vCal 1.0 uses YES and NO
-	// we convert these values to true or false
-	if (!strcasecmp("TRUE", content))
-	{
-		// we convert a true to a yes
-		osync_trace(TRACE_INTERNAL, "%s: TRUE --> YES", __func__);
+	if (!strcmp(content, "TRUE")) {
 		vformat_attribute_add_param_with_value(attr, "RSVP", "YES");
-	}
-	else if (!strcasecmp("FALSE", content))
-	{
-		// we convert a false to a no
-		osync_trace(TRACE_INTERNAL, "%s: FALSE --> NO", __func__);
+	} else if (!strcmp(content, "FALSE")) {
 		vformat_attribute_add_param_with_value(attr, "RSVP", "NO");
-	}
-	else
-	{
-		// we do not expect errors here :(
-		osync_trace(TRACE_INTERNAL, "%s: TRUE/FALSE expected but %s received -> simple copy",
-			__func__, content);
+	} else {
 		vformat_attribute_add_param_with_value(attr, "RSVP", content);
 	}
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void handle_xml_sent_by_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
