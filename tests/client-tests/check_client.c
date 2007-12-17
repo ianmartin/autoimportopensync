@@ -137,23 +137,6 @@ START_TEST (client_run)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	osync_message_unref(message);
 	
-	/* FIXME:
-	   
-	   This testcase isn't completed yet!
-
-	   The inteded test should fake an error and send it
-	   through the queue and shutdown the client.
-
-	   This doesnt't work in the same process/sequence -
-	   another thread would be required, since read2 couldn't
-	   pop for new messages - and would never close the queue.
-	   This deadlocks osync_client_error_shutdown(), which makes
-	   use of osync_client_disconnect(), which is waiting for the
-	   counterpart to close the queue.
-	*/
-
-	
-	/*
 	OSyncError *locerror = NULL;
 	osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "test");
 	fail_unless(osync_client_run(client, &error), NULL);
@@ -164,9 +147,6 @@ START_TEST (client_run)
 	message = osync_queue_get_message(read2);
 	osync_assert(osync_message_get_command(message) == OSYNC_MESSAGE_ERROR);
 	osync_message_unref(message);
-	*/
-	
-	
 	
 	osync_assert(osync_queue_disconnect(read1, &error));
 	osync_assert(error == NULL);
