@@ -244,11 +244,15 @@ void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 void _ds_alert(SmlDsSession *dsession, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, dsession, userdata);
+	g_assert(dsession);
+	g_assert(userdata);
 
 	SmlDatabase *database = (SmlDatabase *)userdata;
+	osync_trace(TRACE_INTERNAL, "%s: %s", __func__, database->objtype);
 
 	database->session = dsession;
 	smlDsSessionRef(dsession);
+	register_ds_session_callbacks(database->session, database, NULL);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

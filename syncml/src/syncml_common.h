@@ -135,6 +135,7 @@ typedef struct SmlDatabase {
 	char *url;
 
 	OSyncContext *connectCtx;
+	SmlDsSessionAlertCb dsSessionCallback;
 
 	OSyncChange **syncChanges;
 	OSyncContext **syncContexts;
@@ -155,6 +156,11 @@ gboolean _sessions_dispatch(
 			GSource *source, 
 			GSourceFunc callback, 
 			gpointer user_data);
+
+void register_ds_session_callbacks(
+		SmlDsSession *dsession,
+		SmlDatabase *database,
+		SmlDsSessionAlertCb alertCallback);
 
 void get_changeinfo(
 			void *data, 

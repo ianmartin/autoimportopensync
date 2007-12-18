@@ -244,6 +244,53 @@ gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpointer user
 	return TRUE;
 }
 
+void register_ds_session_callbacks(
+		SmlDsSession *dsession,
+		SmlDatabase *database,
+		SmlDsSessionAlertCb alertCallback)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, dsession, database, alertCallback);
+	g_assert(database);
+
+	if (!alertCallback)
+	{
+		if (!database->dsSessionCallback)
+		{
+			// if no cached callback then there is no cached init
+			osync_trace(TRACE_INTERNAL, "%s: no cached init", __func__);
+		}
+		else
+		{
+			// complete a DsSession initialization
+			osync_trace(TRACE_INTERNAL, "%s: execute cached init", __func__);
+			g_assert(database->dsSessionCallback);
+			smlDsSessionGetAlert(database->session, database->dsSessionCallback, database);
+			smlDsSessionGetEvent(database->session, _ds_event, database);
+			smlDsSessionGetSync(database->session, _recv_sync, database);
+			smlDsSessionGetChanges(database->session, _recv_change, database);
+			database->dsSessionCallback = NULL;
+		}
+	}
+	else
+	{
+		if (dsession)
+		{
+			osync_trace(TRACE_INTERNAL, "%s: execute immediate init", __func__);
+			smlDsSessionGetAlert(database->session, alertCallback, database);
+			smlDsSessionGetEvent(database->session, _ds_event, database);
+			smlDsSessionGetSync(database->session, _recv_sync, database);
+			smlDsSessionGetChanges(database->session, _recv_change, database);
+		}
+		else
+		{
+			osync_trace(TRACE_INTERNAL, "%s: caching init", __func__);
+			database->dsSessionCallback = alertCallback;
+		}
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	g_assert(ctx);
@@ -259,10 +306,16 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 
-	smlDsSessionGetAlert(database->session, _recv_alert, database);
-	smlDsSessionGetEvent(database->session, _ds_event, database);
-	smlDsSessionGetSync(database->session, _recv_sync, database);
-	smlDsSessionGetChanges(database->session, _recv_change, database);
+	/* this function is a server function
+	 * a server performs this function if connect succeeded
+	 * connect success means there is a syncml message from the client
+	 * with a final element at the end
+	 * get_changeinfo is called after success is signalled
+	 * sometimes _ds_event is not called until get_changeinfo is called
+	 * so the DsSession is not available
+	 * so we have to wait for the DsSession
+	 */
+	register_ds_session_callbacks(database->session, database, _recv_alert);
 
 	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;

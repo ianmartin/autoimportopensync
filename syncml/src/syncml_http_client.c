@@ -363,10 +363,7 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 			goto error;
 	}
 
-	smlDsSessionGetAlert(database->session, _recv_alert_from_server, database);
-	smlDsSessionGetEvent(database->session, _ds_event, database);
-	smlDsSessionGetSync(database->session, _recv_sync, database);
-	smlDsSessionGetChanges(database->session, _recv_change, database);
+	register_ds_session_callbacks(database->session, database, _recv_alert_from_server);
 
 	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;
