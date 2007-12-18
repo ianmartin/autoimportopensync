@@ -1,10 +1,10 @@
-# - Try to find gconf2 
-# Find gconf2 headers, libraries and the answer to all questions.
+# - Try to find orbit 
+# Find orbit headers, libraries and the answer to all questions.
 #
-#  ORBIT2_FOUND               True if gconf2 got found
-#  ORBIT2_INCLUDEDIR          Location of gconf2 headers 
-#  ORBIT2_LIBRARIES           List of libaries to use gconf2
-#  ORBIT2_DEFINITIONS         Definitions to compile gconf2 
+#  ORBIT2_FOUND               True if orbit got found
+#  ORBIT2_INCLUDEDIR          Location of orbit headers 
+#  ORBIT2_LIBRARIES           List of libaries to use orbit 
+#  ORBIT2_DEFINITIONS         Definitions to compile orbit 
 #
 # Copyright (c) 2007 Juha Tuomala <tuju@iki.fi>
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
@@ -17,7 +17,7 @@
 
 INCLUDE( FindPkgConfig )
 
-# Take care about gconf-2.0.pc settings
+# Take care about ORBit-2.0.pc settings
 IF ( ORBit2_FIND_REQUIRED )
   SET( _pkgconfig_REQUIRED "REQUIRED" )
 ELSE ( ORBit2_FIND_REQUIRED )
@@ -31,7 +31,7 @@ ELSE ( ORBIT2_MIN_VERSION )
 ENDIF ( ORBIT2_MIN_VERSION )
 
 
-# Look for gconf2 include dir and libraries w/o pkgconfig
+# Look for orbit include dir and libraries w/o pkgconfig
 IF ( NOT ORBIT2_FOUND AND NOT PKG_CONFIG_FOUND )
 	FIND_PATH( _orbit2_include_DIR orbit/orbit.h PATH_SUFFIXES orbit-2.0 )
 	FIND_LIBRARY( _orbit2_link_DIR ORBit-2)

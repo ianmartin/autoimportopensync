@@ -70,14 +70,14 @@ else (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS )
 	/usr/local/lib
     )
     IF ( _glib2_include_DIR AND _glib2_link_DIR )
-	    SET ( _gconf2_FOUND TRUE )
+	    SET ( _glib2_FOUND TRUE )
     ENDIF ( _glib2_include_DIR AND _glib2_link_DIR )
 
 
     IF ( _glib2_FOUND )
 	    SET ( GLIB2_INCLUDE_DIRS ${_glib2_include_DIR} ${_glibconfig_include_DIR} )
 	    SET ( GLIB2_LIBRARIES ${_glib2_link_DIR} )
-    ENDIF ( _gconf2_FOUND )
+    ENDIF ( _glib2_FOUND )
 
     # Handle dependencies
     # libintl
