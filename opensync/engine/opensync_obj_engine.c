@@ -75,7 +75,7 @@ error:
 	return NULL;
 }
 
-static void _obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
+static void _osync_obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
@@ -113,7 +113,7 @@ static void _obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _obj_engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_obj_engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
@@ -147,7 +147,7 @@ static void _obj_engine_disconnect_callback(OSyncClientProxy *proxy, void *userd
  * return value is MISMATCH if no mapping could be found,
  * SIMILAR if a mapping has been found but its not completely the same
  * SAME if a mapping has been found and is the same */
-static OSyncConvCmpResult _obj_engine_mapping_find(OSyncObjEngine *engine, OSyncChange *change, OSyncSinkEngine *sinkengine, OSyncMappingEngine **mapping_engine)
+static OSyncConvCmpResult _osync_obj_engine_mapping_find(OSyncObjEngine *engine, OSyncChange *change, OSyncSinkEngine *sinkengine, OSyncMappingEngine **mapping_engine)
 {	
 	GList *m = NULL;
 	GList *e = NULL;
@@ -216,7 +216,7 @@ osync_bool osync_obj_engine_map_changes(OSyncObjEngine *engine, OSyncError **err
 	
 			
 			/* See if there is an exisiting mapping, which fits the unmapped change */
-			OSyncConvCmpResult result = _obj_engine_mapping_find(engine, change, sinkengine, &mapping_engine);
+			OSyncConvCmpResult result = _osync_obj_engine_mapping_find(engine, change, sinkengine, &mapping_engine);
 			if (result == OSYNC_CONV_DATA_MISMATCH) {
 				/* If there is none, create one */
 				mapping_engine = _osync_obj_engine_create_mapping_engine(engine, error);
@@ -251,13 +251,13 @@ error:
 	return FALSE;
 }
 
-static void _obj_engine_read_ignored_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_obj_engine_read_ignored_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	// NOOP	
 }
 
 
-static void _obj_engine_read_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_obj_engine_read_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
@@ -349,7 +349,7 @@ osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClien
 	return TRUE;
 }
 
-static void _generate_written_event(OSyncObjEngine *engine)
+static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine)
 {
 	osync_trace(TRACE_INTERNAL, "%s: %p", __func__, engine);
 	/* We need to make sure that all entries are written ... */
@@ -393,7 +393,7 @@ static void _generate_written_event(OSyncObjEngine *engine)
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_written));
 }
 
-static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *userdata, const char *uid, OSyncError *error)
+static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *userdata, const char *uid, OSyncError *error)
 {
 	OSyncMappingEntryEngine *entry_engine = userdata;
 	OSyncObjEngine *engine = entry_engine->objengine;
@@ -430,12 +430,12 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 	osync_entry_engine_update(entry_engine, NULL);
 	
 end:	
-	_generate_written_event(engine);
+	_osync_obj_engine_generate_written_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _obj_engine_written_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_obj_engine_written_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
@@ -451,12 +451,12 @@ static void _obj_engine_written_callback(OSyncClientProxy *proxy, void *userdata
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_WRITTEN, engine->objtype, NULL);
 	}
 			
-	_generate_written_event(engine);
+	_osync_obj_engine_generate_written_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _obj_engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_obj_engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
@@ -819,7 +819,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 		case OSYNC_ENGINE_COMMAND_CONNECT:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
-				if (!osync_client_proxy_connect(sinkengine->proxy, _obj_engine_connect_callback, sinkengine, engine->objtype, engine->slowsync, error))
+
+				if (!osync_client_proxy_connect(sinkengine->proxy, _osync_obj_engine_connect_callback, sinkengine, engine->objtype, engine->slowsync, error))
 					goto error;
 			}
 			break;
@@ -833,7 +834,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					if (!change)
 						continue;
 
-					if (!osync_client_proxy_read(sinkengine->proxy, _obj_engine_read_ignored_callback, sinkengine, change, error))
+					if (!osync_client_proxy_read(sinkengine->proxy, _osync_obj_engine_read_ignored_callback, sinkengine, change, error))
 						goto error;
 				}
 			}
@@ -856,12 +857,12 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 				/* Is there at least one other writeable sink? */
 				if (objtype_sink && osync_objtype_sink_get_write(objtype_sink) && write_sinks) {
-					_obj_engine_read_callback(sinkengine->proxy, sinkengine, *error);
+					_osync_obj_engine_read_callback(sinkengine->proxy, sinkengine, *error);
 					osync_trace(TRACE_INTERNAL, "no other writable sinks .... SKIP");
 					continue;
 				}
 
-				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, sinkengine, engine->objtype, engine->slowsync, error))
+				if (!osync_client_proxy_get_changes(sinkengine->proxy, _osync_obj_engine_read_callback, sinkengine, engine->objtype, engine->slowsync, error))
 					goto error;
 			}
 
@@ -977,7 +978,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						
 						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
 	
-						if (!osync_client_proxy_commit_change(sinkengine->proxy, _obj_engine_commit_change_callback, entry_engine, osync_entry_engine_get_change(entry_engine), error))
+						if (!osync_client_proxy_commit_change(sinkengine->proxy, _osync_obj_engine_commit_change_callback, entry_engine, osync_entry_engine_get_change(entry_engine), error))
 							goto error;
 					} else if (entry_engine->change) {
 						OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
@@ -997,21 +998,21 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					}
 				}
 				
-				if (!osync_client_proxy_committed_all(sinkengine->proxy, _obj_engine_written_callback, sinkengine, engine->objtype, error))
+				if (!osync_client_proxy_committed_all(sinkengine->proxy, _osync_obj_engine_written_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}
 			break;
 		case OSYNC_ENGINE_COMMAND_SYNC_DONE:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
-				if (!osync_client_proxy_sync_done(sinkengine->proxy, _obj_engine_sync_done_callback, sinkengine, engine->objtype, error))
+				if (!osync_client_proxy_sync_done(sinkengine->proxy, _osync_obj_engine_sync_done_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}
 			break;
 		case OSYNC_ENGINE_COMMAND_DISCONNECT:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
-				if (!osync_client_proxy_disconnect(sinkengine->proxy, _obj_engine_disconnect_callback, sinkengine, engine->objtype, error))
+				if (!osync_client_proxy_disconnect(sinkengine->proxy, _osync_obj_engine_disconnect_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}
 			break;

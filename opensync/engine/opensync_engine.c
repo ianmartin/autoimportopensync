@@ -603,7 +603,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	
 	engine->busy = TRUE;
 	
-	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, error))
+	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, osync_member_get_id(member), error))
 		goto error_shutdown;
 	
 	//FIXME
@@ -722,7 +722,7 @@ static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 	return FALSE;
 }
 
-static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
+static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, proxy, userdata, slowsync, error);
@@ -750,7 +750,7 @@ static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, os
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
@@ -778,7 +778,7 @@ static void _engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata,
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _engine_get_changes_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_engine_get_changes_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
@@ -806,7 +806,7 @@ static void _engine_get_changes_callback(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _engine_written_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_engine_written_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
@@ -834,7 +834,7 @@ static void _engine_written_callback(OSyncClientProxy *proxy, void *userdata, OS
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
@@ -862,7 +862,7 @@ static void _engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent event, OSyncError *error, void *userdata)
+static void _osync_engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent event, OSyncError *error, void *userdata)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, objengine, event, error, userdata);
@@ -910,7 +910,7 @@ static void _engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent e
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _engine_discover_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _osync_engine_discover_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
@@ -1012,7 +1012,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		if (!objengine)
 			goto error;
 
-		osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
+		osync_obj_engine_set_callback(objengine, _osync_engine_event_callback, engine);
 		engine->object_engines = g_list_append(engine->object_engines, objengine);
 
 		/* If previous sync was unclean, then trigger SlowSync for all ObjEngines */
@@ -1100,7 +1100,7 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 			/* Then we connect ourselves */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_connect(proxy, _engine_connect_callback, engine, NULL, FALSE, &engine->error))
+				if (!osync_client_proxy_connect(proxy, _osync_engine_connect_callback, engine, NULL, FALSE, &engine->error))
 					goto error;
 			}
 			break;
@@ -1142,7 +1142,7 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 				goto error;
 			}
 		
-			if (!osync_client_proxy_discover(proxy, _engine_discover_callback, engine, &engine->error))
+			if (!osync_client_proxy_discover(proxy, _osync_engine_discover_callback, engine, &engine->error))
 				goto error;
 		
 			break;
@@ -1179,7 +1179,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			/* Now we read the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_get_changes(proxy, _engine_get_changes_callback, engine, NULL, FALSE, &engine->error))
+				if (!osync_client_proxy_get_changes(proxy, _osync_engine_get_changes_callback, engine, NULL, FALSE, &engine->error))
 					goto error;
 			}
 			break;
@@ -1194,7 +1194,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			/* Now we write the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_committed_all(proxy, _engine_written_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_committed_all(proxy, _osync_engine_written_callback, engine, NULL, &engine->error))
 					goto error;
 			}
 			break;
@@ -1209,7 +1209,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			/* Now we call sync done on the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_sync_done(proxy, _engine_sync_done_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_sync_done(proxy, _osync_engine_sync_done_callback, engine, NULL, &engine->error))
 					goto error;
 			}
 			break;
@@ -1224,7 +1224,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			/* Now we disconnect the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_disconnect(proxy, _engine_disconnect_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_disconnect(proxy, _osync_engine_disconnect_callback, engine, NULL, &engine->error))
 					goto error;
 			}
 			break;
