@@ -276,13 +276,6 @@ void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn discover)
 	plugin->discover = discover;
 }
 
-void osync_plugin_set_objtypes(OSyncPlugin *plugin, finalize_fn fin)
-{
-	osync_assert(plugin);
-	
-	plugin->finalize = fin;
-}
-
 void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
