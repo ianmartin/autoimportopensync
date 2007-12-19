@@ -427,19 +427,19 @@ error:
  */
 
 /**
- * @defgroup OSyncFormatEnvAPI OpenSync Environment
+ * @defgroup OSyncFormatEnvAPI OpenSync Format Environment
  * @ingroup OSyncPublic
- * @brief The public API of the opensync environment
+ * @brief The public API of the OpenSync Format Environment
  * 
  */
 /*@{*/
 
 
-/*! @brief This will create a new opensync environment
+/*! @brief This will create a new OpenSync Format Environment
  * 
- * The environment will hold all information about plugins, groups etc
+ * The format environment will hold all information about format plugins.
  * 
- * @returns A pointer to a newly allocated environment. NULL on error.
+ * @returns A pointer to a newly allocated format environment. NULL on error.
  * 
  */
 OSyncFormatEnv *osync_format_env_new(OSyncError **error)

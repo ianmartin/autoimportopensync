@@ -35,7 +35,7 @@
 
 /*! @brief Registers a new plugin
  *
- * This function creates a new OSyncPluginInfo object, that
+ * This function creates a new OSyncPlugin object, that
  * can be used to register a new plugin dynamically. This
  * can be used by a module to register multiple plugins,
  * instead of using the get_info() function which allows
