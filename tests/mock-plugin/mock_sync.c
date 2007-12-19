@@ -172,6 +172,9 @@ static char *mock_generate_hash(struct stat *buf)
 static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncError *error = NULL;
+	mock_env *env = (mock_env *) data;
+
+        env->committed_all = TRUE;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
@@ -184,6 +187,7 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	}
 
 	if (mock_get_error(info->memberid, "CONNECT_TIMEOUT")) {
+		/* Don't report context back ... let it timeout! */
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Triggering CONNECT_TIMEOUT error");
 		return;
 	}
@@ -224,6 +228,19 @@ static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	mock_env *env = (mock_env *) data;
+
+	if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
+		fail_unless(env->committed_all == TRUE, NULL);
+	env->committed_all = FALSE;
+
+	if (mock_get_error(info->memberid, "DISCONNECT_ERROR")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering DISCONNECT_ERROR error");
+		return;
+	}
+	if (mock_get_error(info->memberid, "DISCONNECT_TIMEOUT"))
+		return;
+
 	
 	if (dir->hashtable) {
 		osync_hashtable_free(dir->hashtable);
@@ -361,7 +378,7 @@ error:
  *            start with a slash. See note above.
  *
  */
-static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncContext *ctx)
+static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncContext *ctx, OSyncPluginInfo *info)
 {
 	GError *gerror = NULL;
 	const char *de = NULL;
@@ -400,7 +417,7 @@ static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncCo
 		if (g_file_test(filename, G_FILE_TEST_IS_DIR)) {
 			/* Recurse into subdirectories */
 			if (directory->recursive)
-				mock_report_dir(directory, relative_filename, ctx);
+				mock_report_dir(directory, relative_filename, ctx, info);
 		} else if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 			
 			struct stat buf;
@@ -445,20 +462,30 @@ static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncCo
 			file->path = g_strdup(relative_filename);
 			
 			OSyncError *error = NULL;
-			if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
-				osync_change_unref(change);
-				osync_context_report_osyncwarning(ctx, error);
-				osync_error_unref(&error);
-				g_free(filename);
-				continue;
-			}
-			
-			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
-			if (!odata) {
-				osync_change_unref(change);
-				osync_context_report_osyncwarning(ctx, error);
-				osync_error_unref(&error);
-				continue;
+			OSyncData *odata = NULL;
+
+			if (mock_get_error(info->memberid, "ONLY_INFO")) {
+				odata = osync_data_new(NULL, 0, directory->env->objformat, &error);
+			} else {
+				if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					g_free(filename);
+					continue;
+				}
+
+				if (mock_get_error(info->memberid, "SLOW_REPORT"))
+					sleep(1);
+				
+				odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
+				if (!odata) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					continue;
+				}
+
 			}
 			
 			osync_data_set_objtype(odata, osync_objtype_sink_get_name(directory->sink));
@@ -489,7 +516,18 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	mock_env *env = (mock_env *)data;
 	int i = 0;
 	OSyncError *error = NULL;
-	
+
+	if (mock_get_error(info->memberid, "GET_CHANGES_ERROR")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_CHANGES_ERROR error");
+		return;
+	}
+
+	if (mock_get_error(info->memberid, "GET_CHANGES_TIMEOUT"))
+		return;
+
+	if (mock_get_error(info->memberid, "GET_CHANGES_TIMEOUT2"))
+		sleep(8);
+		
 	if (osync_objtype_sink_get_slowsync(dir->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
 		osync_hashtable_reset(dir->hashtable);
@@ -497,7 +535,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	
 	osync_trace(TRACE_INTERNAL, "get_changes for %s", osync_objtype_sink_get_name(sink));
 
-	mock_report_dir(dir, NULL, ctx);
+	mock_report_dir(dir, NULL, ctx, info);
 	
 	char **uids = osync_hashtable_get_deleted(dir->hashtable);
 	for (i = 0; uids[i]; i++) {
@@ -533,6 +571,9 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 		g_free(uids[i]);
 	}
 	g_free(uids);
+
+	fail_unless(env->committed_all == TRUE, NULL);
+	env->committed_all = FALSE;
 	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -543,8 +584,18 @@ static void mock_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	mock_env *env = (mock_env *) data;
 	
 	char *filename = NULL;
+
+	fail_unless(env->committed_all == FALSE, NULL);
+
+	if (mock_get_error(info->memberid, "COMMIT_ERROR")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering COMMIT_ERROR error");
+		return;
+	}
+	if (mock_get_error(info->memberid, "COMMIT_TIMEOUT"))
+		return;
 	
 	if (!mock_write(data, info, ctx, change)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
@@ -569,12 +620,83 @@ static void mock_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static void mock_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *context, OSyncContext **contexts, OSyncChange **changes)
+{
+        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, context, contexts, changes);
+        mock_env *env = (mock_env *) data;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+
+        fail_unless(env->committed_all == FALSE, NULL);
+        env->committed_all = TRUE;
+
+        int i; 
+        for (i = 0; contexts[i]; i++) {
+                if (mock_write(data, info, contexts[i], changes[i])) {
+			char *filename = g_strdup_printf ("%s/%s", dir->path, osync_change_get_uid(changes[i]));
+			char *hash = NULL;
+	
+			if (osync_change_get_changetype(changes[i]) != OSYNC_CHANGE_TYPE_DELETED) {
+				struct stat buf;
+				stat(filename, &buf);
+				hash = mock_generate_hash(&buf);
+			}
+			g_free(filename);
+
+			osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(changes[i]), osync_change_get_uid(changes[i]), hash);
+                        osync_context_report_success(contexts[i]);
+                }
+        }
+
+        if (g_getenv("NUM_BATCH_COMMITS")) {
+                int req = atoi(g_getenv("NUM_BATCH_COMMITS"));
+                fail_unless(req == i, NULL);
+        }
+                
+        if (mock_get_error(info->memberid, "COMMITTED_ALL_ERROR")) {
+                osync_context_report_error(context, OSYNC_ERROR_EXPECTED, "Triggering COMMITTED_ALL_ERROR error");
+                return;
+        }
+
+        osync_context_report_success(context);
+
+        osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void mock_committed_all(void *data, OSyncPluginInfo *info, OSyncContext *context)
+{
+        osync_trace(TRACE_ENTRY, "%s(%p)", __func__, context);
+        mock_env *env = (mock_env *) data;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+
+        fail_unless(env->committed_all == FALSE, NULL);
+        env->committed_all = TRUE;
+
+        if (mock_get_error(info->memberid, "COMMITTED_ALL_ERROR")) {
+                osync_context_report_error(context, OSYNC_ERROR_EXPECTED, "Triggering COMMITTED_ALL_ERROR error");
+                osync_trace(TRACE_EXIT_ERROR, "%s: Reporting error", __func__);
+                return;
+        }
+
+        osync_context_report_success(context);
+
+        osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 static void mock_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 
+	if (mock_get_error(info->memberid, "SYNC_DONE_ERROR")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering SYNC_DONE_ERROR error");
+		return;
+	}
+	if (mock_get_error(info->memberid, "SYNC_DONE_TIMEOUT"))
+		return;
+	
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
 	osync_anchor_update(anchorpath, path_field, dir->path);
@@ -632,7 +754,15 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		functions.connect = mock_connect;
 		functions.disconnect = mock_disconnect;
 		functions.get_changes = mock_get_changes;
-		functions.commit = mock_commit_change;
+
+		//Rewrite the batch commit functions so we can enable them if necessary
+		if (mock_get_error(info->memberid, "BATCH_COMMIT")) {
+			osync_trace(TRACE_INTERNAL, "Enabling batch_commit on %p:%s", sink, osync_objtype_sink_get_name(sink) ? osync_objtype_sink_get_name(sink) : "None");
+	                functions.batch_commit = mock_batch_commit; 
+		} else {
+			functions.committed_all = mock_committed_all;
+			functions.commit = mock_commit_change;
+		}
 		functions.read = mock_read;
 		functions.write = mock_write;
 		functions.sync_done = mock_sync_done;
@@ -641,6 +771,29 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		 * again once the functions are called */
 		osync_objtype_sink_set_functions(sink, functions, dir);
 		osync_plugin_info_add_objtype(info, sink);
+
+		/*
+		//Lets reduce the timeouts a bit so the checks work faster
+		info->timeouts.disconnect_timeout = 5;
+		info->timeouts.connect_timeout = 5;
+		info->timeouts.sync_done_timeout = 5;
+		info->timeouts.get_changeinfo_timeout = 5;
+		info->timeouts.get_data_timeout = 5;
+		info->timeouts.commit_timeout = 15;
+		
+		
+		if (g_getenv("NO_TIMEOUTS")) {
+			info->timeouts.disconnect_timeout = 0;
+			info->timeouts.connect_timeout = 0;
+			info->timeouts.sync_done_timeout = 0;
+			info->timeouts.get_changeinfo_timeout = 0;
+			info->timeouts.get_data_timeout = 0;
+			info->timeouts.commit_timeout = 0;
+		}
+		
+		if (g_getenv("IS_AVAILABLE"))
+			info->functions.is_available = mock_is_available;
+		*/
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);

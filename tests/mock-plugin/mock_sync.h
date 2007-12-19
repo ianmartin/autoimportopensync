@@ -39,6 +39,7 @@
 #include <opensync/opensync-version.h>
 
 #include "config.h"
+#include "support.h"
 
 #include "opensync/plugin/opensync_plugin_info_internals.h"
 
