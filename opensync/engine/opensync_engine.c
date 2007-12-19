@@ -1213,6 +1213,8 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 					goto error;
 			}
 			break;
+		case OSYNC_ENGINE_EVENT_ERROR:
+			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)));
 		case OSYNC_ENGINE_EVENT_SYNC_DONE:
 			/* Lets disconnect */
 			for (o = engine->object_engines; o; o = o->next) {
@@ -1249,14 +1251,8 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			engine->obj_written = 0;
 			engine->obj_sync_done = 0;
 			
-			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SUCCESSFUL, NULL);
-			
-			g_mutex_lock(engine->syncing_mutex);
-			g_cond_signal(engine->syncing);
-			g_mutex_unlock(engine->syncing_mutex);
-			break;
-		case OSYNC_ENGINE_EVENT_ERROR:
-			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)));
+			if (!engine->error)
+				osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SUCCESSFUL, NULL);
 			
 			g_mutex_lock(engine->syncing_mutex);
 			g_cond_signal(engine->syncing);
