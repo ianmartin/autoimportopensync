@@ -1012,6 +1012,16 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	osync_message_write_string(message, groupname);
 	osync_message_write_string(message, configdir);
 	osync_message_write_string(message, config);
+
+#ifdef OPENSYNC_UNITTESTS
+	// Introduced (only) for testing/debugging purpose (mock-sync)
+	long long int memberid = 0; 
+
+	if (proxy->member)
+		memberid = osync_member_get_id(proxy->member);
+
+	osync_message_write_long_long_int(message, memberid);
+#endif	
 	
 	osync_message_set_handler(message, _osync_client_proxy_init_handler, ctx);
 	

@@ -31,6 +31,10 @@
 #include "opensync-version.h"
 #include "opensync-merger.h"
 
+#ifdef OPENSYNC_UNITTESTS
+#include "plugin/opensync_plugin_info_internals.h"
+#endif
+
 typedef struct callContext {
 	OSyncClient *client;
 	OSyncMessage *message;
@@ -505,6 +509,12 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_plugin_info_set_loop(client->plugin_info, client->context);
 	osync_plugin_info_set_format_env(client->plugin_info, client->format_env);
 	osync_plugin_info_set_groupname(client->plugin_info, groupname);
+	
+#ifdef OPENSYNC_UNITTESTS
+	long long int memberid;
+	osync_message_read_long_long_int(message, &memberid); // Introduced (only) for testing/debugging purpose (mock-sync)
+	client->plugin_info->memberid = memberid;
+#endif	
 	
 	client->plugin_data = osync_plugin_initialize(client->plugin, client->plugin_info, error);
 	if (!client->plugin_data)

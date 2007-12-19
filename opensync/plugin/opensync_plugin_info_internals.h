@@ -14,6 +14,10 @@ struct OSyncPluginInfo {
 	char *groupname;
 	OSyncVersion *version;
 	OSyncCapabilities *capabilities;
+
+#ifdef OPENSYNC_UNITTESTS
+	long long int memberid; // introduced only for testing purpose (mock-sync)
+#endif	
 };
 
 #endif /*OPENSYNC_PLUGIN_INFO_INTERNALS_H_*/

@@ -20,8 +20,28 @@
 
 #include "mock_sync.h"
 #include "mock_format.h"
-#include <opensync/opensync-version.h>
-#include <stdlib.h>
+
+static osync_bool mock_get_error(long long int memberid, const char *domain)
+{
+        const char *env = g_getenv(domain);
+
+        if (!env)
+                return FALSE;
+
+        int num = atoi(env);
+        int mask = 1 << (memberid - 1);
+        if (num & mask) {
+                char *chancestr = g_strdup_printf("%s_PROB", domain);
+                const char *chance = g_getenv(chancestr);
+                g_free(chancestr);
+                if (!chance)
+                        return TRUE;
+                int prob = atoi(chance);
+                if (prob >= g_random_int_range(0, 100))
+                        return TRUE;
+        }
+        return FALSE;
+}
 
 static void free_dir(OSyncFileDir *dir)
 {
@@ -157,6 +177,17 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 	
+	if (mock_get_error(info->memberid, "CONNECT_ERROR")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering CONNECT_ERROR error");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Triggering CONNECT_ERROR error");
+		return;
+	}
+
+	if (mock_get_error(info->memberid, "CONNECT_TIMEOUT")) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Triggering CONNECT_TIMEOUT error");
+		return;
+	}
+
 	osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
 	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
 	dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
@@ -560,6 +591,12 @@ static void mock_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	if (mock_get_error(info->memberid, "INIT_NULL")) {
+		osync_error_set(error, OSYNC_ERROR_EXPECTED, "Triggering INIT_NULL error");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return NULL;
+	}
 
 	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
 	if (!env)

@@ -21,14 +21,7 @@
 #ifndef _FILE_PLUGIN_H
 #define _FILE_PLUGIN_H
 
-#include <opensync/opensync.h>
-
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-plugin.h>
-#include <opensync/opensync-context.h>
-#include <opensync/opensync-data.h>
-#include <opensync/opensync-helper.h>
-
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <glib.h>
@@ -36,6 +29,18 @@
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
+
+#include <opensync/opensync.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-helper.h>
+#include <opensync/opensync-version.h>
+
+#include "config.h"
+
+#include "opensync/plugin/opensync_plugin_info_internals.h"
 
 typedef struct mock_env {
 	GList *directories;

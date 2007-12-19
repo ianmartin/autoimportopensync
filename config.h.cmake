@@ -20,5 +20,6 @@
 #cmakedefine HAVE_FLOCK
 
 #define OPENSYNC_TESTDATA "${CMAKE_CURRENT_SOURCE_DIR}/tests/data"
+#cmakedefine OPENSYNC_UNITTESTS
 
 #endif /* _CONFIG_H_OPENSYNC */
