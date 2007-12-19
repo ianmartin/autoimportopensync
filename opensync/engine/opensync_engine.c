@@ -603,7 +603,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	
 	engine->busy = TRUE;
 	
-	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, osync_member_get_id(member), error))
+	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, error))
 		goto error_shutdown;
 	
 	//FIXME
