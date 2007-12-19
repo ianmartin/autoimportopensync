@@ -94,35 +94,6 @@ void destroy_testbed(char *path)
 	g_free(path);
 }
 
-/*
-
-void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
-{
-	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
-	fail_unless(num_engine_end_conflicts == 0, NULL);
-	
-	int i;
-	for (i = 0; i < osengine_mapping_num_changes(mapping); i++) {
-		OSyncChange *change = osengine_mapping_nth_change(mapping, i);
-		if (change->changetype == CHANGE_MODIFIED) {
-			osengine_mapping_solve(engine, mapping, change);
-			return;
-		}
-	}
-	fail();
-}
-
-void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
-{
-	num_conflicts++;
-	if (user_data)
-		fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
-	fail_unless(num_engine_end_conflicts == 0, NULL);
-	
-	osengine_mapping_ignore_conflict(engine, mapping);
-}*/
-
 void create_case(Suite *s, const char *name, TFun function)
 {
 	TCase *tc_new = tcase_create(name);
@@ -359,6 +330,7 @@ void entry_status(OSyncChangeUpdate *status, void *user_data)
 
 void engine_status(OSyncEngineUpdate *status, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p(%i), %p)", __func__, status, status->type, user_data);
 	switch (status->type) {
 		case OSYNC_ENGINE_EVENT_CONNECTED:
 			fail_unless(!osync_error_is_set(&(status->error)), NULL);
@@ -397,6 +369,8 @@ void engine_status(OSyncEngineUpdate *status, void *user_data)
 			num_engine_sync_done++;
 			break;
 	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void mapping_status(OSyncMappingUpdate *status, void *user_data)
@@ -454,6 +428,41 @@ void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMappingEngine *ma
 		}
 	}
 	fail(NULL);
+}
+
+void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
+
+	OSyncError *error = NULL;
+	
+	num_mapping_conflicts++;
+	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+
+	int i;
+	for (i = 0; i < osync_mapping_engine_num_changes(mapping); i++) {
+		OSyncChange *change = osync_mapping_engine_nth_change(mapping, i);
+		if (osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_MODIFIED) {
+			osync_assert(osync_mapping_engine_solve(mapping, change, &error));
+			osync_assert(error == NULL);
+			osync_trace(TRACE_EXIT, "%s", __func__);
+			return;
+		}
+	}
+	fail();
+}
+
+void conflict_handler_ignore(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
+{
+	num_mapping_conflicts++;
+	if (user_data)
+		fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
+	OSyncError *error = NULL;
+	osync_engine_mapping_ignore_conflict(engine, mapping, &error);
+	fail_unless(error == NULL, NULL);
 }
 
 void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)

@@ -53,13 +53,6 @@ void create_case(Suite *s, const char *name, TFun function);
 // create_case_timeout() allow to specific a specific timeout - intended for breaking testcases which needs longer then 30seconds (default)
 void create_case_timeout(Suite *s, const char *name, TFun function, int timeout);
 
-/*void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
-void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
-void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
-void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
-void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
-void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);*/
-
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 
 OSyncMappingTable *mappingtable_load(const char *path, const char *objtype, int num_mappings);
@@ -70,15 +63,22 @@ void check_hash(OSyncHashTable *table, const char *cmpuid);
 void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid);
 
 void create_random_file(const char *path);
+
+void reset_counters();
+osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
+
+/* Status callbacks */
 void member_status(OSyncMemberUpdate *status, void *user_data);
 void entry_status(OSyncChangeUpdate *status, void *user_data);
 void engine_status(OSyncEngineUpdate *status, void *user_data);
 void mapping_status(OSyncMappingUpdate *status, void *user_data);
+
+/* Conflict handlers */
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+void conflict_handler_ignore(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
 void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
 void solve_conflict(OSyncMappingEngine *mapping);
 void conflict_handler_delay(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
-void reset_counters();
-osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
 
