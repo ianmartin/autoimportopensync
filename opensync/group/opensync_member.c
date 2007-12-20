@@ -82,7 +82,11 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
 				osync_objtype_sink_set_write(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				osync_objtype_sink_add_objformat(sink, str);
+				char *str_name = osync_xml_find_node(cur, "name");
+				char *str_config = osync_xml_find_node(cur, "config");
+				osync_objtype_sink_add_objformat_with_config(sink, str_name, str_config);
+				xmlFree(str_name);
+				xmlFree(str_config);
 			}
 			xmlFree(str);
 		}
@@ -430,12 +434,26 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	}
 	g_free(filename);
 
+	const char *version_str = (char *)xmlGetProp(cur->parent, (const xmlChar *)"version");
+	osync_bool uptodate = FALSE;
+	if (version_str && strlen(version_str) > 0) {
+		unsigned int version_major;
+		unsigned int version_minor;
+	      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+		if (MEMBER_MAJOR_VERSION == version_major && MEMBER_MINOR_VERSION == version_minor)
+			uptodate = TRUE;
+		else
+		    osync_trace(TRACE_INTERNAL, "syncmember version str : %s current %u.%u required %u.%u", version_str, version_major, version_minor, MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION ); 
+	}
+	if (!uptodate)
+		osync_trace(TRACE_INTERNAL, "syncmember.conf version does not match the one required by this version of opensync !" );
+		
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
 				member->pluginname = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype") && uptodate ) {
 				OSyncObjTypeSink *sink = _osync_member_parse_objtype(cur->xmlChildrenNode, error);
 				if (!sink)
 					goto error_free_doc;
@@ -495,10 +513,12 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
-	
+	const char *version_str = g_strdup_printf("%u.%u", MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION);
+	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
+
 	//The plugin name
 	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
-	
+
 	//The objtypes
 	GList *o = NULL;
 	for (o = member->objtypes; o; o = o->next) {
@@ -514,7 +534,10 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		int i = 0;
 		for (i = 0; i < osync_objtype_sink_num_objformats(sink); i++) {
 			const char *format = osync_objtype_sink_nth_objformat(sink, i);
-			xmlNewChild(node, NULL, (xmlChar*)"objformat", (xmlChar*)format);
+			const char *format_config = osync_objtype_sink_nth_objformat_config(sink, i);
+			xmlNode *objformat_node = xmlNewChild(node, NULL, (xmlChar*)"objformat", NULL);
+			xmlNewChild(objformat_node, NULL, (xmlChar*)"name", (xmlChar*)format);
+			xmlNewChild(objformat_node, NULL, (xmlChar*)"config", (xmlChar*)format_config);
 		}
 	}
 	
@@ -612,7 +635,7 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
  * 
  * @param member The member pointer
  * @param objtype The searched object type 
- * @param objformat The name of the Object Format 
+ * @param format The name of the Object Format 
  * 
  */
 void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format)
@@ -622,6 +645,22 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
 		return;
 	
 	osync_objtype_sink_add_objformat(sink, format);
+}
+
+/** @brief Add a specifc Object Format with a conversion path config to member 
+ * 
+ * @param member The member pointer
+ * @param objtype The searched object type 
+ * @param format The name of the Object Format 
+ * 
+ */
+void osync_member_add_objformat_with_config(OSyncMember *member, const char *objtype, const char *format, const char *format_config)
+{
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+	if (!sink)
+		return;
+	
+	osync_objtype_sink_add_objformat_with_config(sink, format, format_config);
 }
 
 /** @brief List of all available object formats for a specifc object type of this member 

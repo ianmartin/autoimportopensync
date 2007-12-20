@@ -784,8 +784,11 @@ static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProx
 	const OSyncList *f = NULL;
 	int i = 0;
 	for (f = formats; f; f = f->next) {
-		const char *formatstr = f->data;
+		const char **format_vertice = f->data;
+		const char *formatstr = format_vertice[0];
+		const char *format_configstr = format_vertice[1];
 		OSyncObjFormat *format = osync_format_env_find_objformat(env, formatstr);
+		osync_objformat_set_config(format, format_configstr);
 		if (!format) {
 			g_free(formatArray);
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a valid object format for \"%s\"", formatstr);
@@ -962,6 +965,12 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 								g_free(formats);
 								goto error;
 							}
+
+							int length = osync_converter_path_num_edges(path);
+							OSyncFormatConverter *converter = osync_converter_path_nth_edge(path, length - 1);
+							OSyncObjFormat *format = osync_converter_get_targetformat(converter);
+							osync_converter_path_set_config( path, osync_objformat_get_config(format));
+
 							g_free(formats);
 							
 							if (!osync_format_env_convert(engine->formatenv, path, osync_change_get_data(entry_engine->change), error)) {
@@ -976,7 +985,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							g_free(objtype);
 						}
 						
-						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
+						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , format conversion config %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_objformat_get_config(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
 	
 						if (!osync_client_proxy_commit_change(sinkengine->proxy, _osync_obj_engine_commit_change_callback, entry_engine, osync_entry_engine_get_change(entry_engine), error))
 							goto error;

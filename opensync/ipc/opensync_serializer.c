@@ -45,6 +45,7 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 	
 	/* Write the format and objtype first */
 	osync_message_write_string(message, osync_objformat_get_name(objformat));
+	osync_message_write_string(message, osync_objformat_get_config(objformat));
 	osync_message_write_string(message, osync_data_get_objtype(data));
 
 	/* Now we get the pointer to the data */
@@ -89,8 +90,10 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 	
 	/* Get the objtype and format */
 	char *objformat = NULL;
+	char *objformat_config = NULL;
 	char *objtype = NULL;
 	osync_message_read_string(message, &objformat);
+	osync_message_read_string(message, &objformat_config);
 	osync_message_read_string(message, &objtype);
 	
 	/* Search for the format */
@@ -99,7 +102,8 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objformat %s", objformat);
 		goto error;
 	}
-	
+	osync_objformat_set_config(format, objformat_config);
+
 	unsigned int input_size = 0;
 	char *input_data = NULL;
 	
@@ -230,7 +234,9 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	osync_message_write_int(message, num);
 	for (i = 0; i < num; i++) {
 		const char *format = osync_objtype_sink_nth_objformat(sink, i);
+		const char *format_config = osync_objtype_sink_nth_objformat_config(sink, i);
 		osync_message_write_string(message, format);
+		osync_message_write_string(message, format_config);
 	}
 	
 	osync_message_write_int(message, osync_objtype_sink_is_enabled(sink));
@@ -259,6 +265,7 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	int enabled = 0;
 	int read = 0, get_changes = 0, write = 0;
 	char *format = NULL;
+	char *format_config = NULL;
 	
  	osync_message_read_string(message, &name);
  	osync_objtype_sink_set_name(*sink, name);
@@ -277,8 +284,10 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	int i = 0;
 	for (i = 0; i < num_formats; i++) {
  		osync_message_read_string(message, &format);
-		osync_objtype_sink_add_objformat(*sink, format);
+ 		osync_message_read_string(message, &format_config);
+		osync_objtype_sink_add_objformat_with_config(*sink, format, format_config);
  		g_free(format);
+ 		g_free(format_config);
 	}
 
 	osync_message_read_int(message, &enabled);

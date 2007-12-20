@@ -52,7 +52,9 @@ OSYNC_EXPORT void osync_objtype_sink_set_name(OSyncObjTypeSink *sink, const char
 
 OSYNC_EXPORT int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink);
 OSYNC_EXPORT const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth);
+OSYNC_EXPORT const char *osync_objtype_sink_nth_objformat_config(OSyncObjTypeSink *sink, int nth);
 OSYNC_EXPORT void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format);
+OSYNC_EXPORT void osync_objtype_sink_add_objformat_with_config(OSyncObjTypeSink *sink, const char *format, const char *format_config);
 OSYNC_EXPORT void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format);
 
 OSYNC_EXPORT void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions, void *userdata);

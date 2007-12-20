@@ -37,6 +37,8 @@ OSYNC_EXPORT void osync_objformat_unref(OSyncObjFormat *format);
 
 OSYNC_EXPORT const char *osync_objformat_get_name(OSyncObjFormat *format);
 OSYNC_EXPORT const char *osync_objformat_get_objtype(OSyncObjFormat *format);
+OSYNC_EXPORT const char *osync_objformat_get_config(OSyncObjFormat *format);
+OSYNC_EXPORT void osync_objformat_set_config(OSyncObjFormat *format, const char *format_config);
 
 OSYNC_EXPORT void osync_objformat_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func);
 OSYNC_EXPORT void osync_objformat_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func);

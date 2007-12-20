@@ -21,6 +21,9 @@
 #ifndef _OPENSYNC_MEMBER_H_
 #define _OPENSYNC_MEMBER_H_
 
+#define MEMBER_MAJOR_VERSION 1
+#define MEMBER_MINOR_VERSION 0
+
 OSYNC_EXPORT OSyncMember *osync_member_new(OSyncError **error);
 OSYNC_EXPORT OSyncMember *osync_member_ref(OSyncMember *member);
 OSYNC_EXPORT void osync_member_unref(OSyncMember *member);
@@ -56,6 +59,7 @@ OSYNC_EXPORT void osync_member_set_objtype_enabled(OSyncMember *member, const ch
 
 OSYNC_EXPORT const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error);
 OSYNC_EXPORT void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format);
+OSYNC_EXPORT void osync_member_add_objformat_with_config(OSyncMember *member, const char *objtype, const char *format, const char *format_config);
 
 OSYNC_EXPORT OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member);
 OSYNC_EXPORT osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities, OSyncError **error);

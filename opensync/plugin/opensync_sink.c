@@ -79,13 +79,18 @@ OSyncObjTypeSink *osync_objtype_sink_ref(OSyncObjTypeSink *sink)
  */
 void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 {
+	OSyncList *f = NULL;
 	osync_assert(sink);
 	
 	if (g_atomic_int_dec_and_test(&(sink->ref_count))) {
 		while (sink->objformats) {
-			char *format = sink->objformats->data;
+			char **format_vertice = sink->objformats->data;
+			char *format = format_vertice[0];
+			char *format_config = format_vertice[1];
 			g_free(format);
-			sink->objformats = osync_list_remove(sink->objformats, format);
+			if(format_config)
+			      g_free(format_config);
+			sink->objformats = osync_list_remove(sink->objformats, sink->objformats->data);
 		}
 		
 		if (sink->objtype)
@@ -126,7 +131,8 @@ static osync_bool _osync_objtype_sink_find_objformat(OSyncObjTypeSink *sink, con
 	osync_assert(sink);
 	OSyncList *f = sink->objformats;
 	for (; f; f = f->next) {
-		if (!strcmp(f->data, format))
+		const char **format_vertice = f->data;
+		if (!strcmp(format_vertice[0], format))
 			return TRUE;
 	}
 	return FALSE;
@@ -154,7 +160,28 @@ int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink)
 const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth)
 {
 	osync_assert(sink);
-	return osync_list_nth_data(sink->objformats, nth);
+	char **format_vertice = osync_list_nth_data(sink->objformats, nth);
+	if (format_vertice)
+		return format_vertice[0];
+	else
+		return NULL;
+}
+
+/*! @brief Returns the nth object format conversion config in the sink
+ * 
+ * @param sink Pointer to the sink
+ * @param nth the index of the object format conversion config to return
+ * @returns the conversion config of the object format at the specified index
+ * 
+ */
+const char *osync_objtype_sink_nth_objformat_config(OSyncObjTypeSink *sink, int nth)
+{
+	osync_assert(sink);
+	char **format_vertice = osync_list_nth_data(sink->objformats, nth);
+	if (format_vertice) 
+		return format_vertice[1];
+	else
+		return NULL;
 }
 
 /** @brief Returns the list of object formats in the sink
@@ -180,8 +207,33 @@ void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format
 	osync_assert(sink);
 	osync_assert(format);
 	
-	if (!_osync_objtype_sink_find_objformat(sink, format))
-		sink->objformats = osync_list_append(sink->objformats, g_strdup(format));
+	if (!_osync_objtype_sink_find_objformat(sink, format)) {
+	        char **format_vertice = g_malloc0(2*sizeof(char **));
+		format_vertice[0] = g_strdup(format);
+		format_vertice[1] = NULL;
+		sink->objformats = osync_list_append(sink->objformats, format_vertice);
+	}
+}
+
+/** @brief Adds an object format with its conversion config to the sink
+ * 
+ * @param sink Pointer to the sink
+ * @param format name of the object format
+ * @param format_config config of the object format for the conversion path
+ * 
+ */
+void osync_objtype_sink_add_objformat_with_config(OSyncObjTypeSink *sink, const char *format, const char *format_config)
+{
+	osync_assert(sink);
+	osync_assert(format);
+	
+	if (!_osync_objtype_sink_find_objformat(sink, format)) {
+	        char **format_vertice = g_malloc0(2*sizeof(char **));
+		format_vertice[0] = g_strdup(format);
+		format_vertice[1] = g_strdup(format_config);
+		osync_trace(TRACE_INTERNAL, "CONFIG %s", format_vertice[1]);
+		sink->objformats = osync_list_append(sink->objformats, format_vertice);
+	}
 }
 
 /** @brief Removes an object format from the sink
@@ -196,7 +248,8 @@ void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *for
 	osync_assert(sink);
 	osync_assert(format);
 	for (f = sink->objformats; f; f = f->next) {
-		if (!strcmp((char *)f->data, format)) {
+		const char **format_vertice = f->data;
+		if (!strcmp(format_vertice[0], format)) {
 			sink->objformats = osync_list_remove(sink->objformats, f->data);
 			break;
 		}

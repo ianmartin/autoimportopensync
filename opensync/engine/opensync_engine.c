@@ -107,9 +107,10 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	const char *uid = osync_change_get_uid(change);		
 	int changetype = osync_change_get_changetype(change);
 	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
+	const char *format_config = osync_objformat_get_config(osync_change_get_objformat(change));
 	const char *objtype = osync_change_get_objtype(change);
 
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
+	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, format conversion config %s, objtype %s from member %lli", uid, changetype, format, format_config, objtype, memberid);
 	
 	OSyncData *data = osync_change_get_data(change);
 
@@ -123,9 +124,12 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 	
 		OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), internalFormat, &error);
+
 		if (!path)
 			goto error;
 	
+		osync_converter_path_set_config(path, osync_objformat_get_config(osync_change_get_objformat(change)));
+
 		if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
 			osync_converter_path_unref(path);
 			goto error;
