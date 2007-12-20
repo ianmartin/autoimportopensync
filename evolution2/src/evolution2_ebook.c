@@ -305,6 +305,7 @@ osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
 {
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	env->contact_format = osync_format_env_find_objformat(formatenv, "vcard30");
+	osync_objformat_set_config(env->contact_format, "VCARD_EXTENSION=Evolution");
 
 	if (!env->contact_format) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard30 object format. vformat plugin installed?");
@@ -316,8 +317,8 @@ osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
 	if (!env->contact_sink)
 		return FALSE;
 	
-	osync_objtype_sink_add_objformat(env->contact_sink, "vcard30");
-	osync_objtype_sink_add_objformat(env->contact_sink, "vcard21");
+	osync_objtype_sink_add_objformat_with_config(env->contact_sink, "vcard30", "VCARD_EXTENSION=Evolution");
+	osync_objtype_sink_add_objformat_with_config(env->contact_sink, "vcard21", "VCARD_EXTENSION=Evolution");
 	
 	/* All sinks have the same functions of course */
 	OSyncObjTypeSinkFunctions functions;
