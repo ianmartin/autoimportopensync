@@ -30,7 +30,7 @@ export PKG_CONFIG_PATH=$OPENSYNC_BUILD/lib/pkgconfig:$PKG_CONFIG_PATH
 
 dnl pkg_modules="opensync-1.0 glib-2.0 libxml-2.0 libxslt sync4j"
 dnl PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
-PKG_CHECK_MODULES(opensync, ["opensync-1.0"])
+PKG_CHECK_MODULES(opensync, ["opensync-1.0" >= 0.35])
 AC_SUBST(opensync_CFLAGS)
 AC_SUBST(opensync_LIBS)
 
