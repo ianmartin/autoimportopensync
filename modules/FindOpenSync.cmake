@@ -35,6 +35,14 @@ IF ( PKGCONFIG_EXECUTABLE )
 	STRING( REGEX REPLACE "[\r\n]" " " _opensync_data_DIR "${_opensync_data_DIR}"  )
 ENDIF ( PKGCONFIG_EXECUTABLE )
 
+FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATHS "${_opensync_data_DIR}" PATH_SUFFIXES "cmake/modules" NO_DEFAULT_PATH) 
+FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATH_SUFFIXES "cmake/modules" ) 
+IF ( OPENSYNC_CMAKE_MODULES )
+        SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${OPENSYNC_CMAKE_MODULES}" )
+ELSE ( OPENSYNC_CMAKE_MODULES )
+        MESSAGE( FATAL_ERROR "OpenSync cmake modules not found. Have you installed opensync core or did you set your PKG_CONFIG_PATH if installing in a non system directory ?" )
+ENDIF ( OPENSYNC_CMAKE_MODULES )
+
 
 # Look for OpenSync include dir and libraries without pkg-config 
 IF( NOT OPENSYNC_FOUND AND NOT PKG_CONFIG_FOUND )
@@ -72,10 +80,6 @@ IF( NOT OPENSYNC_FOUND AND NOT PKG_CONFIG_FOUND )
 		ENDIF ( OpenSync_FIND_REQUIRED )
 	ENDIF ( OPENSYNC_LIBRARIES AND OPENSYNC_INCLUDE_DIRS )	
 ENDIF( NOT OPENSYNC_FOUND AND NOT PKG_CONFIG_FOUND )
-
-FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATHS "${_opensync_data_DIR}" PATH_SUFFIXES "cmake/modules" NO_DEFAULT_PATH) 
-FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATH_SUFFIXES "cmake/modules" ) 
-SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${OPENSYNC_CMAKE_MODULES}" )
 
 # Hide advanced variables from CMake GUIs
 MARK_AS_ADVANCED( OPENSYNC_LIBRARIES OPENSYNC_INCLUDE_DIRS )
