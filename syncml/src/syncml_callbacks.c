@@ -530,6 +530,8 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 			if (!flush_session_for_all_databases(database->env, TRUE, smlerror))
 				goto smlerror;
 		}
+	} else {
+		database->pendingChanges--;
 	}
 
 	osync_change_unref(change);
