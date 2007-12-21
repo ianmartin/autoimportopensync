@@ -16,6 +16,9 @@ static void reset_env(void)
 	unsetenv("SYNC_DONE_TIMEOUT");
 	unsetenv("DISCONNECT_ERROR");
 	unsetenv("DISCONNECT_TIMEOUT");
+	unsetenv("BATCH_COMMIT");
+	unsetenv("COMMITTED_ALL_ERROR");
+	unsetenv("NO_COMMITTED_ALL_CHECK");
 }
 
 char *setup_testbed(char *fkt_name)
