@@ -69,14 +69,16 @@ static void free_env(mock_env *env)
 	g_free(env);
 }
 
-static osync_bool mock_parse_directory(mock_env *env, xmlNode *cur, OSyncError **error)
+static osync_bool mock_parse_directory(mock_env *env, OSyncPluginInfo *info, xmlNode *cur, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, info, cur, error);
 
 	OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
 	if (!dir)
 		goto error;
 	dir->env = env;
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
@@ -85,6 +87,8 @@ static osync_bool mock_parse_directory(mock_env *env, xmlNode *cur, OSyncError *
 				dir->path = g_strdup(str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
 				dir->objtype = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
+				dir->objformat = osync_format_env_find_objformat(formatenv, str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"recursive")) {
 				dir->recursive = (g_ascii_strcasecmp(str, "TRUE") == 0);
 			}
@@ -113,9 +117,10 @@ error:
 }
 
 /*Load the state from a xml file and return it in the conn struct*/
-static osync_bool mock_parse_settings(mock_env *env, const char *data, OSyncError **error)
+static osync_bool mock_parse_settings(mock_env *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, error);
+	const char *data = osync_plugin_info_get_config(info);
 	xmlDoc *doc = NULL;
 	xmlNode *cur = NULL;
 
@@ -143,7 +148,7 @@ static osync_bool mock_parse_settings(mock_env *env, const char *data, OSyncErro
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"directory")) {
-				if (!mock_parse_directory(env, cur->xmlChildrenNode, error))
+				if (!mock_parse_directory(env, info, cur->xmlChildrenNode, error))
 					goto error_free_doc;
 			}
 			xmlFree(str);
@@ -172,13 +177,12 @@ static char *mock_generate_hash(struct stat *buf)
 static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncError *error = NULL;
-	mock_env *env = (mock_env *) data;
-
-        env->committed_all = TRUE;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+
+        dir->committed_all = TRUE;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	
 	if (mock_get_error(info->memberid, "CONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering CONNECT_ERROR error");
@@ -228,11 +232,10 @@ static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	mock_env *env = (mock_env *) data;
 
 	if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
-		fail_unless(env->committed_all == TRUE, NULL);
-	env->committed_all = FALSE;
+		fail_unless(dir->committed_all == TRUE, NULL);
+	dir->committed_all = FALSE;
 
 	if (mock_get_error(info->memberid, "DISCONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering DISCONNECT_ERROR error");
@@ -262,7 +265,6 @@ static osync_bool mock_read(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	mock_env *env = (mock_env *)data;
 	OSyncError *error = NULL;
 	
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
@@ -282,7 +284,7 @@ static osync_bool mock_read(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	if (!osync_file_read(filename, &(file->data), &(file->size), &error))
 		goto error_free_file;
 	
-	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), env->objformat, &error);
+	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), dir->objformat, &error);
 	if (!odata)
 		goto error_free_data;
 
@@ -465,7 +467,7 @@ static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncCo
 			OSyncData *odata = NULL;
 
 			if (mock_get_error(info->memberid, "ONLY_INFO")) {
-				odata = osync_data_new(NULL, 0, directory->env->objformat, &error);
+				odata = osync_data_new(NULL, 0, directory->objformat, &error);
 			} else {
 				if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
 					osync_change_unref(change);
@@ -478,7 +480,7 @@ static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncCo
 				if (mock_get_error(info->memberid, "SLOW_REPORT"))
 					sleep(1);
 				
-				odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
+				odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->objformat, &error);
 				if (!odata) {
 					osync_change_unref(change);
 					osync_context_report_osyncwarning(ctx, error);
@@ -513,17 +515,22 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	mock_env *env = (mock_env *)data;
 	int i = 0;
 	OSyncError *error = NULL;
 
+	fail_unless(dir->committed_all == TRUE, NULL);
+	dir->committed_all = FALSE;
+
 	if (mock_get_error(info->memberid, "GET_CHANGES_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_CHANGES_ERROR error");
+		osync_trace(TRACE_EXIT_ERROR, "%s - Triggering GET_CHANGES error", __func__);
 		return;
 	}
 
-	if (mock_get_error(info->memberid, "GET_CHANGES_TIMEOUT"))
+	if (mock_get_error(info->memberid, "GET_CHANGES_TIMEOUT")) {
+		osync_trace(TRACE_EXIT, "%s - Triggering GET_CHANGES_TIMEOUT (without context report!)", __func__);
 		return;
+	}
 
 	if (mock_get_error(info->memberid, "GET_CHANGES_TIMEOUT2"))
 		sleep(8);
@@ -550,7 +557,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 		osync_change_set_uid(change, uids[i]);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 		
-		OSyncData *odata = osync_data_new(NULL, 0, env->objformat, &error);
+		OSyncData *odata = osync_data_new(NULL, 0, dir->objformat, &error);
 		if (!odata) {
 			g_free(uids[i]);
 			osync_change_unref(change);
@@ -571,9 +578,6 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 		g_free(uids[i]);
 	}
 	g_free(uids);
-
-	fail_unless(env->committed_all == TRUE, NULL);
-	env->committed_all = FALSE;
 	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -584,18 +588,19 @@ static void mock_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	mock_env *env = (mock_env *) data;
 	
 	char *filename = NULL;
 
-	fail_unless(env->committed_all == FALSE, NULL);
+	fail_unless(dir->committed_all == FALSE, NULL);
 
 	if (mock_get_error(info->memberid, "COMMIT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering COMMIT_ERROR error");
 		return;
 	}
-	if (mock_get_error(info->memberid, "COMMIT_TIMEOUT"))
+	if (mock_get_error(info->memberid, "COMMIT_TIMEOUT")) {
+		osync_trace(TRACE_EXIT_ERROR, "COMMIT_TIMEOUT (mock-sync)!");
 		return;
+	}
 	
 	if (!mock_write(data, info, ctx, change)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
@@ -623,12 +628,11 @@ static void mock_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *
 static void mock_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *context, OSyncContext **contexts, OSyncChange **changes)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, context, contexts, changes);
-        mock_env *env = (mock_env *) data;
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 
-        fail_unless(env->committed_all == FALSE, NULL);
-        env->committed_all = TRUE;
+        fail_unless(dir->committed_all == FALSE, NULL);
+        dir->committed_all = TRUE;
 
         int i; 
         for (i = 0; contexts[i]; i++) {
@@ -666,12 +670,11 @@ static void mock_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *c
 static void mock_committed_all(void *data, OSyncPluginInfo *info, OSyncContext *context)
 {
         osync_trace(TRACE_ENTRY, "%s(%p)", __func__, context);
-        mock_env *env = (mock_env *) data;
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 
-        fail_unless(env->committed_all == FALSE, NULL);
-        env->committed_all = TRUE;
+        fail_unless(dir->committed_all == FALSE, NULL);
+        dir->committed_all = TRUE;
 
         if (mock_get_error(info->memberid, "COMMITTED_ALL_ERROR")) {
                 osync_context_report_error(context, OSYNC_ERROR_EXPECTED, "Triggering COMMITTED_ALL_ERROR error");
@@ -727,9 +730,8 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
 	
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	env->objformat = osync_format_env_find_objformat(formatenv, "mockformat1");
 	
-	if (!mock_parse_settings(env, osync_plugin_info_get_config(info), error))
+	if (!mock_parse_settings(env, info, error))
 		goto error_free_env;
 	
 	/* Now we register the objtypes that we can sync. This plugin is special. It can
@@ -745,8 +747,7 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		
 		dir->sink = sink;
 		
-		/* The file format is the only one we understand */
-		osync_objtype_sink_add_objformat(sink, "mockformat1");
+		osync_objtype_sink_add_objformat(sink, osync_objformat_get_name(dir->objformat));
 		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;

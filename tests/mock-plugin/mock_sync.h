@@ -45,10 +45,8 @@
 
 typedef struct mock_env {
 	GList *directories;
-	OSyncObjFormat *objformat;
 
 	OSyncMember *member;
-	osync_bool committed_all;
 
 	int num_connect;
 	int num_disconnect;
@@ -67,11 +65,13 @@ typedef struct mock_env {
 typedef struct OSyncFileDir {
 	char *objtype;
 	char *path;
+	OSyncObjFormat *objformat;
 	GDir *dir;
 	OSyncHashTable *hashtable;
 	OSyncObjTypeSink *sink;
 	osync_bool recursive;
 	mock_env *env;
+	osync_bool committed_all;
 } OSyncFileDir;
 
 #endif //_FILE_PLUGIN_H
