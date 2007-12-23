@@ -2064,9 +2064,9 @@ START_TEST (sync_detect_obj)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncMember *member1 = osync_group_nth_member(group, 0);
-	osync_member_set_config(member1, "<config><directory><path>file-1</path><objtype>mockobjtype1</objtype></directory><directory><path>file2-1</path><objtype>mockobjtype2</objtype></directory><directory><path>file3-1</path><objtype>mockobjtype3</objtype></directory></config>");
+	osync_member_set_config(member1, "<config><directory><path>file-1</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory><directory><path>file2-1</path><objtype>mockobjtype2</objtype><objformat>mockformat2</objformat></directory><directory><path>file3-1</path><objtype>mockobjtype3</objtype><objformat>mockformat3</objformat></directory></config>");
 	OSyncMember *member2 = osync_group_nth_member(group, 1);
-	osync_member_set_config(member2, "<config><directory><path>file-2</path><objtype>mockobjtype1</objtype></directory><directory><path>file2-2</path><objtype>mockobjtype2</objtype></directory><directory><path>file3-2</path><objtype>mockobjtype3</objtype></directory></config>");
+	osync_member_set_config(member2, "<config><directory><path>file-2</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory><directory><path>file2-2</path><objtype>mockobjtype2</objtype><objformat>mockformat2</objformat></directory><directory><path>file3-2</path><objtype>mockobjtype3</objtype><objformat>mockformat3</objformat></directory></config>");
 	
 	/* Check that we dont have any discovered objtypes */
 	fail_unless(osync_member_num_objtypes(member1) == 0, NULL);
@@ -2262,9 +2262,9 @@ START_TEST (sync_detect_obj2)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncMember *member1 = osync_group_nth_member(group, 0);
-	osync_member_set_config(member1, "<config><directory><path>file-1</path><objtype>mockobjtype1</objtype></directory><directory><path>file2-1</path><objtype>mockobjtype2</objtype></directory><directory><path>file3-1</path><objtype>mockobjtype3</objtype></directory></config>");
+	osync_member_set_config(member1, "<config><directory><path>file-1</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory><directory><path>file2-1</path><objtype>mockobjtype2</objtype><objformat>mockformat2</objformat></directory><directory><path>file3-1</path><objtype>mockobjtype3</objtype><objformat>mockformat3</objformat></directory></config>");
 	OSyncMember *member2 = osync_group_nth_member(group, 1);
-	osync_member_set_config(member2, "<config><directory><path>file-2</path><objtype>mockobjtype1</objtype></directory></config>");
+	osync_member_set_config(member2, "<config><directory><path>file-2</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory></config>");
 	
 	/* Check that we dont have any discovered objtypes */
 	fail_unless(osync_member_num_objtypes(member1) == 0, NULL);
