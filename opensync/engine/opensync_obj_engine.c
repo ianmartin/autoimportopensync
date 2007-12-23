@@ -968,8 +968,10 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 							int length = osync_converter_path_num_edges(path);
 							OSyncFormatConverter *converter = osync_converter_path_nth_edge(path, length - 1);
-							OSyncObjFormat *format = osync_converter_get_targetformat(converter);
-							osync_converter_path_set_config( path, osync_objformat_get_config(format));
+							if (converter) {
+								OSyncObjFormat *format = osync_converter_get_targetformat(converter);
+								osync_converter_path_set_config( path, osync_objformat_get_config(format));
+							}
 
 							g_free(formats);
 							
