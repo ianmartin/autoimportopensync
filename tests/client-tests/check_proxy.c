@@ -101,7 +101,7 @@ START_TEST (proxy_init)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype></directory></config>");
+	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype><objformat>mockformat1</objformat></directory></config>");
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
 	g_free(config);
 
@@ -143,7 +143,7 @@ START_TEST (proxy_discover)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype></directory></config>");
+	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype><objformat>mockformat1</objformat></directory></config>");
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
 	g_free(config);
 
@@ -200,7 +200,7 @@ START_TEST (proxy_connect)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype></directory></config>");
+	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype><objformat>mockformat1</objformat></directory></config>");
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
 	g_free(config);
 	fail_unless(error == NULL, NULL);
