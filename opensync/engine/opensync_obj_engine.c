@@ -387,6 +387,10 @@ static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine)
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported committed all than connected");
 			osync_obj_engine_set_error(engine, locerror);
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		} else if (osync_bitcount(engine->sink_errors)) {
+			/* Emit engine-wide error if one of the sink got an error (tests: single_commit_error, ...) */
+			osync_trace(TRACE_INTERNAL, "Commit Error: %s", osync_error_print(&(engine->error)));
+			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
 	} else
@@ -397,6 +401,7 @@ static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, vo
 {
 	OSyncMappingEntryEngine *entry_engine = userdata;
 	OSyncObjEngine *engine = entry_engine->objengine;
+	OSyncSinkEngine *sinkengine = entry_engine->sink_engine;
 	OSyncError *locerror = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, proxy, userdata, uid, error);
@@ -410,7 +415,14 @@ static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, vo
 	long long int id = osync_mapping_entry_get_id(entry);
 	
 	if (error) {
+		/* Error handling (tests: single_commit_error, ...) */
+
+		/* TODO: Review differences between Mapping and Change status events - Are both really needed?! */
 		osync_status_update_change(engine->parent, entry_engine->change, osync_client_proxy_get_member(proxy), entry_engine->mapping_engine->mapping, OSYNC_CHANGE_EVENT_ERROR, error);
+		osync_status_update_mapping(engine->parent, entry_engine->mapping_engine, OSYNC_MAPPING_EVENT_ERROR, error);
+
+		osync_obj_engine_set_error(engine, error);
+		engine->sink_errors = engine->sink_errors | (0x1 << sinkengine->position);
 		goto end;
 	}
 	
@@ -445,6 +457,9 @@ static void _osync_obj_engine_written_callback(OSyncClientProxy *proxy, void *us
 	if (error) {
 		osync_obj_engine_set_error(engine, error);
 		engine->sink_errors = engine->sink_errors | (0x1 << sinkengine->position);
+
+		/* TODO: Review if this member/client status event is really needed. */
+		/* This breaks testcase: committed_all_error */ 
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, engine->objtype, error);
 	} else {
 		engine->sink_written = engine->sink_written | (0x1 << sinkengine->position);
