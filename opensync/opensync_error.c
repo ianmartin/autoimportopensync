@@ -246,6 +246,10 @@ void osync_error_stack(OSyncError **parent, OSyncError **child)
 	
 	if (!child || !*child)
 		return;
+
+	/* Avoid infinite recursion. */
+	if (*parent == *child)
+		return;
 	
 	if ((*parent)->child)
 		osync_error_unref(&((*parent)->child));
