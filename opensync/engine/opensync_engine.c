@@ -767,7 +767,7 @@ static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 
 		/* Error handling in this case is quite special. We have to call OSYNC_ENGINE_EVENT_DISCONNECTED,
 		   even on errors. Since OSYNC_ENGINE_EVENT_ERROR would emit this DISCONNECTED event again - deadlock! */
-		if (osync_bitcount(engine->obj_errors) < g_list_length(engine->object_engines))
+		if (!osync_bitcount(engine->obj_errors))
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_DISCONNECTED, NULL);
 
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_DISCONNECTED);
@@ -1249,6 +1249,10 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 				if (!osync_client_proxy_disconnect(proxy, _osync_engine_disconnect_callback, engine, NULL, &engine->error))
 					goto error;
 			}
+			
+			if (!engine->error)
+				osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SUCCESSFUL, NULL);
+
 			break;
 		case OSYNC_ENGINE_EVENT_DISCONNECTED:
 
@@ -1270,9 +1274,6 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			engine->obj_get_changes = 0;
 			engine->obj_written = 0;
 			engine->obj_sync_done = 0;
-			
-			if (!engine->error)
-				osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SUCCESSFUL, NULL);
 			
 			g_mutex_lock(engine->syncing_mutex);
 			g_cond_signal(engine->syncing);

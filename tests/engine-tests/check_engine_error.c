@@ -2608,8 +2608,8 @@ START_TEST (triple_disconnect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
-	fail_unless(synchronize_once(engine, &error), NULL);
-	fail_unless(!osync_error_is_set(&error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -2906,11 +2906,9 @@ Suite *error_suite(void)
 	create_case(s, "sync_done_timeout_and_error", sync_done_timeout_and_error);
 	*/
 
-	/*
 	create_case(s, "single_disconnect_error", single_disconnect_error);
 	create_case(s, "dual_disconnect_error", dual_disconnect_error);
 	create_case(s, "triple_disconnect_error", triple_disconnect_error);
-	*/
 
 	/*
 	create_case(s, "single_disconnect_timeout", single_disconnect_timeout);
