@@ -628,7 +628,7 @@ START_TEST (double_init_error)
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
@@ -657,7 +657,7 @@ START_TEST (no_config_error)
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
@@ -686,7 +686,7 @@ START_TEST (no_objtype_error)
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
@@ -720,7 +720,7 @@ START_TEST (dual_connect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
@@ -769,7 +769,6 @@ START_TEST (dual_connect_error)
 	fail_unless(num_mapping_solved == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
-	reset_counters();
 	
 	_free_group(debug);
 	
@@ -803,7 +802,7 @@ START_TEST (one_of_two_connect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 
@@ -812,7 +811,6 @@ START_TEST (one_of_two_connect_error)
 	fail_unless(num_client_disconnected == 1, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	reset_counters();
 
 	osync_error_unref(&error);
 	
@@ -851,7 +849,7 @@ START_TEST (two_of_three_connect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 
@@ -861,7 +859,6 @@ START_TEST (two_of_three_connect_error)
 	fail_unless(num_client_disconnected == 1, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	reset_counters();
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -898,7 +895,7 @@ START_TEST (two_of_three_connect_error2)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 
@@ -907,7 +904,6 @@ START_TEST (two_of_three_connect_error2)
 	fail_unless(num_client_disconnected == 1, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	reset_counters();
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -945,7 +941,7 @@ START_TEST (three_of_three_connect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -954,7 +950,6 @@ START_TEST (three_of_three_connect_error)
 	fail_unless(num_client_disconnected == 0, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	reset_counters();
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -1036,7 +1031,7 @@ START_TEST (no_connect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
@@ -1050,8 +1045,6 @@ START_TEST (no_connect_error)
 	fail_unless(num_client_written == 3, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
-
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1085,7 +1078,7 @@ START_TEST (single_connect_timeout)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1099,8 +1092,6 @@ START_TEST (single_connect_timeout)
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1133,7 +1124,7 @@ START_TEST (dual_connect_timeout)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1147,7 +1138,6 @@ START_TEST (dual_connect_timeout)
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1180,7 +1170,7 @@ START_TEST (one_of_three_timeout)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1194,7 +1184,6 @@ START_TEST (one_of_three_timeout)
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1228,7 +1217,7 @@ START_TEST (timeout_and_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1242,7 +1231,6 @@ START_TEST (timeout_and_error)
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1276,7 +1264,7 @@ START_TEST (single_get_changes_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1295,7 +1283,6 @@ START_TEST (single_get_changes_error)
 	fail_unless(num_engine_errors == 0, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1329,7 +1316,7 @@ START_TEST (dual_get_changes_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1350,7 +1337,6 @@ START_TEST (dual_get_changes_error)
 	fail_unless(num_engine_errors == 0, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1384,7 +1370,7 @@ START_TEST (two_of_three_get_changes_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1403,7 +1389,6 @@ START_TEST (two_of_three_get_changes_error)
 	fail_unless(num_engine_errors == 0, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1437,7 +1422,7 @@ START_TEST (one_of_three_get_changes_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1456,7 +1441,6 @@ START_TEST (one_of_three_get_changes_error)
 	fail_unless(num_engine_errors == 0, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1490,7 +1474,7 @@ START_TEST (one_of_three_get_changes_timeout)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1508,7 +1492,6 @@ START_TEST (one_of_three_get_changes_timeout)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1542,7 +1525,7 @@ START_TEST (get_changes_timeout_and_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1559,7 +1542,6 @@ START_TEST (get_changes_timeout_and_error)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1593,7 +1575,7 @@ START_TEST (get_changes_timeout_sleep)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1610,7 +1592,6 @@ START_TEST (get_changes_timeout_sleep)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -1754,7 +1735,7 @@ START_TEST (single_commit_timeout)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1773,7 +1754,6 @@ START_TEST (single_commit_timeout)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -1808,7 +1788,7 @@ START_TEST (dual_commit_timeout)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1827,7 +1807,6 @@ START_TEST (dual_commit_timeout)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -1863,7 +1842,7 @@ START_TEST (commit_timeout_and_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1882,7 +1861,6 @@ START_TEST (commit_timeout_and_error)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -1918,7 +1896,7 @@ START_TEST (commit_timeout_and_error2)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1937,7 +1915,6 @@ START_TEST (commit_timeout_and_error2)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
-	reset_counters();
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
