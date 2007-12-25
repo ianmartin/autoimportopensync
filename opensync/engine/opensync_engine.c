@@ -87,6 +87,30 @@ static OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, co
 	return osync_format_env_find_objformat(engine->formatenv, format);
 }
 
+static int _osync_engine_get_proxy_position(OSyncEngine *engine, OSyncClientProxy *proxy)
+{
+	osync_assert(engine);
+	osync_assert(proxy);
+
+	int ret = g_list_index(engine->proxies, proxy);
+
+	osync_assert(ret >= 0);
+
+	return ret;
+}
+
+static int _osync_engine_get_objengine_position(OSyncEngine *engine, OSyncObjEngine *objengine)
+{
+	osync_assert(engine);
+	osync_assert(objengine);
+
+	int ret = g_list_index(engine->object_engines, objengine);
+
+	osync_assert(ret >= 0);
+
+	return ret;
+}
+
 static void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
 {
 	osync_trace(TRACE_INTERNAL, "Setting internal format of %s to %p:%s", objtype, format, osync_objformat_get_name(format));
@@ -739,21 +763,15 @@ static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userda
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, proxy, userdata, slowsync, error);
 	
-	int i = 0;
-	GList *e = NULL;
-	for (e = engine->proxies; e; e = e->next) {
-		if (e->data == proxy)
-			break;
-		i++;
-	}
+	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
-		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
+		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
 		engine->error = error;
 		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
-		engine->proxy_connects = engine->proxy_connects | (0x1 << i);
+		engine->proxy_connects = engine->proxy_connects | (0x1 << position);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_CONNECTED, NULL, NULL);
 	}
 	
@@ -767,21 +785,15 @@ static void _osync_engine_disconnect_callback(OSyncClientProxy *proxy, void *use
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int i = 0;
-	GList *e = NULL;
-	for (e = engine->proxies; e; e = e->next) {
-		if (e->data == proxy)
-			break;
-		i++;
-	}
+	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
-		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
+		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
 		engine->error = error;
 		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
-		engine->proxy_disconnects = engine->proxy_disconnects | (0x1 << i);
+		engine->proxy_disconnects = engine->proxy_disconnects | (0x1 << position);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_DISCONNECTED, NULL, NULL);
 	}
 	
@@ -795,21 +807,15 @@ static void _osync_engine_get_changes_callback(OSyncClientProxy *proxy, void *us
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int i = 0;
-	GList *e = NULL;
-	for (e = engine->proxies; e; e = e->next) {
-		if (e->data == proxy)
-			break;
-		i++;
-	}
+	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
-		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
+		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
 		engine->error = error;
 		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
-		engine->proxy_get_changes = engine->proxy_get_changes | (0x1 << i);
+		engine->proxy_get_changes = engine->proxy_get_changes | (0x1 << position);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_READ, NULL, NULL);
 	}
 	
@@ -823,21 +829,15 @@ static void _osync_engine_written_callback(OSyncClientProxy *proxy, void *userda
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int i = 0;
-	GList *e = NULL;
-	for (e = engine->proxies; e; e = e->next) {
-		if (e->data == proxy)
-			break;
-		i++;
-	}
+	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
-		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
+		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
 		engine->error = error;
 		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
-		engine->proxy_written = engine->proxy_written | (0x1 << i);
+		engine->proxy_written = engine->proxy_written | (0x1 << position);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_WRITTEN, NULL, NULL);
 	}
 	
@@ -851,21 +851,15 @@ static void _osync_engine_sync_done_callback(OSyncClientProxy *proxy, void *user
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int i = 0;
-	GList *e = NULL;
-	for (e = engine->proxies; e; e = e->next) {
-		if (e->data == proxy)
-			break;
-		i++;
-	}
+	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
-		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
+		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
 		engine->error = error;
 		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
-		engine->proxy_sync_done = engine->proxy_sync_done | (0x1 << i);
+		engine->proxy_sync_done = engine->proxy_sync_done | (0x1 << position);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_SYNC_DONE, NULL, NULL);
 	}
 	
@@ -879,38 +873,32 @@ static void _osync_engine_event_callback(OSyncObjEngine *objengine, OSyncEngineE
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, objengine, event, error, userdata);
 	
-	int i = 0;
-	GList *e = NULL;
-	for (e = engine->object_engines; e; e = e->next) {
-		if (e->data == objengine)
-			break;
-		i++;
-	}
+	int position = _osync_engine_get_objengine_position(engine, objengine);
 	
 	switch (event) {
 		case OSYNC_ENGINE_EVENT_CONNECTED:
-			engine->obj_connects = engine->obj_connects | (0x1 << i);
+			engine->obj_connects = engine->obj_connects | (0x1 << position);
 			_osync_engine_generate_connected_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
 			osync_trace(TRACE_ERROR, "Engine received an error: %s", osync_error_print(&error));
 			osync_engine_set_error(engine, error);
-			engine->obj_errors = engine->obj_errors | (0x1 << i);
+			engine->obj_errors = engine->obj_errors | (0x1 << position);
 			break;
 		case OSYNC_ENGINE_EVENT_READ:
-			engine->obj_get_changes = engine->obj_get_changes | (0x1 << i);
+			engine->obj_get_changes = engine->obj_get_changes | (0x1 << position);
 			_osync_engine_generate_get_changes_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_WRITTEN:
-			engine->obj_written = engine->obj_written | (0x1 << i);
+			engine->obj_written = engine->obj_written | (0x1 << position);
 			_osync_engine_generate_written_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_SYNC_DONE:
-			engine->obj_sync_done = engine->obj_sync_done | (0x1 << i);
+			engine->obj_sync_done = engine->obj_sync_done | (0x1 << position);
 			_osync_engine_generate_sync_done_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_DISCONNECTED:
-			engine->obj_disconnects = engine->obj_disconnects | (0x1 << i);
+			engine->obj_disconnects = engine->obj_disconnects | (0x1 << position);
 			_osync_engine_generate_disconnected_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_SUCCESSFUL:
