@@ -733,19 +733,23 @@ START_TEST (dual_connect_error)
 	
 	/* Client checks */
 	fail_unless(num_client_connected == 0, NULL);
-	fail_unless(num_client_main_connected == 2, NULL);
 	fail_unless(num_client_read == 0, NULL);
-	fail_unless(num_client_main_read == 0, NULL);
 	fail_unless(num_client_written == 0, NULL);
-	fail_unless(num_client_main_written == 0, NULL);
 	fail_unless(num_client_disconnected == 0, NULL);
-	fail_unless(num_client_main_disconnected == 0, NULL);
 	fail_unless(num_client_errors == 2, NULL);
 	fail_unless(num_client_sync_done == 0, NULL);
-	fail_unless(num_client_main_sync_done == 0, NULL);
 	fail_unless(num_client_discovered == 0, NULL);
+
+	/* Main sink checks */
+
+	/* Main sinks in this testcase are NOOP. So they succeed always and connect & disconnect as usual. */
+	fail_unless(num_client_main_disconnected == 2, NULL);
+	fail_unless(num_client_main_connected == 2, NULL);
+	fail_unless(num_client_main_read == 0, NULL);
+	fail_unless(num_client_main_written == 0, NULL);
+	fail_unless(num_client_main_sync_done == 0, NULL);
 	
-	/* Client checks */
+	/* Engine checks */
 	fail_unless(num_engine_connected == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_read == 0, NULL);
@@ -805,12 +809,7 @@ START_TEST (one_of_two_connect_error)
 
 	fail_unless(num_client_errors == 1, NULL);
 	fail_unless(num_client_connected == 1, NULL);
-	
-	/* XXX: Should even the failed client emit a disconnect signal?
-	   If so the number of disconnected "clients" (without main sinks) should be in this
-	   case 1 - if even the failing client should emit such status signal the number of
-	   disconnected clients is: 2 */
-	fail_unless(num_client_disconnected == 2, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	reset_counters();
@@ -859,10 +858,7 @@ START_TEST (two_of_three_connect_error)
 	
 	fail_unless(num_client_errors == 2, NULL);
 	fail_unless(num_client_connected == 1, NULL);
-
-	//fail_unless(num_client_disconnected == 1, NULL);
-	fail_unless(num_client_disconnected == 3, NULL); /* XXX: Number of disconnecte event might differ - See comments in one_of_two_connect_error */
-
+	fail_unless(num_client_disconnected == 1, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	reset_counters();
@@ -908,10 +904,7 @@ START_TEST (two_of_three_connect_error2)
 
 	fail_unless(num_client_errors == 2, NULL);
 	fail_unless(num_client_connected == 1, NULL);
-
-	//fail_unless(num_client_disconnected == 1, NULL);
-	fail_unless(num_client_disconnected == 3, NULL); /* XXX: Number of disconnecte event might differ - See comments in one_of_two_connect_error */
-
+	fail_unless(num_client_disconnected == 1, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	reset_counters();
@@ -958,10 +951,7 @@ START_TEST (three_of_three_connect_error)
 	
 	fail_unless(num_client_errors == 3, NULL);
 	fail_unless(num_client_connected == 0, NULL);
-
-	//fail_unless(num_client_disconnected == 0, NULL);
-	fail_unless(num_client_disconnected == 3, NULL); /* XXX: Number of disconnecte event might differ - See comments in one_of_two_connect_error */
-
+	fail_unless(num_client_disconnected == 0, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	reset_counters();
@@ -1013,8 +1003,7 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(num_client_connected == 2, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	//fail_unless(num_client_disconnected == 2, NULL);
-	fail_unless(num_client_disconnected == 3, NULL); /* XXX: Number of disconnecte event might differ - See comments in one_of_two_connect_error */
+	fail_unless(num_client_disconnected == 2, NULL);
 	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
@@ -2881,7 +2870,7 @@ Suite *error_suite(void)
 	create_case(s, "double_init_error", double_init_error);
 	create_case(s, "no_config_error", no_config_error);
 	create_case(s, "no_objtype_error", no_objtype_error);
-	//create_case(s, "dual_connect_error", dual_connect_error); // port?!
+	create_case(s, "dual_connect_error", dual_connect_error);
 	create_case(s, "one_of_two_connect_error", one_of_two_connect_error);
 	create_case(s, "two_of_three_connect_error", two_of_three_connect_error);
 	create_case(s, "two_of_three_connect_error2", two_of_three_connect_error2);
