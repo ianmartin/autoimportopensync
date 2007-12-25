@@ -2900,12 +2900,8 @@ Suite *error_suite(void)
 	create_case(s, "get_changes_timeout_sleep", get_changes_timeout_sleep);
 	*/
 
-	/* FIXME: _osync_engine_generate_written_event() needs error handling to get those working (dgollub) */
-
-	/*
 	create_case(s, "single_commit_error", single_commit_error);
 	create_case(s, "dual_commit_error", dual_commit_error);
-	*/
 
 	/*
 	create_case(s, "single_commit_timeout", single_commit_timeout);

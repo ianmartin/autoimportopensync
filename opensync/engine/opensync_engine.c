@@ -719,10 +719,19 @@ static void _osync_engine_generate_written_event(OSyncEngine *engine)
 	if (osync_bitcount(engine->proxy_errors | engine->proxy_written) != g_list_length(engine->proxies))
 		return;
 	
-	// TODO Error handling
 	if (osync_bitcount(engine->obj_errors | engine->obj_written) == g_list_length(engine->object_engines)) {
-		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_WRITTEN, NULL);
-		osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
+		if (osync_bitcount(engine->obj_errors)) {
+			OSyncError *locerror = NULL;
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one object engine failed while writting changes. Aborting");
+			osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
+			osync_engine_set_error(engine, locerror);
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+			osync_error_unref(&locerror);
+		} else {
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_WRITTEN, NULL);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
+		}
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->obj_errors | engine->obj_written));
 
