@@ -991,7 +991,7 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(error != NULL, NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
@@ -1004,7 +1004,6 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_client_disconnected == 2, NULL);
-	reset_counters();
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -2876,7 +2875,7 @@ Suite *error_suite(void)
 	create_case(s, "two_of_three_connect_error2", two_of_three_connect_error2);
 	create_case(s, "three_of_three_connect_error", three_of_three_connect_error);
 
-	//create_case(s, "one_of_three_connect_error", one_of_three_connect_error); // FIXME: Avoid syncing at all if sink fails...
+	create_case(s, "one_of_three_connect_error", one_of_three_connect_error);
 	create_case(s, "no_connect_error", no_connect_error);
 
 	/* FIXME: Timeout handling isn't implemented. */

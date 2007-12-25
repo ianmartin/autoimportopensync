@@ -104,6 +104,11 @@ static void _osync_obj_engine_connect_callback(OSyncClientProxy *proxy, void *us
 			osync_obj_engine_set_error(engine, locerror);
 			
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		} else if (osync_bitcount(engine->sink_errors)) {
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one sink_engine failed while connecting");
+			osync_obj_engine_set_error(engine, locerror);
+			
+			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else {
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
 		}
