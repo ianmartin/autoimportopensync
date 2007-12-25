@@ -2896,11 +2896,9 @@ Suite *error_suite(void)
 	create_case(s, "committed_all_error", committed_all_error);
 	create_case(s, "committed_all_batch_error", committed_all_batch_error);
 
-	/*
 	create_case(s, "single_sync_done_error", single_sync_done_error);
 	create_case(s, "dual_sync_done_error", dual_sync_done_error);
 	create_case(s, "triple_sync_done_error", triple_sync_done_error);
-	*/
 
 	/*
 	create_case(s, "single_sync_done_timeout", single_sync_done_timeout);

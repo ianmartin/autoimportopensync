@@ -742,10 +742,18 @@ static void _osync_engine_generate_sync_done_event(OSyncEngine *engine)
 	if (osync_bitcount(engine->proxy_errors | engine->proxy_sync_done) != g_list_length(engine->proxies))
 		return;
 	
-	// TODO Error handling
 	if (osync_bitcount(engine->obj_errors | engine->obj_sync_done) == g_list_length(engine->object_engines)) {
-		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, NULL);
-		osync_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
+		if (osync_bitcount(engine->obj_errors)) {
+			OSyncError *locerror = NULL;
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one object engine failed within sync_done. Aborting");
+			osync_engine_set_error(engine, locerror);
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+			osync_error_unref(&locerror);
+		} else {
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, NULL);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
+		}
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->obj_errors | engine->obj_sync_done));
 }
