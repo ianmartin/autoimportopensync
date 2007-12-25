@@ -2083,10 +2083,10 @@ START_TEST (committed_all_error)
 	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 	
-	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
 	fail_unless(num_client_connected == 3, NULL);
 	fail_unless(num_client_disconnected == 3, NULL);
-	fail_unless(num_client_written == 3, NULL);
+	fail_unless(num_client_written == 1, NULL);
 	fail_unless(num_change_read == 1, NULL);
 	fail_unless(num_change_written == 2, NULL);
 	fail_unless(num_change_error == 0, NULL);
@@ -2893,9 +2893,7 @@ Suite *error_suite(void)
 	create_case(s, "commit_error_delete", commit_error_delete);
 	*/
 
-	/*
 	create_case(s, "committed_all_error", committed_all_error);
-	*/
 
 	/*
 	create_case(s, "committed_all_batch_error", committed_all_batch_error);
