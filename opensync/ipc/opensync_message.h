@@ -2,8 +2,7 @@
 #define _OPENSYNC_MESSAGES_H
 
 /**
- * @defgroup OSEngineMessage OpenSync Message Internals
- * @ingroup OSEnginePrivate
+ * @defgroup OSyncMessage OpenSync Message
  * @brief A Message used by the inter thread messaging library
  * 
  */
@@ -38,6 +37,8 @@ typedef enum {
 	OSYNC_MESSAGE_QUEUE_HUP
 } OSyncMessageCommand;
 
+/*@}*/
+
 /*! @brief Function which can receive messages
  * 
  * @param sender The sender of the received reply
@@ -68,11 +69,8 @@ OSYNC_EXPORT OSyncMessageHandler osync_message_get_handler(OSyncMessage *message
 OSYNC_EXPORT void *osync_message_get_handler_data(OSyncMessage *message);
 
 OSYNC_EXPORT osync_bool osync_message_is_error(OSyncMessage *message);
-OSYNC_EXPORT osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
 OSYNC_EXPORT OSyncMessageCommand osync_message_get_command(OSyncMessage *message);
 OSYNC_EXPORT char* osync_message_get_commandstr(OSyncMessage *message);
-OSYNC_EXPORT void osync_message_reset_timeout(OSyncMessage *message);
 OSYNC_EXPORT osync_bool osync_message_is_answered(OSyncMessage *message);
 OSYNC_EXPORT void osync_message_set_answered(OSyncMessage *message);
 

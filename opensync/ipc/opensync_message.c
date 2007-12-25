@@ -27,7 +27,7 @@
 #include "opensync_message_internals.h"
 
 /**
- * @ingroup OSEngineMessage
+ * @ingroup OSyncMessage
  * @brief A Message used by the inter thread messaging library
  * 
  */
