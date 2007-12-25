@@ -1307,6 +1307,7 @@ START_TEST (dual_get_changes_error)
 {
 	char *testbed = setup_testbed("sync_easy_conflict");
 	
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	setenv("GET_CHANGES_ERROR", "3", TRUE);
 	
 	OSyncError *error = NULL;
@@ -2886,12 +2887,10 @@ Suite *error_suite(void)
 	create_case(s, "timeout_and_error", timeout_and_error);
 	*/
 
-	/*
 	create_case(s, "single_get_changes_error", single_get_changes_error);
 	create_case(s, "dual_get_changes_error", dual_get_changes_error);
 	create_case(s, "two_of_three_get_changes_error", two_of_three_get_changes_error);
 	create_case(s, "one_of_three_get_changes_error", one_of_three_get_changes_error);
-	*/
 
 	/* FIXME: Timeout handling isn't implemented. */
 

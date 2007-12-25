@@ -704,11 +704,14 @@ static void _osync_engine_generate_get_changes_event(OSyncEngine *engine)
 	if (!osync_engine_check_get_changes(engine))
 		return;
 		
-	// TODO Error handling (needed?)
-	osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_READ, NULL);
-	osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_END_CONFLICTS, NULL);
-	
-	osync_engine_event(engine, OSYNC_ENGINE_EVENT_READ);
+	if (osync_bitcount(engine->obj_errors)) {
+		osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+	} else {
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_READ, NULL);
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_END_CONFLICTS, NULL);
+		
+		osync_engine_event(engine, OSYNC_ENGINE_EVENT_READ);
+	}
 }
 
 static void _osync_engine_generate_written_event(OSyncEngine *engine)
