@@ -95,3 +95,15 @@ void osync_sink_engine_unref(OSyncSinkEngine *engine)
 	}
 }
 
+osync_bool osync_sink_engine_is_connected(OSyncSinkEngine *engine)
+{
+	osync_assert(engine);
+
+	OSyncObjEngine *objengine = engine->engine;
+
+	if (!objengine)
+		return FALSE;
+
+	return !!(objengine->sink_connects & (1 << engine->position));
+}
+

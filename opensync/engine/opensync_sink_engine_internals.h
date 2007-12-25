@@ -33,5 +33,6 @@ typedef struct OSyncSinkEngine {
 OSyncSinkEngine *osync_sink_engine_new(int position, OSyncClientProxy *proxy, OSyncObjEngine *objengine, OSyncError **error);
 OSyncSinkEngine *osync_sink_engine_ref(OSyncSinkEngine *engine);
 void osync_sink_engine_unref(OSyncSinkEngine *engine);
+osync_bool osync_sink_engine_is_connected(OSyncSinkEngine *engine);
 
 #endif /*OPENSYNC_SINK_ENGINE_INTERNALS_H_*/

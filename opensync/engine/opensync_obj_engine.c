@@ -1038,6 +1038,11 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 		case OSYNC_ENGINE_COMMAND_DISCONNECT:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
+
+				/* Don't call client disconnect functions if the sink is already disconnected (testcase: dual_connect_error, ..). */
+				if (!osync_sink_engine_is_connected(sinkengine))
+					continue;
+					
 				if (!osync_client_proxy_disconnect(sinkengine->proxy, _osync_obj_engine_disconnect_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}

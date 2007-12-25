@@ -680,6 +680,7 @@ static void _osync_engine_generate_get_changes_event(OSyncEngine *engine)
 	if (!osync_engine_check_get_changes(engine))
 		return;
 		
+	// TODO Error handling (needed?)
 	osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_READ, NULL);
 	osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_END_CONFLICTS, NULL);
 	
@@ -691,6 +692,7 @@ static void _osync_engine_generate_written_event(OSyncEngine *engine)
 	if (osync_bitcount(engine->proxy_errors | engine->proxy_written) != g_list_length(engine->proxies))
 		return;
 	
+	// TODO Error handling
 	if (osync_bitcount(engine->obj_errors | engine->obj_written) == g_list_length(engine->object_engines)) {
 		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_WRITTEN, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
@@ -704,6 +706,7 @@ static void _osync_engine_generate_sync_done_event(OSyncEngine *engine)
 	if (osync_bitcount(engine->proxy_errors | engine->proxy_sync_done) != g_list_length(engine->proxies))
 		return;
 	
+	// TODO Error handling
 	if (osync_bitcount(engine->obj_errors | engine->obj_sync_done) == g_list_length(engine->object_engines)) {
 		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
@@ -717,7 +720,12 @@ static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 		return FALSE;
 	
 	if (osync_bitcount(engine->obj_errors | engine->obj_disconnects) == g_list_length(engine->object_engines)) {
-		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_DISCONNECTED, NULL);
+
+		/* Error handling in this case is quite special. We have to call OSYNC_ENGINE_EVENT_DISCONNECTED,
+		   even on errors. Since OSYNC_ENGINE_EVENT_ERROR would emit this DISCONNECTED event again - deadlock! */
+		if (osync_bitcount(engine->obj_errors) < g_list_length(engine->object_engines))
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_DISCONNECTED, NULL);
+
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_DISCONNECTED);
 		return TRUE;
 	}
