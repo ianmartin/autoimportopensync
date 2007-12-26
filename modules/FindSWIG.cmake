@@ -5,20 +5,27 @@
 #  SWIG_EXECUTABLE - the path to the swig executable
 
 SET(SWIG_FOUND FOOBAR)
+
+
+FILE(GLOB_RECURSE SWIGSWG /usr/share/swig/swig.swg)
+FILE(GLOB_RECURSE SWIGCONFIG /usr/share/swig/SWIGConfig.cmake)
+
+FOREACH(_file ${SWIGCONFIG} ${SWIGSWG} )
+	GET_FILENAME_COMPONENT(SWIG_DIR ${_file} PATH)
+ENDFOREACH(_file)
+
 FIND_PATH(SWIG_DIR
   SWIGConfig.cmake
   /usr/share/swig1.3
-  /usr/share/swig/1.3.29/
-  /usr/share/swig/1.3.31/
   /usr/lib/swig1.3
   /usr/local/share/swig1.3)
+
 FIND_PATH(SWIG_DIR
   swig.swg
   /usr/share/swig1.3
-  /usr/share/swig/1.3.29/
-  /usr/share/swig/1.3.31/
   /usr/lib/swig1.3
   /usr/local/share/swig1.3)
+
 IF(EXISTS ${SWIG_DIR})
   IF("x${SWIG_DIR}x" STREQUAL "x${CMAKE_ROOT}/Modulesx")
     MESSAGE("SWIG_DIR should not be modules subdirectory of CMake")
