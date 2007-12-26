@@ -815,6 +815,17 @@ static void psyncFinalize(void *data)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	PSyncEnv *env = (PSyncEnv *)data;
 
+	if (env->username)
+		g_free(env->username);
+
+	if (env->sockaddr)
+		g_free(env->sockaddr);
+
+	if (env->codepage)
+		g_free(env->codepage);
+
+	osync_objtype_sink_unref(env->contact_sink);
+
 	g_free(env);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
