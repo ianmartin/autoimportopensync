@@ -61,6 +61,7 @@ typedef struct conv_tree {
 typedef struct vertice {
 	/** The format associated with this vertice */
 	OSyncObjFormat *format;
+	OSyncData *data;
 
 	/** The path of converters taken to this vertice. If this vertice is a target, we will
 	 * return this list as the result */

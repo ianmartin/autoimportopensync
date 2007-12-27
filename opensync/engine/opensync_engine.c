@@ -143,11 +143,12 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change));
 
 	/* Only convert if the engine is allowed to convert and if a internal format is available. 
-	   The reason that the engine isn't allowed to convert could be backup. dumping the changes. */
-	if (internalFormat && osync_group_get_converter_enabled(engine->group)) {
+	   The reason that the engine isn't allowed to convert could be backup. dumping the changes. 
+	   Do not convert anything if the chagetype is DELETED. */
+	if (internalFormat && osync_group_get_converter_enabled(engine->group) && (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED)) {
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 	
-		OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), internalFormat, &error);
+		OSyncFormatConverterPath *path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, &error);
 
 		if (!path)
 			goto error;

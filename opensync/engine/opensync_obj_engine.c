@@ -965,8 +965,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						osync_assert(entry_engine->change);
 						OSyncChange *change = entry_engine->change;
 
-						/* Convert to requested target format */
-						if (osync_group_get_converter_enabled(osync_engine_get_group(engine->parent))) {
+						/* Convert to requested target format if the changetype is not DELETED */
+						if (osync_group_get_converter_enabled(osync_engine_get_group(engine->parent)) && (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED)) {
 
 							
 							osync_trace(TRACE_INTERNAL, "Starting to convert from objtype %s and format %s", osync_change_get_objtype(entry_engine->change), osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
@@ -980,7 +980,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							if (!formats)
 								goto error;
 							
-							OSyncFormatConverterPath *path = osync_format_env_find_path_formats(engine->formatenv, osync_change_get_objformat(entry_engine->change), formats, error);
+							OSyncFormatConverterPath *path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), formats, error);
 							if (!path) {
 								g_free(formats);
 								goto error;

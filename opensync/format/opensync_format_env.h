@@ -32,6 +32,7 @@ OSYNC_EXPORT OSyncObjFormat *osync_format_env_nth_objformat(OSyncFormatEnv *env,
 
 OSYNC_EXPORT void osync_format_env_register_converter(OSyncFormatEnv *env, OSyncFormatConverter *converter);
 OSYNC_EXPORT OSyncFormatConverter *osync_format_env_find_converter(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat);
+OSYNC_EXPORT OSyncList *osync_format_env_find_converters(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat);
 OSYNC_EXPORT int osync_format_env_num_converters(OSyncFormatEnv *env);
 OSYNC_EXPORT OSyncFormatConverter *osync_format_env_nth_converter(OSyncFormatEnv *env, int nth);
 
@@ -46,6 +47,9 @@ OSYNC_EXPORT osync_bool osync_format_env_convert(OSyncFormatEnv *env, OSyncForma
 
 OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncError **error);
 OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat **targets, OSyncError **error);
+
+OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat *targetformat, OSyncError **error);
+OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat **targets, OSyncError **error);
 
 
 #endif //_OPENSYNC_FORMAT_ENV_H_
