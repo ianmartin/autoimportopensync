@@ -1083,8 +1083,10 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 	if (engine->pluginenv)
 		osync_plugin_env_free(engine->pluginenv);
 
-	osync_group_unlock(engine->group);
+	if (!engine->error)
+		osync_group_unlock(engine->group);
 
+	osync_error_unref(&(engine->error));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1289,12 +1291,13 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 	return;
 	
 error:
+	osync_error_ref(&engine->error);
+
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_signal(engine->syncing);
 	g_mutex_unlock(engine->syncing_mutex);
 
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error));
-	osync_error_ref(&engine->error);
 }
 
 /*! @brief Starts to synchronize the given OSyncEngine
@@ -1362,8 +1365,6 @@ osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **
 		osync_trace(TRACE_ERROR, "error while synchronizing: %s", msg);
 		g_free(msg);
 		osync_error_set_from_error(error, &(engine->error));
-		osync_error_unref(&(engine->error));
-		engine->error = NULL;
 		goto error;
 	}
 	

@@ -290,8 +290,6 @@ void osync_group_unref(OSyncGroup *group)
 	osync_assert(group);
 		
 	if (g_atomic_int_dec_and_test(&(group->ref_count))) {
-		if (group->lock_fd)
-			osync_group_unlock(group);
 		
 		while (group->members)
 			osync_group_remove_member(group, group->members->data);
