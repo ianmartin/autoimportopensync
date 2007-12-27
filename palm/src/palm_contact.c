@@ -40,6 +40,7 @@ static OSyncChange *psyncContactCreate(PSyncEnv *env, PSyncEntry *entry, OSyncEr
 		goto error_free_change;
 	
 	osync_change_set_data(change, data);
+	osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
 		
 	char *uid = g_strdup_printf("uid-AddressDB-%ld", entry->id);
 	osync_change_set_uid(change, uid);
@@ -72,8 +73,6 @@ static OSyncChange *psyncContactCreate(PSyncEnv *env, PSyncEntry *entry, OSyncEr
 		
 		if (entry->attr & dlpRecAttrDirty)  {
 			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
-		} else {
-			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_UNKNOWN);
 		}
 	}
 	
@@ -110,6 +109,9 @@ static void psyncContactGetChanges(void *data, OSyncPluginInfo *info, OSyncConte
 		for (n = 0; (entry = psyncDBGetNthEntry(db, n, &error)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got record with id %ld", entry->id);
 			
+			if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived))
+				continue;
+
 			OSyncChange *change = psyncContactCreate(env, entry, &error);
 			if (!change)
 				goto error;
@@ -117,7 +119,9 @@ static void psyncContactGetChanges(void *data, OSyncPluginInfo *info, OSyncConte
 			if (osync_change_get_data(change) == NULL)
 				continue;
 
+			/* It's a slow-sync - mark everything as changetype ADDED */
 			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
+
 			osync_context_report_change(ctx, change);
 		}
 	} else {
@@ -306,7 +310,6 @@ static void psyncContactSyncDone(void *data, OSyncPluginInfo *info, OSyncContext
 
 	osync_context_report_success(ctx);
 	
-	psyncSyncDone(data, info, ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }

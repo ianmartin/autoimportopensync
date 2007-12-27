@@ -1761,7 +1761,6 @@ static void _xmlfield_category(PSyncContactEntry *entry, OSyncXMLField *xmlfield
 	for (i=0; i < numnodes; i++) {
 		char *tmp = conv_enc_xml_to_palm(osync_xmlfield_get_nth_key_value(xmlfield, i));
 		entry->categories = g_list_append(entry->categories, tmp);
-		g_free(tmp);
 	}
 }
 
@@ -1921,6 +1920,7 @@ static osync_bool demarshal_palm_contact(OSyncMessage *message, char **output, u
 	int i = 0;
 	for (i = 0; i < 19; i++) {
 		osync_message_read_string(message, &(contact->address.entry[i]));
+		osync_trace(TRACE_INTERNAL, "#%i message: %s", i, contact->address.entry[i]);
 	}
 	
 	int num = 0;

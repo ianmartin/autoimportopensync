@@ -438,9 +438,9 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 	}
 
 	if (env->conntype != PILOT_DEVICE_NETWORK) {
-		rate_buf = g_strdup_printf("PILOTRATE=%i", env->speed);
+		rate_buf = g_strdup_printf("%i", env->speed);
 		osync_trace(TRACE_INTERNAL, "setting PILOTRATE=%i", env->speed);
-		putenv(rate_buf);
+		setenv("PILOTRATE", rate_buf, TRUE);
 		g_free(rate_buf);
 	}
 
@@ -763,6 +763,8 @@ void psyncDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		pi_close(env->socket);
 		env->socket = 0;
 	}
+
+	unsetenv("PILOTRATE");
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
