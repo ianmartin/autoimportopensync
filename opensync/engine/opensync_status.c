@@ -88,11 +88,11 @@ void osync_status_free_mapping_update(OSyncMappingUpdate *update)
 void osync_status_conflict(OSyncEngine *engine, OSyncMappingEngine *mapping_engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping_engine);
-	if (engine->conflict_callback)
-		engine->conflict_callback(engine, mapping_engine, engine->conflict_userdata);
-	else
-		osync_trace(TRACE_INTERNAL, "Conflict Ignored");
-		
+
+	osync_assert_msg(engine->conflict_callback, "No conflict handler registered! OpenSync frontend very likely broken!");
+
+	engine->conflict_callback(engine, mapping_engine, engine->conflict_userdata);
+				
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
