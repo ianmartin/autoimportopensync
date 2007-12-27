@@ -175,15 +175,19 @@ static void psyncContactCommit(void *data, OSyncPluginInfo *info, OSyncContext *
 	PSyncEnv *env = (PSyncEnv *)data;
 	PSyncDatabase *db = NULL;
 	PSyncEntry *entry = NULL;
-	PSyncContactEntry *contact = NULL;
 	OSyncError *error = NULL;
 	unsigned long id = 0;
+
+	PSyncContactEntry *contact = osync_try_malloc0(sizeof(PSyncContactEntry), &error); 
+	if (!contact)
+		goto error;
 
 	//open the DB
 	if (!(db = psyncDBOpen(env, "AddressDB", &error)))
 		goto error;
 	
-	contact = (PSyncContactEntry *)osync_change_get_data(change);
+	OSyncData *change_data = osync_change_get_data(change);
+	osync_data_get_data(change_data, (char **) &contact, NULL);
 			
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_MODIFIED:
