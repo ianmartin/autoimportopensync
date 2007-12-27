@@ -434,7 +434,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	}
 	g_free(filename);
 
-	const char *version_str = (char *)xmlGetProp(cur->parent, (const xmlChar *)"version");
+	xmlChar *version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
 	osync_bool uptodate = FALSE;
 	if (version_str && strlen(version_str) > 0) {
 		unsigned int version_major;
@@ -445,6 +445,9 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 		else
 		    osync_trace(TRACE_INTERNAL, "syncmember version str : %s current %u.%u required %u.%u", version_str, version_major, version_minor, MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION ); 
 	}
+
+	xmlFree(version_str);
+
 	if (!uptodate)
 		osync_trace(TRACE_INTERNAL, "syncmember.conf version does not match the one required by this version of opensync !" );
 		
@@ -513,8 +516,10 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
-	const char *version_str = g_strdup_printf("%u.%u", MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION);
+
+	char *version_str = g_strdup_printf("%u.%u", MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION);
 	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
+	g_free(version_str);
 
 	//The plugin name
 	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
