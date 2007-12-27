@@ -33,6 +33,23 @@
  */
 /*@{*/
 
+/*! @brief Creates a new main sink
+ *
+ * Main sink is objtype neutrual and should be used for object type
+ * neutral actions. Actions like connecting/disconnecting which could
+ * be a object type neutral - e.g. connecting to a device via bluetooth.
+ * Object type specific example would be a connection to different 
+ * object type specific databases/ressources.
+ *
+ * Main sink is not limited to the connect and disconnect functions! 
+ * 
+ * @param error Pointer to an error struct
+ * @returns the newly created main sink
+ */
+OSyncObjTypeSink *osync_objtype_main_sink_new(OSyncError **error)
+{
+	return osync_objtype_sink_new(NULL, error);
+}
 
 /*! @brief Creates a new sink for an object type
  *
@@ -383,12 +400,16 @@ void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OS
 	osync_assert(ctx);
 	
 	functions = sink->functions;
-	if (!functions.get_changes) {
+	if (sink->objtype && !functions.get_changes) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No get_changeinfo function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No get_changes function was given", __func__);
 		return;
+	} else if (!functions.get_changes) {
+		osync_context_report_success(ctx);
+	} else {
+		functions.get_changes(plugindata, info, ctx);
 	}
-	functions.get_changes(plugindata, info, ctx);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -412,12 +433,18 @@ void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OS
 	osync_assert(change);
 	
 	functions = sink->functions;
-	if (!functions.read) {
+
+
+	if (sink->objtype && !functions.read) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No read function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No read function was given", __func__);
 		return;
+	} else if (!functions.read) {
+		osync_context_report_success(ctx);
+	} else {
+		functions.read(plugindata, info, ctx, change);
 	}
-	functions.read(plugindata, info, ctx, change);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -440,11 +467,11 @@ void osync_objtype_sink_connect(OSyncObjTypeSink *sink, void *plugindata, OSyncP
 	
 	functions = sink->functions;
 	if (!functions.connect) {
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No connect function was given");
-		osync_trace(TRACE_EXIT_ERROR, "%s: No connect function was given", __func__);
-		return;
+		osync_context_report_success(ctx);
+	} else {
+		functions.connect(plugindata, info, ctx);
 	}
-	functions.connect(plugindata, info, ctx);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -467,11 +494,11 @@ void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, void *plugindata, OSy
 	
 	functions = sink->functions;
 	if (!functions.disconnect) {
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No disconnect function was given");
-		osync_trace(TRACE_EXIT_ERROR, "%s: No disconnect function was given", __func__);
-		return;
+		osync_context_report_success(ctx);
+	} else {
+		functions.disconnect(plugindata, info, ctx);
 	}
-	functions.disconnect(plugindata, info, ctx);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -535,12 +562,15 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, 
 		return;
 	} else {
 		// Send the change
-		if (!functions.commit) {
+		if (sink->objtype && !functions.commit) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No commit_change function was given");
 			osync_trace(TRACE_EXIT_ERROR, "%s: No commit_change function was given", __func__);
 			return;
+		} else if (!functions.commit) {
+			osync_context_report_success(ctx);
+		} else {
+			functions.commit(plugindata, info, ctx, change);
 		}
-		functions.commit(plugindata, info, ctx, change);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

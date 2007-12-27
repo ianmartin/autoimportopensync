@@ -481,7 +481,7 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_objtype_sink_unref(sink);
 	
 	/* The main sink */
-	sink = osync_objtype_sink_new(NULL, error);
+	sink = osync_objtype_main_sink_new(error);
 	if (!sink)
 		goto error;
 	
@@ -882,7 +882,7 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_objtype_sink_unref(sink);
 	
 	/* The main sink */
-	sink = osync_objtype_sink_new(NULL, error);
+	sink = osync_objtype_main_sink_new(error);
 	if (!sink)
 		goto error;
 	
@@ -1113,7 +1113,7 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_objtype_sink_unref(sink);
 	
 	/* The main sink */
-	sink = osync_objtype_sink_new(NULL, error);
+	sink = osync_objtype_main_sink_new(error);
 	if (!sink)
 		goto error;
 	

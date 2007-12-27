@@ -43,6 +43,7 @@ typedef struct OSyncObjTypeSinkFunctions {
 	OSyncSinkSyncDoneFn sync_done;
 } OSyncObjTypeSinkFunctions;
 
+OSYNC_EXPORT OSyncObjTypeSink *osync_objtype_main_sink_new(OSyncError **error);
 OSYNC_EXPORT OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error);
 OSYNC_EXPORT OSyncObjTypeSink *osync_objtype_sink_ref(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_unref(OSyncObjTypeSink *sink);

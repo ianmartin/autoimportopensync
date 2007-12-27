@@ -28,7 +28,7 @@ struct OSyncObjTypeSink {
 	OSyncObjTypeSinkFunctions functions;
 	void *userdata;
 	
-	/** The objtype type of this sink */
+	/** The objtype type of this sink. In case of a main sink this is always NULL. */
 	char *objtype;
 
 	/** The status if this sink is allowed to write (commit) */
