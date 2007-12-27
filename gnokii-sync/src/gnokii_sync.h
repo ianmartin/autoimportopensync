@@ -42,8 +42,6 @@
 typedef struct gnokii_environment {
 	GList                   *sinks; // gnokii_sinkenv
 	struct gn_statemachine 	*state;
-	osync_bool              connected;
-
 } gnokii_environment;
 
 typedef struct {

@@ -26,6 +26,9 @@ static void free_gnokiienv(gnokii_environment *env) {
 	while (env->sinks) {
 		gnokii_sinkenv *sinkenv = env->sinks->data;
 
+		// close the hashtable
+		osync_hashtable_free(sinkenv->hashtable);
+
 		osync_objtype_sink_unref(sinkenv->sink);
 		g_free(sinkenv);
 
@@ -49,23 +52,11 @@ static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	gnokii_environment *env = (gnokii_environment *) data;
 
 	// connect to cellphone
-	if (!env->connected && !gnokii_comm_connect(env->state)) {
+	if (!gnokii_comm_connect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Connection failed");
 		free_gnokiienv(env);
 		return;
-	} else {
-		env->connected = TRUE;
 	}
-
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
-
-	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-	sinkenv->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
-	g_free(tablepath);
-	
-	if (!sinkenv->hashtable)
-		goto error;
 
 	osync_context_report_success(ctx);
 
@@ -103,17 +94,12 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	gnokii_environment *env = (gnokii_environment *) data;
 	
 	// disconnect the connection with phone
-	if (env->connected && !gnokii_comm_disconnect(env->state)) {
+	if (!gnokii_comm_disconnect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "disconnect failed");
 		free_gnokiienv(env);
                 return;
-	} else {
-		env->connected = FALSE;
 	}
 	
-	// close the hashtable
-	osync_hashtable_free(sinkenv->hashtable);
-
 	// answer the call
 	osync_context_report_success(ctx);
 
@@ -177,7 +163,6 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		return NULL;
 
 	env->sinks = NULL;
-	env->connected = FALSE;
 
 	env->state = osync_try_malloc0(sizeof(struct gn_statemachine), error);
 	if (!env->state) {
@@ -191,6 +176,19 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		return NULL;
 	}
 	
+	// main sink - objtype neutral, handles (only) connect and disconnect!
+	OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(error);
+
+	OSyncObjTypeSinkFunctions main_functions;
+	memset(&main_functions, 0, sizeof(main_functions));
+
+	main_functions.connect = connect;
+	main_functions.disconnect = disconnect;
+
+	osync_objtype_sink_set_functions(mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, mainsink);
+
+
 	// init the contact sink
 	gnokii_sinkenv *contact_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
 	contact_sinkenv->sink = osync_objtype_sink_new("contact", error);
@@ -198,8 +196,6 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 	OSyncObjTypeSinkFunctions contact_functions;
 	memset(&contact_functions, 0, sizeof(contact_functions));
-	contact_functions.connect = connect;
-	contact_functions.disconnect = disconnect;
 	contact_functions.get_changes = gnokii_contact_get_changes;
 	contact_functions.commit = gnokii_contact_commit_change;
 //	contact_functions.read = osync_filesync_read;
@@ -214,6 +210,13 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 	env->sinks = g_list_append(env->sinks, contact_sinkenv);
 
+	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+	contact_sinkenv->hashtable = osync_hashtable_new(tablepath, "contact", error);
+	
+	//TODO: throw error.
+	//if (!contact_sinkenv->hashtable)
+	//	goto error;
+
 
 	// init the event sink
 	gnokii_sinkenv *event_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
@@ -222,8 +225,6 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 	OSyncObjTypeSinkFunctions event_functions;
 	memset(&event_functions, 0, sizeof(event_functions));
-	event_functions.connect = connect;
-	event_functions.disconnect = disconnect;
 	event_functions.get_changes = gnokii_calendar_get_changes;
 	event_functions.commit = gnokii_calendar_commit_change;
 //	event_functions.read = osync_filesync_read;
@@ -234,9 +235,12 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	osync_plugin_info_add_objtype(info, event_sinkenv->sink);
 
         event_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-event");
+	event_sinkenv->hashtable = osync_hashtable_new(tablepath, "event", error);
 
 	env->sinks = g_list_append(env->sinks, event_sinkenv);
 	
+	g_free(tablepath);
+
 	//Process the config data here and set the options on your environment
 	if (configdata)
 		g_free(configdata);
