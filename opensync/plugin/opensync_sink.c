@@ -90,6 +90,7 @@ void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 			g_free(format);
 			if(format_config)
 			      g_free(format_config);
+			g_free(format_vertice);
 			sink->objformats = osync_list_remove(sink->objformats, sink->objformats->data);
 		}
 		
