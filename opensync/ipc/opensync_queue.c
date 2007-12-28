@@ -930,16 +930,92 @@ error:
 	return FALSE;
 }
 
+static gboolean _osync_queue_message_timeout_handler(gpointer user_data)
+{
+	OSyncTimeoutInfo *toinfo = (OSyncTimeoutInfo *) user_data;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, toinfo);
+
+	OSyncQueue *queue = toinfo->replyqueue;
+	OSyncMessage *message = toinfo->message;
+
+	/* Search for the pending reply. We have to lock the
+	 * list since another thread might be duing the updates */
+	g_mutex_lock(queue->pendingLock);
+	
+	GList *p;
+	OSyncPendingMessage *pending;
+	for (p = queue->pendingReplies; p; p = p->next) {
+		pending = p->data;
+	
+		if (pending->id == osync_message_get_id(message)) {
+
+			/* Unlock the pending lock since the messages might be sent during the callback */
+			g_mutex_unlock(queue->pendingLock);
+	
+			/* Call the callback of the pending message */
+			osync_assert(pending->callback);
+			OSyncError *error = NULL;
+			OSyncError *timeouterr = NULL;
+			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Message Timeout!");
+			OSyncMessage *errormsg = osync_message_new_errorreply(message, timeouterr, &error);
+			osync_error_unref(&timeouterr);
+			//pending->callback(message, pending->user_data);
+			pending->callback(errormsg, pending->user_data);
+			osync_message_unref(errormsg);
+			
+			/* Then remove the pending message and free it.
+			 * But first, lock the queue to make sure that the removal
+			 * is atomic */
+			g_mutex_lock(queue->pendingLock);
+			queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+			g_free(pending);
+			break;
+		}
+	}
+	
+	g_mutex_unlock(queue->pendingLock);
+
+	osync_message_unref(message);
+
+	g_free(toinfo);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return FALSE;
+}
+
 osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, int timeout, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, message, error);
+
+	OSyncTimeoutInfo *toinfo = osync_try_malloc0(sizeof(OSyncTimeoutInfo), error);
+	if (!toinfo)
+		goto error;
+
+	GSource *source = g_timeout_source_new_seconds (timeout);
+	if (!source) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create timeout handler.");
+		goto error;
+	}
+
+	toinfo->replyqueue = replyqueue;
+	toinfo->timeout = timeout;
+	toinfo->source = source;
+	toinfo->message = message;
+
+	osync_message_ref(message);
+
+	g_source_attach(source, replyqueue->context);
+	g_source_set_callback(source, (GSourceFunc) _osync_queue_message_timeout_handler, toinfo, NULL);
+
+	if (!osync_queue_send_message(queue, replyqueue, message, error))
+		goto error;
 	
-	/*TODO: add timeout handling */
-	
-	osync_bool ret = osync_queue_send_message(queue, replyqueue, message, error);
-	
-	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return ret;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_queue_is_alive(OSyncQueue *queue)

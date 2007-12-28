@@ -9,17 +9,6 @@
  */
 
 /*@{*/
-
-typedef struct timeout_info {
-        OSyncQueue *sendingqueue;
-        OSyncMessage *message;
-        GSource *source;
-        void *replysender;
-        OSyncQueue *replyqueue;
-        int timeout;
-        gboolean (*timeoutfunc)(gpointer);
-} timeout_info;
-
 /*! @brief A OSyncMessage
  * 
  */
@@ -34,7 +23,7 @@ struct OSyncMessage {
 	/** The user data */
 	gpointer user_data;
 	/** The timeout associated with this message */
-	timeout_info *to_info;
+	//timeout_info *to_info;
 	/** If this message has already been answered */
 	osync_bool is_answered;
 	/** The pointer to the internal **/

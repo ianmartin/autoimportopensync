@@ -55,6 +55,20 @@ typedef struct OSyncPendingMessage {
 	gpointer user_data;
 } OSyncPendingMessage;
 
+typedef struct OSyncTimeoutInfo {
+	/** Queue for mesage response */
+        OSyncQueue *replyqueue;
+
+	/** Timeout in seconds **/
+        int timeout;
+
+	/** Pointer to sent message. Includes message ID and callbacks **/
+        OSyncMessage *message;
+
+        GSource *source;
+
+} OSyncTimeoutInfo;
+
 /*@}*/
 
 #endif //_OPENSYNC_QUEUE_INTERNALS_H

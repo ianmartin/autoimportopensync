@@ -2057,10 +2057,197 @@ START_TEST (ipc_callback_break_pipes)
 }
 END_TEST
 
+int num_callback_timeout = 0;
+int num_callback = 0;
+
+static void _message_handler(OSyncMessage *message, void *user_data)
+{
+	if (osync_message_is_error(message))
+		num_callback_timeout++;
+	else
+		num_callback++;
+
+	OSyncError *error = NULL;
+	OSyncMessage *reply = osync_message_new_reply(message, &error);
+	osync_queue_send_message(client_queue, NULL, reply, &error);
+	osync_message_unref(reply);
+}
+
+START_TEST (ipc_timeout)
+{	
+	/* This testcase is inteded to test osync_queue_send_message_with_timeout().
+	   Client got forked and listens for messages from Server and replies.
+
+	   To simulate a "timeout" situation the Client doesn't reply to one of the Server messages.
+
+	   The timeout handler will call the _message_handler() with an error.
+	   JFYI, every timed out message calls the callback/message_handler with an (timeout) error.
+	   */
+
+	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe-server");
+	_remove_pipe("/tmp/testpipe-client");
+
+	num_callback_timeout = 0;
+	num_callback = 0;
+	
+	OSyncError *error = NULL;
+	server_queue = osync_queue_new("/tmp/testpipe-server", &error);
+	client_queue = osync_queue_new("/tmp/testpipe-client", &error);
+	OSyncMessage *message = NULL;
+	
+	osync_queue_create(server_queue, &error);
+	fail_unless(error == NULL, NULL);
+	
+	osync_queue_create(client_queue, &error);
+	fail_unless(error == NULL, NULL);
+	char *data = "this is another test string";
+	
+	pid_t cpid = fork();
+	if (cpid == 0) { //Child
+		sleep(1);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
+		fail_unless(error == NULL, NULL);
+		
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
+		fail_unless(error == NULL, NULL);
+		
+		while (!(message = osync_queue_get_message(client_queue))) {
+			g_usleep(10000);
+		}
+		
+		if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
+			exit (1);
+		}
+		
+		int int1;
+		long long int longint1;
+		char *string;
+		char databuf[strlen(data) + 1];
+			
+		osync_message_read_int(message, &int1);
+		osync_message_read_string(message, &string);
+		osync_message_read_long_long_int(message, &longint1);
+		osync_message_read_data(message, databuf, strlen(data) + 1);
+		
+		fail_unless(int1 == 4000000, NULL);
+		fail_unless(!strcmp(string, "this is a test string"), NULL);
+		fail_unless(longint1 == 400000000, NULL);
+		fail_unless(!strcmp(databuf, "this is another test string"), NULL);
+		
+		/* TIMEOUT TIMEOUT TIMEOUT (no reply...) */
+
+		/* Proper code would reply to this message, but for testing
+		   purposes we don't reply and simulate a "timeout" situation */
+			
+		while (!(message = osync_queue_get_message(client_queue))) {
+			g_usleep(10000);
+		}
+
+		OSyncMessage *reply = osync_message_new_reply(message, &error);
+	
+		osync_queue_send_message(server_queue, NULL, reply, &error);
+
+		
+		if (osync_queue_disconnect(client_queue, &error) != TRUE || error != NULL)
+			exit(1);
+		osync_queue_free(client_queue);
+	
+		while (!(message = osync_queue_get_message(server_queue))) {
+			g_usleep(10000);
+		}
+		
+		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
+			exit (1);
+		}
+	
+		osync_message_unref(message);
+		sleep(1);
+		
+		if (osync_queue_disconnect(server_queue, &error) != TRUE || error != NULL)
+			exit(1);
+		osync_queue_free(server_queue);
+		
+		g_free(testbed);
+		
+		exit(0);
+	} else {
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_SENDER, &error), NULL);
+		fail_unless(error == NULL, NULL);
+		
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
+		fail_unless(error == NULL, NULL);
+		
+		message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
+		fail_unless(message != NULL, NULL);
+		fail_unless(!osync_error_is_set(&error), NULL);
+
+		osync_message_set_handler(message, _message_handler, NULL);
+		
+		osync_message_write_int(message, 4000000);
+		osync_message_write_string(message, "this is a test string");
+		osync_message_write_long_long_int(message, 400000000);
+		osync_message_write_data(message, data, strlen(data) + 1);
+		
+		// Send with timeout of one second
+		fail_unless(osync_queue_send_message_with_timeout(client_queue, server_queue, message, 1, &error), NULL);
+		fail_unless(!osync_error_is_set(&error), NULL);
+
+		osync_message_unref(message);
+
+		// Block
+		while (!(message = osync_queue_get_message(server_queue))) {
+			g_usleep(100000);
+		}
+		
+		fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
+		
+		osync_message_unref(message);
+		
+		osync_queue_disconnect(server_queue, &error);
+		fail_unless(error == NULL, NULL);
+		
+		while (!(message = osync_queue_get_message(client_queue))) {
+			g_usleep(10000);
+		}
+		
+		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
+			exit (1);
+		}
+		osync_message_unref(message);
+		
+		osync_queue_disconnect(client_queue, &error);
+		fail_unless(error == NULL, NULL);
+		
+		int status = 0;
+		wait(&status);
+		fail_unless(WEXITSTATUS(status) == 0, NULL);
+	}
+	
+	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	
+	fail_unless(osync_queue_remove(client_queue, &error), NULL);
+	fail_unless(osync_queue_remove(server_queue, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
+
+	/* Check if the timeout handler replied with an error */
+	fail_unless(num_callback_timeout == 1, NULL);
+	fail_unless(num_callback == 0, NULL);
+	
+	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+
+	osync_queue_free(client_queue);
+	osync_queue_free(server_queue);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+
 Suite *ipc_suite(void)
 {
 	Suite *s = suite_create("IPC");
-	//Suite *s2 = suite_create("IPC");
+//	Suite *s2 = suite_create("IPC");
 	
 	create_case(s, "ipc_new", ipc_new);
 	create_case(s, "ipc_create", ipc_create);
@@ -2084,6 +2271,8 @@ Suite *ipc_suite(void)
 	create_case(s, "ipc_pipes", ipc_pipes);
 	create_case(s, "ipc_pipes_stress", ipc_pipes_stress);
 	create_case(s, "ipc_callback_break_pipes", ipc_callback_break_pipes);
+
+	create_case(s, "ipc_timeout", ipc_timeout);
 	
 	return s;
 }
