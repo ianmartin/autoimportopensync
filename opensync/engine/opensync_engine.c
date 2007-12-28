@@ -525,12 +525,15 @@ static osync_bool _osync_engine_start(OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	
-	engine->pluginenv = osync_plugin_env_new(error);
-	if (!engine->pluginenv)
-		goto error;
-	
-	if (!osync_plugin_env_load(engine->pluginenv, engine->plugin_dir, error))
-		goto error;
+	/* For testing purpose, it's possible to preload a instrumented plugin_env */
+	if (!engine->pluginenv) {
+		engine->pluginenv = osync_plugin_env_new(error);
+		if (!engine->pluginenv)
+			goto error;
+		
+		if (!osync_plugin_env_load(engine->pluginenv, engine->plugin_dir, error))
+			goto error;
+	}
 	
 	osync_thread_start(engine->thread);
 
@@ -1078,11 +1081,15 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 	
 	_osync_engine_stop(engine);
 	
-	if (engine->formatenv)
+	if (engine->formatenv) {
 		osync_format_env_free(engine->formatenv);
+		engine->formatenv = NULL;
+	}
 	
-	if (engine->pluginenv)
+	if (engine->pluginenv) {
 		osync_plugin_env_free(engine->pluginenv);
+		engine->pluginenv = NULL;
+	}
 
 	if (!engine->error)
 		osync_group_unlock(engine->group);
