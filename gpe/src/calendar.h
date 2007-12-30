@@ -23,6 +23,6 @@
 #ifndef CALENDAR_H
 #define CALENDAR_H
 
-osync_bool gpe_calendar_setup(sink_environment *sinkenv, OSyncObjTypeSinkFunctions functions, gpe_environment *env, OSyncPluginInfo *info, OSyncError **error);
+osync_bool gpe_calendar_setup(sink_environment *sinkenv, gpe_environment *env, OSyncPluginInfo *info, OSyncError **error);
 
 #endif /* CALENDAR_H */

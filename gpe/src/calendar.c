@@ -202,7 +202,7 @@ void gpe_calendar_get_changes(void *userdata, OSyncPluginInfo *info, OSyncContex
  *
  * \param info	The plugin info on which to operate
  */
-osync_bool gpe_calendar_setup(sink_environment *sinkenv, OSyncObjTypeSinkFunctions functions, gpe_environment *env, OSyncPluginInfo *info, OSyncError **error)
+osync_bool gpe_calendar_setup(sink_environment *sinkenv, gpe_environment *env, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, functions, %p, %p, %p)", __func__, sinkenv, env, info, error);
 
@@ -219,9 +219,10 @@ osync_bool gpe_calendar_setup(sink_environment *sinkenv, OSyncObjTypeSinkFunctio
 	sinkenv->format = "vevent20";
 	osync_objtype_sink_add_objformat(sinkenv->sink, sinkenv->format);
 
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
 	functions.get_changes = gpe_calendar_get_changes;
 	functions.commit = gpe_calendar_commit_change;
-
 	osync_objtype_sink_set_functions(sinkenv->sink, functions, sinkenv);
 
 	osync_plugin_info_add_objtype(info, sinkenv->sink);

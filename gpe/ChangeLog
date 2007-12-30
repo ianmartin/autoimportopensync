@@ -1,3 +1,14 @@
+2007-12-30  Graham Cobb  <g+770@cobb.uk.net>
+
+	* src/todo.c (gpe_todo_setup), src/todo.h: remove functions 
+	parameter from gpe_todo_setup
+	* src/contacts.c (gpe_contacts_setup), src/contacts.h: remove functions 
+	parameter from gpe_contacts_setup
+	* src/calendar.c (gpe_calendar_setup), src/calendar.h: remove functions 
+	parameter from gpe_calendar_setup
+	* src/gpe_sync.c (initialize): create main sink for connect/disconnect
+	* src/gpe_sync.h: add main_sink to environment
+
 2007-10-28  Graham Cobb  <g+770@cobb.uk.net>
 
 	* CMakeLists.txt: Add cmake support

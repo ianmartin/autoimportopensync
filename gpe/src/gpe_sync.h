@@ -56,6 +56,7 @@ typedef struct gpe_environment {
 	struct sink_environment contact_sink;
 	struct sink_environment todo_sink;
 	struct sink_environment calendar_sink;
+	struct sink_environment main_sink;
 
 	gpesync_client *client;
 	

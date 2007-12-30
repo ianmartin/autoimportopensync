@@ -92,7 +92,8 @@ static void gpe_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	  return;
 	}
 	
-	// Set calendar name
+	// Set calendar name -- note that we checked that the version of gpesyncd supports
+	// setting the calendar name in the discovery phase
 	if (env->calendar) {
 	  gchar *response = NULL;
 	  gpesync_client_exec_printf(env->client, "path vevent %s", client_callback_string, &response, NULL, env->calendar);
@@ -155,6 +156,7 @@ static void finalize(void *data)
 	free_sink(&env->contact_sink);
 	free_sink(&env->todo_sink);
 	free_sink(&env->calendar_sink);
+	free_sink(&env->main_sink);
 
 	g_free(env);
 	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
@@ -189,26 +191,32 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		goto error_free_env;
 	}
 
-	// Here we set some default values
-	//env->member = member;
 	env->client = NULL;
+
+	// Create the main sink (which handles connect & disconnect)
+	env->main_sink.sink = osync_objtype_main_sink_new(error);
+	if (!env->main_sink.sink) goto error_free_env;
 
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = gpe_connect;
 	functions.disconnect = gpe_disconnect;
 	functions.sync_done = sync_done;
+	osync_objtype_sink_set_functions(env->main_sink.sink, functions, &env->main_sink);
+
+	osync_plugin_info_set_main_sink(info, env->main_sink.sink);
+	env->main_sink.gpe_env = env;
 
 	// Set up contact sink
-	if (!gpe_contacts_setup(&env->contact_sink, functions, env, info, error))
+	if (!gpe_contacts_setup(&env->contact_sink, env, info, error))
 	  goto error_free_env;
 	
 	// Set up calendar sink
-	if (!gpe_calendar_setup(&env->calendar_sink, functions, env, info, error))
+	if (!gpe_calendar_setup(&env->calendar_sink, env, info, error))
 	  goto error_free_env;
 	
 	// Set up todo sink
-	if (!gpe_todo_setup(&env->todo_sink, functions, env, info, error))
+	if (!gpe_todo_setup(&env->todo_sink, env, info, error))
 	  goto error_free_env;
 
 	// All done

@@ -23,6 +23,6 @@
 #ifndef TODO_H
 #define TODO_H
 
-osync_bool gpe_todo_setup(sink_environment *sinkenv, OSyncObjTypeSinkFunctions functions, gpe_environment *env, OSyncPluginInfo *info, OSyncError **error);
+osync_bool gpe_todo_setup(sink_environment *sinkenv, gpe_environment *env, OSyncPluginInfo *info, OSyncError **error);
 
 #endif /* TODO_H */
