@@ -59,8 +59,8 @@ typedef struct OSyncTimeoutInfo {
 	/** Queue for mesage response */
         OSyncQueue *replyqueue;
 
-	/** Timeout in seconds **/
-        int timeout;
+	/** Timeout in milliseconds **/
+        unsigned int timeout;
 
 	/** Pointer to sent message. Includes message ID and callbacks **/
         OSyncMessage *message;

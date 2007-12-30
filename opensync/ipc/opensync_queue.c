@@ -983,7 +983,7 @@ static gboolean _osync_queue_message_timeout_handler(gpointer user_data)
 	return FALSE;
 }
 
-osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, int timeout, OSyncError **error)
+osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, unsigned int timeout, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, message, error);
 
@@ -991,7 +991,7 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 	if (!toinfo)
 		goto error;
 
-	GSource *source = g_timeout_source_new_seconds (timeout);
+	GSource *source = g_timeout_source_new (timeout);
 	if (!source) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create timeout handler.");
 		goto error;

@@ -37,7 +37,7 @@ OSYNC_EXPORT osync_bool osync_queue_is_connected(OSyncQueue *queue);
 
 OSYNC_EXPORT void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler handler, gpointer user_data);
 OSYNC_EXPORT osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, int timeout, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, unsigned int timeout, OSyncError **error);
 
 OSYNC_EXPORT void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context);
 OSYNC_EXPORT osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error);
