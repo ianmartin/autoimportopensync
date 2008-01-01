@@ -102,19 +102,38 @@ static void _osync_obj_engine_connect_callback(OSyncClientProxy *proxy, void *us
 		if (osync_bitcount(engine->sink_connects) < 2) {
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Less than 2 sink_engines are connected");
 			osync_obj_engine_set_error(engine, locerror);
-			
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else if (osync_bitcount(engine->sink_errors)) {
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one sink_engine failed while connecting");
 			osync_obj_engine_set_error(engine, locerror);
-			
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
-		} else {
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
 		}
+
+		osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED, locerror ? locerror : error);
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_connects));
 	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _osync_obj_engine_generate_event_disconnected(OSyncObjEngine *engine, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+
+	OSyncError *locerror = NULL;
+
+	if (osync_bitcount(engine->sink_errors | engine->sink_disconnects) == g_list_length(engine->sink_engines)) {
+		if (osync_bitcount(engine->sink_disconnects) < osync_bitcount(engine->sink_connects)) {
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines disconnected than connected");
+			osync_obj_engine_set_error(engine, locerror);
+			osync_error_unref(&locerror);
+		}
+
+		/* Since disconnect errors don't affect the data integrity keep the sync successful, even on
+		   a disconnect error. So we have to avoid OSyncEngine->error got set, 
+		   just keep this ObjEngine disconnect errors at this engine. */
+		osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_DISCONNECTED, NULL);
+	} else
+		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_disconnects));
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -122,7 +141,6 @@ static void _osync_obj_engine_disconnect_callback(OSyncClientProxy *proxy, void 
 {
 	OSyncSinkEngine *sinkengine = userdata;
 	OSyncObjEngine *engine = sinkengine->engine;
-	OSyncError *locerror = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
@@ -134,17 +152,9 @@ static void _osync_obj_engine_disconnect_callback(OSyncClientProxy *proxy, void 
 		engine->sink_disconnects = engine->sink_disconnects | (0x1 << sinkengine->position);
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_DISCONNECTED, engine->objtype, NULL);
 	}
-			
-	if (osync_bitcount(engine->sink_errors | engine->sink_disconnects) == g_list_length(engine->sink_engines)) {
-		if (osync_bitcount(engine->sink_disconnects) < osync_bitcount(engine->sink_connects)) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines disconnected than connected");
-			osync_obj_engine_set_error(engine, locerror);
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
-		} else
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_DISCONNECTED);
-	} else
-		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_disconnects));
 	
+	_osync_obj_engine_generate_event_disconnected(engine, error);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -258,7 +268,9 @@ error:
 
 static void _osync_obj_engine_read_ignored_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
-	// NOOP	
+	/* TODO: Share _generate_read_event fucntion with _osync_obj_engine_read_callback?
+	   To report errors .. and handle _timeout problems of _read_ignored call.
+	 */
 }
 
 
@@ -284,12 +296,10 @@ static void _osync_obj_engine_read_callback(OSyncClientProxy *proxy, void *userd
 		if (osync_bitcount(engine->sink_get_changes) < osync_bitcount(engine->sink_connects)) {
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported get_changes than connected");
 			osync_obj_engine_set_error(engine, locerror);
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else {
 			/* We are now done reading the changes. so we can now start to create the mappings, conflicts etc */
 			if (!osync_obj_engine_map_changes(engine, &locerror)) {
 				osync_obj_engine_set_error(engine, locerror);
-				osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 			} else {
 				GList *m;
 				for (m = engine->mapping_engines; m; m = m->next) {
@@ -297,10 +307,11 @@ static void _osync_obj_engine_read_callback(OSyncClientProxy *proxy, void *userd
 					if (!mapping_engine->synced)
 						osync_mapping_engine_check_conflict(mapping_engine);
 				}
-				
-				osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_READ);
 			}
+
 		}
+
+		osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_READ, locerror ? locerror : error);
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_get_changes));
 	
@@ -354,9 +365,20 @@ osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClien
 	return TRUE;
 }
 
-static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine)
+/* Note: This function got shared between _osync_obj_engine_commit_change_callback() and
+         osync_obj_engine_written_callback(). Those function call _osync_obj_engine_generate_written_event()
+	 with the most recent error and pass it to this function as last argument "error". If no error
+	 appears this function got called with NULL as error.
+
+	 It's quite important that this function only get called with the most recent error. This function
+	 MUST NOT get called with (obj)engine->error.
+
+	 If this functions doesn't get called with the most recent commit/committed_all error OSyncEngine
+	 will get stuck. (testcases: dual_commit_error, dual_commit_timeout, *_commit_*, *_committed_all_*)
+ */
+static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine, OSyncError *error)
 {
-	osync_trace(TRACE_INTERNAL, "%s: %p", __func__, engine);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	/* We need to make sure that all entries are written ... */
 	osync_bool dirty = FALSE;
 	GList *p = NULL;
@@ -381,8 +403,10 @@ static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine)
 				break;
 			}
 		}
-		if (dirty)
+		if (dirty) {
+			osync_trace(TRACE_EXIT, "%s: Still dirty", __func__);
 			return;
+		}
 	}
 	osync_trace(TRACE_INTERNAL, "%s: Not dirty anymore", __func__);
 
@@ -391,15 +415,18 @@ static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine)
 		if (osync_bitcount(engine->sink_written) < osync_bitcount(engine->sink_connects)) {
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported committed all than connected");
 			osync_obj_engine_set_error(engine, locerror);
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else if (osync_bitcount(engine->sink_errors)) {
-			/* Emit engine-wide error if one of the sink got an error (tests: single_commit_error, ...) */
-			osync_trace(TRACE_INTERNAL, "Commit Error: %s", osync_error_print(&(engine->error)));
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
-		} else
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
+			/* Emit engine-wide error if one of the sinks got an error (tests: single_commit_error, ...) */
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one Sink Engine failed while committing");
+			osync_obj_engine_set_error(engine, locerror);
+		}
+
+		osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN, locerror ? locerror : error);
+
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_written));
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *userdata, const char *uid, OSyncError *error)
@@ -428,7 +455,7 @@ static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, vo
 
 		osync_obj_engine_set_error(engine, error);
 		engine->sink_errors = engine->sink_errors | (0x1 << sinkengine->position);
-		goto end;
+		goto error;
 	}
 	
 	if (uid)
@@ -436,8 +463,11 @@ static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, vo
 	
 	if (engine->archive) {
 		if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
+			/* TODO error handling */
 			osync_archive_delete_change(engine->archive, id, objtype, &locerror);
 		} else {
+
+			/* TODO error handling */
 			osync_archive_save_change(engine->archive, id, osync_change_get_uid(entry_engine->change), objtype, osync_mapping_get_id(mapping), osync_member_get_id(member), &locerror);
 		}
 	}
@@ -446,10 +476,12 @@ static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, vo
 	osync_status_update_change(engine->parent, entry_engine->change, osync_client_proxy_get_member(proxy), entry_engine->mapping_engine->mapping, OSYNC_CHANGE_EVENT_WRITTEN, NULL);
 	osync_entry_engine_update(entry_engine, NULL);
 	
-end:	
-	_osync_obj_engine_generate_written_event(engine);
-	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:	
+	_osync_obj_engine_generate_written_event(engine, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 static void _osync_obj_engine_written_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
@@ -462,16 +494,13 @@ static void _osync_obj_engine_written_callback(OSyncClientProxy *proxy, void *us
 	if (error) {
 		osync_obj_engine_set_error(engine, error);
 		engine->sink_errors = engine->sink_errors | (0x1 << sinkengine->position);
-
-		/* TODO: Review if this member/client status event is really needed. */
-		/* This breaks testcase: committed_all_error */ 
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, engine->objtype, error);
 	} else {
 		engine->sink_written = engine->sink_written | (0x1 << sinkengine->position);
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_WRITTEN, engine->objtype, NULL);
 	}
 			
-	_osync_obj_engine_generate_written_event(engine);
+	_osync_obj_engine_generate_written_event(engine, error);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -497,9 +526,9 @@ static void _osync_obj_engine_sync_done_callback(OSyncClientProxy *proxy, void *
 		if (osync_bitcount(engine->sink_sync_done) < osync_bitcount(engine->sink_connects)) {
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported sync_done than connected");
 			osync_obj_engine_set_error(engine, locerror);
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
-		} else
-			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
+		}
+
+		osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, locerror ? locerror : error);
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", osync_bitcount(engine->sink_errors | engine->sink_sync_done));
 	
@@ -734,6 +763,8 @@ error:
 
 void osync_obj_engine_finalize(OSyncObjEngine *engine)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+
 	engine->slowsync = FALSE;
 	engine->written = FALSE;
 
@@ -761,6 +792,7 @@ void osync_obj_engine_finalize(OSyncObjEngine *engine)
 	if (engine->mapping_table)
 		osync_mapping_table_close(engine->mapping_table);
 
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine)
@@ -834,6 +866,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 	GList *m = NULL;
 	GList *e = NULL;
 	OSyncSinkEngine *sinkengine =  NULL;
+
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, engine, cmd, error);
 	osync_assert(engine);
@@ -1040,17 +1073,31 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					goto error;
 			}
 			break;
-		case OSYNC_ENGINE_COMMAND_DISCONNECT:
+		case OSYNC_ENGINE_COMMAND_DISCONNECT:;
+
+			osync_bool proxy_disconnect = FALSE;
+
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
 
-				/* Don't call client disconnect functions if the sink is already disconnected (testcase: dual_connect_error, ..). */
+				/* Don't call client disconnect functions if the sink is already disconnected.
+				   This avoids unintended disconnect calls of clients/plugins which might not prepared
+				   for a disconnect call when their never got connected. (testcases: *_connect_error, *_connect_timeout ..) */
 				if (!osync_sink_engine_is_connected(sinkengine))
 					continue;
-					
+
+				proxy_disconnect = TRUE;
+
 				if (!osync_client_proxy_disconnect(sinkengine->proxy, _osync_obj_engine_disconnect_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}
+			
+			/* If no client needs to be disconnected, we MUST NOT expected any 
+			   disconnected_callback which generates an OSYNC_ENGINE_EVENT_DISCONNECTED event.
+			   So we directly generate such event on our own. (testcases: double_connect_*, triple_connnect_*) */ 
+			if (!proxy_disconnect)
+				_osync_obj_engine_generate_event_disconnected(engine, NULL);
+
 			break;
 		case OSYNC_ENGINE_COMMAND_SOLVE:
 		case OSYNC_ENGINE_COMMAND_DISCOVER:
@@ -1066,13 +1113,33 @@ error:
 }
 
 
-void osync_obj_engine_event(OSyncObjEngine *engine, OSyncEngineEvent event)
+void osync_obj_engine_event(OSyncObjEngine *engine, OSyncEngineEvent event, OSyncError *error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, engine, event);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, engine, event, error);
 	osync_assert(engine);
+
+	/* TODO: Create own enum OSyncObjEngine for objengine events. */
+	osync_assert_msg(event != OSYNC_ENGINE_EVENT_ERROR, "OSyncObjEngine isn't supposed to emit OSYNC_ENGINE_EVENT_ERROR events!");
 	
-	engine->callback(engine, event, engine->error, engine->callback_userdata);
-	
+	/* engine event callback gets called with most recent OSyncError or NULL.
+	   Don't use engine->error for the engine event callback. Previous appears errors
+	   in this objengine would get passed to this engine, which will be interpeted by the
+	   engine as error for the current event.
+
+	   Example:
+	   
+	   EVENT_CONNECTED		(obj)engine->error: NULL
+	   EVENT_READ **ERROR**		(obj)engine->error: 0x....
+	   # OSyncEngine aborts sync and emit disconnect event, we reply with:
+	   EVENT_DISCONNECTED		(obj)engine->error: 0x.....
+
+	   If we would pass in this case enigne->error instead of the most recent
+	   OSyncError, OSyncEngien would interpret this as the disconnect failed as well.
+	   So we just pass the most recent OSyncError pointer, which could be NULL -> no error.
+	*/
+	     
+	engine->callback(engine, event, error, engine->callback_userdata);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }

@@ -35,7 +35,7 @@ OSYNC_EXPORT const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine);
 OSYNC_EXPORT void osync_obj_engine_set_slowsync(OSyncObjEngine *engine, osync_bool slowsync);
 OSYNC_EXPORT osync_bool osync_obj_engine_get_slowsync(OSyncObjEngine *engine);
 
-OSYNC_EXPORT void osync_obj_engine_event(OSyncObjEngine *objengine, OSyncEngineEvent event);
+OSYNC_EXPORT void osync_obj_engine_event(OSyncObjEngine *objengine, OSyncEngineEvent event, OSyncError *error);
 OSYNC_EXPORT osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error);
 OSYNC_EXPORT void osync_obj_engine_set_callback(OSyncObjEngine *engine, OSyncObjEngineEventCallback callback, void *userdata);
 OSYNC_EXPORT osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClientProxy *proxy, OSyncChange *change, OSyncError **error);
