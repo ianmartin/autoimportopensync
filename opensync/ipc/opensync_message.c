@@ -380,7 +380,11 @@ void osync_message_read_string(OSyncMessage *message, char **value)
 	
 	osync_assert(message->buffer->len >= message->buffer_read_pos + length);
 	
-	*value = (char*)malloc(length);
+	/* TODO: Error handling? */
+	*value = (char*) osync_try_malloc0(length, NULL);
+	if (!*value)
+		return;
+
 	memcpy(*value, &(message->buffer->data[ message->buffer_read_pos ]), length );
 	message->buffer_read_pos += length;
 }
