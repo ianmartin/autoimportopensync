@@ -123,8 +123,6 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 		if (current_time.tv_sec == toinfo->expiration.tv_sec
 				|| current_time.tv_sec >= toinfo->expiration.tv_sec && current_time.tv_usec >= toinfo->expiration.tv_usec) {
 
-			/* Unlock the pending lock since the messages might be sent during the callback */
-			g_mutex_unlock(queue->pendingLock);
 	
 			/* Call the callback of the pending message */
 			osync_assert(pending->callback);
@@ -133,17 +131,27 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Message Timeout!");
 			OSyncMessage *errormsg = osync_message_new_errorreply(NULL, timeouterr, &error);
 			osync_error_unref(&timeouterr);
-			//pending->callback(message, pending->user_data);
+
+			/* Remove first the pending message!
+			   To avoid that _incoming_dispatch catchs this message
+			   when we're releasing the lock. If _incoming_dispatch
+			   would catch this message, the pending callback
+			   gets called twice! */
+
+			queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+			/* Unlock the pending lock since the messages might be sent during the callback */
+			g_mutex_unlock(queue->pendingLock);
+
 			pending->callback(errormsg, pending->user_data);
 			osync_message_unref(errormsg);
-			
-			/* Then remove the pending message and free it.
-			 * But first, lock the queue to make sure that the removal
-			 * is atomic */
-			g_mutex_lock(queue->pendingLock);
-			queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+
+			// TODO: Refcounting for OSyncPendingMessage
 			g_free(pending->timeout_info);
 			g_free(pending);
+
+			/* Lock again, to keep the iteration of the pendingReplies list atomic. */
+			g_mutex_lock(queue->pendingLock);
+
 			break;
 		}
 	}
@@ -196,23 +204,27 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 				pending = p->data;
 			
 				if (pending->id == osync_message_get_id(message)) {
+
+					/* Remove first the pending message!
+					   To avoid that _timeout_dispatch catchs this message
+					   when we're releasing the lock. If _timeout_dispatch
+					   would catch this message, the pending callback
+					   gets called twice! */
+
+					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+
 					/* Unlock the pending lock since the messages might be sent during the callback */
 					g_mutex_unlock(queue->pendingLock);
 			
 					/* Call the callback of the pending message */
 					osync_assert(pending->callback);
 					pending->callback(message, pending->user_data);
-					
-					/* Then remove the pending message and free it.
-					 * But first, lock the queue to make sure that the removal
-					 * is atomic */
-					g_mutex_lock(queue->pendingLock);
-					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
 
-					if (pending->timeout_info)
-						g_free(pending->timeout_info);
-
+					// TODO: Refcounting for OSyncPendingMessage
 					g_free(pending);
+
+					/* Lock again, to keep the iteration of the pendingReplies list atomic. */
+					g_mutex_lock(queue->pendingLock);
 					break;
 				}
 			}
@@ -705,6 +717,7 @@ void osync_queue_free(OSyncQueue *queue)
 
 		queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
 
+		// TODO: Refcounting for OSyncPendingMessage
 		if (pending->timeout_info)
 			g_free(pending->timeout_info);
 
