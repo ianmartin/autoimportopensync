@@ -41,33 +41,32 @@ struct OSyncQueue {
 	
 	GSourceFuncs *read_functions;
 	GSource *read_source;
+
+	/** Timeout Source **/
+	GSourceFuncs *timeout_functions;
+	GSource *timeout_source;
 	
 	GMutex *disconnectLock;
 
 	osync_bool connected;
 };
 
+
+typedef struct OSyncTimeoutInfo {
+	/** Expiration date */
+	GTimeVal expiration; 
+} OSyncTimeoutInfo;
+
 typedef struct OSyncPendingMessage {
+	/** ID of the expected Message */
 	long long int id;
 	/** Where should the reply be received? */
 	OSyncMessageHandler callback;
 	/** The user data */
 	gpointer user_data;
+	/** Message Timeout */
+	OSyncTimeoutInfo *timeout_info;
 } OSyncPendingMessage;
-
-typedef struct OSyncTimeoutInfo {
-	/** Queue for mesage response */
-        OSyncQueue *replyqueue;
-
-	/** Timeout in milliseconds **/
-        unsigned int timeout;
-
-	/** Pointer to sent message. Includes message ID and callbacks **/
-        OSyncMessage *message;
-
-        GSource *source;
-
-} OSyncTimeoutInfo;
 
 /*@}*/
 

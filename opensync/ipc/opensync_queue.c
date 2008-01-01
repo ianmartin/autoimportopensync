@@ -37,6 +37,123 @@
 /*@{*/
 
 static
+gboolean _timeout_prepare(GSource *source, gint *timeout_)
+{
+	/* TODO adapt *timeout_ value to shortest message timeout value...
+	GTimeVal current_time;
+	g_source_get_current_time(source, &current_time);
+	*/
+
+	*timeout_ = 1;
+	return FALSE;
+}
+
+static
+gboolean _timeout_check(GSource *source)
+{
+	GList *p;
+	GTimeVal current_time;
+	OSyncTimeoutInfo *toinfo;
+	OSyncPendingMessage *pending;
+
+	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
+
+	g_source_get_current_time(source, &current_time);
+
+	/* Search for the pending reply. We have to lock the
+	 * list since another thread might be duing the updates */
+	g_mutex_lock(queue->pendingLock);
+
+	for (p = queue->pendingReplies; p; p = p->next) {
+		pending = p->data;
+
+		if (!pending->timeout_info)
+			continue;
+
+		toinfo = pending->timeout_info;
+
+		if (current_time.tv_sec >= toinfo->expiration.tv_sec 
+			|| (current_time.tv_sec == toinfo->expiration.tv_sec 
+			&& current_time.tv_usec >= toinfo->expiration.tv_usec)) {
+			/* Unlock the pending lock since the messages might be sent during the callback */
+			g_mutex_unlock(queue->pendingLock);
+
+			return TRUE;
+		}
+	}
+	/* Unlock the pending lock since the messages might be sent during the callback */
+	g_mutex_unlock(queue->pendingLock);
+
+	return FALSE;
+}
+
+static
+gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+{
+	GList *p;
+	OSyncPendingMessage *pending;
+	OSyncTimeoutInfo *toinfo;
+
+	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
+
+	GTimeVal current_time;
+	g_source_get_current_time (source, &current_time);
+
+	/* Search for the pending reply. We have to lock the
+	 * list since another thread might be duing the updates */
+	g_mutex_lock(queue->pendingLock);
+
+	for (p = queue->pendingReplies; p; p = p->next) {
+		pending = p->data;
+
+		if (!pending->timeout_info)
+			continue;
+
+		toinfo = pending->timeout_info;
+	
+			osync_trace(TRACE_INTERNAL, "CURRENT TIME: %ld s %ld us", 
+					current_time.tv_sec,
+					current_time.tv_usec);
+
+
+			osync_trace(TRACE_INTERNAL, "EXPIRE TIME: %ld s %ld us" ,
+					toinfo->expiration.tv_sec,
+					toinfo->expiration.tv_usec);
+
+		if (current_time.tv_sec == toinfo->expiration.tv_sec
+				|| current_time.tv_sec >= toinfo->expiration.tv_sec && current_time.tv_usec >= toinfo->expiration.tv_usec) {
+
+			/* Unlock the pending lock since the messages might be sent during the callback */
+			g_mutex_unlock(queue->pendingLock);
+	
+			/* Call the callback of the pending message */
+			osync_assert(pending->callback);
+			OSyncError *error = NULL;
+			OSyncError *timeouterr = NULL;
+			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Message Timeout!");
+			OSyncMessage *errormsg = osync_message_new_errorreply(NULL, timeouterr, &error);
+			osync_error_unref(&timeouterr);
+			//pending->callback(message, pending->user_data);
+			pending->callback(errormsg, pending->user_data);
+			osync_message_unref(errormsg);
+			
+			/* Then remove the pending message and free it.
+			 * But first, lock the queue to make sure that the removal
+			 * is atomic */
+			g_mutex_lock(queue->pendingLock);
+			queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+			g_free(pending->timeout_info);
+			g_free(pending);
+			break;
+		}
+	}
+	
+	g_mutex_unlock(queue->pendingLock);
+
+	return TRUE;
+}
+
+static
 gboolean _incoming_prepare(GSource *source, gint *timeout_)
 {
 	*timeout_ = 1;
@@ -91,6 +208,10 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 					 * is atomic */
 					g_mutex_lock(queue->pendingLock);
 					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+
+					if (pending->timeout_info)
+						g_free(pending->timeout_info);
+
 					g_free(pending);
 					break;
 				}
@@ -581,8 +702,13 @@ void osync_queue_free(OSyncQueue *queue)
 
 	while (queue->pendingReplies) {
 		pending = queue->pendingReplies->data;
-		g_free(pending);
+
 		queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+
+		if (pending->timeout_info)
+			g_free(pending->timeout_info);
+
+		g_free(pending);
 	}
 
 	if (queue->name)
@@ -704,6 +830,20 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 	g_source_attach(queue->read_source, queue->context);
 	if (queue->context)
 		g_main_context_ref(queue->context);
+
+	queue->timeout_functions = g_malloc0(sizeof(GSourceFuncs));
+	queue->timeout_functions->prepare = _timeout_prepare;
+	queue->timeout_functions->check = _timeout_check;
+	queue->timeout_functions->dispatch = _timeout_dispatch;
+	queue->timeout_functions->finalize = NULL;
+
+	queue->timeout_source = g_source_new(queue->timeout_functions, sizeof(GSource) + sizeof(OSyncQueue *));
+	queueptr = (OSyncQueue **)(queue->timeout_source + 1);
+	*queueptr = queue;
+	g_source_set_callback(queue->timeout_source, NULL, queue, NULL);
+	g_source_attach(queue->timeout_source, queue->context);
+	if (queue->context)
+		g_main_context_ref(queue->context);
 	
 	osync_thread_start(queue->thread);
 	
@@ -739,6 +879,11 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 		
 	//g_source_unref(queue->read_source);
 	
+	if (queue->timeout_functions) {
+		g_free(queue->timeout_functions);
+		queue->timeout_functions = NULL;
+	}
+		
 	_osync_queue_stop_incoming(queue);
 	
 	/* We have to empty the incoming queue if we disconnect the queue. Otherwise, the
@@ -882,13 +1027,9 @@ OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
  * the lower 2 bytes are a random number
  * 
  * */
-static long long int gen_id()
+static long long int gen_id(const GTimeVal *tv)
 {
-    GTimeVal tv;
-
-    g_get_current_time(&tv);
-
-    long long int now = (tv.tv_sec * 1000000 + tv.tv_usec) << 16;
+    long long int now = (tv->tv_sec * 1000000 + tv->tv_usec) << 16;
     long long int rnd = ((long long int)g_random_int()) & 0xFFFF;
     
     return now | rnd;
@@ -896,18 +1037,40 @@ static long long int gen_id()
 
 osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, queue, replyqueue, message, error);
-	
+	return osync_queue_send_message_with_timeout(queue, replyqueue, message, 0, error);
+}
+
+osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, unsigned int timeout, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %u, %p)", __func__, queue, replyqueue, message, timeout, error);
+
 	if (osync_message_get_handler(message)) {
 		osync_assert(replyqueue);
 		OSyncPendingMessage *pending = osync_try_malloc0(sizeof(OSyncPendingMessage), error);
 		if (!pending)
 			goto error;
 		
-		long long int id = gen_id();
+		GTimeVal current_time;
+
+		/* g_sourcet_get_current_time used cached time ... hopefully faster then g_get_.._time() */
+		g_source_get_current_time(queue->timeout_source, &current_time);
+
+		long long int id = gen_id(&current_time);
 		osync_message_set_id(message, id);
 		pending->id = id;
 		osync_trace(TRACE_INTERNAL, "Setting id %lli for pending reply", id);
+
+		if (timeout) {
+			OSyncTimeoutInfo *toinfo = osync_try_malloc0(sizeof(OSyncTimeoutInfo), error);
+			if (!toinfo)
+				goto error;
+
+			toinfo->expiration = current_time;
+			toinfo->expiration.tv_sec += timeout / 1000;
+			toinfo->expiration.tv_usec += (timeout % 1000) * 1000;
+
+			pending->timeout_info = toinfo;
+		}
 		
 		pending->callback = osync_message_get_handler(message);
 		pending->user_data = osync_message_get_handler_data(message);
@@ -926,94 +1089,6 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
-static gboolean _osync_queue_message_timeout_handler(gpointer user_data)
-{
-	OSyncTimeoutInfo *toinfo = (OSyncTimeoutInfo *) user_data;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, toinfo);
-
-	OSyncQueue *queue = toinfo->replyqueue;
-	OSyncMessage *message = toinfo->message;
-
-	/* Search for the pending reply. We have to lock the
-	 * list since another thread might be duing the updates */
-	g_mutex_lock(queue->pendingLock);
-	
-	GList *p;
-	OSyncPendingMessage *pending;
-	for (p = queue->pendingReplies; p; p = p->next) {
-		pending = p->data;
-	
-		if (pending->id == osync_message_get_id(message)) {
-
-			/* Unlock the pending lock since the messages might be sent during the callback */
-			g_mutex_unlock(queue->pendingLock);
-	
-			/* Call the callback of the pending message */
-			osync_assert(pending->callback);
-			OSyncError *error = NULL;
-			OSyncError *timeouterr = NULL;
-			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Message Timeout!");
-			OSyncMessage *errormsg = osync_message_new_errorreply(message, timeouterr, &error);
-			osync_error_unref(&timeouterr);
-			//pending->callback(message, pending->user_data);
-			pending->callback(errormsg, pending->user_data);
-			osync_message_unref(errormsg);
-			
-			/* Then remove the pending message and free it.
-			 * But first, lock the queue to make sure that the removal
-			 * is atomic */
-			g_mutex_lock(queue->pendingLock);
-			queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
-			g_free(pending);
-			break;
-		}
-	}
-	
-	g_mutex_unlock(queue->pendingLock);
-
-	osync_message_unref(message);
-
-	g_free(toinfo);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return FALSE;
-}
-
-osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, unsigned int timeout, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, message, error);
-
-	OSyncTimeoutInfo *toinfo = osync_try_malloc0(sizeof(OSyncTimeoutInfo), error);
-	if (!toinfo)
-		goto error;
-
-	GSource *source = g_timeout_source_new (timeout);
-	if (!source) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create timeout handler.");
-		goto error;
-	}
-
-	toinfo->replyqueue = replyqueue;
-	toinfo->timeout = timeout;
-	toinfo->source = source;
-	toinfo->message = message;
-
-	osync_message_ref(message);
-
-	g_source_attach(source, replyqueue->context);
-	g_source_set_callback(source, (GSourceFunc) _osync_queue_message_timeout_handler, toinfo, NULL);
-
-	if (!osync_queue_send_message(queue, replyqueue, message, error))
-		goto error;
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error:	
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
