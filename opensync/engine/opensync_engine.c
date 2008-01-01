@@ -223,9 +223,9 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	return;
 
 error:
+	osync_engine_set_error(engine, error);
 	osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	osync_error_unref(&error);
 }
 
 /* This function is called from the master thread. The function dispatched incoming data from
@@ -709,6 +709,11 @@ static void _osync_engine_generate_get_changes_event(OSyncEngine *engine)
 		return;
 		
 	if (osync_bitcount(engine->obj_errors)) {
+		OSyncError *locerror = NULL;
+		osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one object engine failed while getting changes. Aborting");
+		osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
+		osync_engine_set_error(engine, locerror);
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 	} else {
 		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_READ, NULL);
@@ -731,7 +736,7 @@ static void _osync_engine_generate_written_event(OSyncEngine *engine)
 			osync_engine_set_error(engine, locerror);
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
 			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
-			osync_error_unref(&locerror);
+			//osync_error_unref(&locerror);
 		} else {
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_WRITTEN, NULL);
 			osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
@@ -753,7 +758,7 @@ static void _osync_engine_generate_sync_done_event(OSyncEngine *engine)
 			osync_engine_set_error(engine, locerror);
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
 			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
-			osync_error_unref(&locerror);
+			//osync_error_unref(&locerror);
 		} else {
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, NULL);
 			osync_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
@@ -790,9 +795,8 @@ static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userda
 	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
+		osync_engine_set_error(engine, error);
 		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
-		engine->error = error;
-		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_connects = engine->proxy_connects | (0x1 << position);
@@ -812,9 +816,8 @@ static void _osync_engine_disconnect_callback(OSyncClientProxy *proxy, void *use
 	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
+		osync_engine_set_error(engine, error);
 		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
-		engine->error = error;
-		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_disconnects = engine->proxy_disconnects | (0x1 << position);
@@ -834,9 +837,8 @@ static void _osync_engine_get_changes_callback(OSyncClientProxy *proxy, void *us
 	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
+		osync_engine_set_error(engine, error);
 		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
-		engine->error = error;
-		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_get_changes = engine->proxy_get_changes | (0x1 << position);
@@ -856,9 +858,8 @@ static void _osync_engine_written_callback(OSyncClientProxy *proxy, void *userda
 	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
+		osync_engine_set_error(engine, error);
 		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
-		engine->error = error;
-		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_written = engine->proxy_written | (0x1 << position);
@@ -878,9 +879,8 @@ static void _osync_engine_sync_done_callback(OSyncClientProxy *proxy, void *user
 	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
+		osync_engine_set_error(engine, error);
 		engine->proxy_errors = engine->proxy_errors | (0x1 << position);
-		engine->error = error;
-		osync_error_ref(&error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_sync_done = engine->proxy_sync_done | (0x1 << position);
@@ -940,8 +940,7 @@ static void _osync_engine_discover_callback(OSyncClientProxy *proxy, void *userd
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
 	if (error) {
-		engine->error = error;
-		osync_error_ref(&error);
+		osync_engine_set_error(engine, error);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_DISCOVERED, NULL, NULL);
@@ -1021,7 +1020,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	/* Lets see which objtypes are synchronizable in this group */
 	int num = osync_group_num_objtypes(engine->group);
 	if (num == 0) {
-		osync_error_set(&engine->error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
 		goto error;
 	}
 
@@ -1032,7 +1031,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		if (!osync_group_objtype_enabled(engine->group, objtype))
 			continue;
 
-		OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
+		OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, error);
 		if (!objengine)
 			goto error;
 
@@ -1108,6 +1107,7 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 {
 	GList *o = NULL;
 	GList *p = NULL;
+	OSyncError *locerror = NULL;
 	OSyncClientProxy *proxy = NULL;
 			
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, command);
@@ -1120,17 +1120,17 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
 
-				if (!osync_obj_engine_initialize(objengine, &engine->error))
+				if (!osync_obj_engine_initialize(objengine, &locerror))
 					goto error;
 
-				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_CONNECT, &engine->error))
+				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_CONNECT, &locerror))
 					goto error;
 			}
 			
-			/* Then we connect ourselves */
+			/* Then we connect the main sinks */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_connect(proxy, _osync_engine_connect_callback, engine, NULL, FALSE, &engine->error))
+				if (!osync_client_proxy_connect(proxy, _osync_engine_connect_callback, engine, NULL, FALSE, &locerror))
 					goto error;
 			}
 			break;
@@ -1142,19 +1142,19 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 		case OSYNC_ENGINE_COMMAND_SOLVE:
 			switch (command->solve_type) {
 				case OSYNC_ENGINE_SOLVE_CHOOSE:
-					if (!osync_mapping_engine_solve(command->mapping_engine, command->master, &engine->error))
+					if (!osync_mapping_engine_solve(command->mapping_engine, command->master, &locerror))
 						goto error;
 					break;
 				case OSYNC_ENGINE_SOLVE_DUPLICATE:
-					if (!osync_mapping_engine_duplicate(command->mapping_engine, &engine->error))
+					if (!osync_mapping_engine_duplicate(command->mapping_engine, &locerror))
 						goto error;
 					break;
 				case OSYNC_ENGINE_SOLVE_IGNORE:
-					if (!osync_mapping_engine_ignore(command->mapping_engine, &engine->error))
+					if (!osync_mapping_engine_ignore(command->mapping_engine, &locerror))
 						goto error;
 					break;
 				case OSYNC_ENGINE_SOLVE_USE_LATEST:
-					if (!osync_mapping_engine_use_latest(command->mapping_engine, &engine->error))
+					if (!osync_mapping_engine_use_latest(command->mapping_engine, &locerror))
 						goto error;
 					break;
 			}
@@ -1168,11 +1168,11 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 			}
 			
 			if (!proxy) {
-				osync_error_set(&engine->error, OSYNC_ERROR_GENERIC, "Unable to find member");
+				osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Unable to find member");
 				goto error;
 			}
 		
-			if (!osync_client_proxy_discover(proxy, _osync_engine_discover_callback, engine, &engine->error))
+			if (!osync_client_proxy_discover(proxy, _osync_engine_discover_callback, engine, &locerror))
 				goto error;
 		
 			break;
@@ -1182,66 +1182,72 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 	return;
 	
 error:
+	osync_engine_set_error(engine, locerror);
+
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_signal(engine->syncing);
 	g_mutex_unlock(engine->syncing_mutex);
 
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error));
-	osync_error_ref(&engine->error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&locerror));
 }
 
 void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 {
 	GList *o = NULL;
+	OSyncError *locerror = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, engine, event);
 	osync_assert(engine);
 	
+
 	switch (event) {
 		case OSYNC_ENGINE_EVENT_CONNECTED:
 			/* Now that we are connected, we read the changes */
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
-				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_READ, &engine->error))
+				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_READ, &locerror))
 					goto error;
 			}
 			
 			/* Now we read the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_get_changes(proxy, _osync_engine_get_changes_callback, engine, NULL, FALSE, &engine->error))
+				if (!osync_client_proxy_get_changes(proxy, _osync_engine_get_changes_callback, engine, NULL, FALSE, &locerror))
 					goto error;
 			}
+
 			break;
 		case OSYNC_ENGINE_EVENT_READ:
 			/* Now that we are connected, we write the changes */
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
-				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_WRITE, &engine->error))
+				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_WRITE, &locerror))
 					goto error;
 			}
-			
+
 			/* Now we write the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_committed_all(proxy, _osync_engine_written_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_committed_all(proxy, _osync_engine_written_callback, engine, NULL, &locerror))
 					goto error;
 			}
+
 			break;
 		case OSYNC_ENGINE_EVENT_WRITTEN:
 			/* Lets call sync done */
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
-				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_SYNC_DONE, &engine->error))
+				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_SYNC_DONE, &locerror))
 					goto error;
 			}
 			
 			/* Now we call sync done on the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_sync_done(proxy, _osync_engine_sync_done_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_sync_done(proxy, _osync_engine_sync_done_callback, engine, NULL, &locerror))
 					goto error;
 			}
+
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
 			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)));
@@ -1249,14 +1255,20 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			/* Lets disconnect */
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
-				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_DISCONNECT, &engine->error))
+				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_DISCONNECT, &locerror))
 					goto error;
 			}
-			
+
 			/* Now we disconnect the main sink */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_disconnect(proxy, _osync_engine_disconnect_callback, engine, NULL, &engine->error))
+
+				//KILLif (!_osync_engine_is_proxy_connected(engine, proxy)) {
+				//	_osync_engine_disconnect_callback(proxy, engine, NULL);
+				//	continue;
+				//}
+
+				if (!osync_client_proxy_disconnect(proxy, _osync_engine_disconnect_callback, engine, NULL, &locerror))
 					goto error;
 			}
 			
@@ -1299,13 +1311,13 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 	return;
 	
 error:
-	osync_error_ref(&engine->error);
+	osync_engine_set_error(engine, locerror);
 
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_signal(engine->syncing);
 	g_mutex_unlock(engine->syncing_mutex);
 
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&locerror));
 }
 
 /*! @brief Starts to synchronize the given OSyncEngine
