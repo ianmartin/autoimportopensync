@@ -759,9 +759,9 @@ START_TEST (dual_connect_error)
 
 	/* Main sink checks */
 
-	/* Main sinks in this testcase are NOOP. So they succeed always and connect & disconnect as usual. */
 	fail_unless(num_client_main_disconnected == 2, NULL);
 	fail_unless(num_client_main_connected == 2, NULL);
+
 	fail_unless(num_client_main_read == 0, NULL);
 	fail_unless(num_client_main_written == 0, NULL);
 	fail_unless(num_client_main_sync_done == 0, NULL);
@@ -968,7 +968,6 @@ START_TEST (three_of_three_connect_error)
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 	
@@ -1073,6 +1072,7 @@ END_TEST
 START_TEST (single_connect_timeout)
 {
 	char *testbed = setup_testbed("sync");
+	system("cp testdata data1/testdata");
 	
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
@@ -1119,6 +1119,7 @@ END_TEST
 START_TEST (dual_connect_timeout)
 {
 	char *testbed = setup_testbed("sync");
+	system("cp testdata data1/testdata");
 	
 	setenv("CONNECT_TIMEOUT", "3", TRUE);
 	
@@ -1295,9 +1296,7 @@ START_TEST (single_get_changes_error)
 	fail_unless(num_change_written == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
 
-	// FIXME: Should the engine emit errors?
-	//fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
 	
@@ -1344,14 +1343,12 @@ START_TEST (dual_get_changes_error)
 	fail_unless(num_client_errors == 2, NULL);
 	fail_unless(num_client_connected == 2, NULL);
 	fail_unless(num_client_disconnected == 2, NULL);
-	fail_unless(num_client_written == 0, NULL); // FIXME: If everyone failed in getting changes num_client_written must be 0! We don't want to call commit/batch_commit functions then.. avoid it!
+	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_change_read == 0, NULL);
 	fail_unless(num_change_written == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
 
-	// FIXME: Should the engine emit errors?
-	//fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
 
@@ -1401,9 +1398,7 @@ START_TEST (two_of_three_get_changes_error)
 	fail_unless(num_change_written == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
 
-	// FIXME: Should the engine emit errors?
-	//fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
 
@@ -1453,9 +1448,7 @@ START_TEST (one_of_three_get_changes_error)
 	fail_unless(num_change_written == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
 
-	// FIXME: Should the engine emit errors?
-	//fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
 
 	fail_unless(num_engine_successful == 0, NULL);
 
@@ -1499,11 +1492,11 @@ START_TEST (one_of_three_get_changes_timeout)
 	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 
-	fail_unless(num_client_errors == 0, NULL);
 	fail_unless(num_client_connected == 3, NULL);
 	fail_unless(num_client_disconnected == 3, NULL);
 	fail_unless(num_client_errors == 1, NULL);
-	fail_unless(num_client_written == 2, NULL);
+	fail_unless(num_client_read == 2, NULL);
+	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_change_read == 2, NULL);
 	fail_unless(num_change_written == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
@@ -1520,6 +1513,7 @@ START_TEST (get_changes_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
 	setenv("GET_CHANGES_ERROR", "4", TRUE);
 
@@ -1550,9 +1544,10 @@ START_TEST (get_changes_timeout_and_error)
 	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 
-	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_errors == 3, NULL);
 	fail_unless(num_client_connected == 3, NULL);
 	fail_unless(num_client_disconnected == 3, NULL);
+	fail_unless(num_client_read == 0, NULL);
 	fail_unless(num_client_written == 0, NULL);
 	fail_unless(num_change_read == 0, NULL);
 	fail_unless(num_change_written == 0, NULL);
@@ -1600,11 +1595,15 @@ START_TEST (get_changes_timeout_sleep)
 	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 	
-	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_errors == 3, NULL);
 	fail_unless(num_client_connected == 3, NULL);
 	fail_unless(num_client_disconnected == 3, NULL);
+	fail_unless(num_client_read == 0, NULL);
 	fail_unless(num_client_written == 0, NULL);
+
+	// FIXME: If get_changes delays and get timed out .. set change_callback to NULL. To make sure changes got completely ignored by the engine
 	fail_unless(num_change_read == 0, NULL);
+
 	fail_unless(num_change_written == 0, NULL);
 	fail_unless(num_mapping_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
@@ -2519,8 +2518,8 @@ START_TEST (single_disconnect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
-	fail_unless(!synchronize_once(engine, &error), NULL);
-	fail_unless(osync_error_is_set(&error), NULL);
+	fail_unless(synchronize_once(engine, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -2572,8 +2571,8 @@ START_TEST (dual_disconnect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
-	fail_unless(!synchronize_once(engine, &error), NULL);
-	fail_unless(osync_error_is_set(&error), NULL);
+	fail_unless(synchronize_once(engine, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -2625,8 +2624,8 @@ START_TEST (triple_disconnect_error)
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
-	fail_unless(!synchronize_once(engine, &error), NULL);
-	fail_unless(osync_error_is_set(&error), NULL);
+	fail_unless(synchronize_once(engine, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_error_unref(&error);
 	osync_engine_finalize(engine, &error);
@@ -2873,42 +2872,36 @@ Suite *error_suite(void)
 	create_case(s, "one_of_three_connect_error", one_of_three_connect_error);
 	create_case(s, "no_connect_error", no_connect_error);
 
-	/* FIXME: Timeout handling isn't implemented. */
-	/*
 	create_case(s, "single_connect_timeout", single_connect_timeout);
 	create_case(s, "dual_connect_timeout", dual_connect_timeout);
 	create_case(s, "one_of_three_timeout", one_of_three_timeout);
 	create_case(s, "timeout_and_error", timeout_and_error);
-	*/
 
 	create_case(s, "single_get_changes_error", single_get_changes_error);
 	create_case(s, "dual_get_changes_error", dual_get_changes_error);
 	create_case(s, "two_of_three_get_changes_error", two_of_three_get_changes_error);
 	create_case(s, "one_of_three_get_changes_error", one_of_three_get_changes_error);
 
-	/* FIXME: Timeout handling isn't implemented. */
-
-	/*
 	create_case(s, "one_of_three_get_changes_timeout", one_of_three_get_changes_timeout);
 	create_case(s, "get_changes_timeout_and_error", get_changes_timeout_and_error);
-	create_case(s, "get_changes_timeout_sleep", get_changes_timeout_sleep);
+
+	/* FIXME: If get_changes delays and got timed out .. set change_callback to NULL.
+	   Make sure changes from the plugin got completely ignored by the engine when the timout handler got called.
+	   Even better would be to abort the get_changes call from the plugin process...
+
+	create_case(s2, "get_changes_timeout_sleep", get_changes_timeout_sleep);
 	*/
 
 	create_case(s, "single_commit_error", single_commit_error);
 	create_case(s, "dual_commit_error", dual_commit_error);
 
-	/*
 	create_case(s, "single_commit_timeout", single_commit_timeout);
 	create_case(s, "dual_commit_timeout", dual_commit_timeout);
 	create_case(s, "commit_timeout_and_error", commit_timeout_and_error);
 	create_case(s, "commit_timeout_and_error2", commit_timeout_and_error2);
-	*/
 
-	/* FIXME: Those invole timeout tests aswell. */
-	/*
 	create_case(s, "commit_error_modify", commit_error_modify);
 	create_case(s, "commit_error_delete", commit_error_delete);
-	*/
 
 	create_case(s, "committed_all_error", committed_all_error);
 	create_case(s, "committed_all_batch_error", committed_all_batch_error);
@@ -2917,25 +2910,19 @@ Suite *error_suite(void)
 	create_case(s, "dual_sync_done_error", dual_sync_done_error);
 	create_case(s, "triple_sync_done_error", triple_sync_done_error);
 
-	/*
 	create_case(s, "single_sync_done_timeout", single_sync_done_timeout);
 	create_case(s, "dual_sync_done_timeout", dual_sync_done_timeout);
 	create_case(s, "sync_done_timeout_and_error", sync_done_timeout_and_error);
-	*/
 
 	create_case(s, "single_disconnect_error", single_disconnect_error);
 	create_case(s, "dual_disconnect_error", dual_disconnect_error);
 	create_case(s, "triple_disconnect_error", triple_disconnect_error);
 
-	/*
 	create_case(s, "single_disconnect_timeout", single_disconnect_timeout);
 	create_case(s, "dual_disconnect_timeout", dual_disconnect_timeout);
 	create_case(s, "disconnect_timeout_and_error", disconnect_timeout_and_error);
-	*/
 
-	/*
 	create_case(s, "get_changes_disconnect_error", get_changes_disconnect_error);
-	*/
 	
 	return s;
 }
