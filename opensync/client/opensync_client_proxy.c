@@ -1025,7 +1025,7 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	
 	osync_message_set_handler(message, _osync_client_proxy_init_handler, ctx);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, proxy->timeout.initialize, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -1046,6 +1046,18 @@ error:
 	return FALSE;
 }
 
+unsigned int osync_client_proxy_get_initialize_timeout(OSyncClientProxy *proxy)
+{
+	osync_assert(proxy);
+	return proxy->timeout.initialize;
+}
+
+void osync_client_proxy_set_initialize_timeout(OSyncClientProxy *proxy, unsigned int timeout)
+{
+	osync_assert(proxy);
+	proxy->timeout.initialize = timeout;
+}
+
 osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, proxy, callback, userdata, error);
@@ -1064,7 +1076,7 @@ osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb call
 
 	osync_message_set_handler(message, _osync_client_proxy_fin_handler, ctx);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, proxy->timeout.finalize, error))
 		goto error_free_message;
 
 	osync_message_unref(message);
@@ -1077,6 +1089,18 @@ error_free_message:
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
+}
+
+unsigned int osync_client_proxy_get_finalize_timeout(OSyncClientProxy *proxy)
+{
+	osync_assert(proxy);
+	return proxy->timeout.finalize;
+}
+
+void osync_client_proxy_set_finalize_timeout(OSyncClientProxy *proxy, unsigned int timeout)
+{
+	osync_assert(proxy);
+	proxy->timeout.finalize = timeout;
 }
 
 osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error)
@@ -1097,7 +1121,7 @@ osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb call
 
 	osync_message_set_handler(message, _osync_client_proxy_discover_handler, ctx);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, proxy->timeout.discover, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -1110,6 +1134,18 @@ error_free_message:
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
+}
+
+unsigned int osync_client_proxy_get_discover_timeout(OSyncClientProxy *proxy)
+{
+	osync_assert(proxy);
+	return proxy->timeout.discover;
+}
+
+void osync_client_proxy_set_discover_timeout(OSyncClientProxy *proxy, unsigned int timeout)
+{
+	osync_assert(proxy);
+	proxy->timeout.discover = timeout;
 }
 
 int osync_client_proxy_num_objtypes(OSyncClientProxy *proxy)
@@ -1124,10 +1160,35 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 	return g_list_nth_data(proxy->objtypes, nth);
 }
 
+OSyncObjTypeSink *osync_client_proxy_find_objtype_sink(OSyncClientProxy *proxy, const char *objtype)
+{
+	osync_assert(proxy);
+	GList *o;
+	for (o = proxy->objtypes; o; o = o->next) {
+		OSyncObjTypeSink *sink = o->data;
+		if (!objtype && !osync_objtype_sink_get_name(sink))
+			return sink;
+
+		if (objtype && !strcmp(osync_objtype_sink_get_name(sink), objtype))
+			return sink;
+	}
+
+	if (objtype && proxy->member)
+		return osync_member_find_objtype_sink(proxy->member, objtype);
+	/*
+	else if (!objtype && proxy->member)
+		return osync_member_get_main_sink(proxy->member)
+	*/
+
+	return NULL;
+}
+
 osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
 	
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_CONNECT;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
@@ -1136,16 +1197,21 @@ osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callba
 	ctx->connect_callback = callback;
 	ctx->connect_callback_data = userdata;
 	
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	if (sink)
+		timeout = osync_objtype_sink_get_connect_timeout(sink); 
+
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_CONNECT, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_connect_handler, ctx);
 
 	osync_message_write_string(message, objtype);
 	osync_message_write_int(message, slowsync);
+
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -1155,6 +1221,8 @@ osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callba
 
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -1163,31 +1231,39 @@ error:
 osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
-	
+
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_DISCONNECT;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	if (sink)
+		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+
 	ctx->proxy = proxy;
 	ctx->disconnect_callback = callback;
 	ctx->disconnect_callback_data = userdata;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_DISCONNECT, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_disconnect_handler, ctx);
 
 	osync_message_write_string(message, objtype);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+	return TRUE;
 
+error_free_context:
+	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
 error:
@@ -1199,31 +1275,39 @@ osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, vo
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, proxy, callback, userdata, change, error);
 	
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_READ;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
+	if (sink)
+		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+
 	ctx->proxy = proxy;
 	ctx->read_callback = callback;
 	ctx->read_callback_data = userdata;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_READ_CHANGE, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_read_handler, ctx);
 
 	if (!osync_marshal_change(message, change, error))
 		goto error_free_message;
 
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+    	return TRUE;
 
+error_free_context:
+	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
 error:
@@ -1235,31 +1319,39 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
 	
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_GETCHANGES;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	if (sink)
+		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+
 	ctx->proxy = proxy;
 	ctx->get_changes_callback = callback;
 	ctx->get_changes_callback_data = userdata;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_GET_CHANGES, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_get_changes_handler, ctx);
 
 	osync_message_write_string(message, objtype);
 	osync_message_write_int(message, slowsync);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+	return TRUE;
 
+error_free_context:
+	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
 error:
@@ -1272,10 +1364,16 @@ osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_chan
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, proxy, callback, userdata, change, error);
 	osync_assert(proxy);
 	osync_assert(change);
-	
+
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_COMMIT;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
+
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
+	if (sink)
+		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
 	
 	ctx->proxy = proxy;
 	ctx->commit_change_callback = callback;
@@ -1283,21 +1381,23 @@ osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_chan
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMIT_CHANGE, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_commit_change_handler, ctx);
 
 	if (!osync_marshal_change(message, change, error))
 		goto error_free_message;
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+	return TRUE;
 
+error_free_context:
+	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
 error:
@@ -1309,31 +1409,39 @@ osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_a
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	osync_assert(proxy);
+
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_COMMITTEDALL;
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	if (sink)
+		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+
 	ctx->proxy = proxy;
 	ctx->committed_all_callback = callback;
 	ctx->committed_all_callback_data = userdata;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMITTED_ALL, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_committed_all_handler, ctx);
 
 	osync_message_write_string(message, objtype);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+	return TRUE;
 
+error_free_context:
+	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
 error:
@@ -1345,31 +1453,39 @@ osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb ca
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	osync_assert(proxy);
-	
+
+	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_SYNCDONE;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
-	
+
+	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	if (sink)
+		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+
 	ctx->proxy = proxy;
 	ctx->sync_done_callback = callback;
 	ctx->sync_done_callback_data = userdata;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_SYNC_DONE, 0, error);
 	if (!message)
-		goto error;
+		goto error_free_context;
 	
 	osync_message_set_handler(message, _osync_client_proxy_sync_done_handler, ctx);
 
 	osync_message_write_string(message, objtype);
 	
-	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+	if (!osync_queue_send_message_with_timeout(proxy->outgoing, proxy->incoming, message, timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+	return TRUE;
 
+error_free_context:
+	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
 error:

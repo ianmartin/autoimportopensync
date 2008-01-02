@@ -47,11 +47,20 @@ OSYNC_EXPORT osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncS
 OSYNC_EXPORT osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **error);
 
 OSYNC_EXPORT osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, const char *config, OSyncError **error);
+OSYNC_EXPORT void osync_client_proxy_set_initialize_timeout(OSyncClientProxy *proxy, unsigned int timeout);
+OSYNC_EXPORT unsigned int osync_client_proxy_get_initialize_timeout(OSyncClientProxy *proxy);
+
 OSYNC_EXPORT osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error);
+OSYNC_EXPORT void osync_client_proxy_set_finalize_timeout(OSyncClientProxy *proxy, unsigned int timeout);
+OSYNC_EXPORT unsigned int osync_client_proxy_get_finalize_timeout(OSyncClientProxy *proxy);
 
 OSYNC_EXPORT osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error);
+OSYNC_EXPORT void osync_client_proxy_set_discover_timeout(OSyncClientProxy *proxy, unsigned int timeout);
+OSYNC_EXPORT unsigned int osync_client_proxy_get_discover_timeout(OSyncClientProxy *proxy);
+
 OSYNC_EXPORT int osync_client_proxy_num_objtypes(OSyncClientProxy *proxy);
 OSYNC_EXPORT OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nth);
+OSYNC_EXPORT OSyncObjTypeSink *osync_client_proxy_find_objtype_sink(OSyncClientProxy *proxy, const char *objtype);
 
 OSYNC_EXPORT osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error);
