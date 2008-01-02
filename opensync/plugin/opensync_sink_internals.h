@@ -21,12 +21,41 @@
 #ifndef OPENSYNC_SINK_INTERNALS_H_
 #define OPENSYNC_SINK_INTERNALS_H_
 
+#define OSYNC_SINK_TIMEOUT_TRANSPORT 	15000
+#define OSYNC_SINK_TIMEOUT_SINGLEIO	10000
+#define OSYNC_SINK_TIMEOUT_BATCHIO	180000
+
+#define OSYNC_SINK_TIMEOUT_CONNECT 	OSYNC_SINK_TIMEOUT_TRANSPORT 
+#define OSYNC_SINK_TIMEOUT_DISCONNECT 	OSYNC_SINK_TIMEOUT_TRANSPORT 
+#define OSYNC_SINK_TIMEOUT_GETCHANGES	OSYNC_SINK_TIMEOUT_BATCHIO
+#define OSYNC_SINK_TIMEOUT_COMMIT	OSYNC_SINK_TIMEOUT_SINGLEIO
+#define OSYNC_SINK_TIMEOUT_BATCHCOMMIT	OSYNC_SINK_TIMEOUT_BATCHIO
+#define OSYNC_SINK_TIMEOUT_COMMITTEDALL	OSYNC_SINK_TIMEOUT_BATCHIO 
+#define OSYNC_SINK_TIMEOUT_SYNCDONE	OSYNC_SINK_TIMEOUT_SINGLEIO
+#define OSYNC_SINK_TIMEOUT_READ		OSYNC_SINK_TIMEOUT_SINGLEIO
+#define OSYNC_SINK_TIMEOUT_WRITE	OSYNC_SINK_TIMEOUT_SINGLEIO
+
+typedef struct OSyncObjTypeSinkFunctionTimeouts {
+	unsigned int connect;
+	unsigned int disconnect;
+	unsigned int get_changes;
+	unsigned int commit;
+	unsigned int batch_commit;
+	unsigned int committed_all;
+	unsigned int sync_done;
+	unsigned int read;
+	unsigned int write;
+} OSyncObjTypeSinkFunctionTimeouts;
+
 struct OSyncObjTypeSink {
 	/** The format which can be synchronized by this sink */
 	OSyncList *objformats;
 	/** The functions to be called */
 	OSyncObjTypeSinkFunctions functions;
 	void *userdata;
+
+	/** The timeout values of the sink functions */
+	OSyncObjTypeSinkFunctionTimeouts timeout;
 	
 	/** The objtype type of this sink. In case of a main sink this is always NULL. */
 	char *objtype;

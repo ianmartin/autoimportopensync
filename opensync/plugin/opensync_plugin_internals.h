@@ -21,6 +21,20 @@
 #ifndef _OPENSYNC_PLUGIN_INTERNALS_H_
 #define _OPENSYNC_PLUGIN_INTERNALS_H_
 
+#define OSYNC_PLUGIN_TIMEOUT_DEFAULT	30000
+
+#define OSYNC_PLUGIN_TIMEOUT_INITIALIZE	OSYNC_PLUGIN_TIMEOUT_DEFAULT 
+#define OSYNC_PLUGIN_TIMEOUT_FINALIZE	OSYNC_PLUGIN_TIMEOUT_DEFAULT 
+#define OSYNC_PLUGIN_TIMEOUT_DISCOVER	OSYNC_PLUGIN_TIMEOUT_DEFAULT 
+#define OSYNC_PLUGIN_TIMEOUT_USEABLE	OSYNC_PLUGIN_TIMEOUT_DEFAULT 
+
+typedef struct OSyncPluginTimeouts {
+	unsigned int initialize;
+	unsigned int finalize;
+	unsigned int discover;
+	unsigned int useable;
+} OSyncPluginTimeouts;
+
 struct OSyncPlugin {
 	/** The version of Opensync API this plugin uses*/
 	int version;
@@ -42,6 +56,8 @@ struct OSyncPlugin {
 	OSyncConfigurationType config_type;
 	/** The start type of the plugin. Thread, Process or External. */
 	OSyncStartType start_type;
+	/** The timeout values of the plugin functions */
+	OSyncPluginTimeouts timeout;
 	/** The pointer to the plugin (for internal use) */
 	//OSyncModule *module;
 	/** Plugin-specific data

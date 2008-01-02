@@ -72,6 +72,16 @@ OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error
 
 	sink->enabled = TRUE;
 	
+	sink->timeout.connect = OSYNC_SINK_TIMEOUT_CONNECT; 
+	sink->timeout.disconnect = OSYNC_SINK_TIMEOUT_DISCONNECT;
+	sink->timeout.get_changes = OSYNC_SINK_TIMEOUT_GETCHANGES; 
+	sink->timeout.commit = OSYNC_SINK_TIMEOUT_COMMIT; 
+	sink->timeout.batch_commit = OSYNC_SINK_TIMEOUT_BATCHCOMMIT; 
+	sink->timeout.committed_all = OSYNC_SINK_TIMEOUT_COMMITTEDALL; 
+	sink->timeout.sync_done = OSYNC_SINK_TIMEOUT_SYNCDONE; 
+	sink->timeout.write = OSYNC_SINK_TIMEOUT_WRITE;
+	sink->timeout.read = OSYNC_SINK_TIMEOUT_READ; 
+
 	return sink;
 }
 
@@ -808,6 +818,115 @@ void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync
 	osync_trace(TRACE_INTERNAL, "%s: Setting slow-sync of object type \"%s\" to %i", __func__, sink->objtype, slowsync);
 	osync_assert(sink);
 	sink->slowsync = slowsync;
+}
+
+void osync_objtype_sink_set_connect_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.connect = timeout;
+}
+
+unsigned int osync_objtype_sink_get_connect_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.connect;
+}
+
+
+void osync_objtype_sink_set_disconnect_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.disconnect = timeout;
+}
+
+unsigned int osync_objtype_sink_get_disconnect_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.disconnect;
+}
+
+void osync_objtype_sink_set_getchanges_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.get_changes = timeout;
+}
+
+unsigned int osync_objtype_sink_get_getchanges_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.get_changes;
+}
+
+void osync_objtype_sink_set_commit_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.commit = timeout;
+}
+
+unsigned int osync_objtype_sink_get_commit_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.commit;
+}
+
+void osync_objtype_sink_set_batchcommit_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.batch_commit = timeout;
+}
+
+unsigned int osync_objtype_sink_get_batchcommit_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.batch_commit;
+}
+
+void osync_objtype_sink_set_committedall_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.committed_all = timeout;
+}
+
+unsigned int osync_objtype_sink_get_committedall_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.committed_all;
+}
+
+void osync_objtype_sink_set_syncdone_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.sync_done = timeout;
+}
+
+unsigned int osync_objtype_sink_get_syncdone_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.sync_done;
+}
+
+void osync_objtype_sink_set_write_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.write = timeout;
+}
+
+unsigned int osync_objtype_sink_get_write_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.write;
+}
+
+void osync_objtype_sink_set_read_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
+{
+	osync_assert(sink);
+	sink->timeout.read = timeout;
+}
+
+unsigned int osync_objtype_sink_get_read_timeout(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->timeout.read;
 }
 
 /*@}*/

@@ -53,6 +53,11 @@ OSyncPlugin *osync_plugin_new(OSyncError **error)
 	plugin->config_type = OSYNC_PLUGIN_NEEDS_CONFIGURATION;
 	plugin->start_type = OSYNC_START_TYPE_THREAD;
 	plugin->ref_count = 1;
+
+	plugin->timeout.initialize = OSYNC_PLUGIN_TIMEOUT_INITIALIZE;
+	plugin->timeout.finalize = OSYNC_PLUGIN_TIMEOUT_FINALIZE;
+	plugin->timeout.discover = OSYNC_PLUGIN_TIMEOUT_DISCOVER;
+	plugin->timeout.useable = OSYNC_PLUGIN_TIMEOUT_USEABLE;
 	
 	return plugin;
 }
@@ -315,6 +320,48 @@ osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+}
+
+void osync_plugin_set_discover_timeout(OSyncPlugin *plugin, unsigned int timeout)
+{
+	osync_assert(plugin);
+	plugin->timeout.discover = timeout;
+}
+
+unsigned int osync_plugin_get_initialize_timeout(OSyncPlugin *plugin)
+{
+	osync_assert(plugin);
+	return plugin->timeout.initialize;
+}
+
+void osync_plugin_set_initialize_timeout(OSyncPlugin *plugin, unsigned int timeout)
+{
+	osync_assert(plugin);
+	plugin->timeout.initialize = timeout;
+}
+
+unsigned int osync_plugin_get_finalize_timeout(OSyncPlugin *plugin)
+{
+	osync_assert(plugin);
+	return plugin->timeout.finalize;
+}
+
+void osync_plugin_set_finalize_timeout(OSyncPlugin *plugin, unsigned int timeout)
+{
+	osync_assert(plugin);
+	plugin->timeout.finalize = timeout;
+}
+
+unsigned int osync_plugin_get_useable_timeout(OSyncPlugin *plugin)
+{
+	osync_assert(plugin);
+	return plugin->timeout.useable;
+}
+
+void osync_plugin_set_useable_timeout(OSyncPlugin *plugin, unsigned int timeout)
+{
+	osync_assert(plugin);
+	plugin->timeout.useable = timeout;
 }
 
 /*@}*/
