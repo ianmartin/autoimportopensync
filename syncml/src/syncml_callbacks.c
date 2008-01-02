@@ -99,13 +99,16 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					env->tryDisconnect = TRUE;
 					smlTransportDisconnect(env->tsp, NULL, NULL);
 					while (!env->gotDisconnect) {
+						/* Unlock the mutex, smlManagerDispatch will call this function
+						   again if events are left in the smlManager queue. Avoids deadlocks! */ 
+						g_mutex_unlock(env->mutex);
 						smlManagerDispatch(manager);
+						g_mutex_lock(env->mutex);
 					}
 				} else {
 					env->gotDisconnect = TRUE;
-					g_mutex_unlock(env->mutex);
-					osync_trace(TRACE_EXIT_ERROR, "%s: error while disconnecting: %s", __func__, smlErrorPrint(&error));
-					return;
+					osync_trace(TRACE_EXIT, "%s: error while disconnecting: %s", __func__, smlErrorPrint(&error));
+					goto error;
 				}
 			}
 			goto error;
