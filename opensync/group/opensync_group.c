@@ -154,7 +154,6 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 error_free_member:
 	osync_member_unref(member);
 error_close:
-	g_free(filename);
 	g_dir_close(dir);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));

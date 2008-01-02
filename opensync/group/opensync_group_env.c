@@ -194,7 +194,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	if (!dir) {
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open main configdir %s: %s", env->groupsdir, gerror->message);
 		g_error_free (gerror);
-		goto error_free_path;
+		goto error_close_dir;
 	}
 	
 	while ((de = g_dir_read_name(dir))) {
@@ -209,13 +209,13 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		group = osync_group_new(error);
 		if (!group) {
 			g_free(filename);
-			goto error_free_path;
+			goto error_close_dir;
 		}
 		
 		if (!osync_group_load(group, filename, error)) {
 			g_free(filename);
 			osync_group_unref(group);
-			goto error_free_path;
+			goto error_close_dir;
 		}
 		
 		osync_group_env_add_group(env, group, error);
@@ -228,6 +228,8 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
+error_close_dir:
+	g_dir_close(dir);
 error_free_path:
 	g_free(env->groupsdir);
 	env->groupsdir = NULL;
