@@ -34,7 +34,12 @@ static void free_dir(OSyncFileDir *dir)
 	if (dir->objformat)
 		g_free(dir->objformat);
 
-	
+	if (dir->sink)
+		osync_objtype_sink_unref(dir->sink);
+
+	if (dir->hashtable)
+		osync_hashtable_free(dir->hashtable);
+
 	g_free(dir);
 }
 
@@ -42,11 +47,9 @@ static void free_env(OSyncFileEnv *env)
 {
 	while (env->directories) {
 		OSyncFileDir *dir = env->directories->data;
-		
-		if (dir->sink)
-			osync_objtype_sink_unref(dir->sink);
-		
+
 		free_dir(dir);
+
 		env->directories = g_list_remove(env->directories, dir);
 	}
 	
@@ -160,28 +163,6 @@ static void osync_filesync_connect(void *data, OSyncPluginInfo *info, OSyncConte
 	OSyncError *error = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	
-	osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
-	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-	dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
-	g_free(tablepath);
-	
-	if (!dir->hashtable)
-		goto error;
-
-	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
-	if (!osync_anchor_compare(anchorpath, path_field, dir->path))
-		osync_objtype_sink_set_slowsync(dir->sink, TRUE);
-	g_free(anchorpath);
-	g_free(path_field);
-	
-	if (!g_file_test(dir->path, G_FILE_TEST_IS_DIR)) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s is not a directory", dir->path);
-		goto error;
-	}
 	
 	osync_context_report_success(ctx);
 	
@@ -197,13 +178,6 @@ error:
 static void osync_filesync_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	
-	if (dir->hashtable) {
-		osync_hashtable_free(dir->hashtable);
-		dir->hashtable = NULL;
-	}
 	
 	osync_context_report_success(ctx);
 	
@@ -734,8 +708,6 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
 		memset(&functions, 0, sizeof(functions));
-		functions.connect = osync_filesync_connect;
-		functions.disconnect = osync_filesync_disconnect;
 		functions.get_changes = osync_filesync_get_changes;
 		functions.commit = osync_filesync_commit_change;
 		functions.read = osync_filesync_read;
@@ -746,6 +718,26 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		 * again once the functions are called */
 		osync_objtype_sink_set_functions(sink, functions, dir);
 		osync_plugin_info_add_objtype(info, sink);
+
+		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
+		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+		dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
+		g_free(tablepath);
+	
+		if (!dir->hashtable)
+			goto error_free_env;
+
+		char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+		char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
+		if (!osync_anchor_compare(anchorpath, path_field, dir->path))
+			osync_objtype_sink_set_slowsync(dir->sink, TRUE);
+		g_free(anchorpath);
+		g_free(path_field);
+	
+		if (!g_file_test(dir->path, G_FILE_TEST_IS_DIR)) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "%s is not a directory", dir->path);
+			goto error_free_env;
+		}
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
