@@ -133,6 +133,6 @@ OSYNC_EXPORT void osync_objtype_sink_set_read_timeout(OSyncObjTypeSink *sink, un
 OSYNC_EXPORT unsigned int osync_objtype_sink_get_read_timeout_or_default(OSyncObjTypeSink *sink);
 OSYNC_EXPORT unsigned int osync_objtype_sink_get_read_timeout(OSyncObjTypeSink *sink);
 
-const OSyncList *osync_objtype_sink_get_objformats(OSyncObjTypeSink *sink);
+OSYNC_EXPORT const OSyncList *osync_objtype_sink_get_objformats(OSyncObjTypeSink *sink);
 
 #endif //_OPENSYNC_SINK_H_
