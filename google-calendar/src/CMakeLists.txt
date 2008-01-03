@@ -13,7 +13,7 @@ TARGET_LINK_LIBRARIES( gcalendar ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} ${LIBX
 
 # Install plugin and google-cal-helper	
 OPENSYNC_PLUGIN_INSTALL( gcalendar )
-INSTALL( FILES google-cal-helper.py DESTINATION "${OPENSYNC_LIBEXEC_DIR}" RENAME "google-cal-helper" )
+INSTALL( PROGRAMS google-cal-helper.py DESTINATION "${OPENSYNC_LIBEXEC_DIR}" RENAME "google-cal-helper" )
 
 # Install config template	
 OPENSYNC_PLUGIN_CONFIG( google-calendar )
