@@ -110,15 +110,6 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 			continue;
 
 		toinfo = pending->timeout_info;
-	
-			osync_trace(TRACE_INTERNAL, "CURRENT TIME: %ld s %ld us", 
-					current_time.tv_sec,
-					current_time.tv_usec);
-
-
-			osync_trace(TRACE_INTERNAL, "EXPIRE TIME: %ld s %ld us" ,
-					toinfo->expiration.tv_sec,
-					toinfo->expiration.tv_usec);
 
 		if (current_time.tv_sec == toinfo->expiration.tv_sec
 				|| current_time.tv_sec >= toinfo->expiration.tv_sec && current_time.tv_usec >= toinfo->expiration.tv_usec) {
@@ -128,7 +119,7 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 			osync_assert(pending->callback);
 			OSyncError *error = NULL;
 			OSyncError *timeouterr = NULL;
-			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Message Timeout!");
+			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Timeout.");
 			OSyncMessage *errormsg = osync_message_new_errorreply(NULL, timeouterr, &error);
 			osync_error_unref(&timeouterr);
 
@@ -221,6 +212,8 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 					pending->callback(message, pending->user_data);
 
 					// TODO: Refcounting for OSyncPendingMessage
+					if (pending->timeout_info)
+						g_free(pending->timeout_info);
 					g_free(pending);
 
 					/* Lock again, to keep the iteration of the pendingReplies list atomic. */
