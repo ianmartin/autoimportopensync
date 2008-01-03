@@ -6,7 +6,10 @@ struct OSyncPluginInfo {
 	char *config;
 	GList *objtypes;
 	char *configdir;
-	OSyncObjTypeSink *sink;
+
+	/* The main sink */
+	OSyncObjTypeSink *main_sink;
+
 	OSyncObjTypeSink *current_sink;
 	OSyncFormatEnv *formatenv;
 	//devinfo
