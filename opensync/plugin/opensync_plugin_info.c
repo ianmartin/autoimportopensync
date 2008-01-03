@@ -92,8 +92,8 @@ void osync_plugin_info_unref(OSyncPluginInfo *info)
 			info->objtypes = g_list_remove(info->objtypes, sink);
 		}
 		
-		if (info->sink)
-			osync_objtype_sink_unref(info->sink);
+		if (info->main_sink)
+			osync_objtype_sink_unref(info->main_sink);
 			
 		if (info->version)
 			osync_version_unref(info->version);
@@ -242,14 +242,14 @@ OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, int nth)
 OSyncObjTypeSink *osync_plugin_info_get_main_sink(OSyncPluginInfo *info)
 {
 	osync_assert(info);
-	return info->sink;
+	return info->main_sink;
 }
 
 void osync_plugin_info_set_main_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 {
 	osync_assert(info);
 	osync_assert(sink);
-	info->sink = sink;
+	info->main_sink = sink;
 	osync_objtype_sink_ref(sink);
 }
 
