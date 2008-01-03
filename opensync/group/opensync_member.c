@@ -52,7 +52,46 @@ static void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
 		osync_merger_ref(member->merger);
 }
 
-/** @brief Parse for the "objtype" node in  the member configuration
+
+/** @brief Parser for the "timeout" node in  the member configuration
+ * 
+ * @param cur Pointer to the xmlNode 
+ * @param sink Pointer to the OSyncObjTypeSink object
+ * 
+ */
+void _osync_member_parse_timeout(xmlNode *cur, OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"connect")) {
+				osync_objtype_sink_set_connect_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"disconnect")) {
+				osync_objtype_sink_set_disconnect_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"get_changes")) {
+				osync_objtype_sink_set_getchanges_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"commit")) {
+				osync_objtype_sink_set_commit_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"batch_commit")) {
+				osync_objtype_sink_set_batchcommit_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"committed_all")) {
+				osync_objtype_sink_set_committedall_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"sync_done")) {
+				osync_objtype_sink_set_syncdone_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
+				osync_objtype_sink_set_write_timeout(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
+				osync_objtype_sink_set_read_timeout(sink, atoi(str));
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+}
+
+/** @brief Parser for the "objtype" node in  the member configuration
  * 
  * @param cur Pointer to the xmlNode 
  * @param error Pointer to a error
@@ -87,6 +126,8 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 				osync_objtype_sink_add_objformat_with_config(sink, str_name, str_config);
 				xmlFree(str_name);
 				xmlFree(str_config);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
+				_osync_member_parse_timeout(cur->xmlChildrenNode, sink);
 			}
 			xmlFree(str);
 		}
@@ -462,13 +503,25 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 					goto error_free_doc;
 
 				member->objtypes = g_list_append(member->objtypes, sink);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
+				/* Sink Function Timeout settings for main sink */
+				if (!member->main_sink)
+					member->main_sink = osync_objtype_main_sink_new(error);
+
+				if (!member->main_sink) {
+					osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+					goto error_free_doc;
+				}
+
+				_osync_member_parse_timeout(cur->xmlChildrenNode, member->main_sink);
 			}
+
 			xmlFree(str);
 		}
 		cur = cur->next;
 	}
 	xmlFreeDoc(doc);
-	
+
 	if(osync_capabilities_member_has_capabilities(member))
 	{
 		OSyncCapabilities* capabilities = osync_capabilities_member_get_capabilities(member, error);
@@ -488,6 +541,79 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
+
+static osync_bool _osync_member_save_sink_add_timeout(xmlNode *cur, const char *timeoutname, unsigned int timeout, OSyncError **error)
+{
+	/* Skip if no custom timeout got set */
+	if (!timeout)
+		return TRUE;
+
+	char *str = g_strdup_printf("%u", timeout);
+	xmlNewChild(cur, NULL, (xmlChar*)timeoutname, str);
+	g_free(str);
+
+	return TRUE;
+}
+
+static osync_bool _osync_member_save_sink_timeout(xmlNode *cur, OSyncObjTypeSink *sink, OSyncError **error)
+{
+	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"timeout", NULL);
+	char *timeout = NULL;
+
+	_osync_member_save_sink_add_timeout(node, "connect", osync_objtype_sink_get_connect_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "disconnect", osync_objtype_sink_get_disconnect_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "get_changes", osync_objtype_sink_get_getchanges_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "commit", osync_objtype_sink_get_commit_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "batch_commit", osync_objtype_sink_get_batchcommit_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "committed_all", osync_objtype_sink_get_committedall_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "sync_done", osync_objtype_sink_get_syncdone_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "write", osync_objtype_sink_get_write_timeout(sink), error);
+	_osync_member_save_sink_add_timeout(node, "read", osync_objtype_sink_get_read_timeout(sink), error);
+
+	if (!node->children) { 
+		xmlUnlinkNode(node);
+		xmlFreeNode(node);
+	}
+
+
+	return TRUE;
+}
+
+static osync_bool _osync_member_save_sink(xmlDoc *doc, OSyncObjTypeSink *sink, OSyncError **error)
+{
+	int i = 0;
+	xmlNode *node = NULL;
+
+	/* Write main sink stuff in main node. */
+	if (sink && !osync_objtype_sink_get_name(sink)) {
+		node = doc->children;
+	} else {
+		node = xmlNewChild(doc->children, NULL, (xmlChar*)"objtype", NULL);
+	}
+
+	xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+	xmlNewChild(node, NULL, (xmlChar*)"read", osync_objtype_sink_get_read(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+	xmlNewChild(node, NULL, (xmlChar*)"getchanges", osync_objtype_sink_get_getchanges(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+	xmlNewChild(node, NULL, (xmlChar*)"write", osync_objtype_sink_get_write(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+
+	/* Check if sink is a Main Sink, if so skip objtype specific stuff */
+	if (sink && !osync_objtype_sink_get_name(sink))
+		return TRUE;
+
+	/* Objtype specific settings */
+	xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
+
+	for (i = 0; i < osync_objtype_sink_num_objformats(sink); i++) {
+		const char *format = osync_objtype_sink_nth_objformat(sink, i);
+		const char *format_config = osync_objtype_sink_nth_objformat_config(sink, i);
+		xmlNode *objformat_node = xmlNewChild(node, NULL, (xmlChar*)"objformat", NULL);
+		xmlNewChild(objformat_node, NULL, (xmlChar*)"name", (xmlChar*)format);
+		xmlNewChild(objformat_node, NULL, (xmlChar*)"config", (xmlChar*)format_config);
+	}
+
+	return _osync_member_save_sink_timeout(node, sink, error);
+}
+
 
 /** @brief Saves a member to it config directory
  * 
@@ -512,8 +638,6 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		}
 	}
 	
-	//Saving the syncmember.conf
-	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 
@@ -524,31 +648,31 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	//The plugin name
 	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
 
+	//The main sink
+	if (member->main_sink && !_osync_member_save_sink(doc, member->main_sink, error)) {
+		xmlFreeDoc(doc);
+		goto error;
+	}
+	
 	//The objtypes
 	GList *o = NULL;
 	for (o = member->objtypes; o; o = o->next) {
 		OSyncObjTypeSink *sink = o->data;
-		xmlNode *node = xmlNewChild(doc->children, NULL, (xmlChar*)"objtype", NULL);
-		
-		xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
-		xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-		xmlNewChild(node, NULL, (xmlChar*)"read", osync_objtype_sink_get_read(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-		xmlNewChild(node, NULL, (xmlChar*)"getchanges", osync_objtype_sink_get_getchanges(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-		xmlNewChild(node, NULL, (xmlChar*)"write", osync_objtype_sink_get_write(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-		
-		int i = 0;
-		for (i = 0; i < osync_objtype_sink_num_objformats(sink); i++) {
-			const char *format = osync_objtype_sink_nth_objformat(sink, i);
-			const char *format_config = osync_objtype_sink_nth_objformat_config(sink, i);
-			xmlNode *objformat_node = xmlNewChild(node, NULL, (xmlChar*)"objformat", NULL);
-			xmlNewChild(objformat_node, NULL, (xmlChar*)"name", (xmlChar*)format);
-			xmlNewChild(objformat_node, NULL, (xmlChar*)"config", (xmlChar*)format_config);
+
+		if (!_osync_member_save_sink(doc, sink, error)) {
+			xmlFreeDoc(doc);
+			goto error;
 		}
 	}
 	
+	/* TODO Validate file before storing! */
+
+	//Saving the syncmember.conf
+	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	xmlSaveFormatFile(filename, doc, 1);
-	xmlFreeDoc(doc);
 	g_free(filename);
+
+	xmlFreeDoc(doc);
 	
 	//Saving the config if it exists
 	if (member->configdata) {
@@ -627,6 +751,8 @@ long long int osync_member_get_id(OSyncMember *member)
  */
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtype)
 {
+	osync_assert(member);
+
 	GList *o;
 	for (o = member->objtypes; o; o = o->next) {
 		OSyncObjTypeSink *sink = o->data;
@@ -856,6 +982,23 @@ void osync_member_flush_objtypes(OSyncMember *member)
                 osync_objtype_sink_unref(sink);
                 member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
         }
+
+	if (member->main_sink) {
+		osync_objtype_sink_unref(member->main_sink);
+		member->main_sink = NULL;
+	}
+}
+
+/** @brief Get the main sink of member. 
+ * 
+ * @param member The member
+ * @returns OSyncObjTypeSink pointer of the main sink.
+ *
+ */
+OSyncObjTypeSink *osync_member_get_main_sink(OSyncMember *member)
+{
+	osync_assert(member);
+	return member->main_sink;
 }
 
 /*@}*/

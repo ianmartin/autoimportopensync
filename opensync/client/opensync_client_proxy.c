@@ -1175,10 +1175,8 @@ OSyncObjTypeSink *osync_client_proxy_find_objtype_sink(OSyncClientProxy *proxy, 
 
 	if (objtype && proxy->member)
 		return osync_member_find_objtype_sink(proxy->member, objtype);
-	/*
 	else if (!objtype && proxy->member)
-		return osync_member_get_main_sink(proxy->member)
-	*/
+		return osync_member_get_main_sink(proxy->member);
 
 	return NULL;
 }
@@ -1199,7 +1197,7 @@ osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callba
 	
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
-		timeout = osync_objtype_sink_get_connect_timeout(sink); 
+		timeout = osync_objtype_sink_get_connect_timeout_or_default(sink); 
 
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_CONNECT, 0, error);
 	if (!message)
@@ -1240,7 +1238,7 @@ osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb 
 	
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
-		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+		timeout = osync_objtype_sink_get_disconnect_timeout_or_default(sink); 
 
 	ctx->proxy = proxy;
 	ctx->disconnect_callback = callback;
@@ -1283,7 +1281,7 @@ osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, vo
 	
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
 	if (sink)
-		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+		timeout = osync_objtype_sink_get_read_timeout_or_default(sink); 
 
 	ctx->proxy = proxy;
 	ctx->read_callback = callback;
@@ -1327,7 +1325,7 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 	
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
-		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+		timeout = osync_objtype_sink_get_getchanges_timeout_or_default(sink); 
 
 	ctx->proxy = proxy;
 	ctx->get_changes_callback = callback;
@@ -1373,7 +1371,7 @@ osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_chan
 
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
 	if (sink)
-		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+		timeout = osync_objtype_sink_get_commit_timeout_or_default(sink); 
 	
 	ctx->proxy = proxy;
 	ctx->commit_change_callback = callback;
@@ -1418,7 +1416,7 @@ osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_a
 	
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
-		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+		timeout = osync_objtype_sink_get_committedall_timeout_or_default(sink); 
 
 	ctx->proxy = proxy;
 	ctx->committed_all_callback = callback;
@@ -1462,7 +1460,7 @@ osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb ca
 
 	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
-		timeout = osync_objtype_sink_get_disconnect_timeout(sink); 
+		timeout = osync_objtype_sink_get_syncdone_timeout_or_default(sink); 
 
 	ctx->proxy = proxy;
 	ctx->sync_done_callback = callback;
