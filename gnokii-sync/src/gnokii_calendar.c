@@ -357,6 +357,7 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
 	// check for slowsync and prepare the "event" hashtable if needed
 	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
+		assert(sinkenv->hashtable);
 		osync_hashtable_reset(sinkenv->hashtable);
 	}
 
@@ -419,6 +420,7 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
 
 	osync_trace(TRACE_INTERNAL, "number of calendar notes: %i", i - 1);
 
+	assert(sinkenv->hashtable);
         char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
         for (i = 0; uids[i]; i++) {
                 OSyncChange *change = osync_change_new(&error);

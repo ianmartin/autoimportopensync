@@ -27,13 +27,22 @@ static void free_gnokiienv(gnokii_environment *env) {
 		gnokii_sinkenv *sinkenv = env->sinks->data;
 
 		// close the hashtable
-		osync_hashtable_free(sinkenv->hashtable);
+		if (sinkenv->hashtable) {
+			osync_hashtable_free(sinkenv->hashtable);
+		}
 
 		osync_objtype_sink_unref(sinkenv->sink);
 		g_free(sinkenv);
 
 		env->sinks = g_list_remove(env->sinks, sinkenv);
 	}
+
+	if (env->sinks)
+		g_free(env->sinks);
+
+	if (env->mainsink)
+		osync_objtype_sink_unref(env->mainsink);
+
 
 	if (env->state)
 		g_free(env->state);
@@ -53,9 +62,8 @@ static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	// connect to cellphone
 	if (!gnokii_comm_connect(env->state)) {
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Connection failed");
-		free_gnokiienv(env);
-		return;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Connection failed");
+		goto error;
 	}
 
 	osync_context_report_success(ctx);
@@ -171,13 +179,13 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	}
 
 	// parse the member configuration
-	if (!gnokii_config_parse(env->state, osync_plugin_info_get_config(info), error)) {
+	if (!gnokii_config_parse(env, osync_plugin_info_get_config(info), error)) {
 		free_gnokiienv(env);
 		return NULL;
 	}
 	
 	// main sink - objtype neutral, handles (only) connect and disconnect!
-	OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(error);
+	env->mainsink = osync_objtype_main_sink_new(error);
 
 	OSyncObjTypeSinkFunctions main_functions;
 	memset(&main_functions, 0, sizeof(main_functions));
@@ -185,8 +193,8 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	main_functions.connect = connect;
 	main_functions.disconnect = disconnect;
 
-	osync_objtype_sink_set_functions(mainsink, main_functions, NULL);
-	osync_plugin_info_set_main_sink(info, mainsink);
+	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, env->mainsink);
 
 
 	// init the contact sink

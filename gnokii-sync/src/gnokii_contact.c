@@ -20,6 +20,19 @@
 
 #include "gnokii_sync.h"
 
+static osync_bool gnokii_contact_memory_enabled(gnokii_environment *env, gn_memory_type memtype)
+{
+	if (memtype == GN_MT_ME
+			&& env->contact_memory_me)
+		return TRUE;
+
+	if (memtype == GN_MT_SM
+			&& env->contact_memory_sm)
+		return TRUE;
+
+	return FALSE;
+}
+
 /* This function generate the uid for the contact entry.
  * UID looks like this:  gnokii-contact-<MEMORY TYPE>-<MEMORY LOCATION>  
  *             Example:  gnokii-contact-ME-9
@@ -131,10 +144,13 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
  *  
  * Returns: filled contact note with memory_type and location
  */
-gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, state);
+static gn_phonebook_entry *gnokii_contact_freelocation(gnokii_environment *env) {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 
-	int memtype, i;
+	gn_memory_type memtype;
+	int i;
+	struct gn_statemachine *state = env->state;
+
 	gn_error error;
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) malloc(sizeof(gn_phonebook_entry));
 	gn_data *data = (gn_data *) malloc(sizeof(gn_data));
@@ -142,6 +158,10 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 	memset(contact, 0, sizeof(gn_phonebook_entry));
 
 	for (memtype=0; memtype <= GN_MT_SM; memtype++) {
+
+		if (!gnokii_contact_memory_enabled(env, memtype))
+			continue;
+
 		contact->memory_type = memtype;
 
 		for (i=1;;i++) {
@@ -226,18 +246,24 @@ gn_phonebook_entry *gnokii_contact_read(int memory_type, int pos, gn_data *data,
  * ReturnVal: TRUE on success
  * ReturnVal: FALSE on error
  */
-osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemachine *state) {
+osync_bool gnokii_contact_write(gn_phonebook_entry *contact, gnokii_environment *env, OSyncError **error) {
 
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, contact, state);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, contact, env);
 
 	int i;
-        gn_error error = GN_ERR_NONE;
+        gn_error gnerror = GN_ERR_NONE;
         gn_data* data = (gn_data *) malloc(sizeof(gn_data));
+	struct gn_statemachine  *state = env->state;
 
         gn_data_clear(data);
 
 	if (!contact->location) {
-		gn_phonebook_entry *free_entry = gnokii_contact_freelocation(state);
+		gn_phonebook_entry *free_entry = gnokii_contact_freelocation(env);
+		if (!free_entry) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left on device");
+			goto error;
+		}
+
 		osync_trace(TRACE_INTERNAL, "Free location is %i at memtype: %i",
 				free_entry->location, free_entry->memory_type);
 		contact->location = free_entry->location;
@@ -276,21 +302,21 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 
 	}
 
-        error = gn_sm_functions(GN_OP_WritePhonebook, data, state);
-
-        if (error != GN_ERR_NONE) {
-		osync_trace(TRACE_EXIT_ERROR, "%s(): Couldn't write contact: %s", __func__, gn_error_print(error));
-		g_free(data);
-		return FALSE;
-	} else {
-		osync_trace(TRACE_INTERNAL, "%s(): successfully written at %i on memory_type: %i", __func__, 
-				contact->location, contact->memory_type); 
-	}
+        gnerror = gn_sm_functions(GN_OP_WritePhonebook, data, state);
 
 	g_free(data);
 
+        if (gnerror != GN_ERR_NONE) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't write contact: %s", gn_error_print(gnerror));
+		goto error;
+	}
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
         return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /* This function delete an contact on the cellphone.
@@ -302,13 +328,14 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
  * ReturnVal: TRUE on success
  * ReturnVal: FALSE on error
  */ 
-osync_bool gnokii_contact_delete(const char *uid, struct gn_statemachine *state) {
+osync_bool gnokii_contact_delete(const char *uid, gnokii_environment *env) {
 
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, uid, state);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, uid, env);
 
 //	int location = 0;
 //	char memory_type_string[3];
 	gn_error error = GN_ERR_NONE;
+	struct gn_statemachine  *state = env->state;
 
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) malloc(sizeof(gn_phonebook_entry));
 	gn_data *data = (gn_data *) malloc(sizeof(gn_data));
@@ -353,7 +380,8 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugindata, info, ctx);
 
-	int location = 0, memtype, num_entries;
+	gn_memory_type memtype;
+	int location = 0, num_entries;
 	char *hash = NULL;
 	char *uid = NULL;
 	OSyncError *error = NULL;
@@ -378,6 +406,9 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 	// get all notes 
 	for (memtype=0; memtype <= GN_MT_SM; memtype++) {
+
+		if (!gnokii_contact_memory_enabled(env, memtype))
+			continue;
 
 		location = 0;
 		num_entries = 0;
@@ -544,7 +575,7 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 			// Delete the change
 
 			// memory leak? XXX XXX
-			if (!gnokii_contact_delete(osync_change_get_uid(change), env->state)) {
+			if (!gnokii_contact_delete(osync_change_get_uid(change), env)) {
 				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to delete contact.");
 				goto error;
 			}
@@ -553,10 +584,8 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 			break;
 		case OSYNC_CHANGE_TYPE_ADDED:
 			// Add the change
-			if (!gnokii_contact_write(contact, env->state)) {
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to write contact.");
+			if (!gnokii_contact_write(contact, env, &error))
 				goto error;
-			}
 
 			// memory location is known after note was written
 			uid = gnokii_contact_uid(contact);
@@ -574,10 +603,8 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 			gnokii_contact_memlocation(osync_change_get_uid(change), contact);
 
 			// overwrite the changed contact with the write function 
-			if (!gnokii_contact_write(contact, env->state)) {
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to modify (write) contact.");
+			if (!gnokii_contact_write(contact, env, &error))
 				goto error;
-			}
 
 			// set hash for the modified contact entry
 			hash = gnokii_contact_hash(contact);

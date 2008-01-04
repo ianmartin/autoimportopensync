@@ -26,9 +26,9 @@
  * ReturnVal: true	on success
  * ReturnVal: false	on error
  */
-osync_bool gnokii_config_parse(struct gn_statemachine *state, const char *data, OSyncError **error)
+osync_bool gnokii_config_parse(gnokii_environment *env, const char *data, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, state, data, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data, error);
 	int i = 0;
 	char *str = NULL;
 	char **lines = malloc(sizeof(char*) * 10);
@@ -60,33 +60,70 @@ osync_bool gnokii_config_parse(struct gn_statemachine *state, const char *data, 
 		return FALSE;
 	}
 	
+	// By default everything is enabled.
+	env->contact_memory_sm = TRUE;
+	env->contact_memory_me = TRUE;
+
 	cur = cur->xmlChildrenNode;
 
 	lines[i] = g_strdup("[global]");
 
 	while (cur != NULL) {
-		str = (char *) xmlNodeGetContent(cur);
-		
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "model"))
-				lines[++i] = g_strdup_printf("model = %s", str);
-	
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "port"))
-				lines[++i] = g_strdup_printf("port = %s", str);
+		// memory type
+		if (!xmlStrcmp(cur->name, (const xmlChar *) "contact_memory")) {
+			xmlNodePtr memnode = cur->children;
 
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "connection"))
-				lines[++i] = g_strdup_printf("connection = %s", str);
+			if (!memnode)
+				break;
 
-			// rfcomm channel
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "rfcomm_channel"))
-				lines[++i] = g_strdup_printf("rfcomm_channel = %s", str);
+			// If contact_memory is used we disable everything first
+			env->contact_memory_sm = FALSE;
+			env->contact_memory_me = FALSE;
 
-			// check for debug option of libgnokii
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "debug")) {
-				lines[++i] = g_strdup("[logging]");
-				lines[++i] = g_strdup_printf("debug = %s", str);
+			for (;memnode; memnode = memnode->next) {
+
+				if (strcmp(memnode->name, "memory")) {
+					continue;
+				}
+
+				// xmlNodeGetContent(cur->children-> next->next->next->children)
+				str = (char *) xmlNodeGetContent(memnode->children);
+
+				if (!strcmp(str, "SM"))
+					env->contact_memory_sm = TRUE;
+				else if (!strcmp(str, "ME"))
+					env->contact_memory_me = TRUE;
+
+				g_free(str);
 			}
-			g_free(str);
+
+		} else {
+
+			str = (char *) xmlNodeGetContent(cur);
+		
+
+			if (str) {
+				if (!xmlStrcmp(cur->name, (const xmlChar *) "model"))
+					lines[++i] = g_strdup_printf("model = %s", str);
+		
+				if (!xmlStrcmp(cur->name, (const xmlChar *) "port"))
+					lines[++i] = g_strdup_printf("port = %s", str);
+
+				if (!xmlStrcmp(cur->name, (const xmlChar *) "connection"))
+					lines[++i] = g_strdup_printf("connection = %s", str);
+
+				// rfcomm channel
+				if (!xmlStrcmp(cur->name, (const xmlChar *) "rfcomm_channel"))
+					lines[++i] = g_strdup_printf("rfcomm_channel = %s", str);
+
+				// check for debug option of libgnokii
+				if (!xmlStrcmp(cur->name, (const xmlChar *) "debug")) {
+					lines[++i] = g_strdup("[logging]");
+					lines[++i] = g_strdup_printf("debug = %s", str);
+				}
+
+				g_free(str);
+			}
 		}
 
 		cur = cur->next;
@@ -113,7 +150,7 @@ osync_bool gnokii_config_parse(struct gn_statemachine *state, const char *data, 
 	*/
 
 	gn_cfg_memory_read(lines);
-	gn_cfg_phone_load(NULL, state); 
+	gn_cfg_phone_load(NULL, env->state); 
 
 	for (i=0; lines[i] != NULL; i++)
 		g_free(lines[i]);
