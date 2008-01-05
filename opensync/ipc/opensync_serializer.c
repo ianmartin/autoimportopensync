@@ -221,7 +221,18 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	 * write function (bool)
 	 * number of formats
 	 * format list (string)
-	 * enabled */
+	 * enabled (int)
+	 * timeout connect (int)
+	 * timeout disconnect (int)
+	 * timeout get_changes (int)
+	 * timeout commit (int)
+	 * timeout batch_commit (int)
+	 * timeout committed_all (int)
+	 * timeout sync_done (int)
+	 * timeout read (int)
+	 * timeout write (int)
+	 * 
+	 */
 	
 	int i = 0;
 	int num = osync_objtype_sink_num_objformats(sink);
@@ -239,7 +250,22 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 		osync_message_write_string(message, format_config);
 	}
 	
+	/* enabled */
 	osync_message_write_int(message, osync_objtype_sink_is_enabled(sink));
+
+	/* timeouts */
+	osync_message_write_int(message, osync_objtype_sink_get_connect_timeout(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_disconnect_timeout(sink));
+
+	osync_message_write_int(message, osync_objtype_sink_get_getchanges_timeout(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_commit_timeout(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_batchcommit_timeout(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_committedall_timeout(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_syncdone_timeout(sink));
+
+	osync_message_write_int(message, osync_objtype_sink_get_read_timeout(sink));
+	osync_message_write_int(message, osync_objtype_sink_get_write_timeout(sink));
+
 	
 	return TRUE;
 }
@@ -254,7 +280,18 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	 * write function (bool)
 	 * number of formats
 	 * format list (string)
-	 * enabled */
+	 * enabled (int)
+	 * timeout connect (int)
+	 * timeout disconnect (int)
+	 * timeout get_changes (int)
+	 * timeout commit (int)
+	 * timeout batch_commit (int)
+	 * timeout committed_all (int)
+	 * timeout sync_done (int)
+	 * timeout read (int)
+	 * timeout write (int)
+	 * 
+	 */
 	
 	*sink = osync_objtype_sink_new(NULL, error);
 	if (!*sink)
@@ -262,7 +299,7 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 
 	char *name = NULL;
 	int num_formats = 0;
-	int enabled = 0;
+	int enabled = 0, timeout = 0;
 	int read = 0, get_changes = 0, write = 0;
 	char *format = NULL;
 	char *format_config = NULL;
@@ -290,8 +327,37 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
  		g_free(format_config);
 	}
 
+	/* enabled */
 	osync_message_read_int(message, &enabled);
 	osync_objtype_sink_set_enabled(*sink, enabled);
+
+	/* timeouts */
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_connect_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_disconnect_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_getchanges_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_commit_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_batchcommit_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_committedall_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_syncdone_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_read_timeout(*sink, timeout);
+
+	osync_message_read_int(message, &timeout);
+	osync_objtype_sink_set_write_timeout(*sink, timeout);
 
 	return TRUE;
 
