@@ -674,13 +674,21 @@ error:
 
 static osync_bool _osync_engine_generate_connected_event(OSyncEngine *engine)
 {
+	OSyncError *locerror = NULL;
+
 	if (osync_bitcount(engine->proxy_errors | engine->proxy_connects) != g_list_length(engine->proxies))
 		return FALSE;
 	
 	if (osync_bitcount(engine->obj_errors | engine->obj_connects) == g_list_length(engine->object_engines)) {
 		if (osync_bitcount(engine->obj_errors) == g_list_length(engine->object_engines)) {
-			OSyncError *locerror = NULL;
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "No objtypes left without error. Aborting");
+			osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
+			osync_engine_set_error(engine, locerror);
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+			osync_error_unref(&locerror);
+		} else if (osync_bitcount(engine->proxy_errors) || osync_bitcount(engine->obj_errors)) {
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one objenit hat problems while connecting. Aborting");
 			osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
 			osync_engine_set_error(engine, locerror);
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
