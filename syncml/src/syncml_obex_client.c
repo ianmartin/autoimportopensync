@@ -250,7 +250,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	/* Create the alert for the remote device */
 	if (!env->identifier)
-		env->identifier = g_strdup("OpenSync SyncML Plugin");
+		env->identifier = get_devinf_identifier();
 
 	GList *o = env->databases;
 	for (; o; o = o->next) {
@@ -287,6 +287,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->context = osync_plugin_info_get_loop(info); 
 
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
 
 	/* Create the SAN */
 	env->san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &serror);
@@ -316,14 +317,8 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!smlAuthRegister(env->auth, env->manager, &serror))
 		goto error_free_auth;
 	
-	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
-	if (!devinf)
-		goto error_free_auth;
-	
-	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
-	
-	env->agent = smlDevInfAgentNew(devinf, &serror);
+	env->devinf = get_new_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror);
+	env->agent = smlDevInfAgentNew(env->devinf, &serror);
 	if (!env->agent)
 		goto error_free_auth;
 	
@@ -354,7 +349,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
-		if (!add_dev_inf_datastore(devinf, database, error))
+		if (!add_devinf_datastore(env->devinf, database, error))
 			goto error_free_auth;
 	}
 

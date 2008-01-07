@@ -88,6 +88,7 @@ typedef struct SmlPluginEnv {
 	
 	OSyncMember *member;
 	char *anchor_path;
+	char *devinf_path;
 
 	GSource *source;
 	GSourceFuncs *source_functions;
@@ -97,6 +98,7 @@ typedef struct SmlPluginEnv {
 	
 	SmlTransport *tsp;
 	SmlAuthenticator *auth;
+	SmlDevInf *devinf;
 	SmlDevInfAgent *agent;
 	SmlManager *manager;
 	SmlSession *session;

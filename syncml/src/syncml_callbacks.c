@@ -158,12 +158,19 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					_try_change_ctx_cleanup(database);
 				}
 
-
 				if (database->commitCtx) {
 					osync_context_report_success(database->commitCtx);
 					database->commitCtx = NULL;
 				}
 			}
+
+			/* if the session is still in action then it is time to flush */
+			/* perhaps we must establish a check here if the session is active */
+			if (!smlSessionFlush(env->session, TRUE, &error))
+			{
+				goto error;
+			}
+
 			break;
 		case SML_MANAGER_SESSION_END:
 			osync_trace(TRACE_INTERNAL, "Session %s has ended\n", smlSessionGetSessionID(session));
@@ -253,9 +260,28 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	SmlDatabase *database = (SmlDatabase *)userdata;
 	osync_trace(TRACE_INTERNAL, "%s: %s", __func__, database->objtype);
 
+	/* store device info */
+	if (database->env->devinf_path)
+	{
+		store_devinf(database->env->devinf, database->env->devinf_path);
+		store_devinf(smlDevInfAgentGetDevInf(database->env->agent),
+			 database->env->devinf_path);
+	}
+
+	/* set callbacks if the DsSession was not ready before */
 	database->session = dsession;
 	smlDsSessionRef(dsession);
 	register_ds_session_callbacks(database->session, database, NULL);
+
+	// if there is still an open connectCtx then we should signal success
+	// for DsServer this is the best place to signal a successful connect
+	// because this is the connect callback and the client starts the DsSession
+	if (database->connectCtx)
+	{
+		osync_trace(TRACE_INTERNAL, "%s: signal successful connect", __func__);
+		osync_context_report_success(database->connectCtx);
+		database->connectCtx = NULL;
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -352,6 +378,12 @@ SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last,
 	} else {
 		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, NULL);
 	}
+
+	if (!flush_session_for_all_databases(database->env, TRUE, NULL))
+	{
+		osync_trace(TRACE_EXIT_ERROR, "%s - flush failed", __func__);
+		return FALSE;
+	}
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -387,9 +419,9 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 		// The session must be flushed
 		// otherwise the DsSession would not complete correctly
 		// FIXME: an error handling is not possible here
-		SmlError *error = NULL;
+		osync_trace(TRACE_INTERNAL, "%s: no changes present - flushing directly", __func__);
 		database->env->ignoredDatabases = g_list_add(database->env->ignoredDatabases, database);
-		flush_session_for_all_databases(database->env, FALSE, &error);
+		flush_session_for_all_databases(database->env, FALSE, NULL);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

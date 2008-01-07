@@ -55,6 +55,10 @@ GList *g_list_add(GList *databases, void *database)
     return result;
 }
 
+/* General notice about libsyncml usage:
+ *
+ * 
+ */
 SmlBool flush_session_for_all_databases(
 			SmlPluginEnv *env,
 			SmlBool activeDatabase,
@@ -317,8 +321,8 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	 */
 	register_ds_session_callbacks(database->session, database, _recv_alert);
 
-	if (!flush_session_for_all_databases(env, TRUE, &error))
-		goto error;
+	//if (!flush_session_for_all_databases(env, TRUE, &error))
+	//	goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;

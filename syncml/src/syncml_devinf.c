@@ -1,4 +1,5 @@
 #include "syncml_common.h"
+#include<opensync/db/opensync_db.h>
 
 const char *get_database_pref_content_type(
 				SmlDatabase *database,
@@ -85,7 +86,7 @@ SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const char *nam
     return param;
 }
 
-// FIXME: this function too static
+// FIXME: this function is too static
 // FIXME: the properties should be load from the format plugin
 void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
 {
@@ -116,35 +117,81 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         ctcap = smlDevInfNewCTCap();
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
         smlDevInfCTCapSetVerCT(ctcap, "2.1");
+        prop = _add_ctcap_property_by_name(ctcap, "ADR");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "HOME");
+        smlDevInfPropParamAddValEnum(param, "WORK");
+        smlDevInfPropParamAddValEnum(param, "PARCEL");
+        smlDevInfPropParamAddValEnum(param, "POSTAL");
+        smlDevInfPropParamAddValEnum(param, "INTL");
+        smlDevInfPropParamAddValEnum(param, "DOM");
+        _add_ctcap_property_by_name(ctcap, "AGENT");
+        _add_ctcap_property_by_name(ctcap, "BDAY");
         _add_ctcap_property_by_name_value(ctcap, "BEGIN", "VCARD");
         _add_ctcap_property_by_name_value(ctcap, "END", "VCARD");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.1");
-        _add_ctcap_property_by_name(ctcap, "REV");
+        prop = _add_ctcap_property_by_name(ctcap, "EMAIL");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "INTERNET");
+        _add_ctcap_property_by_name(ctcap, "FN");
+        _add_ctcap_property_by_name(ctcap, "GEO");
+        prop = _add_ctcap_property_by_name(ctcap, "KEY");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "X509");
+        smlDevInfPropParamAddValEnum(param, "PGP");
+        prop = _add_ctcap_property_by_name(ctcap, "LABEL");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "HOME");
+        smlDevInfPropParamAddValEnum(param, "WORK");
+        smlDevInfPropParamAddValEnum(param, "PARCEL");
+        smlDevInfPropParamAddValEnum(param, "POSTAL");
+        smlDevInfPropParamAddValEnum(param, "INTL");
+        smlDevInfPropParamAddValEnum(param, "DOM");
+        prop = _add_ctcap_property_by_name(ctcap, "LOGO");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "JPEG");
+        _add_ctcap_property_by_name(ctcap, "MAILER");
         _add_ctcap_property_by_name(ctcap, "N");
-        _add_ctcap_property_by_name(ctcap, "TITLE");
-        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
-        _add_ctcap_property_by_name(ctcap, "CLASS");
-        _add_ctcap_property_by_name(ctcap, "ORG");
-        _add_ctcap_property_by_name(ctcap, "EMAIL");
-        _add_ctcap_property_by_name(ctcap, "URL");
-        prop = _add_ctcap_property_by_name(ctcap, "TEL");
-        smlDevInfPropertyAddValEnum(prop, "CELL");
-        smlDevInfPropertyAddValEnum(prop, "HOME");
-        smlDevInfPropertyAddValEnum(prop, "WORK");
-        smlDevInfPropertyAddValEnum(prop, "FAX");
-        smlDevInfPropertyAddValEnum(prop, "MODEM");
-        smlDevInfPropertyAddValEnum(prop, "VOICE");
-        prop = _add_ctcap_property_by_name(ctcap, "ADR");
-        smlDevInfPropertyAddValEnum(prop, "HOME");
-        smlDevInfPropertyAddValEnum(prop, "WORK");
-        _add_ctcap_property_by_name(ctcap, "BDAY");
         _add_ctcap_property_by_name(ctcap, "NOTE");
-        _add_ctcap_property_by_name_value(ctcap, "PHOTO", "TYPE");
+        _add_ctcap_property_by_name(ctcap, "ORG");
+        prop = _add_ctcap_property_by_name(ctcap, "PHOTO");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "JPEG");
+        _add_ctcap_property_by_name(ctcap, "REV");
+        _add_ctcap_property_by_name(ctcap, "ROLE");
+        prop = _add_ctcap_property_by_name(ctcap, "SOUND");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "AIFF");
+        smlDevInfPropParamAddValEnum(param, "PCM");
+        smlDevInfPropParamAddValEnum(param, "WAVE");
+        prop = _add_ctcap_property_by_name(ctcap, "TEL");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "WORK");
+        smlDevInfPropParamAddValEnum(param, "VOICE");
+        smlDevInfPropParamAddValEnum(param, "PREF");
+        smlDevInfPropParamAddValEnum(param, "PAGER");
+        smlDevInfPropParamAddValEnum(param, "MSG");
+        smlDevInfPropParamAddValEnum(param, "MODEM");
+        smlDevInfPropParamAddValEnum(param, "ISDN");
+        smlDevInfPropParamAddValEnum(param, "HOME");
+        smlDevInfPropParamAddValEnum(param, "FAX");
+        smlDevInfPropParamAddValEnum(param, "CELL");
+        smlDevInfPropParamAddValEnum(param, "CAR");
+        smlDevInfPropParamAddValEnum(param, "BBS");
+        _add_ctcap_property_by_name(ctcap, "TITLE");
+        smlDevInfPropertyAddValEnum(prop, "TZ");
+        smlDevInfPropertyAddValEnum(prop, "UID");
+        prop = _add_ctcap_property_by_name(ctcap, "URL");
+        param = _add_property_param(prop, "TYPE");
+        smlDevInfPropParamAddValEnum(param, "WORK");
+        smlDevInfPropParamAddValEnum(param, "HOME");
+        _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.1");
         smlDevInfAddCTCap(devinf, ctcap);
     }
     else if (!strcmp(cttype, SML_ELEMENT_TEXT_VCARD_30) &&
              !strcmp(verct, "3.0"))
     {
+	// FIXME: this is no vCard 3.0 spec
+	// FIXME: this is in terms of vCard 3.0 a bug
         osync_trace(TRACE_INTERNAL, "vCard 3.0 detected");
         ctcap = smlDevInfNewCTCap();
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD_30);
@@ -190,74 +237,91 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         ctcap = smlDevInfNewCTCap();
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCAL);
         smlDevInfCTCapSetVerCT(ctcap, "1.0");
-        prop = _add_ctcap_property_by_name(ctcap, "BEGIN");
-        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-        smlDevInfPropertyAddValEnum(prop, "VEVENT");
-        smlDevInfPropertyAddValEnum(prop, "VTODO");
-        prop = _add_ctcap_property_by_name(ctcap, "END");
-        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-        smlDevInfPropertyAddValEnum(prop, "VEVENT");
-        smlDevInfPropertyAddValEnum(prop, "VTODO");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "1.0");
-        _add_ctcap_property_by_name(ctcap, "TZ");
-        _add_ctcap_property_by_name(ctcap, "LAST-MODIFIED");
-        _add_ctcap_property_by_name(ctcap, "DCREATED");
-        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
-        _add_ctcap_property_by_name(ctcap, "CLASS");
-        _add_ctcap_property_by_name(ctcap, "SUMMARY");
-        _add_ctcap_property_by_name(ctcap, "DESCRIPTION");
-        _add_ctcap_property_by_name(ctcap, "LOCATION");
-        _add_ctcap_property_by_name(ctcap, "DTSTART");
-        _add_ctcap_property_by_name(ctcap, "DTEND");
+        _add_ctcap_property_by_name(ctcap, "AALARM");
+        _add_ctcap_property_by_name(ctcap, "ATTACH");
         prop = _add_ctcap_property_by_name(ctcap, "ATTENDEE");
 	_add_property_param(prop, "EXCEPT");
 	_add_property_param(prop, "RSVP");
 	_add_property_param(prop, "STATUS");
 	_add_property_param(prop, "ROLE");
-        _add_ctcap_property_by_name(ctcap, "RRULE");
-        _add_ctcap_property_by_name(ctcap, "EXDATE");
-        _add_ctcap_property_by_name(ctcap, "AALARM");
-        _add_ctcap_property_by_name(ctcap, "ATTACH");
+        prop = _add_ctcap_property_by_name(ctcap, "BEGIN");
+        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
+        smlDevInfPropertyAddValEnum(prop, "VEVENT");
+        smlDevInfPropertyAddValEnum(prop, "VTODO");
+        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
+        _add_ctcap_property_by_name(ctcap, "COMPLETED");
+        prop = _add_ctcap_property_by_name(ctcap, "CLASS");
+        smlDevInfPropertyAddValEnum(prop, "PUBLIC");
+        smlDevInfPropertyAddValEnum(prop, "PRIVATE");
+        smlDevInfPropertyAddValEnum(prop, "CONFIDENTIAL");
         _add_ctcap_property_by_name(ctcap, "DALARM");
+        _add_ctcap_property_by_name(ctcap, "DAYLIGHT");
+        _add_ctcap_property_by_name(ctcap, "DCREATED");
+        _add_ctcap_property_by_name(ctcap, "DESCRIPTION");
+        _add_ctcap_property_by_name(ctcap, "DTSTART");
+        _add_ctcap_property_by_name(ctcap, "DTEND");
         _add_ctcap_property_by_name(ctcap, "DUE");
+        prop = _add_ctcap_property_by_name(ctcap, "END");
+        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
+        smlDevInfPropertyAddValEnum(prop, "VEVENT");
+        smlDevInfPropertyAddValEnum(prop, "VTODO");
+        _add_ctcap_property_by_name(ctcap, "EXDATE");
+        _add_ctcap_property_by_name(ctcap, "LAST-MODIFIED");
+        _add_ctcap_property_by_name(ctcap, "LOCATION");
         _add_ctcap_property_by_name(ctcap, "PRIORITY");
+        _add_ctcap_property_by_name(ctcap, "RRULE");
         _add_ctcap_property_by_name(ctcap, "STATUS");
+        _add_ctcap_property_by_name(ctcap, "SUMMARY");
+        _add_ctcap_property_by_name(ctcap, "UID");
+        _add_ctcap_property_by_name_value(ctcap, "VERSION", "1.0");
         smlDevInfAddCTCap(devinf, ctcap);
     }
     else if (!strcmp(cttype, SML_ELEMENT_TEXT_ICAL) &&
              !strcmp(verct, "2.0"))
     {
+        // FIXME: this is no iCal spec !!!
+        // FIXME: this is nearly a direct copy&paste from vCal
+        // FIXME: this is a bug in terms of iCal
         osync_trace(TRACE_INTERNAL, "iCalendar (vCalendar 2.0) detected");
         ctcap = smlDevInfNewCTCap();
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_ICAL);
         smlDevInfCTCapSetVerCT(ctcap, "2.0");
+        _add_ctcap_property_by_name(ctcap, "AALARM");
+        _add_ctcap_property_by_name(ctcap, "ATTACH");
+        prop = _add_ctcap_property_by_name(ctcap, "ATTENDEE");
+	_add_property_param(prop, "RSVP");
+	_add_property_param(prop, "PARTSTAT");
+	_add_property_param(prop, "ROLE");
         prop = _add_ctcap_property_by_name(ctcap, "BEGIN");
         smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
         smlDevInfPropertyAddValEnum(prop, "VEVENT");
         smlDevInfPropertyAddValEnum(prop, "VTODO");
+        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
+        _add_ctcap_property_by_name(ctcap, "COMPLETED");
+        prop = _add_ctcap_property_by_name(ctcap, "CLASS");
+        smlDevInfPropertyAddValEnum(prop, "PUBLIC");
+        smlDevInfPropertyAddValEnum(prop, "PRIVATE");
+        smlDevInfPropertyAddValEnum(prop, "CONFIDENTIAL");
+        _add_ctcap_property_by_name(ctcap, "DALARM");
+        _add_ctcap_property_by_name(ctcap, "DAYLIGHT");
+        _add_ctcap_property_by_name(ctcap, "DCREATED");
+        _add_ctcap_property_by_name(ctcap, "DESCRIPTION");
+        _add_ctcap_property_by_name(ctcap, "DTSTART");
+        _add_ctcap_property_by_name(ctcap, "DTEND");
+        _add_ctcap_property_by_name(ctcap, "DUE");
         prop = _add_ctcap_property_by_name(ctcap, "END");
         smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
         smlDevInfPropertyAddValEnum(prop, "VEVENT");
         smlDevInfPropertyAddValEnum(prop, "VTODO");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.0");
-        _add_ctcap_property_by_name(ctcap, "TZ");
-        _add_ctcap_property_by_name(ctcap, "LAST-MODIFIED");
-        _add_ctcap_property_by_name(ctcap, "DCREATED");
-        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
-        _add_ctcap_property_by_name(ctcap, "CLASS");
-        _add_ctcap_property_by_name(ctcap, "SUMMARY");
-        _add_ctcap_property_by_name(ctcap, "DESCRIPTION");
-        _add_ctcap_property_by_name(ctcap, "LOCATION");
-        _add_ctcap_property_by_name(ctcap, "DTSTART");
-        _add_ctcap_property_by_name(ctcap, "DTEND");
-        _add_ctcap_property_by_name(ctcap, "ATTENDEE");
-        _add_ctcap_property_by_name(ctcap, "RRULE");
         _add_ctcap_property_by_name(ctcap, "EXDATE");
-        _add_ctcap_property_by_name(ctcap, "AALARM");
-        _add_ctcap_property_by_name(ctcap, "DALARM");
-        _add_ctcap_property_by_name(ctcap, "DUE");
+        _add_ctcap_property_by_name(ctcap, "LAST-MODIFIED");
+        _add_ctcap_property_by_name(ctcap, "LOCATION");
         _add_ctcap_property_by_name(ctcap, "PRIORITY");
+        _add_ctcap_property_by_name(ctcap, "RRULE");
         _add_ctcap_property_by_name(ctcap, "STATUS");
+        _add_ctcap_property_by_name(ctcap, "SUMMARY");
+        _add_ctcap_property_by_name(ctcap, "UID");
+        _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.0");
         smlDevInfAddCTCap(devinf, ctcap);
     }
     else
@@ -272,7 +336,7 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
     osync_trace(TRACE_EXIT, "%s - content type newly added to devinf", __func__);
 }
 
-SmlDevInfDataStore *add_dev_inf_datastore(SmlDevInf *devinf, SmlDatabase *database, OSyncError **error)
+SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *database, OSyncError **error)
 {
     osync_trace(TRACE_ENTRY, "%s (%p, %p)", __func__, devinf, database);
     g_assert(database);
@@ -358,5 +422,361 @@ error:
     if (serror)
         osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&serror));
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return NULL;
+}
+
+/* ************************ */
+/*      CACHE DATABASE      */
+/* ************************ */
+
+SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
+{
+
+    /* check for table devices */
+    if (osync_db_exists(db, "devices", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE devices (device_id VARCHAR(64) PRIMARY KEY, syncml_version INTEGER, manufacturer VARCHAR(64), model VARCHAR(64), oem VARCHAR(64), sw_version VARCHAR(64), hw_version VARCHAR(64), fw_version VARCHAR(64), utc BOOLEAN, large_objects BOOLEAN, number_of_changes BOOLEAN)", oerror))
+        goto error;
+
+    /* check for table datastores */
+    if (osync_db_exists(db, "datastores", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE datastores (device_id VARCHAR(64), datastore VARCHAR(64), rx_pref_content_type VARCHAR(64), rx_pref_version VARCHAR(64), rx_content_type VARCHAR(64), rx_version VARCHAR(64), tx_pref_content_type VARCHAR(64), tx_pref_version VARCHAR(64), tx_content_type VARCHAR(64), tx_version VARCHAR(64), sync_cap INTEGER, PRIMARY KEY (device_id, datastore))", oerror))
+        goto error;
+
+    /* check for table content type capabilities - CTCap */
+    if (osync_db_exists(db, "content_type_capabilities", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE content_type_capabilities (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, content_type, version))", oerror))
+        goto error;
+
+    /* check for table properties */
+    if (osync_db_exists(db, "properties", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE properties (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), datatype VARCHAR(64), max_occur INTEGER, max_size INTEGER, no_truncate BOOLEAN, display_name VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property))", oerror))
+        goto error;
+
+    /* check for table property_values */
+    if (osync_db_exists(db, "property_values", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE property_values (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_value VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_value))", oerror))
+        goto error;
+
+    /* check for table property_params */
+    if (osync_db_exists(db, "property_params", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE property_params (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_param VARCHAR(64), datatype VARCHAR(64), display_name VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_param))", oerror))
+        goto error;
+
+    /* check for table property_param_values */
+    if (osync_db_exists(db, "property_param_values", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE property_param_values (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_param VARCHAR(64), property_param_value VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_param, property_param_value))", oerror))
+        goto error;
+
+    return TRUE;
+
+error:
+    return FALSE;
+}
+
+SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerror)
+{
+    osync_trace(TRACE_ENTRY, "%s - %s", __func__, filename);
+    SmlBool success = TRUE;
+    SmlError *error = NULL;
+
+    /* init database stuff */
+    OSyncDB *db = osync_db_new(oerror);
+    if (!db) goto error;
+    if (!osync_db_open(db, filename, oerror)) goto error;
+    if (!init_devinf_database_schema(db, oerror)) goto error;
+
+    /* create basic device info */
+    char *esc_devid  = osync_db_sql_escape(smlDevInfGetDeviceID(devinf));
+    char *esc_vendor = osync_db_sql_escape(smlDevInfGetManufacturer(devinf));
+    char *esc_model  = osync_db_sql_escape(smlDevInfGetModel(devinf));
+    char *esc_oem    = osync_db_sql_escape(smlDevInfGetOEM(devinf));
+    char *esc_sw     = osync_db_sql_escape(smlDevInfGetSoftwareVersion(devinf));
+    char *esc_hw     = osync_db_sql_escape(smlDevInfGetHardwareVersion(devinf));
+    char *esc_fw     = osync_db_sql_escape(smlDevInfGetFirmwareVersion(devinf));
+    const char *device_query = "REPLACE INTO devices (\"device_id\", \"syncml_version\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\") VALUES ('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')";
+    char *replace = g_strdup_printf(
+                                    device_query, esc_devid, smlDevInfGetDeviceType(devinf),
+                                    esc_vendor, esc_model, esc_oem,
+                                    esc_sw, esc_hw, esc_fw,
+                                    smlDevInfSupportsUTC(devinf),
+                                    smlDevInfSupportsLargeObjs(devinf),
+                                    smlDevInfSupportsNumberOfChanges(devinf));
+    success = osync_db_query(db, replace, oerror);
+    g_free(esc_vendor);
+    g_free(esc_model);
+    g_free(esc_oem);
+    g_free(esc_sw);
+    g_free(esc_hw);
+    g_free(esc_fw);
+    g_free(replace);
+    if (!success) goto error;
+
+    /* create datastore info */
+    unsigned int num = smlDevInfNumDataStores(devinf);
+    unsigned int i;
+    for (i = 0; i < num; i++)
+    {
+	osync_trace(TRACE_INTERNAL, "%s: adding datastore %d", __func__, i);
+	char *ct;
+        char *version;
+        SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
+        char *esc_datastore = osync_db_sql_escape(smlDevInfDataStoreGetSourceRef(datastore));
+	char *esc_rx_pref_ct = NULL;
+	char *esc_rx_pref_version = NULL;
+	if (smlDevInfDataStoreGetRxPref(datastore, &ct, &version))
+	{
+            esc_rx_pref_ct = osync_db_sql_escape(ct);
+            esc_rx_pref_version = osync_db_sql_escape(version);
+	}
+	osync_trace(TRACE_INTERNAL, "%s: added RxPref", __func__);
+	char *esc_rx_ct = NULL;
+	char *esc_rx_version = NULL;
+	if (smlDevInfDataStoreGetRx(datastore, &ct, &version))
+	{
+            esc_rx_ct = osync_db_sql_escape(ct);
+            esc_rx_version = osync_db_sql_escape(version);
+	}
+	osync_trace(TRACE_INTERNAL, "%s: added Rx", __func__);
+	char *esc_tx_pref_ct = NULL;
+	char *esc_tx_pref_version = NULL;
+	if (smlDevInfDataStoreGetTxPref(datastore, &ct, &version))
+	{
+            esc_tx_pref_ct = osync_db_sql_escape(ct);
+            esc_tx_pref_version = osync_db_sql_escape(version);
+	}
+	osync_trace(TRACE_INTERNAL, "%s: added TxPref", __func__);
+	char *esc_tx_ct = NULL;
+	char *esc_tx_version = NULL;
+	if (smlDevInfDataStoreGetTx(datastore, &ct, &version))
+	{
+            esc_tx_ct = osync_db_sql_escape(ct);
+            esc_tx_version = osync_db_sql_escape(version);
+	}
+	osync_trace(TRACE_INTERNAL, "%s: added Tx", __func__);
+	unsigned int bit;
+	unsigned int sync_cap = 0;
+	for (bit = 0; bit < 8; bit++)
+	{
+            if (smlDevInfDataStoreGetSyncCap(datastore, bit))
+                sync_cap += 1 << bit;
+        }
+	osync_trace(TRACE_INTERNAL, "%s: parameters ready", __func__);
+        const char*datastore_query = "REPLACE INTO datastores (\"device_id\", \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"rx_content_type\", \"rx_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"tx_content_type\", \"tx_version\", \"sync_cap\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d')";
+        replace = g_strdup_printf(
+                                  datastore_query, esc_devid, esc_datastore,
+                                  esc_rx_pref_ct, esc_rx_pref_version,
+                                  esc_rx_ct, esc_rx_version,
+                                  esc_tx_pref_ct, esc_tx_pref_version,
+                                  esc_tx_ct, esc_tx_version,
+                                  sync_cap);
+        success = osync_db_query(db, replace, oerror);
+        g_free(esc_datastore);
+        g_free(esc_rx_pref_ct);
+        g_free(esc_rx_pref_version);
+        g_free(esc_rx_ct);
+        g_free(esc_rx_version);
+        g_free(esc_tx_pref_ct);
+        g_free(esc_tx_pref_version);
+        g_free(esc_tx_ct);
+        g_free(esc_tx_version);
+	g_free(replace);
+        if (!success) goto error;
+    }
+
+    /* create content type capabilities info */
+    num = smlDevInfNumCTCaps(devinf);
+    for (i = 0; i < num; i++)
+    {
+        /* adding basic capability info */
+	osync_trace(TRACE_INTERNAL, "%s: adding CTCap %d", __func__, i);
+        SmlDevInfCTCap *ctcap = smlDevInfGetNthCTCap(devinf, i);
+        char *ct = smlDevInfCTCapGetCTType(ctcap);
+        char *version = smlDevInfCTCapGetVerCT(ctcap);
+        char *esc_ct = osync_db_sql_escape(ct);
+        char *esc_version = osync_db_sql_escape(version);
+        g_free(ct);
+        g_free(version);
+        const char *ctcaps_query = "REPLACE INTO content_type_capabilities (\"device_id\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s')";
+        replace = g_strdup_printf(ctcaps_query, esc_devid, esc_ct, esc_version);
+        success = osync_db_query(db, replace, oerror);
+	g_free(replace);
+
+        /* adding properties */
+	osync_trace(TRACE_INTERNAL, "%s: adding properties", __func__);
+        unsigned int propNum = smlDevInfCTCapNumProperties(ctcap);
+        unsigned int k;
+        for (k = 0; k < propNum; k++)
+        {
+            /* adding basic property info */
+	    osync_trace(TRACE_INTERNAL, "%s: adding property %d", __func__, k);
+            SmlDevInfProperty *property = smlDevInfCTCapGetNthProperty(ctcap, k);
+            char *prop_name = smlDevInfPropertyGetPropName(property);
+            char *data_type = smlDevInfPropertyGetDataType(property);
+            unsigned int max_occur = smlDevInfPropertyGetMaxOccur(property);
+            unsigned int max_size = smlDevInfPropertyGetMaxSize(property);
+            SmlBool no_truncate = smlDevInfPropertyGetNoTruncate(property);
+            char *display_name = smlDevInfPropertyGetDisplayName(property);
+            char *esc_prop_name = osync_db_sql_escape(prop_name);
+            char *esc_data_type = osync_db_sql_escape(data_type);
+            char *esc_display_name = osync_db_sql_escape(display_name);
+            g_free(prop_name);
+            g_free(data_type);
+            g_free(display_name);
+            const char *property_query = "REPLACE INTO properties (\"device_id\", \"content_type\", \"version\", \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\") VALUES ('%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s')";
+            replace = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version,
+                                      esc_prop_name, esc_data_type,
+                                      max_occur, max_size, no_truncate,
+                                      esc_display_name);
+            success = osync_db_query(db, replace, oerror);
+	    g_free(replace);
+            g_free(esc_data_type);
+            g_free(esc_display_name);
+
+            /* adding property values */
+	    osync_trace(TRACE_INTERNAL, "%s: adding property values", __func__);
+            unsigned int values = smlDevInfPropertyNumValEnums(property);
+            unsigned int l;
+            for (l = 0; l < values; l++)
+            {
+	        osync_trace(TRACE_INTERNAL, "%s: adding property value %d", __func__, l);
+                char *value = smlDevInfPropertyGetNthValEnum(property, l);
+                char *esc_value = osync_db_sql_escape(value);
+                g_free(value);
+                const char *prop_value_query = "REPLACE INTO property_values (\"device_id\", \"content_type\", \"version\", \"property\", \"property_value\") VALUES ('%s', '%s', '%s', '%s', '%s')";
+                replace = g_strdup_printf(prop_value_query, esc_devid, esc_ct, esc_version,
+                                      esc_prop_name, esc_value);
+                success = osync_db_query(db, replace, oerror);
+	        g_free(replace);
+                g_free(esc_value);
+	        osync_trace(TRACE_INTERNAL, "%s: adding property value %d", __func__, l);
+            }
+
+            /* adding property parameters */
+	    osync_trace(TRACE_INTERNAL, "%s: adding property parameters", __func__);
+            unsigned int params = smlDevInfPropertyNumPropParams(property);
+            for (l = 0; l < params; l++)
+            {
+                /* adding basic property parameter info */
+	        osync_trace(TRACE_INTERNAL, "%s: adding property parameter %d", __func__, l);
+                SmlDevInfPropParam *propParam = smlDevInfPropertyGetNthPropParam(property, l);
+                char *param_name = smlDevInfPropParamGetParamName(propParam);
+                data_type = smlDevInfPropParamGetDataType(propParam);
+                display_name = smlDevInfPropParamGetDisplayName(propParam);
+                char *esc_param_name = osync_db_sql_escape(param_name);
+                esc_data_type = osync_db_sql_escape(data_type);
+                esc_display_name = osync_db_sql_escape(display_name);
+                g_free(data_type);
+                g_free(display_name);
+                const char *prop_param_query = "REPLACE INTO property_params (\"device_id\", \"content_type\", \"version\", \"property\", \"property_param\", \"datatype\", \"display_name\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+                replace = g_strdup_printf(prop_param_query, esc_devid, esc_ct, esc_version,
+                                      esc_prop_name, esc_param_name,
+                                      esc_data_type, esc_display_name);
+                success = osync_db_query(db, replace, oerror);
+	        g_free(replace);
+                g_free(esc_data_type);
+                g_free(esc_display_name);
+
+                /* adding property parameter values */
+	        osync_trace(TRACE_INTERNAL, "%s: adding property parameter values", __func__);
+                values = smlDevInfPropParamNumValEnums(propParam);
+                unsigned int m;
+                for (m = 0; m < values; m++)
+                {
+	             osync_trace(TRACE_INTERNAL, "%s: adding property parameter value %d", __func__, m);
+                     char *value = smlDevInfPropParamGetNthValEnum(propParam, m);
+                     char *esc_value = osync_db_sql_escape(value);
+                     g_free(value);
+                     const char *param_value_query = "REPLACE INTO property_param_values (\"device_id\", \"content_type\", \"version\", \"property\", \"property_param\", \"property_param_value\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s')";
+                     replace = g_strdup_printf(param_value_query, esc_devid, esc_ct, esc_version,
+                                      esc_prop_name, esc_param_name,
+                                      esc_value);
+                     success = osync_db_query(db, replace, oerror);
+	             g_free(replace);
+                     g_free(esc_value);
+	             osync_trace(TRACE_INTERNAL, "%s: adding property parameter value %d", __func__, m);
+                }
+
+                /* cleanup property parameter*/
+                g_free(esc_param_name);
+	        osync_trace(TRACE_INTERNAL, "%s: added property parameter %d", __func__, l);
+            }
+
+            /* cleanup property */
+            g_free(esc_prop_name);
+	    osync_trace(TRACE_INTERNAL, "%s: added property %d", __func__, k);
+        }
+
+        /* cleanup capability */
+        g_free(esc_ct);
+        g_free(esc_version);
+        if (!success) goto error;
+    }
+
+    /* finalize database */
+    g_free(esc_devid);
+    if (!osync_db_close(db, oerror)) goto error;
+    // FIXME: I cannot unref OSyncDB !?
+    // FIXME: Is this an API bug?
+
+    osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
+    return TRUE;
+error:
+    if (error)
+    {
+        osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+        smlErrorDeref(&error);
+    }
+    osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
+    return FALSE;
+}
+
+char *get_devinf_identifier()
+{
+    osync_trace(TRACE_ENTRY, "%s", __func__);
+    const char *user = g_get_user_name();
+    const char *host = g_get_host_name();
+    char *id = g_strjoin("@", user, host, NULL);
+    osync_trace(TRACE_EXIT, "%s - %s", __func__, id);
+    return id;
+    // osync_trace(TRACE_INTERNAL, "%s - %s", __func__, id);
+    // char *b64 = g_base64_encode(id, strlen(id));
+    // g_free(id);
+    // osync_trace(TRACE_EXIT, "%s - %s", __func__, b64);
+    // return b64;
+}
+
+SmlDevInf *get_new_devinf(SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **serror)
+{
+    SmlDevInf *devinf;
+
+    /* fix missing identifier */
+    if (!env->identifier)
+        env->identifier = get_devinf_identifier();
+
+    if (env->fakeDevice)
+    {
+        osync_trace(TRACE_INTERNAL, "%s: faking devinf", __func__);
+        devinf = smlDevInfNew(env->identifier, SML_DEVINF_DEVTYPE_SMARTPHONE, serror);
+        smlDevInfSetManufacturer(devinf, env->fakeManufacturer);
+        smlDevInfSetModel(devinf, env->fakeModel);
+        smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
+    } else {
+        osync_trace(TRACE_INTERNAL, "%s: not faking devinf", __func__);
+        devinf = smlDevInfNew(env->identifier, type, serror);
+        smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
+    }
+    if (!devinf) goto error;
+
+    smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
+    if (env->recvLimit && env->maxObjSize)
+        smlDevInfSetSupportsLargeObjs(devinf, TRUE);
+    else
+        smlDevInfSetSupportsLargeObjs(devinf, TRUE);
+    if (!env->onlyLocaltime)
+        smlDevInfSetSupportsUTC(devinf, TRUE);
+
+    return devinf;
+error:
+    smlDevInfUnref(devinf);
     return NULL;
 }

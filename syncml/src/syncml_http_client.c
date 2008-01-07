@@ -169,8 +169,6 @@ osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config
         env->onlyLocaltime = FALSE;
         env->maxObjSize = 0;
         env->recvLimit = 0;
-	char *identifier = "OpenSync SyncML Plugin";
- 	env->identifier = g_base64_encode(identifier, strlen(identifier));
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -446,33 +444,9 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	//if (!smlAuthRegister(env->auth, env->manager, &serror))
 	//	goto error_free_auth;
 	
-	/* Now create the devinf handler */
-	SmlDevInf *devinf;
-
-	/* basic devinf setup incl. faling the device */
-	if (env->fakeDevice)
-	{
-		osync_trace(TRACE_INTERNAL, "%s: faking devinf", __func__);
-		devinf = smlDevInfNew(env->identifier, SML_DEVINF_DEVTYPE_SMARTPHONE, &serror);
-		smlDevInfSetManufacturer(devinf, env->fakeManufacturer);
-		smlDevInfSetModel(devinf, env->fakeModel);
-		smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
-	} else {
-		osync_trace(TRACE_INTERNAL, "%s: not faking devinf", __func__);
-		devinf = smlDevInfNew(env->identifier, SML_DEVINF_DEVTYPE_WORKSTATION, &serror);
-	}
-	if (!devinf)
-		goto error_free_manager;
-
-	/* activation of number of changes support if requested */
-	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
-	if (env->recvLimit && env->maxObjSize)
-		smlDevInfSetSupportsLargeObjs(devinf, TRUE);
-	else
-		smlDevInfSetSupportsLargeObjs(devinf, TRUE);
-	
 	osync_trace(TRACE_INTERNAL, "creating devinf agent");
-	env->agent = smlDevInfAgentNew(devinf, &serror);
+	env->devinf = get_new_devinf(env, SML_DEVINF_DEVTYPE_WORKSTATION, &serror);
+	env->agent = smlDevInfAgentNew(env->devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 
@@ -506,7 +480,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 
 		/* And we also add the devinfo to the devinf agent */
-		if (!add_dev_inf_datastore(devinf, database, error))
+		if (!add_devinf_datastore(env->devinf, database, error))
 			goto error_free_auth;
 	}
 	

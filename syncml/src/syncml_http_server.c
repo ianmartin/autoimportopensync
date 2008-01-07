@@ -38,26 +38,6 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
 	osync_context_ref(database->connectCtx);
 
-	/* For the http server we can report success right away since we know
-	 * that we already received an alert (otherwise we could not have triggered
-	 * the synchronization) */
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-		SmlDatabase *database = o->data;
-
-		if (database->session)
-			smlDsSessionGetAlert(database->session, _recv_alert, database);
-	}
-	
-	/* If we already received the final, we just report success. otherwise
-	 * we let the final report success */
-	if (env->gotFinal)
-	{
-		osync_context_report_success(database->connectCtx);
-		osync_context_unref(database->connectCtx);
-		database->connectCtx = NULL;
-	}
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
@@ -173,6 +153,7 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->num = 0;
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
 	env->mutex = g_mutex_new();
 
 	GList *o = env->databases;
@@ -234,15 +215,8 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!smlAuthRegister(env->auth, env->manager, &serror))
 		goto error_free_auth;
 	
-	
-	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
-	if (!devinf)
-		goto error_free_manager;
-	
-	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
-	
-	env->agent = smlDevInfAgentNew(devinf, &serror);
+	env->devinf = get_new_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror);
+	env->agent = smlDevInfAgentNew(env->devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 	
@@ -271,7 +245,7 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
-		if (!add_dev_inf_datastore(devinf, database, error))
+		if (!add_devinf_datastore(env->devinf, database, error))
 			goto error_free_auth;
 	}
 	
