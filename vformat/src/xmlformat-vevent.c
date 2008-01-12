@@ -475,7 +475,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter); // (ATTENDEE)
 	// TODO -> STATUS // (ATTENDEE)
-	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_vcal_parameter); // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_vcal_rsvp_parameter); // (ATTENDEE)
 	// TODO -> EXPECT // (ATTENDEE)
 
 
@@ -501,7 +501,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	// TODO -> RNUM
 	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_vcal_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_vcal_rrule_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
@@ -595,7 +595,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceId", handle_xml_recurid_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_ical_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
 	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RStatus", handle_xml_rstatus_attribute); // ical only
@@ -610,28 +610,28 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
 	//Timezone TODO
 	/*
-	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tzid_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tz_id_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_tz_location_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TZOffsetFrom", handle_xml_tzoffsetfrom_location_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TZOffsetTo", handle_xml_tzoffsetto_location_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TimezoneName", handle_xml_tzname_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_tzdtstart_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_tzrrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TZOffsetFrom", handle_xml_tz_offsetfrom_location_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TZOffsetTo", handle_xml_tz_offsetto_location_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimezoneName", handle_xml_tz_name_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_tz_dtstart_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_tz_rrule_attribute);
 	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_tz_last_modified_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TimezoneUrl", handle_xml_tzurl_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tzrdate_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimezoneUrl", handle_xml_tz_url_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tz_rdate_attribute);
 	*/
 
 	//Alarm TODO
 	/*
-	insert_xml_attr_handler(hooks->attributes, "AlarmTrigger", handle_xml_atrigger_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmRepeat", handle_xml_arepeat_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmDuration", handle_xml_aduration_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmAction", handle_xml_aaction_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmAttach", handle_xml_aattach_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmDescription", handle_xml_adescription_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", handle_xml_aattendee_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", handle_xml_asummary_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmTrigger", handle_xml_alarm_trigger_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmRepeat", handle_xml_alarm_repeat_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmDuration", handle_xml_alarm_duration_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmAction", handle_xml_alarm_action_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmAttach", handle_xml_alarm_attach_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmDescription", handle_xml_alarm_description_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", handle_xml_alarm_attendee_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", handle_xml_alarm_summary_attribute);
 	*/
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);

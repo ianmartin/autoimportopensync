@@ -416,3 +416,24 @@ void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLFiel
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 }
 
+/* some helper functions for hash table usage */
+void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
+{
+	g_hash_table_insert(table, (gpointer)name, handler);
+}
+
+void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler)
+{
+	g_hash_table_insert(table, (gpointer)paramname, handler);
+}
+
+void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler)
+{
+	g_hash_table_insert(table, (gpointer)attrname, handler);
+}
+
+void insert_attr_component_handler(GHashTable *table, const char *attrname, attr_component_handler_fn handler)
+{
+	g_hash_table_insert(table, (gpointer)attrname, handler);
+}
+

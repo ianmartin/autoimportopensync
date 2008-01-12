@@ -1,8 +1,8 @@
 /*
- * xmlformat-vcalendar - common code for xmlformat-vevent*, -vnote*, -vtodo*
+ * xmlformat-vcalendar - common code for vcalendar10|20, xmlformat-vevent, -vnote, -vtodo
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2007-2008  Christopher Stender <cstender@suse.de>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
- * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
  * Copyright (C) 2007  Jerry Yu <jijun.yu@sun.com>
  * 
  * This library is free software; you can redistribute it and/or
@@ -24,52 +24,29 @@
 #include "xmlformat-vcalendar.h"
 
 /* Briefing:
+ * 
+ * vcalendar10 <=> vCalendar <=> vcal
+ * vcalendar20 <=> iCalendar <=> ical
  *
- * use handle_vcal* for vCalendar only handler
- * use handle_* for vCalendar and iCalendar handler
- * use handle_tz_* for timezone component handler
- * use handle_alarm_* for alarm component handler
+ * handle_vcal_*_parameter	// parameter handler which are used by vcalendar10 only
+ * handle_vcal_*_attribute	// attribute handler which are used by vcalendar10 only
+ * handle_xml_vcal_*_parameter	// xml parameter handler which are used by vcalendar10 only
+ * handle_xml_vcal_*_attribute	// xml attribute handler which are used by vcalendar10 only
  *
+ * handle_*_parameter		// parameter handler which are used by vcalendar20 (and vcalendar10)
+ * handle_*_attribute		// attribute handler which are used by vcalendar20 (and vcalendar10)
+ * handle_xml_*_parameter	// xml parameter handler which are used by vcalendar20 (and vcalendar10)
+ * handle_xml_*_attribute	// xml attribute handler which are used by vcalendar20 (and vcalendar10)
+ *
+ * handle_alarm_*_attribute	// alarm attribute handler which are used by vcalendar20
+ * handle_xml_alarm*_attribute	// xml alarm attribute handler which are used by vcalendar20
+ *
+ * handle_tz_*_attribute	// timezone attribute handler which are used by vcalendar20
+ * handle_xml_tz_*_attribute	// xml timezone attribute handler which are used by vcalendar20
  */
 
-/* vCal only attributes */
-OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	} 
 
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
-	return xmlfield; 
-}
-
-OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	} 
-
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
-	return xmlfield; 
-}
-
-OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
-
-	return convert_vcal_rrule_to_xml(xmlformat, attr, "RecurrenceRule", error);
-}
-// End of vCal only attributes
-
-// vCal parameters
+/* BEGIN: vcalendar10 only parameters -> xml */
 void handle_vcal_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
@@ -131,24 +108,195 @@ void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Expect", vformat_attribute_param_get_nth_value(param, 0));
 }
+/* END: vcalendar10 only parameters-> xml */
 
-//FIXME- Related is for VALARM trigger
-void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
+
+
+/* BEGIN: vcalendar10 only attributes -> xml */
+OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
+
+	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
+	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
+	return xmlfield; 
 }
 
-// End of vCal parameters
+OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
+
+	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
+	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
+	return xmlfield; 
+}
+
+OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
+{
+	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
+
+	return convert_vcal_rrule_to_xml(xmlformat, attr, "RecurrenceRule", error);
+}
+/* END: vcalendar only attributes -> xml */
 
 
 
+/* BEGIN: xml -> vcalendar10 parameters */
+void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Rsvp");
+	if (!strcmp(content, "TRUE")) {
+		vformat_attribute_add_param_with_value(attr, "RSVP", "YES");
+	} else if (!strcmp(content, "FALSE")) {
+		vformat_attribute_add_param_with_value(attr, "RSVP", "NO");
+	} else {
+		vformat_attribute_add_param_with_value(attr, "RSVP", content);
+	}
+}
+/* END: xml -> vcalendar10 parameters */
 
 
 
-/* vCal and iCal attributes */
-// vcal only?
+/* BEGIN: xml -> vcalendar10 only attributes */
+VFormatAttribute *handle_xml_vcal_rrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
+	return convert_xml_rrule_to_vcal(vevent, xmlfield, "RRULE", encoding); 
+}
+/* END: xml -> vcalendar10 only attributes */
 
-// ical only?
+
+
+/* BEGIN: vcalendar20 parameters -> xml */
+void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "AlternativeTextRep", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "CUType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "DelegatedFrom", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "DelegatedTo", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Directory", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Encoding", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "FormatType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "FreeBusyType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Language", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Member", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Range", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_trigrel_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "RelatedType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "RelationshipType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Role", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "SentBy", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
+}
+/* END: vcalendar20 parameters -> xml */
+
+
+
+/* BEGIN: vcalendar20 (and vcalendar10) attributes -> xml */
 OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Attach", error);
@@ -416,363 +564,11 @@ OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttri
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
 }
+/* END: vcalendar20 (and vcalendar10) attributes -> xml */
 
-// VALARM
-void handle_alarm_action_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	// Rename xmlfield to AlarmDisplay/AlarmAudio/AlarmEmail/AlarmProcedure
-	// We need this to make an own schema for each type.
-	if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"DISPLAY")) {
-		osync_xmlfield_set_name(xmlfield, "AlarmDisplay");
-	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"AUDIO")) {
-		osync_xmlfield_set_name(xmlfield, "AlarmAudio");
-	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"EMAIL")) {
-		osync_xmlfield_set_name(xmlfield, "AlarmEmail");
-	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"PROCEDURE")) {
-		osync_xmlfield_set_name(xmlfield, "AlarmProcedure");
-	}
-}
 
-void handle_alarm_attach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmAttach");
-}
 
-void handle_alarm_attendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmAttendee");
-}
-
-void handle_alarm_description_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmDescription");
-}
-
-void handle_alarm_duration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeatDuration");
-}
-
-void handle_alarm_repeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeat");
-}
-
-void handle_alarm_summary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmSummary");
-}
-
-void handle_alarm_trigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmTrigger");
-}
-
-
-// VTIMEZONE
-void handle_tz_comment_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "Comment");
-}
-
-void handle_tz_dtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "DateTimeStart");
-}
-
-void handle_tz_id_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	// We need to set an attribute here, see vcalendar_parse_attributes
-	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_get_nth_value(attr, 0));
-}
-
-void handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "LastModified");
-}
-
-void handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "X-Location");
-}
-
-void handle_tz_name_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TZName");
-}
-
-void handle_tz_offsetfrom_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TZOffsetFrom");
-}
-
-void handle_tz_offsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TZOffsetTo");
-}
-
-void handle_tz_rdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TimezoneDate");
-}
-
-void handle_tz_url_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TimezomeUrl");
-}
-
-// this function get called by vcalendar_parse_component 
-static OSyncXMLField *convert_ical_tz_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
-{
-	osync_trace(TRACE_INTERNAL, "Handling TimezoneRule attribute");
-
-	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
-}
-
-/* ical Paramter */
-void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "AlternativeTextRep", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "CUType", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "DelegatedFrom", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "DelegatedTo", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Directory", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Encoding", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "FormatType", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "FreeBusyType", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Language", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Member", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Range", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_trigrel_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "RelatedType", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "RelationshipType", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Role", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "SentBy", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
-}
-
-static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable);
-
-	GList *a = NULL;
-	for (a = *attributes; a; a = a->next) {
-		VFormatAttribute *attr = a->data;
-
-		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
-			*attributes = a->prev;
-
-			// Sorting is required to have a valid XMLFormat.
-			osync_xmlfield_sort(xmlfield);
-
-			return;
-		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
-			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
-			*attributes = a;
-
-			// Sorting is required to have a valid XMLFormat.
-			osync_xmlfield_sort(xmlfield);
-
-			return;
-		} else {
-			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
-			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
-		}
-	}
-}
-
-static void vcalendar_parse_component_tz(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable, xmlformat);
-
-	GList *a = NULL;
-	for (a = *attributes; a; a = a->next) {
-		VFormatAttribute *attr = a->data;
-
-		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
-			*attributes = a->prev;
-
-			// Sorting is required to have a valid XMLFormat.
-			osync_xmlfield_sort(xmlfield);
-
-			return;
-		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
-			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
-			*attributes = a;
-
-			// Sorting is required to have a valid XMLFormat.
-			osync_xmlfield_sort(xmlfield);
-
-			return;
-
-		// We have to create a new root node 'TimezoneRule'
-		} else if (xmlformat && !strcmp(vformat_attribute_get_name(attr), "RRULE")) {
-			OSyncXMLField *tzrrule = convert_ical_tz_rrule_to_xml(xmlformat, attr);
-			osync_xmlfield_set_attr(tzrrule, "TZComponent", osync_xmlfield_get_attr(xmlfield, "TZComponent"));
-			osync_xmlfield_set_attr(tzrrule, "TimezoneID", osync_xmlfield_get_attr(xmlfield, "TimezoneID"));
-		} else {
-			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
-			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
-		}
-	}
-}
-
-void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlformat, attributes, hooks, attrtable, paramtable);
-	
-	const char *tzid = NULL;
-	GList *a = NULL;
-	for (a = *attributes; a; a = a->next) {
-		VFormatAttribute *attr = a->data;
-
-		// Component VTIMEZONE (incl. DAYLIGHT/STANDARD) and VALARM need another hooktable
-		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-			
-			const char *component = vformat_attribute_get_nth_value(attr, 0);
-			
-			osync_trace(TRACE_INTERNAL, "Attribute: \"BEGIN\", Component:\"%s\"", component);
-
-			// We create another xmlfield which acts as a root node for the components
-			OSyncXMLField *component_xmlfield = NULL;
-
-			// vcalendar_parse_component use component specific hooktables
-			if (!strcmp(component, "VALARM")) {
-				a = a->next;
-				component_xmlfield = osync_xmlfield_new(xmlformat, "Alarm", NULL);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->alarmtable, paramtable);
-			} else if (!strcmp(component, "VTIMEZONE")) {
-				a = a->next;
-				component_xmlfield = osync_xmlfield_new(xmlformat, "Timezone", NULL);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable);
-				tzid = osync_xmlfield_get_nth_attr_value(component_xmlfield, 0);
-			} else if (!strcmp(component, "STANDARD")) {
-				a = a->next;
-				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
-				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Standard");
-				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
-				// We call vcalendar_parse_component_tz, because it creates a new root node 'TimezoneRule' and need an OSyncXMLFormat.
-				vcalendar_parse_component_tz(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
-			} else if (!strcmp(component, "DAYLIGHT")) {
-				a = a->next;
-				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
-				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Daylight");
-				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
-				// We call vcalendar_parse_component_tz, because it creates a new root node 'TimezoneRule' and need an OSyncXMLFormat.
-				vcalendar_parse_component_tz(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
-			}
-
-		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
-			osync_trace(TRACE_INTERNAL, "Attribute: \"END\", Component:\"%s\"", vformat_attribute_get_nth_value(attr, 0));
-			*attributes = a;
-		} else {
-			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
-			handle_attribute(attrtable, paramtable, xmlformat, attr, NULL);
-		}
-	}
-
-	osync_trace(TRACE_EXIT, "%s: Done", __func__);
-}
-
-
-/* XMLFORMAT to vevent/vtodo! */
-
-/* xml parameters */
+/* BEGIN: xml -> vcalendar20 (and vcalendar10) parameters */
 void handle_xml_tzid_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling TimezoneID xml parameter");
@@ -900,19 +696,6 @@ void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	vformat_attribute_add_param_with_value(attr, "RSVP", content);
 }
 
-void handle_xml_rsvp_vcal_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Rsvp");
-	if (!strcmp(content, "TRUE")) {
-		vformat_attribute_add_param_with_value(attr, "RSVP", "YES");
-	} else if (!strcmp(content, "FALSE")) {
-		vformat_attribute_add_param_with_value(attr, "RSVP", "NO");
-	} else {
-		vformat_attribute_add_param_with_value(attr, "RSVP", content);
-	}
-}
-
 void handle_xml_sent_by_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling SentBy xml parameter");
@@ -926,26 +709,15 @@ void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	const char *content = osync_xmlfield_get_attr(xmlfield, "Value");
 	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 }
+/* END: xml -> vcalendar20 (and vcalendar10) parameters */
 
-void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler)
-{
-	g_hash_table_insert(table, (gpointer)paramname, handler);
-}
 
-void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler)
-{
-	g_hash_table_insert(table, (gpointer)attrname, handler);
-}
 
-void insert_attr_component_handler(GHashTable *table, const char *attrname, attr_component_handler_fn handler)
-{
-	g_hash_table_insert(table, (gpointer)attrname, handler);
-}
-
-// TODO
+/* BEGIN: xml -> vcalendar20 (and vcalendar10) attributes */
 VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
-    return NULL;
+	// TODO
+	return NULL;
 }
 
 VFormatAttribute *handle_xml_prodid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -1037,18 +809,10 @@ VFormatAttribute *handle_xml_dcreated_attribute(VFormat *vevent, OSyncXMLField *
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "DCREATED", encoding);
 }
 
-// ical
-VFormatAttribute *handle_xml_rrule_ical_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_rrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
 	return convert_xml_rrule_to_ical(vevent, xmlfield, "RRULE", encoding); 
-}
-
-// vcal
-VFormatAttribute *handle_xml_rrule_vcal_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
-	return convert_xml_rrule_to_vcal(vevent, xmlfield, "RRULE", encoding); 
 }
 
 VFormatAttribute *handle_xml_rdate_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -1147,8 +911,203 @@ VFormatAttribute *handle_xml_calscale_attribute(VFormat *vevent, OSyncXMLField *
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "CALSCALE", encoding);
 }
+/* END: xml -> vcalendar20 (and vcalendar10) attributes */
 
-VFormatAttribute *handle_xml_tzid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+
+
+/* BEGIN: alarm attributes (vcalendar20) -> xml */
+void handle_alarm_action_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	// Rename xmlfield to AlarmDisplay/AlarmAudio/AlarmEmail/AlarmProcedure
+	// We need this to make an own schema for each type.
+	if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"DISPLAY")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmDisplay");
+	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"AUDIO")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmAudio");
+	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"EMAIL")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmEmail");
+	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"PROCEDURE")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmProcedure");
+	}
+}
+
+void handle_alarm_attach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmAttach");
+}
+
+void handle_alarm_attendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmAttendee");
+}
+
+void handle_alarm_description_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmDescription");
+}
+
+void handle_alarm_duration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeatDuration");
+}
+
+void handle_alarm_repeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeat");
+}
+
+void handle_alarm_summary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmSummary");
+}
+
+void handle_alarm_trigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmTrigger");
+}
+/* END: alarm attributes (vcalendar20) -> xml */
+
+
+
+/* BEGIN: xml -> alarm attributes (vcalendar20) */
+VFormatAttribute *handle_xml_alarm_trigger_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	return handle_xml_attribute_simple_content(vevent, xmlfield, "TRIGGER", encoding);
+}
+
+VFormatAttribute *handle_xml_alarm_repeat_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "REPEAT");
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_alarm_duration_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "DURATION");
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_alarm_action_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ACTION");
+	/* FIXME add_Value() #3 NULL is wrong */
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_alarm_attach_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTACH");
+	/* FIXME add_Value() #3 NULL is wrong */
+
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_alarm_description_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "DESCRIPTION");
+	/* FIXME add_Value() #3 NULL is wrong */
+
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_alarm_attendee_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTENDEE");
+	/* FIXME add_Value() #3 NULL is wrong */
+
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_alarm_summary_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "SUMMARY");
+	/* FIXME add_Value() #3 NULL is wrong */
+
+	add_value(attr, xmlfield, NULL, encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+/* END: xml -> alarm attributes (vcalendar20) */
+
+
+
+/* BEGIN: timezone attributes (vcalendar20) -> xml */
+void handle_tz_comment_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "Comment");
+}
+
+void handle_tz_dtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "DateTimeStart");
+}
+
+void handle_tz_id_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	// We need to set an attribute here, see vcalendar_parse_attributes
+	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_get_nth_value(attr, 0));
+}
+
+void handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "LastModified");
+}
+
+void handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "X-Location");
+}
+
+void handle_tz_name_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TZName");
+}
+
+void handle_tz_offsetfrom_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TZOffsetFrom");
+}
+
+void handle_tz_offsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TZOffsetTo");
+}
+
+void handle_tz_rdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TimezoneDate");
+}
+
+void handle_tz_url_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TimezomeUrl");
+}
+
+// this function get called by vcalendar_parse_component 
+static OSyncXMLField *convert_ical_tz_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
+{
+	osync_trace(TRACE_INTERNAL, "Handling TimezoneRule attribute");
+
+	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
+}
+/* END: timezone attributes (vcalendar20) -> xml */
+
+
+
+/* BEGIN: xml -> timezone attributes (vcalendar20) */
+VFormatAttribute *handle_xml_tz_id_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	/* TODO implement XMLFormat TZID handler */
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZID");
@@ -1165,7 +1124,7 @@ VFormatAttribute *handle_xml_tz_location_attribute(VFormat *vevent, OSyncXMLFiel
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzoffsetfrom_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_offsetfrom_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZOFFSETFROM");
 	add_value(attr, xmlfield, NULL, encoding);
@@ -1173,7 +1132,7 @@ VFormatAttribute *handle_xml_tzoffsetfrom_location_attribute(VFormat *vevent, OS
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzoffsetto_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_offsetto_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZOFFSETTO");
 	add_value(attr, xmlfield, NULL, encoding);
@@ -1181,7 +1140,7 @@ VFormatAttribute *handle_xml_tzoffsetto_location_attribute(VFormat *vevent, OSyn
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzname_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_name_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZNAME");
 	add_value(attr, xmlfield, NULL, encoding);
@@ -1189,7 +1148,7 @@ VFormatAttribute *handle_xml_tzname_attribute(VFormat *vevent, OSyncXMLField *xm
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzdtstart_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_dtstart_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTSTART");
 	add_value(attr, xmlfield, NULL, encoding);
@@ -1197,7 +1156,7 @@ VFormatAttribute *handle_xml_tzdtstart_attribute(VFormat *vevent, OSyncXMLField 
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzrrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_rrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "RRULE");
 	vformat_add_attribute(vevent, attr);
@@ -1212,7 +1171,7 @@ VFormatAttribute *handle_xml_tz_last_modified_attribute(VFormat *vevent, OSyncXM
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzurl_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_url_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZURL");
 	add_value(attr, xmlfield, NULL, encoding);
@@ -1220,91 +1179,149 @@ VFormatAttribute *handle_xml_tzurl_attribute(VFormat *vevent, OSyncXMLField *xml
 	return attr;
 }
 
-VFormatAttribute *handle_xml_tzrdate_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+VFormatAttribute *handle_xml_tz_rdate_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "RDATE");
 	add_value(attr, xmlfield, NULL, encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
+/* END: xml -> timezone attributes (vcalendar20) */
 
-VFormatAttribute *handle_xml_atrigger_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+
+
+
+
+
+/* The following functions are used by vcalendar 10, vcalender20 and vnote11 */
+static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
 {
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "TRIGGER", encoding);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable);
+
+	GList *a = NULL;
+	for (a = *attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
+
+		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
+			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a->prev;
+
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
+			return;
+		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
+			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a;
+
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
+			return;
+		} else {
+			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
+			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
+		}
+	}
 }
 
-VFormatAttribute *handle_xml_arepeat_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+static void vcalendar_parse_component_tz(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat)
 {
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "REPEAT");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable, xmlformat);
+
+	GList *a = NULL;
+	for (a = *attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
+
+		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
+			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a->prev;
+
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
+			return;
+		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
+			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a;
+
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
+			return;
+
+		// We have to create a new root node 'TimezoneRule'
+		} else if (xmlformat && !strcmp(vformat_attribute_get_name(attr), "RRULE")) {
+			OSyncXMLField *tzrrule = convert_ical_tz_rrule_to_xml(xmlformat, attr);
+			osync_xmlfield_set_attr(tzrrule, "TZComponent", osync_xmlfield_get_attr(xmlfield, "TZComponent"));
+			osync_xmlfield_set_attr(tzrrule, "TimezoneID", osync_xmlfield_get_attr(xmlfield, "TimezoneID"));
+		} else {
+			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
+			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
+		}
+	}
 }
 
-VFormatAttribute *handle_xml_aduration_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
 {
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DURATION");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlformat, attributes, hooks, attrtable, paramtable);
+	
+	const char *tzid = NULL;
+	GList *a = NULL;
+	for (a = *attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
 
-VFormatAttribute *handle_xml_aaction_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ACTION");
-	/* FIXME add_Value() #3 NULL is wrong */
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
+		// Component VTIMEZONE (incl. DAYLIGHT/STANDARD) and VALARM need another hooktable
+		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
+			
+			const char *component = vformat_attribute_get_nth_value(attr, 0);
+			
+			osync_trace(TRACE_INTERNAL, "Attribute: \"BEGIN\", Component:\"%s\"", component);
 
-VFormatAttribute *handle_xml_aattach_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTACH");
-	/* FIXME add_Value() #3 NULL is wrong */
+			// We create another xmlfield which acts as a root node for the components
+			OSyncXMLField *component_xmlfield = NULL;
 
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
+			// vcalendar_parse_component use component specific hooktables
+			if (!strcmp(component, "VALARM")) {
+				a = a->next;
+				component_xmlfield = osync_xmlfield_new(xmlformat, "Alarm", NULL);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->alarmtable, paramtable);
+			} else if (!strcmp(component, "VTIMEZONE")) {
+				a = a->next;
+				component_xmlfield = osync_xmlfield_new(xmlformat, "Timezone", NULL);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable);
+				tzid = osync_xmlfield_get_nth_attr_value(component_xmlfield, 0);
+			} else if (!strcmp(component, "STANDARD")) {
+				a = a->next;
+				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
+				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Standard");
+				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
+				// We call vcalendar_parse_component_tz, because it creates a new root node 'TimezoneRule' and need an OSyncXMLFormat.
+				vcalendar_parse_component_tz(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
+			} else if (!strcmp(component, "DAYLIGHT")) {
+				a = a->next;
+				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
+				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Daylight");
+				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
+				// We call vcalendar_parse_component_tz, because it creates a new root node 'TimezoneRule' and need an OSyncXMLFormat.
+				vcalendar_parse_component_tz(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
+			}
 
-VFormatAttribute *handle_xml_adescription_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DESCRIPTION");
-	/* FIXME add_Value() #3 NULL is wrong */
+		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
+			osync_trace(TRACE_INTERNAL, "Attribute: \"END\", Component:\"%s\"", vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a;
+		} else {
+			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
+			handle_attribute(attrtable, paramtable, xmlformat, attr, NULL);
+		}
+	}
 
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-VFormatAttribute *handle_xml_aattendee_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTENDEE");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-VFormatAttribute *handle_xml_asummary_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "SUMMARY");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
-{
-	g_hash_table_insert(table, (gpointer)name, handler);
+	osync_trace(TRACE_EXIT, "%s: Done", __func__);
 }
 
 
-// TODO: Review and remove old unused code
+
+/* Review and remove old and unused code */
 /*
 static void xml_handle_unknown_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1313,9 +1330,18 @@ static void xml_handle_unknown_parameter(VFormatAttribute *attr, OSyncXMLField *
 	vformat_attribute_add_param_with_value(attr, (char*)xmlfield->name, content);
 	g_free(content);
 }
-*/
 
-/*
+static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", xmlfield->name);
+	char *name = osxml_find_node(xmlfield, "NodeName");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	g_free(name);
+	add_value(attr, xmlfield, "Content", encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+
 void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLField **xmlfield, VFormat *vcal)
 {
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
@@ -1391,18 +1417,4 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 	}
 }
 */
-
-/*
-static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", xmlfield->name);
-	char *name = osxml_find_node(xmlfield, "NodeName");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
-	g_free(name);
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-*/
-
 

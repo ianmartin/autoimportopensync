@@ -42,6 +42,11 @@ typedef struct OSyncHookTables {
 	GHashTable *alarmtable; // hashtable for VALARM handler
 } OSyncHookTables;
 
+// Handler functions pointer
+typedef void (* param_handler_fn) (OSyncXMLField *xmlfield, VFormatParam *param);
+typedef OSyncXMLField * (* attr_handler_fn) (OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+typedef void (* attr_component_handler_fn) (OSyncXMLField *xmlfield, VFormatAttribute *attr);
+
 /*** PARAMETER ***/
 void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
@@ -76,6 +81,12 @@ void handle_component_attribute(GHashTable *attrtable, GHashTable *paramtable, O
 /* XML Handler for Attributes and Parameters */
 void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr);
 void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
+
+/* Helper function for hash table usage */
+void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler);
+void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler);
+void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler);
+void insert_attr_component_handler(GHashTable *table, const char *attrname, attr_component_handler_fn handler);
 
 #endif // XMLFORMAT_COMMON_H_
 
