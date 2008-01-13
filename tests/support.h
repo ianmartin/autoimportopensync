@@ -66,6 +66,7 @@ void create_random_file(const char *path);
 
 void reset_counters();
 osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
+void discover_all_once(OSyncEngine *engine, OSyncError **error);
 
 /* Status callbacks */
 void member_status(OSyncMemberUpdate *status, void *user_data);
@@ -81,4 +82,5 @@ void conflict_handler_ignore(OSyncEngine *engine, OSyncMappingEngine *mapping, v
 void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
 void solve_conflict(OSyncMappingEngine *mapping);
 void conflict_handler_delay(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
+
 

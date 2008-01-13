@@ -549,3 +549,14 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	return osync_engine_synchronize_and_block(engine, error);
 }
 
+void discover_all_once(OSyncEngine *engine, OSyncError **error)
+{
+	OSyncGroup *group = osync_engine_get_group(engine);
+	int i, max = osync_group_num_members(group); 
+	for (i=0; i < max; i++) {
+		OSyncMember *member = osync_group_nth_member(group, i);
+		osync_engine_discover_and_block(engine, member, error);
+		osync_member_save(member, error);
+	}
+}
+

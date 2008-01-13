@@ -1087,6 +1087,8 @@ START_TEST (single_connect_timeout)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1134,6 +1136,8 @@ START_TEST (dual_connect_timeout)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1179,6 +1183,8 @@ START_TEST (one_of_three_timeout)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1226,6 +1232,8 @@ START_TEST (timeout_and_error)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1476,6 +1484,8 @@ START_TEST (one_of_three_get_changes_timeout)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1528,6 +1538,8 @@ START_TEST (get_changes_timeout_and_error)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1578,6 +1590,8 @@ START_TEST (get_changes_timeout_sleep)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1742,6 +1756,8 @@ START_TEST (single_commit_timeout)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1794,6 +1810,8 @@ START_TEST (dual_commit_timeout)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1849,6 +1867,8 @@ START_TEST (commit_timeout_and_error)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1903,6 +1923,8 @@ START_TEST (commit_timeout_and_error2)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -1954,6 +1976,8 @@ START_TEST (commit_error_modify)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2349,6 +2373,8 @@ START_TEST (single_sync_done_timeout)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -2401,6 +2427,8 @@ START_TEST (dual_sync_done_timeout)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2455,6 +2483,8 @@ START_TEST (sync_done_timeout_and_error)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2668,6 +2698,8 @@ START_TEST (single_disconnect_timeout)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -2720,6 +2752,8 @@ START_TEST (dual_disconnect_timeout)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2774,6 +2808,8 @@ START_TEST (disconnect_timeout_and_error)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));

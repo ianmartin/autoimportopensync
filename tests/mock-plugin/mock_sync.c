@@ -773,30 +773,50 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		osync_objtype_sink_set_functions(sink, functions, dir);
 		osync_plugin_info_add_objtype(info, sink);
 
-		/*
 		//Lets reduce the timeouts a bit so the checks work faster
-		info->timeouts.disconnect_timeout = 5;
-		info->timeouts.connect_timeout = 5;
-		info->timeouts.sync_done_timeout = 5;
-		info->timeouts.get_changeinfo_timeout = 5;
-		info->timeouts.get_data_timeout = 5;
-		info->timeouts.commit_timeout = 15;
-		
-		
+		osync_objtype_sink_set_connect_timeout(sink, 5);
+		osync_objtype_sink_set_getchanges_timeout(sink, 5);
+		osync_objtype_sink_set_commit_timeout(sink, 10);
+		osync_objtype_sink_set_committedall_timeout(sink, 10);
+		osync_objtype_sink_set_batchcommit_timeout(sink, 10);
+		osync_objtype_sink_set_syncdone_timeout(sink, 5);
+		osync_objtype_sink_set_disconnect_timeout(sink, 5);
+
+		osync_objtype_sink_set_read_timeout(sink, 5);
+		osync_objtype_sink_set_write_timeout(sink, 5);
+
+
+/* XXX No testcase is currently using this at all! */
+#if 0		
+	
 		if (g_getenv("NO_TIMEOUTS")) {
-			info->timeouts.disconnect_timeout = 0;
-			info->timeouts.connect_timeout = 0;
-			info->timeouts.sync_done_timeout = 0;
-			info->timeouts.get_changeinfo_timeout = 0;
-			info->timeouts.get_data_timeout = 0;
-			info->timeouts.commit_timeout = 0;
+
+			/* XXX Timeout value of wouldn't work out, since
+			   the Sink object would fallback to the default timeout value:
+
+			 sink->timeout.connect ? sink->timeout.connect : OSYNC_SINK_TIMEOUT_CONNECT;
+
+			 Really needed?!
+			 */
+
+			osync_objtype_sink_set_connect_timeout(sink, 0);
+			osync_objtype_sink_set_getchanges_timeout(sink, 0);
+			osync_objtype_sink_set_commit_timeout(sink, 0);
+			osync_objtype_sink_set_committedall_timeout(sink, 0);
+			osync_objtype_sink_set_batchcommit_timeout(sink, 0);
+			osync_objtype_sink_set_syncdone_timeout(sink, 0);
+			osync_objtype_sink_set_disconnect_timeout(sink, 0);
+
+			osync_objtype_sink_set_read_timeout(sink, 0);
+			osync_objtype_sink_set_write_timeout(sink, 0);
 		}
 		
+		/* What is meant by this?! Maybe OSyncPlugin.useable?! Not used at all...
 		if (g_getenv("IS_AVAILABLE"))
 			info->functions.is_available = mock_is_available;
 		*/
 	}
-
+#endif	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 
