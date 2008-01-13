@@ -29,7 +29,7 @@
 
 
 /**
- * @ingroup OSEngineQueue
+ * @ingroup OSyncQueue
  * @brief A Queue used for asynchronous communication between thread
  * 
  */
@@ -94,6 +94,8 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 	OSyncPendingMessage *pending;
 	OSyncTimeoutInfo *toinfo;
 
+	osync_trace(TRACE_INTERNAL, "%s(%p)", __func__, user_data);
+
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
 
 	GTimeVal current_time;
@@ -114,7 +116,6 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 		if (current_time.tv_sec == toinfo->expiration.tv_sec
 				|| current_time.tv_sec >= toinfo->expiration.tv_sec && current_time.tv_usec >= toinfo->expiration.tv_usec) {
 
-	
 			/* Call the callback of the pending message */
 			osync_assert(pending->callback);
 			OSyncError *error = NULL;
@@ -1072,10 +1073,11 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 				goto error;
 
 			toinfo->expiration = current_time;
-			toinfo->expiration.tv_sec += timeout / 1000;
-			toinfo->expiration.tv_usec += (timeout % 1000) * 1000;
+			toinfo->expiration.tv_sec += timeout;
 
 			pending->timeout_info = toinfo;
+		} else {
+			osync_trace(TRACE_INTERNAL, "handler message got sent without timeout!: %s", osync_message_get_commandstr(message));
 		}
 		
 		pending->callback = osync_message_get_handler(message);

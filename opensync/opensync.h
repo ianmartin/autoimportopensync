@@ -124,13 +124,13 @@ typedef struct OSyncFormatConverterPath OSyncFormatConverterPath;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFilter OSyncFilter;
 typedef struct OSyncObjFormatSink OSyncObjFormatSink;
-typedef struct OSyncObjTypeSink OSyncObjTypeSink;
 
 /* Plugin component */
 typedef struct OSyncPlugin OSyncPlugin;
 typedef struct OSyncPluginInfo OSyncPluginInfo;
 typedef struct OSyncPluginEnv OSyncPluginEnv;
 typedef struct OSyncModule OSyncModule;
+typedef struct OSyncObjTypeSink OSyncObjTypeSink;
 
 /* Engine component */
 typedef struct OSyncEngine OSyncEngine;
