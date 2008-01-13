@@ -815,8 +815,10 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		if (g_getenv("IS_AVAILABLE"))
 			info->functions.is_available = mock_is_available;
 		*/
-	}
+
 #endif	
+	}
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 

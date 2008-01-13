@@ -2042,6 +2042,8 @@ START_TEST (commit_error_delete)
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
+	discover_all_once(engine, &error);
+
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
 	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
@@ -2866,6 +2868,8 @@ START_TEST (get_changes_disconnect_error)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+
+	discover_all_once(engine, &error);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
