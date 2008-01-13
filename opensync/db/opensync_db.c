@@ -133,8 +133,6 @@ int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
  * @param error Pointer to a error struct 
  * @return Returns TRUE on success otherwise FALSE 
  */
-#include<glib.h>
-static GMutex *global_sqlite_mutex = NULL;
 osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
@@ -142,33 +140,14 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 	osync_assert(db);
 	osync_assert(query);
 
-	if (!global_sqlite_mutex)
-	{
-		osync_trace(TRACE_INTERNAL, "%s: creating mutex lock", __func__);
-		global_sqlite_mutex = g_mutex_new();
-	}
-	g_mutex_lock(global_sqlite_mutex);
-	GTimeVal start;
-	g_get_current_time(&start);
-	osync_trace(TRACE_INTERNAL, "%s: got mutex lock", __func__);
-
 	char *errmsg = NULL;
 
 	if (sqlite3_exec(db->sqlite3db, query, NULL, NULL, &errmsg) != SQLITE_OK) {
-		g_mutex_unlock(global_sqlite_mutex);
-		osync_trace(TRACE_INTERNAL, "%s: released mutex lock", __func__);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to execute simple query: %s", errmsg);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg);
 		g_free(errmsg);
 		return FALSE;
 	}
-	g_mutex_unlock(global_sqlite_mutex);
-	GTimeVal stop;
-	g_get_current_time(&stop);
-	long result = 1000000 * stop.tv_sec + stop.tv_usec
-			- 1000000 * start.tv_sec - start.tv_usec;
-	osync_trace(TRACE_INTERNAL, "%s: released mutex lock(%i)",
-		__func__, result);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
