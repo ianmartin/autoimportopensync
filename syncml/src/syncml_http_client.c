@@ -443,18 +443,9 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	//smlAuthSetEnable(env->auth, FALSE);
 	//if (!smlAuthRegister(env->auth, env->manager, &serror))
 	//	goto error_free_auth;
-	
-	osync_trace(TRACE_INTERNAL, "creating devinf agent");
-	env->devinf = get_new_devinf(env, SML_DEVINF_DEVTYPE_WORKSTATION, &serror);
-	env->agent = smlDevInfAgentNew(env->devinf, &serror);
-	if (!env->agent)
-		goto error_free_manager;
 
-	// this is important because the tranport sends it during init
-	osync_trace(TRACE_INTERNAL, "register devinf agent");
-	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
-		goto error_free_manager;
-	osync_trace(TRACE_INTERNAL, "after register devinf agent");
+	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_WORKSTATION, &serror))
+		goto error_free_auth;
 
 	o = env->databases;
 	for (; o; o = o->next) { 

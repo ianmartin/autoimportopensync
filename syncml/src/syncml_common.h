@@ -99,6 +99,7 @@ typedef struct SmlPluginEnv {
 	SmlTransport *tsp;
 	SmlAuthenticator *auth;
 	SmlDevInf *devinf;
+	SmlDevInf *remote_devinf;
 	SmlDevInfAgent *agent;
 	SmlManager *manager;
 	SmlSession *session;

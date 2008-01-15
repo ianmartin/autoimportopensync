@@ -18,9 +18,13 @@ SmlBool store_devinf(
 		const char *filename,
 		OSyncError **error);
 
+SmlBool load_remote_devinf(
+		SmlPluginEnv *env,
+		OSyncError **error);
+
 char *get_devinf_identifier();
 
-SmlDevInf *get_new_devinf(
+SmlDevInf *init_env_devinf(
 		SmlPluginEnv *env,
 		SmlDevInfDevTyp type,
 		SmlError **serror);

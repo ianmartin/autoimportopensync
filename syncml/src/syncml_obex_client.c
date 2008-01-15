@@ -316,13 +316,8 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	if (!smlAuthRegister(env->auth, env->manager, &serror))
 		goto error_free_auth;
-	
-	env->devinf = get_new_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror);
-	env->agent = smlDevInfAgentNew(env->devinf, &serror);
-	if (!env->agent)
-		goto error_free_auth;
-	
-	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
+
+	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror))
 		goto error_free_auth;
 	
 	o = env->databases;

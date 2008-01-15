@@ -30,12 +30,8 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	env->tryDisconnect = FALSE;
 
-	/* For the obex client, we will store the context at this point since
-	 * we can only answer it as soon as the device returned an answer to our san */
 	database->connectCtx = ctx;
 
-	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
-	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
 	osync_context_ref(database->connectCtx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -166,15 +162,10 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 if (!sink)
                         goto error_free_env;
                 
+                database->sink = sink;
                 
-		database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
-		if (!database->objformat) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
-			return FALSE;
-		}
-
-		// TODO:... in case of maemo ("plain text") we have to set "memo"...
-                osync_objtype_sink_add_objformat(sink, database->objformat_name);
+		if (!init_objformat(info, database, error))
+			goto error_free_env;
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
@@ -214,15 +205,9 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	if (!smlAuthRegister(env->auth, env->manager, &serror))
 		goto error_free_auth;
-	
-	env->devinf = get_new_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror);
-	env->agent = smlDevInfAgentNew(env->devinf, &serror);
-	if (!env->agent)
-		goto error_free_manager;
-	
-	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
-		goto error_free_manager;
-	
+
+	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror))
+		goto error_free_auth;
 
 	o = env->databases;
 	for (; o; o = o->next) { 

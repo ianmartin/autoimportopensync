@@ -57,7 +57,40 @@ GList *g_list_add(GList *databases, void *database)
 
 /* General notice about libsyncml usage:
  *
- * 
+ * Clients are the active part in a SyncML session. They initiate all
+ * actions. They send/request DevInf, send alerts for synchronization,
+ * starts sync and send maps. So it is a good idea to flush actively
+ * during these actions.
+ *
+ * Servers have a more passive way of communication. They usually react
+ * on actions of the client. So it is not necessary to flush actively.
+ * libsyncml flushes automatically after it manages the complete
+ * received body of a SyncML message.
+ *
+ * NumberOfChanges is supported by some mobiles but we cannot rely on it
+ * because some mobiles like SE M600i say that they support it but they
+ * do not send it :(
+ *
+ * If this is a client then flush should be executed after:
+ *     - DevInf preparation
+ *     - alerting sync for all databases
+ *     - called sync for all databases
+ *     - sent modifications for all databases
+ *     - sent map for all databases
+ *
+ * If this is a server then flush should be executed after:
+ *     - alerting sync for all databases
+ *     - sent modifications for all databases
+ *
+ * The logic behind this is simple. If we do something as a response to
+ * a request then the response is automatically flushed from libsyncml.
+ * If we do something on our own which is not a direct response then a
+ * flush is required.
+ *
+ * Please note that sometimes we have to wait for the final event to
+ * start the next phase. The final event will be send on a per DsSession
+ * base (Data Synchronization Session not SyncML session).
+ *
  */
 SmlBool flush_session_for_all_databases(
 			SmlPluginEnv *env,

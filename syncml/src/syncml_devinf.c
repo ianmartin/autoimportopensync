@@ -434,7 +434,7 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
 
     /* check for table devices */
     if (osync_db_exists(db, "devices", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE devices (device_id VARCHAR(64) PRIMARY KEY, syncml_version INTEGER, manufacturer VARCHAR(64), model VARCHAR(64), oem VARCHAR(64), sw_version VARCHAR(64), hw_version VARCHAR(64), fw_version VARCHAR(64), utc BOOLEAN, large_objects BOOLEAN, number_of_changes BOOLEAN)", oerror))
+        !osync_db_query(db, "CREATE TABLE devices (device_id VARCHAR(64) PRIMARY KEY, device_type VARCHAR(64), manufacturer VARCHAR(64), model VARCHAR(64), oem VARCHAR(64), sw_version VARCHAR(64), hw_version VARCHAR(64), fw_version VARCHAR(64), utc BOOLEAN, large_objects BOOLEAN, number_of_changes BOOLEAN)", oerror))
         goto error;
 
     /* check for table datastores */
@@ -476,6 +476,9 @@ error:
 SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerror)
 {
     osync_trace(TRACE_ENTRY, "%s - %s", __func__, filename);
+    g_assert(devinf);
+    g_assert(filename);
+    g_assert(oerror);
     SmlBool success = TRUE;
     SmlError *error = NULL;
 
@@ -493,7 +496,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
     char *esc_sw     = osync_db_sql_escape(smlDevInfGetSoftwareVersion(devinf));
     char *esc_hw     = osync_db_sql_escape(smlDevInfGetHardwareVersion(devinf));
     char *esc_fw     = osync_db_sql_escape(smlDevInfGetFirmwareVersion(devinf));
-    const char *device_query = "REPLACE INTO devices (\"device_id\", \"syncml_version\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\") VALUES ('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')";
+    const char *device_query = "REPLACE INTO devices (\"device_id\", \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\") VALUES ('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')";
     char *replace = g_strdup_printf(
                                     device_query, esc_devid, smlDevInfGetDeviceType(devinf),
                                     esc_vendor, esc_model, esc_oem,
@@ -730,6 +733,260 @@ error:
     return FALSE;
 }
 
+SmlBool load_remote_devinf(SmlPluginEnv *env, OSyncError **error)
+{
+	env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
+	if (env->remote_devinf)
+	{
+		osync_trace(TRACE_INTERNAL, "%s: DevInf was sent.", __func__);
+		return store_devinf(env->remote_devinf,
+			env->devinf_path, error);
+	} else {
+		osync_trace(TRACE_INTERNAL, "%s: No DevInf was sent.", __func__);
+		if (!load_devinf(
+				env->agent,
+				smlLocationGetURI(smlSessionGetTarget(env->session)),
+				env->devinf_path, &error))
+		{
+			SmlError *serror = NULL;
+       			smlDevInfAgentRequestDevInf(
+				env->agent,
+				env->session,
+				&serror);
+		} else {
+			env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
+		}
+	}
+	return TRUE;
+}
+
+SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filename, OSyncError **oerror)
+{
+    osync_trace(TRACE_ENTRY, "%s - %s from %s", __func__, devid, filename);
+    g_assert(agent);
+    g_assert(devid);
+    g_assert(filename);
+    g_assert(oerror);
+    SmlBool success = TRUE;
+    SmlError *error = NULL;
+    SmlDevInf *devinf = NULL;
+
+    /* init database stuff */
+    OSyncDB *db = osync_db_new(oerror);
+    if (!db) goto error;
+    if (!osync_db_open(db, filename, oerror)) goto error;
+    if (!init_devinf_database_schema(db, oerror)) goto error;
+
+    /* read basic device info */
+    char *esc_devid  = osync_db_sql_escape(devid);
+    const char *device_query = "SELECT \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\" FROM devices WHERE \"device_id\"='%s'";
+    char *query = g_strdup_printf(device_query, esc_devid);
+    GList *result = osync_db_query_table(db, query, oerror);
+    g_free(query);
+    unsigned int count = 0;
+    GList *row;
+    for (row = result; row; row = row->next)
+    {
+        count++;
+        g_assert(count == 1);
+        GList *columns = row->data;
+
+        devinf = smlDevInfNew(devid, atoi(g_list_nth_data(columns, 0)), &error);
+        smlDevInfSetManufacturer(devinf, g_list_nth_data(columns, 1));
+        smlDevInfSetModel(devinf, g_list_nth_data(columns, 2));
+        smlDevInfSetOEM(devinf, g_list_nth_data(columns, 3));
+        smlDevInfSetSoftwareVersion(devinf, g_list_nth_data(columns, 4));
+        smlDevInfSetHardwareVersion(devinf, g_list_nth_data(columns, 5));
+        smlDevInfSetFirmwareVersion(devinf, g_list_nth_data(columns, 6));
+        smlDevInfSetSupportsUTC(devinf, atoi(g_list_nth_data(columns, 7)));
+        smlDevInfSetSupportsLargeObjs(devinf, atoi(g_list_nth_data(columns, 8)));
+        smlDevInfSetSupportsNumberOfChanges(devinf, atoi(g_list_nth_data(columns, 9)));
+    }
+    osync_db_free_list(result);
+    if (count == 0)
+    {
+        // the device does not exist in this database
+        // the caller should ask the remote peer for DevInf
+        g_free(esc_devid);
+        osync_trace(TRACE_EXIT, "%s - the device was not found in the database", __func__);
+        return FALSE;
+    }
+
+    /* read datastore info */
+    const char*datastore_query = "SELECT \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"rx_content_type\", \"rx_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"tx_content_type\", \"tx_version\", \"sync_cap\" FROM datastores WHERE \"device_id\"='%s'";
+    query = g_strdup_printf(datastore_query, esc_devid);
+    result = osync_db_query_table(db, query, oerror);
+    g_free(query);
+    count = 0;
+    for (row = result; row; row = row->next)
+    {
+        count++;
+        GList *columns = row->data;
+
+        SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(g_list_nth_data(columns, 0), &error);
+        if (g_list_nth_data(columns, 1))
+            smlDevInfDataStoreSetRxPref(
+                datastore,
+                g_list_nth_data(columns, 1),
+                g_list_nth_data(columns, 2));
+        if (g_list_nth_data(columns, 3))
+            smlDevInfDataStoreSetRx(
+                datastore,
+                g_list_nth_data(columns, 3),
+                g_list_nth_data(columns, 4));
+        if (g_list_nth_data(columns, 5))
+            smlDevInfDataStoreSetTxPref(
+                datastore,
+                g_list_nth_data(columns, 5),
+                g_list_nth_data(columns, 6));
+        if (g_list_nth_data(columns, 7))
+            smlDevInfDataStoreSetTx(
+                datastore,
+                g_list_nth_data(columns, 7),
+                g_list_nth_data(columns, 8));
+        unsigned int sync_cap = atoi(g_list_nth_data(columns, 9));
+        unsigned int bit;
+        for (bit = 0; bit < 8; bit++)
+        {
+            smlDevInfDataStoreSetSyncCap(datastore, bit, (sync_cap & (1 << bit)));
+        }
+        smlDevInfAddDataStore(devinf, datastore);
+    }
+    osync_db_free_list(result);
+
+    /* read content type capabilities info */
+    const char *ctcaps_query = "SELECT \"content_type\", \"version\" FROM content_type_capabilities WHERE  \"device_id\"='%s'";
+    query = g_strdup_printf(ctcaps_query, esc_devid);
+    result = osync_db_query_table(db, query, oerror);
+    g_free(query);
+    count = 0;
+    for (row = result; row; row = row->next)
+    {
+        count++;
+        GList *columns = row->data;
+
+        SmlDevInfCTCap *ctcap = smlDevInfNewCTCap();
+        smlDevInfCTCapSetCTType(ctcap, g_list_nth_data(columns, 0));
+        smlDevInfCTCapSetVerCT(ctcap, g_list_nth_data(columns, 1));
+        smlDevInfAddCTCap(devinf, ctcap);
+        char *esc_ct = osync_db_sql_escape(g_list_nth_data(columns, 0));
+        char *esc_version = osync_db_sql_escape(g_list_nth_data(columns, 1));
+
+        /* reading property */
+
+        /* reading basic property info */
+        const char *property_query = "SELECT \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\" FROM properties WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s'";
+        query = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version);
+        GList *prop_result = osync_db_query_table(db, query, oerror);
+        g_free(query);
+        unsigned int prop_count = 0;
+        GList *prop_row;
+        for (prop_row = prop_result; prop_row; prop_row = prop_row->next)
+        {
+            prop_count++;
+            GList *prop_columns = prop_row->data;
+
+            SmlDevInfProperty *property = smlDevInfNewProperty();
+            smlDevInfPropertySetPropName(property, g_list_nth_data(prop_columns, 0));
+            smlDevInfPropertySetDataType(property, g_list_nth_data(prop_columns, 1));
+            smlDevInfPropertySetMaxOccur(property, g_ascii_strtoull(g_list_nth_data(prop_columns, 2), NULL, 0));
+            smlDevInfPropertySetMaxSize(property, g_ascii_strtoull(g_list_nth_data(prop_columns, 3), NULL, 0));
+            if (atoi(g_list_nth_data(prop_columns, 4)))
+                smlDevInfPropertySetNoTruncate(property);
+            smlDevInfPropertySetDisplayName(property, g_list_nth_data(prop_columns, 5));
+            smlDevInfCTCapAddProperty(ctcap, property);
+            char *esc_prop_name = osync_db_sql_escape(g_list_nth_data(prop_columns, 0));
+
+            /* reading property values */
+            const char *prop_value_query = "SELECT \"property_value\" FROM property_values WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s' AND \"property\"='%s'";
+            query = g_strdup_printf(
+                         prop_value_query, esc_devid,
+                         esc_ct, esc_version, esc_prop_name);
+            GList *prop_value_result = osync_db_query_table(db, query, oerror);
+            g_free(query);
+            unsigned int prop_value_count = 0;
+            GList *prop_value_row;
+            for (prop_value_row = prop_value_result; prop_value_row; prop_value_row = prop_value_row->next)
+            {
+                prop_value_count++;
+                GList *prop_value_columns = prop_value_row->data;
+
+                smlDevInfPropertyAddValEnum(property, g_list_nth_data(prop_value_columns, 0));
+            }
+            osync_db_free_list(prop_value_result);
+
+            /* reading property parameters */
+
+            /* reading basic property parameter info */
+            const char *prop_param_query = "SELECT \"property_param\", \"datatype\", \"display_name\" FROM property_params WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s' AND \"property\"='%s'";
+            query = g_strdup_printf(
+                         prop_param_query, esc_devid,
+                         esc_ct, esc_version, esc_prop_name);
+            GList *prop_param_result = osync_db_query_table(db, query, oerror);
+            g_free(query);
+            unsigned int prop_param_count = 0;
+            GList *prop_param_row;
+            for (prop_param_row = prop_param_result; prop_param_row; prop_param_row = prop_param_row->next)
+            {
+                prop_param_count++;
+                GList *prop_param_columns = prop_param_row->data;
+
+                SmlDevInfPropParam *prop_param = smlDevInfNewPropParam();
+                smlDevInfPropParamSetParamName(prop_param, g_list_nth_data(prop_param_columns, 0));
+                smlDevInfPropParamSetDataType(prop_param, g_list_nth_data(prop_param_columns, 1));
+                smlDevInfPropParamSetDisplayName(prop_param, g_list_nth_data(prop_param_columns, 2));
+                smlDevInfPropertyAddPropParam(property, prop_param);
+                char *esc_param_name = osync_db_sql_escape(g_list_nth_data(prop_param_columns, 0));
+
+                /* reading property parameter values */
+                const char *param_value_query = "SELECT \"property_param_value\" FROM property_param_values WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s' AND \"property\"='%s' AND \"property_param\"='%s'";
+                query = g_strdup_printf(
+                             prop_param_query, esc_devid,
+                             esc_ct, esc_version, esc_prop_name,
+                             esc_param_name);
+                GList *param_value_result = osync_db_query_table(db, query, oerror);
+                g_free(query);
+                unsigned int param_value_count = 0;
+                GList *param_value_row;
+                for (param_value_row = param_value_result; param_value_row; param_value_row = param_value_row->next)
+                {
+                    param_value_count++;
+                    GList *param_value_columns = param_value_row->data;
+
+                    smlDevInfPropParamAddValEnum(prop_param, g_list_nth_data(param_value_columns, 0));
+                }
+                osync_db_free_list(param_value_result);
+                g_free(esc_param_name);
+            }
+            osync_db_free_list(prop_param_result);
+            g_free(esc_prop_name);
+        }
+        osync_db_free_list(prop_result);
+        g_free(esc_ct);
+        g_free(esc_version);
+    }
+    osync_db_free_list(result);
+
+    /* finalize database */
+    g_free(esc_devid);
+    if (!osync_db_close(db, oerror)) goto error;
+    // FIXME: I cannot unref OSyncDB !?
+    // FIXME: Is this an API bug?
+
+    // the device info is published because it is now complete
+    smlDevInfAgentSetDevInf(agent, devinf);
+    osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
+    return TRUE;
+error:
+    if (error)
+    {
+        osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+        smlErrorDeref(&error);
+    }
+    osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
+    return FALSE;
+}
+
 char *get_devinf_identifier()
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -745,7 +1002,7 @@ char *get_devinf_identifier()
     // return b64;
 }
 
-SmlDevInf *get_new_devinf(SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **serror)
+SmlBool init_env_devinf (SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **serror)
 {
     SmlDevInf *devinf;
 
@@ -767,16 +1024,29 @@ SmlDevInf *get_new_devinf(SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **se
     }
     if (!devinf) goto error;
 
+    // libsyncml definitely supports large objects
+    // so we must meet the requirement
+    // The default are:
+    //     MaxMsgSize    100.000
+    //     MaxObjSize 10.000.000 (to support images in contacts)
     smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
-    if (env->recvLimit && env->maxObjSize)
-        smlDevInfSetSupportsLargeObjs(devinf, TRUE);
-    else
-        smlDevInfSetSupportsLargeObjs(devinf, TRUE);
+    smlDevInfSetSupportsLargeObjs(devinf, TRUE);
     if (!env->onlyLocaltime)
         smlDevInfSetSupportsUTC(devinf, TRUE);
+    if (env->recvLimit < 10000) env->recvLimit = 100000;
+    if (env->maxObjSize < 10000) env->maxObjSize = 10000000;
 
-    return devinf;
+    env->devinf = devinf;
+
+    env->agent = smlDevInfAgentNew(env->devinf, serror);
+    if (!env->agent) goto error;
+	
+    if (!smlDevInfAgentRegister(env->agent, env->manager, serror))
+        goto error;
+
+    return TRUE;
 error:
     smlDevInfUnref(devinf);
-    return NULL;
+    env->devinf = NULL;
+    return FALSE;
 }

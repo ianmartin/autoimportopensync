@@ -114,21 +114,24 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			goto error;
 			break;
 		case SML_MANAGER_SESSION_NEW:
-			osync_trace(TRACE_INTERNAL, "Just received a new session with ID %s", smlSessionGetSessionID(session));
+			osync_trace(TRACE_INTERNAL, "%s: Just received a new session with ID %s",
+				__func__, smlSessionGetSessionID(session));
 			if (env->session) {
-				osync_trace(TRACE_INTERNAL, "WARNING: There was an old session %s in the environment.", smlSessionGetSessionID(env->session));
+				osync_trace(TRACE_INTERNAL, "%s: WARNING: There was an old session %s in the environment.",
+					__func__, smlSessionGetSessionID(env->session));
 			}
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);
 			smlSessionUseNumberOfChanges(session, TRUE);
 			
 			if (env->recvLimit)
-				smlSessionSetReceivingLimit(session, env->recvLimit);
+				smlSessionSetReceivingMaxMsgSize(session, env->recvLimit);
 			if (env->maxObjSize)
 				smlSessionSetReceivingMaxObjSize(session, env->maxObjSize);
 			if (env->recvLimit && env->maxObjSize)
 				smlSessionUseLargeObjects(session, TRUE);
-			osync_trace(TRACE_INTERNAL, "maxObjSize %d", env->maxObjSize);
+			osync_trace(TRACE_INTERNAL, "%s: maxObjSize %d",
+				__func__, env->maxObjSize);
 			
 			env->session = session;
 			smlSessionRef(session);
@@ -164,12 +167,12 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				}
 			}
 
-			/* if the session is still in action then it is time to flush */
-			/* perhaps we must establish a check here if the session is active */
-			if (!smlSessionFlush(env->session, TRUE, &error))
-			{
-				goto error;
-			}
+			// /* we cannot simply flush on final because we have to wait
+			//  * for the actions from opensync */
+			// if (!smlSessionFlush(env->session, TRUE, &error))
+			// {
+			// 	goto error;
+			// }
 
 			break;
 		case SML_MANAGER_SESSION_END:
@@ -263,9 +266,9 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	/* store device info */
 	if (database->env->devinf_path)
 	{
-		store_devinf(database->env->devinf, database->env->devinf_path);
-		store_devinf(smlDevInfAgentGetDevInf(database->env->agent),
-			 database->env->devinf_path);
+		OSyncError *error = NULL;
+		store_devinf(database->env->devinf, database->env->devinf_path, &error);
+		load_remote_devinf(database->env, &error);
 	}
 
 	/* set callbacks if the DsSession was not ready before */
@@ -379,6 +382,9 @@ SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last,
 		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, NULL);
 	}
 
+	// This is a server function only - so we are in server mode.
+	// If a server replies on an alert and sends back an alert
+	// then we must flush after all alerts are ready to send.
 	if (!flush_session_for_all_databases(database->env, TRUE, NULL))
 	{
 		osync_trace(TRACE_EXIT_ERROR, "%s - flush failed", __func__);
@@ -413,15 +419,25 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 	printf("Going to receive %i changes\n", numchanges);
 	database->pendingChanges = numchanges;
 
-    	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
-	    numchanges == 0)
+    	//if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
+	//    numchanges == 0)
+	//{
+	//	// The session must be flushed
+	//	// otherwise the DsSession would not complete correctly
+	//	// FIXME: an error handling is not possible here
+	//	osync_trace(TRACE_INTERNAL, "%s: no changes present - flushing directly", __func__);
+	//	database->env->ignoredDatabases = g_list_add(database->env->ignoredDatabases, database);
+	//	flush_session_for_all_databases(database->env, FALSE, NULL);
+	//}
+
+	/* If the client does not send the DevInf and the server does not
+	 * cache the DevInf of the client then it can happen that we
+	 * receive here the DevInf from the client (third message).
+	 */
+	if (database->env->devinf_path && !database->env->remote_devinf)
 	{
-		// The session must be flushed
-		// otherwise the DsSession would not complete correctly
-		// FIXME: an error handling is not possible here
-		osync_trace(TRACE_INTERNAL, "%s: no changes present - flushing directly", __func__);
-		database->env->ignoredDatabases = g_list_add(database->env->ignoredDatabases, database);
-		flush_session_for_all_databases(database->env, FALSE, NULL);
+		OSyncError *error = NULL;
+		load_remote_devinf(database->env, &error);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -562,11 +578,23 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 		{
 			if (!smlDsSessionCloseMap(database->session, _recv_map_reply, database, smlerror))
 				goto smlerror;
-			if (!flush_session_for_all_databases(database->env, TRUE, smlerror))
-				goto smlerror;
+			//if (!flush_session_for_all_databases(database->env, TRUE, smlerror))
+			//	goto smlerror;
 		}
 	} else {
-		database->pendingChanges--;
+		// First pendingChanges should only be managed if NumberOfChanges
+		// are supported by the client.
+		// Second we cannot simply check DevInf for the announced
+		// support of the NumberOfChanges feature because some devices
+		// (like Sony Ericsson M600i) announce this support but does not
+		// send the NumberOfChanges.
+		// Third we only need the pending changes at the server side for
+		// an assertion which checks that all changes were handled before
+		// the batch_commit function is called by OpenSync.
+		// So we must only guarantee that pendingChanges is never a
+		// negative number and anything is fine.
+		if (database->pendingChanges != 0)
+			database->pendingChanges--;
 	}
 
 	osync_change_unref(change);
