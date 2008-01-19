@@ -50,12 +50,18 @@ static osync_bool detect_plain_as_vtodo10(const char *data, int size)
 {
 	osync_trace(TRACE_INTERNAL, "start: %s", __func__);
 
+	if(!data)
+		return FALSE;
+
 	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VTODO*", data);
 }
 
 static osync_bool detect_plain_as_vtodo20(const char *data, int size)
 {
 	osync_trace(TRACE_INTERNAL, "start: %s", __func__);
+
+	if(!data)
+		return FALSE;
 
 	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VTODO*", data);
 }
