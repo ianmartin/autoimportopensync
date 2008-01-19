@@ -47,7 +47,13 @@ SmlDevInfProperty *_add_ctcap_property_by_name(
     g_assert(ctcap);
     g_assert(name);
 
-    SmlDevInfProperty *prop = smlDevInfNewProperty();
+    SmlError *error = NULL;
+
+    SmlDevInfProperty *prop = smlDevInfNewProperty(&error);
+    if (!prop) {
+	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(&error));
+	    return NULL;
+    }
     smlDevInfPropertySetPropName(prop, name);
     smlDevInfCTCapAddProperty(ctcap, prop);
 
@@ -78,7 +84,14 @@ SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const char *nam
     g_assert(prop);
     g_assert(name);
 
-    SmlDevInfPropParam *param = smlDevInfNewPropParam();
+    SmlError *error = NULL;
+
+    SmlDevInfPropParam *param = smlDevInfNewPropParam(&error);
+    if (!param) {
+	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(&error));
+	    return NULL;
+    }
+
     smlDevInfPropParamSetParamName(param, name);
     smlDevInfPropertyAddPropParam(prop, param);
 
@@ -88,15 +101,20 @@ SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const char *nam
 
 // FIXME: this function is too static
 // FIXME: the properties should be load from the format plugin
-void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
+osync_bool add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
 {
     osync_trace(TRACE_ENTRY, "%s (%s %s)", __func__, cttype, verct);
     g_assert(devinf);
     g_assert(cttype);
     g_assert(verct);
 
+    SmlError *error = NULL;
+
     // first we check for an already configure CTCap
-    SmlDevInfContentType *ct = smlDevInfNewContentType(cttype, verct);
+    SmlDevInfContentType *ct = smlDevInfNewContentType(cttype, verct, &error);
+    if (!ct)
+	    goto error;
+
     if (smlDevInfGetCTCap(devinf, ct) != NULL)
     {
         smlDevInfFreeContentType(ct);
@@ -114,7 +132,10 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         !strcmp(verct, "2.1"))
     {
         osync_trace(TRACE_INTERNAL, "vCard 2.1 detected");
-        ctcap = smlDevInfNewCTCap();
+        ctcap = smlDevInfNewCTCap(&error);
+	if (!ctcap)
+		goto error;
+
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
         smlDevInfCTCapSetVerCT(ctcap, "2.1");
         prop = _add_ctcap_property_by_name(ctcap, "ADR");
@@ -185,7 +206,7 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         smlDevInfPropParamAddValEnum(param, "WORK");
         smlDevInfPropParamAddValEnum(param, "HOME");
         _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.1");
-        smlDevInfAddCTCap(devinf, ctcap);
+        smlDevInfAppendCTCap(devinf, ctcap);
     }
     else if (!strcmp(cttype, SML_ELEMENT_TEXT_VCARD_30) &&
              !strcmp(verct, "3.0"))
@@ -193,7 +214,10 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
 	// FIXME: this is no vCard 3.0 spec
 	// FIXME: this is in terms of vCard 3.0 a bug
         osync_trace(TRACE_INTERNAL, "vCard 3.0 detected");
-        ctcap = smlDevInfNewCTCap();
+        ctcap = smlDevInfNewCTCap(&error);
+	if (!ctcap)
+		goto error;
+
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD_30);
         smlDevInfCTCapSetVerCT(ctcap, "3.0");
         _add_ctcap_property_by_name_value(ctcap, "BEGIN", "VCARD");
@@ -223,7 +247,7 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         _add_ctcap_property_by_name(ctcap, "NOTE");
         prop = _add_ctcap_property_by_name(ctcap, "PHOTO");
         _add_property_param(prop, "TYPE");
-        smlDevInfAddCTCap(devinf, ctcap);
+        smlDevInfAppendCTCap(devinf, ctcap);
     }
     /* Oracle collaboration Suite uses the content type to distinguish */
     /* the versions of vCalendar (and iCalendar)                       */
@@ -234,7 +258,10 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
              !strcmp(verct, "1.0"))
     {
         osync_trace(TRACE_INTERNAL, "vCalendar 1.0 detected");
-        ctcap = smlDevInfNewCTCap();
+        ctcap = smlDevInfNewCTCap(&error);
+	if (!ctcap)
+		goto error;
+
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCAL);
         smlDevInfCTCapSetVerCT(ctcap, "1.0");
         _add_ctcap_property_by_name(ctcap, "AALARM");
@@ -274,7 +301,7 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         _add_ctcap_property_by_name(ctcap, "SUMMARY");
         _add_ctcap_property_by_name(ctcap, "UID");
         _add_ctcap_property_by_name_value(ctcap, "VERSION", "1.0");
-        smlDevInfAddCTCap(devinf, ctcap);
+        smlDevInfAppendCTCap(devinf, ctcap);
     }
     else if (!strcmp(cttype, SML_ELEMENT_TEXT_ICAL) &&
              !strcmp(verct, "2.0"))
@@ -283,7 +310,10 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         // FIXME: this is nearly a direct copy&paste from vCal
         // FIXME: this is a bug in terms of iCal
         osync_trace(TRACE_INTERNAL, "iCalendar (vCalendar 2.0) detected");
-        ctcap = smlDevInfNewCTCap();
+        ctcap = smlDevInfNewCTCap(&error);
+	if (!ctcap)
+		goto error;
+
         smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_ICAL);
         smlDevInfCTCapSetVerCT(ctcap, "2.0");
         _add_ctcap_property_by_name(ctcap, "AALARM");
@@ -322,18 +352,25 @@ void add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
         _add_ctcap_property_by_name(ctcap, "SUMMARY");
         _add_ctcap_property_by_name(ctcap, "UID");
         _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.0");
-        smlDevInfAddCTCap(devinf, ctcap);
+        smlDevInfAppendCTCap(devinf, ctcap);
     }
     else
     {
         /* trace the missing stuff and create a minimal CTCap */
         osync_trace(TRACE_INTERNAL, "unknown content type - %s %s", cttype, verct);
-        ctcap = smlDevInfNewCTCap();
+        ctcap = smlDevInfNewCTCap(&error);
+	if (!ctcap)
+		goto error;
         smlDevInfCTCapSetCTType(ctcap, cttype);
         smlDevInfCTCapSetVerCT(ctcap, verct);
     }
  
     osync_trace(TRACE_EXIT, "%s - content type newly added to devinf", __func__);
+    return TRUE;
+
+error:    
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(&error));
+    return FALSE;
 }
 
 SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *database, OSyncError **error)
@@ -357,8 +394,10 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
         smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1"))
+		goto error;
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0"))
+		goto error;
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD_30))
     {
@@ -366,8 +405,10 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
         smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1"))
+		goto error;
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0"))
+		goto error;
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_VCAL))
     {
@@ -375,8 +416,10 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
         smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_ICAL, "2.0");
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0"))
+		goto error;
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_ICAL, "2.0"))
+		goto error;
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_ICAL))
     {
@@ -384,14 +427,17 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
         smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_ICAL, "2.0");
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0"))
+		goto error;
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_ICAL, "2.0"))
+		goto error;
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_PLAIN))
     {
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-        add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_PLAIN, "1.0");
+        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_PLAIN, "1.0"))
+		goto error;
     }
     else
     {
@@ -865,10 +911,13 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         count++;
         GList *columns = row->data;
 
-        SmlDevInfCTCap *ctcap = smlDevInfNewCTCap();
+        SmlDevInfCTCap *ctcap = smlDevInfNewCTCap(&error);
+	if (!ctcap)
+		goto error;
+
         smlDevInfCTCapSetCTType(ctcap, g_list_nth_data(columns, 0));
         smlDevInfCTCapSetVerCT(ctcap, g_list_nth_data(columns, 1));
-        smlDevInfAddCTCap(devinf, ctcap);
+        smlDevInfAppendCTCap(devinf, ctcap);
         char *esc_ct = osync_db_sql_escape(g_list_nth_data(columns, 0));
         char *esc_version = osync_db_sql_escape(g_list_nth_data(columns, 1));
 
@@ -886,7 +935,10 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
             prop_count++;
             GList *prop_columns = prop_row->data;
 
-            SmlDevInfProperty *property = smlDevInfNewProperty();
+            SmlDevInfProperty *property = smlDevInfNewProperty(&error);
+	    if (!property)
+		    goto error;
+
             smlDevInfPropertySetPropName(property, g_list_nth_data(prop_columns, 0));
             smlDevInfPropertySetDataType(property, g_list_nth_data(prop_columns, 1));
             smlDevInfPropertySetMaxOccur(property, g_ascii_strtoull(g_list_nth_data(prop_columns, 2), NULL, 0));
@@ -931,7 +983,10 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                 prop_param_count++;
                 GList *prop_param_columns = prop_param_row->data;
 
-                SmlDevInfPropParam *prop_param = smlDevInfNewPropParam();
+                SmlDevInfPropParam *prop_param = smlDevInfNewPropParam(&error);
+		if (!prop_param)
+			goto error;
+
                 smlDevInfPropParamSetParamName(prop_param, g_list_nth_data(prop_param_columns, 0));
                 smlDevInfPropParamSetDataType(prop_param, g_list_nth_data(prop_param_columns, 1));
                 smlDevInfPropParamSetDisplayName(prop_param, g_list_nth_data(prop_param_columns, 2));
@@ -1014,15 +1069,20 @@ SmlBool init_env_devinf (SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **ser
     {
         osync_trace(TRACE_INTERNAL, "%s: faking devinf", __func__);
         devinf = smlDevInfNew(env->identifier, SML_DEVINF_DEVTYPE_SMARTPHONE, serror);
+	if (!devinf)
+		goto error;
+
         smlDevInfSetManufacturer(devinf, env->fakeManufacturer);
         smlDevInfSetModel(devinf, env->fakeModel);
         smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
     } else {
         osync_trace(TRACE_INTERNAL, "%s: not faking devinf", __func__);
         devinf = smlDevInfNew(env->identifier, type, serror);
+	if (!devinf)
+		goto error;
+
         smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
     }
-    if (!devinf) goto error;
 
     // libsyncml definitely supports large objects
     // so we must meet the requirement
