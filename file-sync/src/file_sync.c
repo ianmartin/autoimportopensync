@@ -322,6 +322,8 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 			        OSyncObjFormat *fileformat = osync_format_env_find_objformat(formatenv, "file");
 			        OSyncObjFormat *targetformat = osync_format_env_find_objformat(formatenv, dir->objformat);
 				OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(formatenv, odata, &error);
+				OSyncData *odata_detectedformat = osync_data_clone(odata, &error);
+				osync_data_set_objformat(odata_detectedformat, detectedFormat);
 
 				/* Sanity check - if the converters are disable the engine sends not the requested "file" object format */
 				if (fileformat == osync_data_get_objformat(odata)) {
@@ -341,7 +343,7 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 				   To be safe we convert $detectedFormat -> $targetformat in advance.
 				   And later convert $targetformat to fileFormat.
 				*/
-				path = osync_format_env_find_path(formatenv, detectedFormat, targetformat, &error);
+				path = osync_format_env_find_path_with_detectors(formatenv, odata_detectedformat, targetformat, &error);
 
 				if (!path)
 					goto error;
