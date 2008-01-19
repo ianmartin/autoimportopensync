@@ -1058,8 +1058,7 @@ START_TEST (conv_env_convert1)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttest2"), NULL);
+	fail_unless(!strcmp(buf, "datatesttest2"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format3, NULL);
 }
@@ -1129,8 +1128,7 @@ START_TEST (conv_env_convert_back)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttest2"), NULL);
+	fail_unless(!strcmp(buf, "datatesttest2"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format3, NULL);
 	fail_unless(path != NULL, NULL);
@@ -1146,8 +1144,7 @@ START_TEST (conv_env_convert_back)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "data"), NULL);
+	fail_unless(!strcmp(buf, "data"), NULL);
 	format = osync_data_get_objformat(data);
 	fail_unless(format == format1, NULL);
 
@@ -1218,8 +1215,7 @@ START_TEST (conv_env_convert_desenc)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttest2"), NULL);
+	fail_unless(!strcmp(buf, "datatesttest2"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format3, NULL);
 	fail_unless(path != NULL, NULL);
@@ -1235,8 +1231,7 @@ START_TEST (conv_env_convert_desenc)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "data"), NULL);
+	fail_unless(!strcmp(buf, "data"), NULL);
 	format = osync_data_get_objformat(data);
 	fail_unless(format == format1, NULL);
 }
@@ -1362,8 +1357,7 @@ START_TEST (conv_env_convert_desenc_complex)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttest2test2test2"), NULL);
+	fail_unless(!strcmp(buf, "datatesttest2test2test2"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format6, NULL);
 
@@ -1378,8 +1372,7 @@ START_TEST (conv_env_convert_desenc_complex)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "data"), NULL);
+	fail_unless(!strcmp(buf, "data"), NULL);
 	format = osync_data_get_objformat(data);
 	fail_unless(format == format1, NULL);
 }
@@ -1500,8 +1493,7 @@ START_TEST (conv_env_detect_and_convert)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatest"), NULL);
+	fail_unless(!strcmp(buf, "datatest"), NULL);
 	format = osync_data_get_objformat(data);
 	fail_unless(format == format1, NULL);
 }
@@ -1605,8 +1597,7 @@ START_TEST(conv_prefer_not_desencap)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttesttest"), NULL);
+	fail_unless(!strcmp(buf, "datatesttesttest"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format5, NULL);
 }
@@ -1707,8 +1698,7 @@ START_TEST(conv_prefer_same_objtype)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttesttesttesttest"), NULL);
+	fail_unless(!strcmp(buf, "datatesttesttesttesttest"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format6, NULL);
 }
@@ -1811,8 +1801,7 @@ START_TEST(conv_prefer_not_lossy_objtype_change)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-	      fail_unless(!strcmp(buf, "datatest2"), NULL);
+	fail_unless(!strcmp(buf, "datatest2"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format_g1, NULL);
 }
@@ -1956,8 +1945,7 @@ START_TEST (conv_env_decap_and_detect)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "datatesttest"), NULL);
+	fail_unless(!strcmp(buf, "datatesttest"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format3, NULL);
 
@@ -1974,8 +1962,7 @@ START_TEST (conv_env_decap_and_detect)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "data"), NULL);
+	fail_unless(!strcmp(buf, "data"), NULL);
 	format = osync_data_get_objformat(data);
 	fail_unless(format == format1, NULL);
 }
@@ -2079,8 +2066,7 @@ START_TEST (conv_env_decap_and_detect2)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "F2test"), NULL);
+	fail_unless(!strcmp(buf, "F2test"), NULL);
 	OSyncObjFormat *format = osync_data_get_objformat(data);
 	fail_unless(format == format3, NULL);
 
@@ -2097,8 +2083,7 @@ START_TEST (conv_env_decap_and_detect2)
 	osync_data_get_data(data, &buf, &size);
 
 	fail_unless(buf != NULL, NULL);
-	if(buf)
-		fail_unless(!strcmp(buf, "F1"), NULL);
+	fail_unless(!strcmp(buf, "F1"), NULL);
 	format = osync_data_get_objformat(data);
 	fail_unless(format == format1, NULL);
 }
