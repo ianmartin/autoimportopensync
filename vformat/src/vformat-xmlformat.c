@@ -35,8 +35,26 @@ static osync_bool xmlformat_vcalendar_conversion_info(OSyncFormatEnv *env)
 
 	//event stuff	
 	xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
+	if (!xmlformat) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format xmlformat-event");
+		return FALSE;
+	}
 	OSyncObjFormat *vevent10 = osync_format_env_find_objformat(env, "vevent10");
+	if (!vevent10) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format vevent10");
+		return FALSE;
+	}
 	OSyncObjFormat *vevent20 = osync_format_env_find_objformat(env, "vevent20");
+	if (!vevent20) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format vevent20");
+		return FALSE;
+	}
 	
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vevent10, conv_xmlformat_to_vevent10, &error);
 	if (!conv) {
@@ -127,8 +145,26 @@ static osync_bool xmlformat_vcard_conversion_info(OSyncFormatEnv *env)
 	OSyncError *error = NULL;
 	
 	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-contact");
+	if (!xmlformat) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format xmlformat-contact");
+		return FALSE;
+	}
 	OSyncObjFormat *vcard21 = osync_format_env_find_objformat(env, "vcard21");
+	if (!vcard21) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format vcard21");
+		return FALSE;
+	}
 	OSyncObjFormat *vcard30 = osync_format_env_find_objformat(env, "vcard30");
+	if (!vcard30) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format vcard30");
+		return FALSE;
+	}
 	
 	
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcard21, conv_xmlformat_to_vcard21, &error);
@@ -180,8 +216,26 @@ static osync_bool xmlformat_vnote_conversion_info(OSyncFormatEnv *env)
 	OSyncError *error = NULL;
 
 	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-note");
+	if (!xmlformat) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format xmlformat-note");
+		return FALSE;
+	}
 	OSyncObjFormat *vnote = osync_format_env_find_objformat(env, "vnote11");
+	if (!vnote) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format vnote11");
+		return FALSE;
+	}
 	OSyncObjFormat *vjournal = osync_format_env_find_objformat(env, "vjournal");
+	if (!vjournal) {
+	  	/* This is the first error that occurs if /usr/lib/opensync-1.0/formats 
+		 is not populated correctly.  So report it! */
+		osync_trace(TRACE_ERROR, "Unable to find object format vjournal");
+		return FALSE;
+	}
 
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vnote, conv_xmlformat_to_vnote, &error);
 	if (!conv) {

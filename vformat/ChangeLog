@@ -1,0 +1,5 @@
+2008-01-19  Graham Cobb  <g+770@cobb.uk.net>
+
+	* src/vformat-xmlformat.c: report errors if objformats cannot be found, 
+	instead of crashing later
+
