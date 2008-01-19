@@ -322,13 +322,15 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 			        OSyncObjFormat *fileformat = osync_format_env_find_objformat(formatenv, "file");
 			        OSyncObjFormat *targetformat = osync_format_env_find_objformat(formatenv, dir->objformat);
 				OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(formatenv, odata, &error);
+				OSyncData *odata_fileformat = osync_data_clone(odata, &error);
+				osync_data_set_objformat(odata_fileformat, fileformat);
 				OSyncData *odata_detectedformat = osync_data_clone(odata, &error);
 				osync_data_set_objformat(odata_detectedformat, detectedFormat);
 
 				/* Sanity check - if the converters are disable the engine sends not the requested "file" object format */
 				if (fileformat == osync_data_get_objformat(odata)) {
 					/* Find converter path from file to detected format */
-					path = osync_format_env_find_path(formatenv, fileformat, detectedFormat, &error);
+					path = osync_format_env_find_path_with_detectors(formatenv, odata_fileformat, detectedFormat, &error);
 
 					if (!osync_format_env_convert(formatenv, path, odata, &error)) {
 						osync_error_set(&error, OSYNC_ERROR_EXISTS, "Can't convert to customized objformat.");
