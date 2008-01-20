@@ -205,6 +205,64 @@ static void _free_vertice(vertice *vertice)
 	g_free(vertice);
 }
 
+static osync_bool _validate_path_with_detector(struct vertice *ve, OSyncFormatEnv *env, OSyncFormatConverter *converter) {
+
+		// check if a detector validate this path
+                OSyncList *cs = NULL;
+                OSyncList *cd = NULL;
+                osync_bool has_detector = FALSE;
+		osync_bool has_nondetector = FALSE;
+                osync_bool detector_success = FALSE;
+                osync_trace(TRACE_INTERNAL, "Converter %s to %s type %i", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_converter_get_type(converter));
+
+                // Looking after detector without adhoc converter
+		OSyncList *converters_seekdetectors = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
+                for(cd = converters_seekdetectors; cd ; cd = cd->next) {
+                        OSyncFormatConverter *converter_seekdetectors = cd->data;
+                        if ( converter_seekdetectors && (osync_converter_get_type(converter_seekdetectors) != OSYNC_CONVERTER_DETECTOR) ) {
+				osync_trace(TRACE_INTERNAL, "Found non detector adhoc converter . Pairing detector with the non detector converter.");
+				has_nondetector = TRUE;
+				break;
+			}
+		}
+                if (has_nondetector) {
+			// Skip the detector : it will be handled later on when processing the non detector converter
+			if ( osync_converter_get_type(converter) == OSYNC_CONVERTER_DETECTOR )
+				return FALSE;
+
+			// Looking after detector for adhoc converter
+			OSyncList *converters_sameformat = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
+			for(cs = converters_sameformat; cs ; cs = cs->next) {
+				OSyncFormatConverter *converter_sameformat = cs->data;
+				if ( converter_sameformat && (osync_converter_get_type(converter_sameformat) == OSYNC_CONVERTER_DETECTOR) ) {
+					has_detector = TRUE;
+					osync_trace(TRACE_INTERNAL, "detector found");
+					if(osync_converter_detect(converter_sameformat, ve->data)) {
+						detector_success = TRUE;
+						osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
+					} else {
+						osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
+					}
+				}
+			}
+			if (has_detector)
+				if (!detector_success)
+					return FALSE;
+		} else {
+			osync_trace(TRACE_INTERNAL, "alone detector found");
+			if(osync_converter_detect(converter, ve->data)) {
+				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
+				return TRUE;
+
+			} else {
+				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
+				return FALSE;
+			}
+		}
+
+		return TRUE;
+}
+
 /** Returns a neighbour of the vertice ve
  *
  * Returns a new reference to the vertice. The reference
@@ -232,55 +290,11 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 		if (!osync_objformat_is_equal(osync_converter_get_sourceformat(converter), ve->format))
 			continue;
 
-		// check if a detector validate this path
-                OSyncList *cs = NULL;
-                OSyncList *cd = NULL;
-                osync_bool has_detector = FALSE;
-		osync_bool has_nondetector = FALSE;
-                osync_bool detector_success = FALSE;
-                OSyncFormatConverter *converter = c->data;
-                osync_trace(TRACE_INTERNAL, "Converter %s to %s type %i", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_converter_get_type(converter));
-
-                // Looking after detector without adhoc converter
-		OSyncList *converters_seekdetectors = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
-                for(cd = converters_seekdetectors; cd ; cd = cd->next) {
-                        OSyncFormatConverter *converter_seekdetectors = cd->data;
-                        if ( converter_seekdetectors && (osync_converter_get_type(converter_seekdetectors) != OSYNC_CONVERTER_DETECTOR) ) {
-				osync_trace(TRACE_INTERNAL, "Found non detector adhoc converter . Pairing detector with the non detector converter.");
-				has_nondetector = TRUE;
-				break;
-			}
-		}
-                if (has_nondetector) {
-			// Skip the detector : it will be handled later on when processing the non detector converter
-			if ( osync_converter_get_type(converter) == OSYNC_CONVERTER_DETECTOR ) continue; 
-			// Looking after detector for adhoc converter
-			OSyncList *converters_sameformat = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
-			for(cs = converters_sameformat; cs ; cs = cs->next) {
-				OSyncFormatConverter *converter_sameformat = cs->data;
-				if ( converter_sameformat && (osync_converter_get_type(converter_sameformat) == OSYNC_CONVERTER_DETECTOR) ) {
-					has_detector = TRUE;
-					osync_trace(TRACE_INTERNAL, "detector found");
-					if(osync_converter_detect(converter_sameformat, ve->data)) {
-						detector_success = TRUE;
-						osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
-					} else {
-						osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
-					}
-				}
-			}
-			if (has_detector)
-				if (!detector_success) continue;
-		} else {
-			osync_trace(TRACE_INTERNAL, "alone detector found");
-			if(osync_converter_detect(converter, ve->data)) {
-				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
-			} else {
-				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)));
-				continue;
-			}
-		}
-
+		/* Only validate with the help of detectors, if data is
+		   availablet to run a detector on it. */
+		if (osync_data_has_data(ve->data) 
+			&& !_validate_path_with_detector(ve, env, converter))
+			continue;
 
 		/* Remove the converter from the unused list */
 		tree->unused = g_list_remove(tree->unused, converter);
