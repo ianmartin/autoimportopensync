@@ -27,35 +27,21 @@ void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
-	SmlDatabase *database = get_database_from_plugin_info(info);
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
-	g_mutex_lock(env->mutex);
-
-	if (env->isConnected) {
-		// if the first connect failed then it is enough to signal this
-		// we only signal that a connect was run before
-		g_mutex_unlock(env->mutex);
-		osync_trace(TRACE_INTERNAL, "connect called twice with different context");
-		osync_context_report_success(ctx);
-		osync_trace(TRACE_EXIT, "%s - obex client already connected", __func__);
-		return;
-	}
-
-	env->tryDisconnect = FALSE;
 
 	/* For the obex client, we will store the context at this point since
 	 * we can only answer it as soon as the device returned an answer to our san */
-	database->connectCtx = ctx;
+	env->connectCtx = ctx;
 
 	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
 	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
-	osync_context_ref(database->connectCtx);
+	osync_context_ref(env->connectCtx);
 	
 	if (!smlTransportConnect(env->tsp, &error))
 		goto error;
-	else
-		env->isConnected = TRUE;
+
+	env->isConnected = TRUE;
 
 	if (!smlNotificationSend(env->san, env->tsp, &error))
 		goto error_free_san;
@@ -63,8 +49,8 @@ void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	smlNotificationFree(env->san);
 	env->san = NULL;
 
-	
-	g_mutex_unlock(env->mutex);
+	/* Context get replied in manager_event() callback function. */
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -76,7 +62,6 @@ error:
 	smlErrorDeref(&error);
 	osync_context_report_osyncerror(ctx, oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-	g_mutex_unlock(env->mutex);
 }
 
 osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
@@ -219,7 +204,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->num = 0;	
 	env->isConnected = FALSE;
-	env->mutex = g_mutex_new();
 
 	SmlTransportObexClientConfig config;
 	config.type = env->type;
@@ -252,6 +236,19 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env->identifier)
 		env->identifier = get_devinf_identifier();
 
+	/* Register main sink for connect and disconnect functions */
+	env->mainsink = osync_objtype_main_sink_new(error);
+	if (!env->mainsink)
+		goto error_free_env;
+
+	OSyncObjTypeSinkFunctions main_functions;
+	memset(&main_functions, 0, sizeof(main_functions));
+	main_functions.connect = connect_obex_client;
+	main_functions.disconnect = disconnect;
+
+	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, env->mainsink);
+
 	GList *o = env->databases;
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
@@ -273,8 +270,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.connect = connect_obex_client;
-                functions.disconnect = disconnect;
                 functions.get_changes = get_changeinfo;
                 functions.sync_done = sync_done;
 		functions.batch_commit = batch_commit;
@@ -288,6 +283,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
+	env->mutex = g_mutex_new();
 
 	/* Create the SAN */
 	env->san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &serror);

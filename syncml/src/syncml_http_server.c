@@ -26,13 +26,12 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
-	SmlDatabase *database = get_database_from_plugin_info(info);
 
 	env->tryDisconnect = FALSE;
 
-	database->connectCtx = ctx;
+	env->connectCtx = ctx;
 
-	osync_context_ref(database->connectCtx);
+	osync_context_ref(env->connectCtx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -152,6 +151,19 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
 	env->mutex = g_mutex_new();
 
+	/* Register main sink for connect and disconnect functions */
+	env->mainsink = osync_objtype_main_sink_new(error);
+	if (!env->mainsink)
+		goto error_free_env;
+
+	OSyncObjTypeSinkFunctions main_functions;
+	memset(&main_functions, 0, sizeof(main_functions));
+	main_functions.connect = connect_http_server;
+	main_functions.disconnect = disconnect;
+
+	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, env->mainsink);
+
 	GList *o = env->databases;
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
@@ -169,8 +181,6 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.connect = connect_http_server;
-                functions.disconnect = disconnect;
                 functions.get_changes = get_changeinfo;
                 functions.sync_done = sync_done;
 		functions.batch_commit = batch_commit;

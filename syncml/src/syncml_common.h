@@ -90,6 +90,8 @@ typedef struct SmlPluginEnv {
 	char *anchor_path;
 	char *devinf_path;
 
+	OSyncObjTypeSink *mainsink;
+
 	GSource *source;
 	GSourceFuncs *source_functions;
 
@@ -124,6 +126,9 @@ typedef struct SmlPluginEnv {
         char *fakeModel;
         char *fakeSoftwareVersion;
 
+	OSyncContext *connectCtx;
+	OSyncContext *disconnectCtx;
+
 	GMutex *mutex;
 } SmlPluginEnv;
 
@@ -137,7 +142,6 @@ typedef struct SmlDatabase {
 	char *objtype;	
 	char *url;
 
-	OSyncContext *connectCtx;
 	SmlDsSessionAlertCb dsSessionCallback;
 
 	OSyncChange **syncChanges;
@@ -148,7 +152,6 @@ typedef struct SmlDatabase {
 
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
-	OSyncContext *disconnectCtx;
 } SmlDatabase;
 
 gboolean _sessions_prepare(GSource *source, gint *timeout_);

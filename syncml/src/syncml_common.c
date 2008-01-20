@@ -377,8 +377,6 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 
-	SmlDatabase *database = get_database_from_plugin_info(info);
-
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
 	
@@ -387,13 +385,8 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	if (!smlSessionEnd(env->session, &error))
 		goto error;
 	
-	if (env->gotDisconnect) {
-		osync_context_report_success(ctx);
-	} else {
-		database->disconnectCtx = ctx;
-		osync_context_ref(database->disconnectCtx);
-	}
-
+	env->disconnectCtx = ctx;
+	osync_context_ref(env->disconnectCtx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;

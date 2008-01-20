@@ -59,29 +59,18 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
-	SmlDatabase *database = get_database_from_plugin_info(info);
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
-	g_mutex_lock(env->mutex);
 
 	env->tryDisconnect = TRUE;
-	if (env->isConnected) {
-		// if the first connect failed then it is enough to signal this
-		// we only signal that a connect was run before
-		g_mutex_unlock(env->mutex);
-		osync_trace(TRACE_INTERNAL, "connect called twice with different context");
-		osync_context_report_success(ctx);
-		osync_trace(TRACE_EXIT, "%s - http client already connected", __func__);
-		return;
-	} else {
-		if (!smlTransportHttpClientIsConnected(env->tsp, TRUE, &error))
+	if (!smlTransportHttpClientIsConnected(env->tsp, TRUE, &error))
 			goto error;
-	}
+
 	/* we need to ref the context here because we signal the success later */
 	/* later means we signal the success in another function */
 	env->tryDisconnect = FALSE;
-	database->connectCtx = ctx;
-	osync_context_ref(database->connectCtx);
+	env->connectCtx = ctx;
+	osync_context_ref(env->connectCtx);
 	osync_trace(TRACE_INTERNAL, "%s: environment ready", __func__);
 
 	/* prepare credential */
@@ -96,7 +85,6 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	}
 
 	/* prepare session */
-	SmlDatabase *db = env->databases->data;
 	SmlLocation *target = smlLocationNew(env->url, NULL, &error);
 	SmlLocation *source = smlLocationNew(env->identifier, NULL, &error);
 	SmlLink *link = smlLinkNew(env->tsp, NULL, &error);
@@ -109,12 +97,14 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 				    0, &error); 
 	if (cred)
 		smlSessionSetCred(env->session, cred);
+
 	if (!smlManagerSessionAdd(env->manager, env->session, link, &error))
 		goto error;
 
 	/* send the device information */
 	if (!smlDevInfAgentRegisterSession(env->agent, env->manager, env->session, &error))
 		goto error;
+
 	smlDevInfAgentSendDevInf(env->agent, env->session, &error);
 	smlDevInfAgentRequestDevInf(env->agent, env->session, &error);
 	smlSessionFlush(env->session, TRUE, &error);
@@ -132,21 +122,19 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	// do not move this to an upper location or
 	// otherwise errors are not detected correctly
 	env->isConnected = TRUE;
-	osync_context_report_success(database->connectCtx);
-	osync_context_unref(database->connectCtx);
-	database->connectCtx = NULL;
+	osync_context_report_success(env->connectCtx);
+	osync_context_unref(env->connectCtx);
+	env->connectCtx = NULL;
 	
-	g_mutex_unlock(env->mutex);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(database->connectCtx, oserror);
-	osync_context_unref(database->connectCtx);
-	database->connectCtx = NULL;
+	osync_context_report_osyncerror(env->connectCtx, oserror);
+	osync_context_unref(env->connectCtx);
+	env->connectCtx = NULL;
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-	g_mutex_unlock(env->mutex);
 }
 
 osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)

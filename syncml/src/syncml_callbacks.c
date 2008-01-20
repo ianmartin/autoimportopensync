@@ -76,21 +76,18 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			break;
 		case SML_MANAGER_CONNECT_DONE:
 			env->gotDisconnect = FALSE;
+			if (env->connectCtx) {
+				osync_context_report_success(env->connectCtx);
+				env->connectCtx = NULL;
+			}
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
 			osync_trace(TRACE_INTERNAL, "connection with device has ended");
 			env->gotDisconnect = TRUE;
-			
-			o = env->databases;
-			for (; o; o = o->next) {
-				SmlDatabase *database = o->data;
-
-				if (database->disconnectCtx) {
-					osync_context_report_success(database->disconnectCtx);
-					database->disconnectCtx = NULL;
-				}
+			if (env->disconnectCtx) { 
+				osync_context_report_success(env->disconnectCtx);
+				env->disconnectCtx = NULL;
 			}
-
 			break;
 		case SML_MANAGER_TRANSPORT_ERROR:
 			osync_trace(TRACE_INTERNAL, "There was an error in the transport: %s", smlErrorPrint(&error));
@@ -143,15 +140,6 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			o = env->databases;
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
-				if (database->connectCtx) {
-					osync_context_report_success(database->connectCtx);
-					database->connectCtx = NULL;
-				}
-			}
-
-			o = env->databases;
-			for (; o; o = o->next) {
-				SmlDatabase *database = o->data;
 
 				osync_trace(TRACE_INTERNAL, "gotChanges: %i getChangesCtx: %p objtype: %s",
 					database->gotChanges, database->getChangesCtx, database->objtype);
@@ -198,16 +186,20 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 error:;
 	OSyncError *oserror = NULL;
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
+
+	if (env->connectCtx) {
+		osync_context_report_osyncerror(env->connectCtx, oserror);
+		env->connectCtx = NULL;
+	}
 	
+	if (env->disconnectCtx) {
+		osync_context_report_osyncerror(env->disconnectCtx, oserror);
+		env->disconnectCtx = NULL;
+	}
+
 	o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
-
-		if (database->connectCtx)
-		{
-			osync_context_report_osyncerror(database->connectCtx, oserror);
-			database->connectCtx = NULL;
-		}
 		
 		if (database->getChangesCtx) {
 			osync_context_report_osyncerror(database->getChangesCtx, oserror);
@@ -218,12 +210,6 @@ error:;
 			osync_context_report_osyncerror(database->commitCtx, oserror);
 			database->commitCtx = NULL;
 		}
-
-		if (database->disconnectCtx) {
-			osync_context_report_osyncerror(database->disconnectCtx, oserror);
-			database->disconnectCtx = NULL;
-		}
-
 		
 	}
 
@@ -275,16 +261,6 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	database->session = dsession;
 	smlDsSessionRef(dsession);
 	register_ds_session_callbacks(database->session, database, NULL);
-
-	// if there is still an open connectCtx then we should signal success
-	// for DsServer this is the best place to signal a successful connect
-	// because this is the connect callback and the client starts the DsSession
-	if (database->connectCtx)
-	{
-		osync_trace(TRACE_INTERNAL, "%s: signal successful connect", __func__);
-		osync_context_report_success(database->connectCtx);
-		database->connectCtx = NULL;
-	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
