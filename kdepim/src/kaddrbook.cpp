@@ -40,7 +40,7 @@ bool KContactDataSource::initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, 
 		return false;
 	}
 
-	osync_objtype_sink_add_objformat(sink, "vcard30");
+	osync_objtype_sink_add_objformat_with_config(sink, "vcard30", "VCARD_EXTENSION=KDE");
 
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 	return true;
@@ -134,6 +134,7 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vcard30");
+	osync_objformat_set_config(objformat, "VCARD_EXTENSION=KDE");
 
 	KABC::VCardConverter converter;
 	for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
