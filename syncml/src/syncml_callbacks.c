@@ -77,8 +77,11 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 		case SML_MANAGER_CONNECT_DONE:
 			env->gotDisconnect = FALSE;
 			if (env->connectCtx) {
+				osync_trace(TRACE_INTERNAL, "%s: signal successful connect", __func__);
 				osync_context_report_success(env->connectCtx);
 				env->connectCtx = NULL;
+			} else {
+				osync_trace(TRACE_INTERNAL, "%s: connect done but no context available", __func__);
 			}
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:

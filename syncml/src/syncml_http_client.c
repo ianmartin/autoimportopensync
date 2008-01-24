@@ -44,15 +44,6 @@
  * in the SyncML communication. Clients and servers simply start in
  * different modes.
  *
- * Client
- *     - before send initiate sync alert
- *     - if receive sync alert send changes
- *     - if receive changes prepare map and opensync
- * Server
- *     - before sending data check for open sync session
- *     - if open sync session send changes
- *     - if no open sync session then create an error (no SAN)
- *
  */
 
 void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -62,12 +53,9 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 
-	env->tryDisconnect = TRUE;
-	if (!smlTransportHttpClientIsConnected(env->tsp, TRUE, &error))
-			goto error;
-
-	/* we need to ref the context here because we signal the success later */
-	/* later means we signal the success in another function */
+	/* we need to ref the context here because we signal the success later
+	 * later means we signal the success in another function
+	 */
 	env->tryDisconnect = FALSE;
 	env->connectCtx = ctx;
 	osync_context_ref(env->connectCtx);
@@ -104,27 +92,18 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	/* send the device information */
 	if (!smlDevInfAgentRegisterSession(env->agent, env->manager, env->session, &error))
 		goto error;
-
 	smlDevInfAgentSendDevInf(env->agent, env->session, &error);
 	smlDevInfAgentRequestDevInf(env->agent, env->session, &error);
 	smlSessionFlush(env->session, TRUE, &error);
 	osync_trace(TRACE_INTERNAL, "%s: session ready", __func__);
 
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-		SmlDatabase *database = o->data;
-		if (database->session)
-		{
-			smlDsSessionGetAlert(database->session, _recv_alert, database);
-		}
-	}
-
-	// do not move this to an upper location or
-	// otherwise errors are not detected correctly
-	env->isConnected = TRUE;
-	osync_context_report_success(env->connectCtx);
-	osync_context_unref(env->connectCtx);
-	env->connectCtx = NULL;
+	/* If we receive a device information from the server
+	 * then we can be sure that the connect was successful.
+	 * "Unfortunately" such a message is handled automatically
+	 * by the devinf agent. Nevertheless the transport layer
+	 * sends a CONNECT_DONE event which will be managed by
+	 * _manage_event.
+	 */
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -383,6 +362,19 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	env->mutex = g_mutex_new();
 
+	/* Register main sink for connect and disconnect functions */
+	env->mainsink = osync_objtype_main_sink_new(error);
+	if (!env->mainsink)
+		goto error_free_env;
+
+	OSyncObjTypeSinkFunctions main_functions;
+	memset(&main_functions, 0, sizeof(main_functions));
+	main_functions.connect = connect_http_client;
+	main_functions.disconnect = disconnect;
+
+	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, env->mainsink);
+
 	GList *o = env->databases;
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
@@ -400,8 +392,6 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.connect = connect_http_client;
-                functions.disconnect = disconnect;
                 functions.get_changes = syncml_http_client_get_changeinfo;
                 functions.sync_done = sync_done;
 		functions.batch_commit = batch_commit;
