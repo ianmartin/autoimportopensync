@@ -140,6 +140,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			osync_trace(TRACE_INTERNAL, "Session %s reported final", smlSessionGetSessionID(session));
 			env->gotFinal = TRUE;
 
+			SmlBool flushMap = FALSE;
 			o = env->databases;
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
@@ -147,9 +148,30 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				osync_trace(TRACE_INTERNAL, "gotChanges: %i getChangesCtx: %p objtype: %s",
 					database->gotChanges, database->getChangesCtx, database->objtype);
 
+				/* If there is a change context then a package
+				 * with data is received actually. If such a
+				 * package is closed by a final element then all
+				 * datastores sent their complete data. So if
+				 * one change context can be cleaned up then we
+				 * can be sure that all others are finished too.
+				 *
+				 * SERVER: An explicit flush is not necessary
+				 *         because the server replies
+				 *         automatically with its own changes if
+				 *         the success is reported via the
+				 *         change context.
+				 *
+				 * CLIENT: An explicit flush is necessary
+				 *         because the client prepares the map
+				 *         which must be send to the server.
+				 *         This is required to complete the DS
+				 *         session correctly.
+				 */
 				if (database->getChangesCtx) {
 					database->finalChanges = TRUE;
-					_try_change_ctx_cleanup(database);
+					if (_try_change_ctx_cleanup(database) &&
+					    smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
+						flushMap = TRUE;
 				}
 
 				if (database->commitCtx) {
@@ -158,16 +180,19 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				}
 			}
 
-			// /* we cannot simply flush on final because we have to wait
-			//  * for the actions from opensync */
-			// if (!smlSessionFlush(env->session, TRUE, &error))
-			// {
-			// 	goto error;
-			// }
+			/* The maps are only flushed if this is a client and all
+			 * changes were received. Otherwise flushMap would be
+			 * FALSE.
+			 */
+			if (flushMap && !smlSessionFlush(env->session, TRUE, &error))
+			{
+				osync_trace(TRACE_INTERNAL, "%s: Flushing the map failed.", __func__);
+				goto error;
+			}
 
 			break;
 		case SML_MANAGER_SESSION_END:
-			osync_trace(TRACE_INTERNAL, "Session %s has ended\n", smlSessionGetSessionID(session));
+			osync_trace(TRACE_INTERNAL, "Session %s has ended", smlSessionGetSessionID(session));
 			if (!smlTransportDisconnect(env->tsp, NULL, &error))
 				goto error;
 			break;
@@ -431,18 +456,24 @@ void _recv_sync_reply(SmlSession *session, SmlStatus *status, void *userdata)
 	if (smlStatusGetClass(status) != SML_ERRORCLASS_SUCCESS)
 	{
 		// inform user
-		printf("The synchronisation request failed.\n");
-		printf("    Location => %s\n", database->env->url);
-		printf("    Database => %s\n", database->url);
-		printf("    Error => %d\n", smlStatusGetCode(status));
+		osync_trace(TRACE_INTERNAL, "%s: The synchronisation request failed.", __func__);
+		osync_trace(TRACE_INTERNAL, "%s: Location => %s", __func__, database->env->url);
+		osync_trace(TRACE_INTERNAL, "%s: Database => %s", __func__, database->url);
+		osync_trace(TRACE_INTERNAL, "%s: Error => %d", __func__, smlStatusGetCode(status));
 		if (smlStatusGetCode(status) == SML_ERROR_TIMEOUT &&
 		    (strstr(database->env->url, "ocst") || strstr(database->env->url, "ocas")))
 		{
 			/* this is a potential Oracle Collaboration Suite */
 			/* typical errorcode from OCS if there is something wrong */
-			printf("    Oracle Collaboration Suite detected.\n");
-			printf("    Typical undefined error from OCS (503 - SyncML timeout error).\n");
-			printf("    Please wait 5 minutes before retry - default session timeout.\n");
+			osync_trace(TRACE_INTERNAL,
+				"%s: Oracle Collaboration Suite detected.",
+				__func__);
+			osync_trace(TRACE_INTERNAL,
+				"%s: Typical undefined error from OCS (503 - SyncML timeout error).",
+				__func__);
+			osync_trace(TRACE_INTERNAL,
+				"%s: Please wait 5 minutes before retry - default session timeout.",
+				__func__);
 		}
 		// stop session
 		// FIXME: this is not available in a clean way today
@@ -483,35 +514,7 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 		goto error;
 	}
 	
-//		osync_change_set_member(change, env->member);
-
 	osync_change_set_uid(change, uid);
-	// FIXME: this is a bug (devinf has the information + we need more info)
-	// FIXME: we need cttype and verct to determine the correct formats
-	// FIXME: the add command includes only cttype
-	// FIXME: cttype does not differ between vCard 2.1 and 3.0
-	// FIXME: so we must rely on database->objformat and trust the format detector
-	// FIXME: devinf does not help here
-	if (contenttype != NULL) {
-		/* We specify the objformat plain for vcard and vcal
-		 * since we cannot be really sure what the device sends
-		 * us, without looking at the devinf. Since we dont use
-		 * the devinf yet, we let the opensync detector decide
-		 * what format the item is.
-		 * 
-		 * For text/plain (notes) we specify the memo format, 
-		 * so that it does not get detected */
-
-		/*
-		if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD))
-			objformat = g_strdup("plain");
-		else if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL))
-			objformat = g_strdup("plain");
-		else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
-			objformat = g_strdup("memo");
-			*/
-
-	}
 
 	/* XXX Workaround for mobiles which only handle localtime! TODO: make use of UTC field in DevCap and handle it is OpenSync framework! */
 	/*

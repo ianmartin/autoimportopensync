@@ -138,24 +138,26 @@ void syncml_free_database(SmlDatabase *database)
 	g_free(database);
 }
 
-void _try_change_ctx_cleanup(SmlDatabase *database)
+SmlBool _try_change_ctx_cleanup(SmlDatabase *database)
 {
 	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, finalChanges %i)", __func__,
 		 database->gotChanges, database->finalChanges);
+	SmlBool result = FALSE;
 	
-	// we should try to clenaup getChangesCtx if
+	// we should try to cleanup getChangesCtx if
 	//     SML_MANAGER_SESSION_FINAL
 	//     SML_DS_EVENT_GOTCHANGES
 	// both events are required for a complete cleanup
 	// finalChanges must be resetted at every new message
 	// until we received a sync command (not alert)
 	if (database->gotChanges && database->finalChanges) {
-		osync_trace(TRACE_INTERNAL,"getChangesCtx report success at _recv_change");
 		osync_context_report_success(database->getChangesCtx);
 		database->getChangesCtx = NULL;
+		result = TRUE;
 	}
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s(%d)", __func__, result);
+	return result;
 }
 
 SmlChangeType _get_changetype(OSyncChange *change)
@@ -354,9 +356,6 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	 */
 	register_ds_session_callbacks(database->session, database, _recv_alert);
 
-	//if (!flush_session_for_all_databases(env, TRUE, &error))
-	//	goto error;
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -476,7 +475,7 @@ SmlBool send_sync_message(
                 SmlDatabase *database,
                 void *func_ptr, OSyncError **oserror)
 {
-    osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, database);
+    osync_trace(TRACE_ENTRY, "%s(%p)", __func__, database);
     g_assert(database);
     g_assert(database->session);
 
