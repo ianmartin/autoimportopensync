@@ -5,21 +5,18 @@ To make a release of OpenSync, do the following:
 
  - check out a fresh copy from subversion
 
- - increment the version number in configure.in
+ - increment the version number in ./CMakeLists.txt 
 
- - run ./buildtest.sh and pass tes test!
+ - Run "make Experimental" again several times to try to see race conditions.
 
- - if ./buildtest.sh fails, fix it.
-
- - Run "make check" again several times to try to see race conditions.
-   You can also use the osyncstress tool.
-
- - once ./buildtest.sh succeeds, "svn commit"
+ - Commit the increased version changes (and build fixes)
 
  - if someone else made changes and the commit fails,
-   you have to "svn up" and run ./buildtest.sh again
+   you have to "svn up" and run the tests again
 
  - once the commit succeeds, "svn cp trunk tags/opensync-0.XX"
+
+ - create tarballs with "make package_source" (out of source build!)
 
  - upload the tarball to releases. make sure the version numbers are the same!
 
