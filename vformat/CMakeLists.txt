@@ -1,6 +1,6 @@
 PROJECT( libopensync-plugin-vformat C )
 
-SET( VERSION "0.35" )
+SET( VERSION "0.36" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 
@@ -9,7 +9,7 @@ SET( BUILD_CALENDAR TRUE CACHE BOOL "Build calendar support for vCalendar and iC
 SET( BUILD_NOTE TRUE CACHE BOOL "Build note support for vNote" )
 SET( BUILD_XMLFORMAT CACHE TRUE BOOL "Build format converters for OpenSync XMLFormat" )
 
-SET( OPENSYNC_MIN_VERSION "0.35" )
+SET( OPENSYNC_MIN_VERSION "0.36" )
 FIND_PACKAGE( OpenSync REQUIRED )
 FIND_PACKAGE( GLIB2 REQUIRED )
 FIND_PACKAGE( Check )
