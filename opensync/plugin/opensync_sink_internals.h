@@ -25,15 +25,33 @@
 #define OSYNC_SINK_TIMEOUT_SINGLEIO	30
 #define OSYNC_SINK_TIMEOUT_BATCHIO	1800
 
+/* FIXME: OSYNC_SINK_TIMEOUT_COMMIT, OSYNC_SINK_TIMEOUT_READ,
+   OSYNC_SINK_TIMEOUT_WRITE are set to OSYNC_SINK_TIMEOUT_BATCHIO
+   to workaround a timeout issue with the async client/proxy
+   communication and the current timeout handling.
+
+   All async i/o call (message) recieved by the client get processed in
+   a sequence. Each event gets appended at the end of the queue
+   and sits there; timeout handlers keeps already ticking!
+
+   Commits which got added at the end of a long queue of events,
+   doesn't get processed in time and get killed by the timeout handler.
+
+   TODO: Fix timeout handler and start ticking when SINGLEIO get processed.
+   Reset  OSYNC_SINK_TIMEOUT_COMMIT, OSYNC_SINK_TIMEOUT_READ and other SINGLEIO
+   actions to SINGLEIO timeout values by default.
+ 
+ */
+
 #define OSYNC_SINK_TIMEOUT_CONNECT 	OSYNC_SINK_TIMEOUT_TRANSPORT 
 #define OSYNC_SINK_TIMEOUT_DISCONNECT 	OSYNC_SINK_TIMEOUT_TRANSPORT 
 #define OSYNC_SINK_TIMEOUT_GETCHANGES	OSYNC_SINK_TIMEOUT_BATCHIO
-#define OSYNC_SINK_TIMEOUT_COMMIT	OSYNC_SINK_TIMEOUT_SINGLEIO
+#define OSYNC_SINK_TIMEOUT_COMMIT	OSYNC_SINK_TIMEOUT_BATCHIO /* FIXME */
 #define OSYNC_SINK_TIMEOUT_BATCHCOMMIT	OSYNC_SINK_TIMEOUT_BATCHIO
-#define OSYNC_SINK_TIMEOUT_COMMITTEDALL	OSYNC_SINK_TIMEOUT_BATCHIO 
+#define OSYNC_SINK_TIMEOUT_COMMITTEDALL	OSYNC_SINK_TIMEOUT_SINGLEIO
 #define OSYNC_SINK_TIMEOUT_SYNCDONE	OSYNC_SINK_TIMEOUT_SINGLEIO
-#define OSYNC_SINK_TIMEOUT_READ		OSYNC_SINK_TIMEOUT_SINGLEIO
-#define OSYNC_SINK_TIMEOUT_WRITE	OSYNC_SINK_TIMEOUT_SINGLEIO
+#define OSYNC_SINK_TIMEOUT_READ		OSYNC_SINK_TIMEOUT_BATCHIO /* FIXME */
+#define OSYNC_SINK_TIMEOUT_WRITE	OSYNC_SINK_TIMEOUT_BATCHIO /* FIXME */
 
 typedef struct OSyncObjTypeSinkFunctionTimeouts {
 	unsigned int connect;
