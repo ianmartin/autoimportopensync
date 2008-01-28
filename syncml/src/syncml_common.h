@@ -83,6 +83,7 @@ typedef struct SmlPluginEnv {
 	unsigned int maxObjSize;
 
 	SmlBool gotFinal;
+	SmlBool prepareMapFlushing;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
 	
@@ -129,6 +130,11 @@ typedef struct SmlPluginEnv {
 	OSyncContext *connectCtx;
 	OSyncContext *disconnectCtx;
 
+	/* This function pointer is necessary to start the second OMA DS session
+	 * if the synchronization uses an OMA DS client.
+	 */
+	OSyncSinkConnectFn connectFunction;
+
 	GMutex *mutex;
 } SmlPluginEnv;
 
@@ -164,7 +170,6 @@ gboolean _sessions_dispatch(
 			gpointer user_data);
 
 void register_ds_session_callbacks(
-		SmlDsSession *dsession,
 		SmlDatabase *database,
 		SmlDsSessionAlertCb alertCallback);
 

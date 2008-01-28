@@ -48,7 +48,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			//         --> finalChanges = TRUE on SESSION_FINAL (gotChanges == FALSE)
 			// client: sends sync with changes
 			//         --> finalChanges = FALSE on SESSION_FLUSH (gotChanges == FALSE)
-			// client: reives sync with changes from server
+			// client: receives sync with changes from server
 			//         --> finalChanges = TRUE on SESSION_FINAL (gotChanges == TRUE)
 			//         --> finalChanges + gotChanges --> getChangesCtx = NULL
 			osync_trace(TRACE_INTERNAL, "resetting finalChanges if necessary ...");
@@ -58,7 +58,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				SmlDatabase *database = o->data;
 				osync_trace(TRACE_INTERNAL, "    got database");
 
-				osync_trace(TRACE_INTERNAL, "old: gotChanges: %i, finalChanges: %i, objtype: %s",
+				osync_trace(TRACE_INTERNAL, "%s: old: gotChanges: %i, finalChanges: %i, objtype: %s",
+					__func__,
 					database->gotChanges, database->finalChanges, database->objtype);
 
 				// if no changes received and context present
@@ -69,7 +70,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				}
 				osync_trace(TRACE_INTERNAL, "    performed acction");
 
-				osync_trace(TRACE_INTERNAL, "new: gotChanges: %i, finalChanges: %i, objtype: %s",
+				osync_trace(TRACE_INTERNAL, "%s: new: gotChanges: %i, finalChanges: %i, objtype: %s",
+					__func__,
 					database->gotChanges, database->finalChanges, database->objtype);
 			}
 			osync_trace(TRACE_INTERNAL, "resetted finalChanges");
@@ -85,11 +87,50 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			}
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
-			osync_trace(TRACE_INTERNAL, "connection with device has ended");
-			env->gotDisconnect = TRUE;
-			if (env->disconnectCtx) { 
-				osync_context_report_success(env->disconnectCtx);
-				env->disconnectCtx = NULL;
+			osync_trace(TRACE_INTERNAL, "%s: connection with device has ended", __func__);
+			SmlBool disconnectOpenSync = TRUE;
+			/* If this is a OMA DS client then we need two OMA DS
+			 * sessions to synchronize with OpenSync. If there is
+			 * an active change context then this is only the first
+			 * OMA DS session and we must initiate the second one.
+			 * Additionally it is required report the success to
+			 * the changes context after the second session is
+			 * available.
+			 */
+			o = env->databases;
+			for (; o; o = o->next) {
+				SmlDatabase *database = o->data;
+				/* check for a still active change context */
+				if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
+				    database->getChangesCtx)
+				{
+						disconnectOpenSync = FALSE;
+				}
+			}
+			if (disconnectOpenSync)
+			{
+				/* a real disconnet happens */
+				env->gotDisconnect = TRUE;
+				if (env->disconnectCtx) { 
+					osync_context_report_success(env->disconnectCtx);
+					env->disconnectCtx = NULL;
+				}
+			} else {
+				/* This is the disconnect of the first session
+				 * of an OMA DS client. It is necessary to
+				 * create a new session and after this report
+				 * success for the active change contexts.
+				 */
+				env->connectFunction(env, NULL, NULL);
+				o = env->databases;
+				for (; o; o = o->next) {
+					SmlDatabase *database = o->data;
+					if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
+					    database->getChangesCtx)
+					{
+						_try_change_ctx_cleanup(database);
+					}
+				}
 			}
 			break;
 		case SML_MANAGER_TRANSPORT_ERROR:
@@ -145,33 +186,44 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
 
-				osync_trace(TRACE_INTERNAL, "gotChanges: %i getChangesCtx: %p objtype: %s",
+				osync_trace(TRACE_INTERNAL, "%s: gotChanges: %i getChangesCtx: %p objtype: %s",
+					__func__,
 					database->gotChanges, database->getChangesCtx, database->objtype);
 
-				/* If there is a change context then a package
-				 * with data is received actually. If such a
-				 * package is closed by a final element then all
-				 * datastores sent their complete data. So if
-				 * one change context can be cleaned up then we
-				 * can be sure that all others are finished too.
-				 *
-				 * SERVER: An explicit flush is not necessary
-				 *         because the server replies
-				 *         automatically with its own changes if
-				 *         the success is reported via the
-				 *         change context.
-				 *
-				 * CLIENT: An explicit flush is necessary
-				 *         because the client prepares the map
-				 *         which must be send to the server.
-				 *         This is required to complete the DS
-				 *         session correctly.
-				 */
 				if (database->getChangesCtx) {
+					/* If there is a change context then a package
+					 * with data was received actually. If such a
+					 * package is closed by a final element then all
+					 * datastores sent their complete data. So if
+					 * one change context is finished then we
+					 * can be sure that all others are finished too.
+					 */
 					database->finalChanges = TRUE;
-					if (_try_change_ctx_cleanup(database) &&
-					    smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
-						flushMap = TRUE;
+					/* Cleanup of contexts / Reporting to OpenSync:
+					 * 
+					 * SERVER: The next step after receiving the
+					 *         package with the changes from the
+					 *         client is to send the package with
+					 *         the calculated changes. This is
+					 *         done by batch_commit. Therefore it
+					 *         is required to report the success
+					 *         on the change context.
+					 *
+					 * CLIENT: If the client received the changes
+					 *         from the server then the client must
+					 *         send the map and have to wait for
+					 *         the acknowledgement from the server
+					 *         for the map. After this the client
+					 *         can disconnect and re-connect to
+					 *         send the calculated changes of
+					 *         OpenSync. If the client wants to
+					 *         avoid to early calls of OpenSync to
+					 *         the function batch_commit then the
+					 *         client should report success only
+					 *         after disconnect.
+					 */
+					if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
+						_try_change_ctx_cleanup(database);
 				}
 
 				if (database->commitCtx) {
@@ -180,19 +232,35 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				}
 			}
 
-			/* The maps are only flushed if this is a client and all
-			 * changes were received. Otherwise flushMap would be
-			 * FALSE.
+			/* Flush handling:
+			 *
+			 * SERVER: An explicit flush is not necessary
+			 *         because the server replies
+			 *         automatically with its own changes if
+			 *         the success is reported via the
+			 *         change context.
+			 *
+			 * CLIENT: An explicit flush is necessary
+			 *         because the client prepares the map
+			 *         which must be send to the server.
+			 *         This is required to complete the DS
+			 *         session correctly.
+			 *
+			 * The maps are only flushed if this is a client and all
+			 * changes were received (because FINAL is set).
 			 */
-			if (flushMap && !smlSessionFlush(env->session, TRUE, &error))
+			if (env->prepareMapFlushing &&
+			    !smlSessionFlush(env->session, TRUE, &error))
 			{
 				osync_trace(TRACE_INTERNAL, "%s: Flushing the map failed.", __func__);
 				goto error;
 			}
+			env->prepareMapFlushing = FALSE;
 
 			break;
 		case SML_MANAGER_SESSION_END:
-			osync_trace(TRACE_INTERNAL, "Session %s has ended", smlSessionGetSessionID(session));
+			osync_trace(TRACE_INTERNAL, "%s: Session %s has ended",
+				__func__, smlSessionGetSessionID(session));
 			if (!smlTransportDisconnect(env->tsp, NULL, &error))
 				goto error;
 			break;
@@ -212,6 +280,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 	return;
 	
 error:;
+	osync_trace(TRACE_INTERNAL, "%s: Cleaning up because of an error ...", __func__);
 	OSyncError *oserror = NULL;
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
 
@@ -259,7 +328,15 @@ void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 	switch (event) {
 		case SML_DS_EVENT_GOTCHANGES:
 			database->gotChanges = TRUE;
-			_try_change_ctx_cleanup(database);
+			if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
+			{
+				/* The OMA DS client will be managed on base of
+				 * the FINAL element. This is necessary because
+				 * the client needs a much more sophisticated
+				 * handling.
+				 */
+				_try_change_ctx_cleanup(database);
+			}
 			break;
 		case SML_DS_EVENT_COMMITEDCHANGES:	
 			break;
@@ -288,7 +365,7 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	/* set callbacks if the DsSession was not ready before */
 	database->session = dsession;
 	smlDsSessionRef(dsession);
-	register_ds_session_callbacks(database->session, database, NULL);
+	register_ds_session_callbacks(database, NULL);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -420,8 +497,18 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 	SmlDatabase *database = (SmlDatabase *)userdata;
 	
 	osync_trace(TRACE_INTERNAL,"Going to receive %i changes - objtype: %s", numchanges, database->objtype);
-	printf("Going to receive %i changes\n", numchanges);
+	// printf("Going to receive %i changes\n", numchanges);
 	database->pendingChanges = numchanges;
+
+	/* If this is an OMA DS client then it is necessary to send a map after
+	 * all changes were received. It is a good idea to do this if a FINAL
+	 * was received together with a SYNC.
+	 */
+	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
+	{
+		osync_trace(TRACE_INTERNAL,"%s: enable map flushing for OMA DS client", __func__);
+		database->env->prepareMapFlushing = TRUE;
+	}
 
     	//if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
 	//    numchanges == 0)
@@ -500,6 +587,25 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, smlerror);
 	SmlDatabase *database = (SmlDatabase *)userdata;
 	OSyncError *error = NULL;
+
+	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
+	    !database->getChangesCtx)
+	{
+		/* This should be the second OMA DS session of an OMA DS
+		 * client. If this is the case then we simply ignore what the
+		 * server sends as answer for the second synchronization.
+		 * This is not clean but we have here two servers and both
+		 * wants to have the last word :(
+		 *
+		 * OMA DS protocol allows that a client does not send a map.
+		 * This is no problem here because the first OMA DS session
+		 * should guarantee a clean server database at the remote peer.
+		 * Nevertheless this is a hack.
+		 */
+		osync_trace(TRACE_EXIT, "%s: second OMA DS client connection detected", __func__);
+		return TRUE;
+	}
+
 	g_assert(database->getChangesCtx);
 
 	if (!type) {
@@ -563,6 +669,8 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 			//if (!flush_session_for_all_databases(database->env, TRUE, smlerror))
 			//	goto smlerror;
 		}
+		osync_trace(TRACE_INTERNAL, "%s: still %d pendingChanges",
+			__func__, database->pendingChanges);
 	} else {
 		// First pendingChanges should only be managed if NumberOfChanges
 		// are supported by the client.

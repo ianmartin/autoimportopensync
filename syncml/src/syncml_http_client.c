@@ -46,6 +46,57 @@
  *
  */
 
+guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
+{
+    /* cleanup old session */
+    if (env->session)
+    {
+        smlSessionUnref(env->session);
+        env->session = NULL;
+    }
+
+    /* prepare credential */
+    SmlCred *cred = NULL;
+    if (env->username || env->password)
+    {
+        cred = smlCredNewAuth(env->authType,
+                              env->username,
+                              env->password,
+                              error);
+	if (!cred) return 0;
+        osync_trace(TRACE_INTERNAL, "%s: credential initialized", __func__);
+    }
+
+    /* create random session ID - glib only supports 32 bit random numbers */
+    guint64 sessionID = ((guint64) g_random_int ()) << 32 + g_random_int ();
+    char *sessionString = g_strdup_printf("%llu", sessionID);
+    osync_trace(TRACE_INTERNAL, "%s: new session ID is %llu (%s)",
+                __func__, sessionID, sessionString);
+
+    /* create session */
+    SmlLocation *target = smlLocationNew(env->url, NULL, error);
+    SmlLocation *source = smlLocationNew(env->identifier, NULL, error);
+    SmlLink *link = smlLinkNew(env->tsp, NULL, error);
+    env->session = smlSessionNew(SML_SESSION_TYPE_CLIENT,
+                                 SML_MIMETYPE_XML,
+                                 env->syncmlVersion,
+                                 SML_PROTOCOL_SYNCML,
+                                 target, source,
+                                 sessionString, 0, error);
+    g_free(sessionString);
+    if (!env->session) return 0;
+
+    /* register all the add-ons */
+    if (cred)
+        smlSessionSetCred(env->session, cred);
+    if (!smlManagerSessionAdd(env->manager, env->session, link, error))
+        return 0;
+    if (!smlDevInfAgentRegisterSession(env->agent, env->manager, env->session, error))
+        return 0;
+
+    return sessionID;
+}
+
 void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
@@ -57,62 +108,61 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	 * later means we signal the success in another function
 	 */
 	env->tryDisconnect = FALSE;
-	env->connectCtx = ctx;
-	osync_context_ref(env->connectCtx);
+	if (ctx)
+	{
+		/* There is no context if this is the second connect to handle
+		 * an OMA DS client - and this is an OMA DS client. OMA DS
+		 * clients need a second session for batch_commit.
+		 */
+		env->connectCtx = ctx;
+		osync_context_ref(env->connectCtx);
+	}
 	osync_trace(TRACE_INTERNAL, "%s: environment ready", __func__);
 
-	/* prepare credential */
-	SmlCred *cred = NULL;
-	if (env->username || env->password)
-	{
-		cred = smlCredNewAuth(env->authType,
-				 env->username,
-				 env->password,
-				 &error);
-		osync_trace(TRACE_INTERNAL, "%s: credential initialized", __func__);
-	}
-
-	/* prepare session */
-	SmlLocation *target = smlLocationNew(env->url, NULL, &error);
-	SmlLocation *source = smlLocationNew(env->identifier, NULL, &error);
-	SmlLink *link = smlLinkNew(env->tsp, NULL, &error);
-	env->session = smlSessionNew(SML_SESSION_TYPE_CLIENT,
-                                    SML_MIMETYPE_XML,
-                                    env->syncmlVersion,
-                                    SML_PROTOCOL_SYNCML,
-                                    target, source,
-	 			    "1", // this is the first session
-				    0, &error); 
-	if (cred)
-		smlSessionSetCred(env->session, cred);
-
-	if (!smlManagerSessionAdd(env->manager, env->session, link, &error))
+	/* init new session */
+	guint64 sessionID = init_client_session(env, &error);
+	if (sessionID == 0 || error != NULL)
 		goto error;
 
-	/* send the device information */
-	if (!smlDevInfAgentRegisterSession(env->agent, env->manager, env->session, &error))
-		goto error;
-	smlDevInfAgentSendDevInf(env->agent, env->session, &error);
-	smlDevInfAgentRequestDevInf(env->agent, env->session, &error);
-	smlSessionFlush(env->session, TRUE, &error);
-	osync_trace(TRACE_INTERNAL, "%s: session ready", __func__);
-
-	/* If we receive a device information from the server
-	 * then we can be sure that the connect was successful.
-	 * "Unfortunately" such a message is handled automatically
-	 * by the devinf agent. Nevertheless the transport layer
-	 * sends a CONNECT_DONE event which will be managed by
-	 * _manage_event.
+	/* If there is not connect context then this is the second connect from
+	 * from the synchronization. Two OMA DS sessions are required because
+	 * OpenSync wants to have the last word but according to OMA DS specs
+	 * the OMA DS servers have always the last word. So a second session is
+	 * necessary two talk to the server for a second time.
+	 *
+	 * If we talk to a server for the second time then there is already a
+	 * TCP/IP connection and the device information was already sent.
+	 * Therefore the device information will only be send for the first
+	 * connection attempt.
 	 */
+	if (ctx)
+	{
+		/* send the device information */
+		smlDevInfAgentSendDevInf(env->agent, env->session, &error);
+		smlDevInfAgentRequestDevInf(env->agent, env->session, &error);
+		smlSessionFlush(env->session, TRUE, &error);
+		osync_trace(TRACE_INTERNAL, "%s: sent devinf", __func__);
+
+		/* If we receive a device information from the server
+		 * then we can be sure that the connect was successful.
+		 * "Unfortunately" such a message is handled automatically
+		 * by the devinf agent. Nevertheless the transport layer
+		 * sends a CONNECT_DONE event which will be managed by
+		 * _manage_event.
+		 */
+	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(env->connectCtx, oserror);
-	osync_context_unref(env->connectCtx);
-	env->connectCtx = NULL;
+	if (ctx)
+	{
+		osync_context_report_osyncerror(env->connectCtx, oserror);
+		osync_context_unref(env->connectCtx);
+		env->connectCtx = NULL;
+	}
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
@@ -309,32 +359,40 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 			__func__, database->objtype, database->url);
 	}
 
-        if (!database->session &&
-            osync_objtype_sink_get_slowsync(database->sink))
+	/* initialize the timestamps and alert type */
+	SmlAlertType alertType = SML_ALERT_SLOW_SYNC;
+	char *last = NULL; // perhaps NULL is better
+	char *next = malloc(sizeof(char)*17);
+	time_t htime = time(NULL);
+	if (env->onlyLocaltime)
+		strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
+	else
+		strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+	if (!osync_objtype_sink_get_slowsync(database->sink))
         {
-            // if there is no DsSession and we have a slowsync
-            // then we MUST initiate a sync which forces us
-            // to create a new DsSession
-            // const char *last = "000000T000000Z"; // perhaps NULL is better
-            const char *last = "0"; // perhaps NULL is better
-            char *next = malloc(sizeof(char)*17);
-	    time_t htime = time(NULL);
-	    if (env->onlyLocaltime)
-	        strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
-	    else
-	        strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
-            database->session = smlDsServerSendAlert(
-					database->server,
-					env->session,
-					SML_ALERT_SLOW_SYNC,
-					NULL, next,
-					_recv_alert_reply, database,
-					&error);
-		if (!database->session)
-			goto error;
+		/* this must be a two-way-sync */
+		alertType = SML_ALERT_TWO_WAY;
+		char *key = g_strdup_printf("remoteanchor%s", smlDsServerGetLocation(database->server));
+		last = osync_anchor_retrieve(database->env->anchor_path, key);
+		g_free(key);
 	}
 
-	register_ds_session_callbacks(database->session, database, _recv_alert_from_server);
+	/* The OMA DS client starts the synchronization so there should be no
+	 * DsSession (datastore session) present.
+	 */
+	database->session = smlDsServerSendAlert(
+				database->server,
+				env->session,
+				alertType,
+				last, next,
+				_recv_alert_reply, database,
+				&error);
+	g_free(next);
+	if (last) g_free(last);
+	if (!database->session)
+		goto error;
+
+	register_ds_session_callbacks(database, _recv_alert_from_server);
 
 	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;
@@ -346,6 +404,8 @@ error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
 	osync_context_report_osyncerror(ctx, oserror);
+        osync_context_unref(database->getChangesCtx);
+        database->getChangesCtx = NULL;
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
@@ -377,6 +437,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	memset(&main_functions, 0, sizeof(main_functions));
 	main_functions.connect = connect_http_client;
 	main_functions.disconnect = disconnect;
+	env->connectFunction = connect_http_client;
 
 	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
 	osync_plugin_info_set_main_sink(info, env->mainsink);
@@ -529,7 +590,6 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
         	osync_trace(TRACE_INTERNAL, "%s- create a fresh connection with a new context (%p)", __func__, ctx);
 		connect_http_client(data, info, ctx);
 		osync_context_unref(ctx);
-		if (!env->isConnected) return FALSE;
 	}
 
         GList *o = env->databases;
@@ -560,7 +620,9 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
 	while (!smlDevInfAgentGetDevInf(env->agent))
 	{
 		unsigned int sleeping = 5;
-		printf("SyncML HTTP client is waiting for server's device info (%d seconds).\n", sleeping);
+		osync_trace(TRACE_INTERNAL,
+			"%s: SyncML HTTP client waiting for device info (%d seconds) ...",
+			__func__, sleeping);
 		sleep(sleeping);
 	}
 	SmlDevInf *devinf = smlDevInfAgentGetDevInf(env->agent);

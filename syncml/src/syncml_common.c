@@ -138,11 +138,10 @@ void syncml_free_database(SmlDatabase *database)
 	g_free(database);
 }
 
-SmlBool _try_change_ctx_cleanup(SmlDatabase *database)
+void _try_change_ctx_cleanup(SmlDatabase *database)
 {
 	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, finalChanges %i)", __func__,
 		 database->gotChanges, database->finalChanges);
-	SmlBool result = FALSE;
 	
 	// we should try to cleanup getChangesCtx if
 	//     SML_MANAGER_SESSION_FINAL
@@ -151,13 +150,12 @@ SmlBool _try_change_ctx_cleanup(SmlDatabase *database)
 	// finalChanges must be resetted at every new message
 	// until we received a sync command (not alert)
 	if (database->gotChanges && database->finalChanges) {
+		osync_trace(TRACE_INTERNAL, "%s: reported success on change context.", __func__);
 		osync_context_report_success(database->getChangesCtx);
 		database->getChangesCtx = NULL;
-		result = TRUE;
 	}
 
-	osync_trace(TRACE_EXIT, "%s(%d)", __func__, result);
-	return result;
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 SmlChangeType _get_changetype(OSyncChange *change)
@@ -284,11 +282,10 @@ gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpointer user
 }
 
 void register_ds_session_callbacks(
-		SmlDsSession *dsession,
 		SmlDatabase *database,
 		SmlDsSessionAlertCb alertCallback)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, dsession, database, alertCallback);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, database, alertCallback);
 	g_assert(database);
 
 	if (!alertCallback)
@@ -312,7 +309,7 @@ void register_ds_session_callbacks(
 	}
 	else
 	{
-		if (dsession)
+		if (database->session)
 		{
 			osync_trace(TRACE_INTERNAL, "%s: execute immediate init", __func__);
 			smlDsSessionGetAlert(database->session, alertCallback, database);
@@ -354,7 +351,7 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	 * so the DsSession is not available
 	 * so we have to wait for the DsSession
 	 */
-	register_ds_session_callbacks(database->session, database, _recv_alert);
+	register_ds_session_callbacks(database, _recv_alert);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -380,12 +377,17 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlError *error = NULL;
 	
 	env->gotFinal = FALSE;
-	
-	if (!smlSessionEnd(env->session, &error))
-		goto error;
-	
+
+	/* It is necessary to place the context at the right position before
+	 * calling a function of libsyncml because the library can send signals
+	 * very fast if there is nothing to do (e.g. no status/command is
+	 * waiting for a flush).
+	 */
 	env->disconnectCtx = ctx;
 	osync_context_ref(env->disconnectCtx);
+
+	if (!smlSessionEnd(env->session, &error))
+		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -600,12 +602,26 @@ void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncCon
 
     if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
     {
-        // a client must create a new data sync session
- 
-	// stop old ds session
-	// FIXME: this causes a segfault !!!
-	// smlSessionUnref(database->session);
-	// database->session = NULL;
+	/* I (bellmich) tested a lot with OCS and the result is
+         * that it is required to start a new OMA DS session for
+	 * the data uploading. If I only try to send a new alert
+	 * then OCS fails after receiving the changes from the
+	 * client.
+	 *
+	 * It is important to understand that OMA DS session and
+	 * libsyncml DsSession are completely different things.
+	 * libsyncml DsSession is something like a DataStore
+	 * session inside of an OMA DS session. OMA DS session
+	 * means OMA Data Synchronization session. I think the
+	 * confusion happens because the interface was designed
+	 * before SyncML was migrated to OMA DS/DM.
+	 */
+
+	/* stop the old DsSession */
+	smlDsSessionUnref(database->session);
+	database->session = NULL;
+
+        /* a client must create a new DsSession */
 
         // start fresh ds session
         // send sync alert
@@ -629,17 +645,14 @@ void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncCon
         if (!database->session)
             goto error;
 
-	smlDsSessionGetAlert(database->session, _recv_alert_from_server, database);
-	smlDsSessionGetEvent(database->session, _ds_event, database);
-	smlDsSessionGetSync(database->session, _recv_sync, database);
-	smlDsSessionGetChanges(database->session, _recv_change, database);
+	register_ds_session_callbacks(database, _recv_alert_from_server);
 
 	if (!flush_session_for_all_databases(database->env, TRUE, &error))
             goto error;
     }
     else
     {
-        // server can send the sync message directly
+        /* a server can send the sync message directly */
         send_sync_message(database, _recv_sync_reply, &oserror);
     }
 
