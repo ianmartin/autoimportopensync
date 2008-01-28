@@ -17,6 +17,7 @@
     <path></path>
     <objtype>contact</objtype>
     <objformat>vcard30</objformat>
+    <converterpath_config></converterpath_config>
   </directory>
   -->
 
@@ -25,6 +26,7 @@
     <path></path>
     <objtype>event</objtype>
     <objformat>vevent20</objformat>
+    <converterpath_config></converterpath_config>
   </directory>
   -->
 
