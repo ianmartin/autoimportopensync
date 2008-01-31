@@ -582,11 +582,11 @@ void _recv_sync_reply(SmlSession *session, SmlStatus *status, void *userdata)
 /* *****     Change Callbacks     ***** */
 /* ************************************ */
 
-SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **smlerror)
+SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, smlerror);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, error);
 	SmlDatabase *database = (SmlDatabase *)userdata;
-	OSyncError *error = NULL;
+	OSyncError *oerror = NULL;
 
 	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
 	    !database->getChangesCtx)
@@ -614,9 +614,11 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 		return TRUE;
 	}
 
-	OSyncChange *change = osync_change_new(&error);
+	OSyncChange *change = osync_change_new(&oerror);
 	if (!change) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "No change created: %s", osync_error_print(&error));
+		smlErrorSet(error, SML_ERROR_GENERIC, "No change created: %s", osync_error_print(&oerror));
+		osync_error_unref(&oerror);
+		oerror = NULL;
 		goto error;
 	}
 	
@@ -635,10 +637,9 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	osync_trace(TRACE_INTERNAL,
 		"%s: objformat: %s", __func__,
 		osync_objformat_get_name(database->objformat));
-	OSyncData *odata = osync_data_new(data, size+1, database->objformat, &error);
+	OSyncData *odata = osync_data_new(data, size+1, database->objformat, &oerror);
 	if (!odata) {
-		osync_change_unref(change);
-		goto error;
+		goto oerror;
 	}
 
 	// who has commented this out => who can remove it?
@@ -652,6 +653,7 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	osync_change_set_changetype(change, _to_osync_changetype(type));
 
 	osync_data_unref(odata);
+	odata = NULL;
 
 	osync_context_report_change(database->getChangesCtx, change);
 
@@ -659,15 +661,13 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
 	{
 		// ok let's prepare the map
-		if (!smlDsSessionQueueMap(database->session, uid, osync_change_get_uid(change), smlerror))
-			goto smlerror;
+		if (!smlDsSessionQueueMap(database->session, uid, osync_change_get_uid(change), error))
+			goto error;
 		database->pendingChanges--;
 		if (database->pendingChanges == 0)
 		{
-			if (!smlDsSessionCloseMap(database->session, _recv_map_reply, database, smlerror))
-				goto smlerror;
-			//if (!flush_session_for_all_databases(database->env, TRUE, smlerror))
-			//	goto smlerror;
+			if (!smlDsSessionCloseMap(database->session, _recv_map_reply, database, error))
+				goto error;
 		}
 		osync_trace(TRACE_INTERNAL, "%s: still %d pendingChanges",
 			__func__, database->pendingChanges);
@@ -688,17 +688,22 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	}
 
 	osync_change_unref(change);
+	change = NULL;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-smlerror:
-	osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(smlerror));
+oerror:
+	smlErrorSet(error, SML_ERROR_GENERIC, "%s", osync_error_print(&oerror));
+	osync_error_unref(&oerror);
+	oerror = NULL;
 error:
-//	osync_context_report_osyncwarning(ctx, error);
-	osync_error_unref(&error);
-
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	if (change)
+	{
+		osync_change_unref(change);
+		change = NULL;
+	}
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(error));
 	return FALSE;
 }
 
