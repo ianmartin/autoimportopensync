@@ -589,7 +589,6 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
 		osync_context_set_callback(ctx, &_publish_osync_error, error);
         	osync_trace(TRACE_INTERNAL, "%s- create a fresh connection with a new context (%p)", __func__, ctx);
 		connect_http_client(data, info, ctx);
-		osync_context_unref(ctx);
 	}
 
         GList *o = env->databases;

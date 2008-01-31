@@ -527,6 +527,8 @@ SmlBool send_sync_message(
 
 	osync_change_unref(change);
 	osync_context_unref(context);
+        database->syncChanges[i] = NULL;
+        database->syncContexts[i] = NULL;
     }
     g_free(database->syncChanges);
     g_free(database->syncContexts);
