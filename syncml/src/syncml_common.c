@@ -24,6 +24,8 @@
 
 void set_session_user(SmlPluginEnv *env, const char* user)
 {
+    g_assert(user);
+
     if (env->sessionUser == NULL ||
         strcmp(env->sessionUser, user))
     {
@@ -32,7 +34,10 @@ void set_session_user(SmlPluginEnv *env, const char* user)
         g_list_free(env->ignoredDatabases);
         env->ignoredDatabases = NULL;
     }
-    env->sessionUser = user;
+
+    if (env->sessionUser)
+        g_free(env->sessionUser);
+    env->sessionUser = g_strdup(user);
 }
 
 GList *g_list_add(GList *databases, void *database)
@@ -98,7 +103,10 @@ SmlBool flush_session_for_all_databases(
 			SmlError **error)
 {
     // avoid flushing to early
+
     osync_trace(TRACE_ENTRY, "%s", __func__);
+    g_assert(env);
+
     if (activeDatabase) env->num++;
     osync_trace(TRACE_INTERNAL, "flush: %i, ignore: %i",
                 env->num, g_list_length(env->ignoredDatabases));
@@ -176,6 +184,8 @@ SmlChangeType _get_changetype(OSyncChange *change)
 osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
+	g_assert(env);
+	g_assert(cur);
 
 	SmlDatabase *database = osync_try_malloc0(sizeof(SmlDatabase), error);
 	if (!database)
@@ -426,6 +436,12 @@ void finalize(void *data)
 	if (env->anchor_path)
 		g_free(env->anchor_path);
 
+	if (env->devinf_path)
+		g_free(env->devinf_path);
+
+	if (env->sessionUser)
+		g_free(env->sessionUser);
+	
 	if (env->source) {
 		g_source_destroy(env->source);
 		g_source_unref(env->source);
@@ -438,7 +454,7 @@ void finalize(void *data)
 
 		env->databases = g_list_remove(env->databases, db);
 	}
-	
+
 	g_free(env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -516,13 +532,16 @@ SmlBool send_sync_message(
                  _recv_change_reply, tracer, &error))
             goto error;
 
-	osync_change_unref(change);
-	osync_context_unref(context);
+	// DO NOT unref change and context here because they are used by the tracer
+	// osync_change_unref(change);
+	// osync_context_unref(context);
         database->syncChanges[i] = NULL;
         database->syncContexts[i] = NULL;
     }
     g_free(database->syncChanges);
     g_free(database->syncContexts);
+    database->syncChanges = NULL;
+    database->syncContexts = NULL;
 	
     if (!smlDsSessionCloseSync(database->session, &error))
         goto error;
@@ -534,8 +553,8 @@ SmlBool send_sync_message(
     return TRUE;
 
 error:
-    if (error != NULL)
-        osync_error_set(oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+    osync_error_set(oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+    smlErrorDeref(&error);
 oserror:
     osync_context_report_osyncerror(database->commitCtx, *oserror);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(oserror));

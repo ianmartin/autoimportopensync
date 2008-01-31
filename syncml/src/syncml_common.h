@@ -111,7 +111,7 @@ typedef struct SmlPluginEnv {
 
 	GList *databases;
 	GList *ignoredDatabases;
-	const char *sessionUser;
+	char *sessionUser;
 
 	int num;
 

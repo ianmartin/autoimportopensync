@@ -423,6 +423,7 @@ SmlBool _recv_alert_from_server(
 
     osync_anchor_update(env->anchor_path, key, next);
     g_free(key);
+    key = NULL;
 
     // start the sync message
     if (!send_sync_message(database, _recv_sync_reply, &oserror))
@@ -434,6 +435,7 @@ error:
     osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
     smlErrorDeref(&error);
 oserror:
+    if (key) g_free(key);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
     osync_error_unref(&oserror);
     return FALSE;
@@ -719,9 +721,11 @@ void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *n
 	} else {
 		if (newuid)
 			osync_change_set_uid(ctx->change, newuid);
-		g_free(ctx);
-		
 		osync_context_report_success(context);
+		// cleanup
+		osync_change_unref(ctx->change);
+		osync_context_unref(context);
+		g_free(ctx);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
