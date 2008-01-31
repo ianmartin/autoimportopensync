@@ -36,7 +36,7 @@ void set_session_user(SmlPluginEnv *env, const char* user)
     }
 
     if (env->sessionUser)
-        g_free(env->sessionUser);
+        secure_cfree(&(env->sessionUser));
     env->sessionUser = g_strdup(user);
 }
 
@@ -132,18 +132,18 @@ SmlBool flush_session_for_all_databases(
 void syncml_free_database(SmlDatabase *database)
 {
 	if (database->url)
-		g_free(database->url);
+		secure_cfree(&(database->url));
 
 	if (database->objtype)
-		g_free(database->objtype);
+		secure_cfree(&(database->objtype));
 
 	if (database->objformat_name)
-		g_free(database->objformat_name);
+		secure_cfree(&(database->objformat_name));
 
 	if (database->sink)
 		osync_objtype_sink_unref(database->sink);
 
-	g_free(database);
+	secure_free((gpointer *)&database);
 }
 
 void _try_change_ctx_cleanup(SmlDatabase *database)
@@ -419,33 +419,33 @@ void finalize(void *data)
 		smlNotificationFree(env->san);
 
 	if (env->identifier)
-		g_free(env->identifier);
+		secure_cfree(&(env->identifier));
 
 	if (env->username)
-		g_free(env->username);
+		secure_cfree(&(env->username));
 
 	if (env->password)
-		g_free(env->password);
+		secure_cfree(&(env->password));
 
 	if (env->bluetoothAddress)
-		g_free(env->bluetoothAddress);
+		secure_cfree(&(env->bluetoothAddress));
 
 	if (env->url)
-		g_free(env->url);
+		secure_cfree(&(env->url));
 
 	if (env->anchor_path)
-		g_free(env->anchor_path);
+		secure_cfree(&(env->anchor_path));
 
 	if (env->devinf_path)
-		g_free(env->devinf_path);
+		secure_cfree(&(env->devinf_path));
 
 	if (env->sessionUser)
-		g_free(env->sessionUser);
+		secure_cfree(&(env->sessionUser));
 	
 	if (env->source) {
 		g_source_destroy(env->source);
 		g_source_unref(env->source);
-		g_free(env->source_functions);
+		secure_free((gpointer *)&(env->source_functions));
 	}
 
 	while (env->databases) {
@@ -455,7 +455,7 @@ void finalize(void *data)
 		env->databases = g_list_remove(env->databases, db);
 	}
 
-	g_free(env);
+	secure_free((gpointer *) &env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -538,10 +538,8 @@ SmlBool send_sync_message(
         database->syncChanges[i] = NULL;
         database->syncContexts[i] = NULL;
     }
-    g_free(database->syncChanges);
-    g_free(database->syncContexts);
-    database->syncChanges = NULL;
-    database->syncContexts = NULL;
+    secure_free((gpointer *) &(database->syncChanges));
+    secure_free((gpointer *) &(database->syncContexts));
 	
     if (!smlDsSessionCloseSync(database->session, &error))
         goto error;
@@ -708,3 +706,16 @@ SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info)
     osync_trace(TRACE_EXIT, "%s - %s", __func__, database->url);
     return database;
 } 
+
+void secure_cfree(char **address)
+{
+    secure_free((gpointer *)address);
+}
+
+void secure_free(gpointer *address)
+{
+    g_assert(address);
+    g_assert(*address);
+    g_free(*address);
+    *address = NULL;
+}

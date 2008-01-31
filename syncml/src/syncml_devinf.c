@@ -535,29 +535,33 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 
     /* create basic device info */
     char *esc_devid  = osync_db_sql_escape(smlDevInfGetDeviceID(devinf));
-    char *esc_vendor = osync_db_sql_escape(smlDevInfGetManufacturer(devinf));
-    char *esc_model  = osync_db_sql_escape(smlDevInfGetModel(devinf));
-    char *esc_oem    = osync_db_sql_escape(smlDevInfGetOEM(devinf));
-    char *esc_sw     = osync_db_sql_escape(smlDevInfGetSoftwareVersion(devinf));
-    char *esc_hw     = osync_db_sql_escape(smlDevInfGetHardwareVersion(devinf));
-    char *esc_fw     = osync_db_sql_escape(smlDevInfGetFirmwareVersion(devinf));
-    const char *device_query = "REPLACE INTO devices (\"device_id\", \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\") VALUES ('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')";
-    char *replace = g_strdup_printf(
+    char *replace = NULL;
+    {
+        // this block internalize some variables
+        char *esc_vendor = osync_db_sql_escape(smlDevInfGetManufacturer(devinf));
+        char *esc_model  = osync_db_sql_escape(smlDevInfGetModel(devinf));
+        char *esc_oem    = osync_db_sql_escape(smlDevInfGetOEM(devinf));
+        char *esc_sw     = osync_db_sql_escape(smlDevInfGetSoftwareVersion(devinf));
+        char *esc_hw     = osync_db_sql_escape(smlDevInfGetHardwareVersion(devinf));
+        char *esc_fw     = osync_db_sql_escape(smlDevInfGetFirmwareVersion(devinf));
+        const char *device_query = "REPLACE INTO devices (\"device_id\", \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\") VALUES ('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')";
+        replace = g_strdup_printf(
                                     device_query, esc_devid, smlDevInfGetDeviceType(devinf),
                                     esc_vendor, esc_model, esc_oem,
                                     esc_sw, esc_hw, esc_fw,
                                     smlDevInfSupportsUTC(devinf),
                                     smlDevInfSupportsLargeObjs(devinf),
                                     smlDevInfSupportsNumberOfChanges(devinf));
-    success = osync_db_query(db, replace, oerror);
-    g_free(esc_vendor);
-    g_free(esc_model);
-    g_free(esc_oem);
-    g_free(esc_sw);
-    g_free(esc_hw);
-    g_free(esc_fw);
-    g_free(replace);
-    if (!success) goto oerror;
+        success = osync_db_query(db, replace, oerror);
+        secure_cfree(&esc_vendor);
+        secure_cfree(&esc_model);
+        secure_cfree(&esc_oem);
+        secure_cfree(&esc_sw);
+        secure_cfree(&esc_hw);
+        secure_cfree(&esc_fw);
+        secure_cfree(&replace);
+        if (!success) goto oerror;
+    }
 
     /* create datastore info */
     unsigned int num = smlDevInfNumDataStores(devinf);
@@ -618,16 +622,16 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                   esc_tx_ct, esc_tx_version,
                                   sync_cap);
         success = osync_db_query(db, replace, oerror);
-        g_free(esc_datastore);
-        g_free(esc_rx_pref_ct);
-        g_free(esc_rx_pref_version);
-        g_free(esc_rx_ct);
-        g_free(esc_rx_version);
-        g_free(esc_tx_pref_ct);
-        g_free(esc_tx_pref_version);
-        g_free(esc_tx_ct);
-        g_free(esc_tx_version);
-	g_free(replace);
+        secure_cfree(&esc_datastore);
+        secure_cfree(&esc_rx_pref_ct);
+        secure_cfree(&esc_rx_pref_version);
+        secure_cfree(&esc_rx_ct);
+        secure_cfree(&esc_rx_version);
+        secure_cfree(&esc_tx_pref_ct);
+        secure_cfree(&esc_tx_pref_version);
+        secure_cfree(&esc_tx_ct);
+        secure_cfree(&esc_tx_version);
+	secure_cfree(&replace);
         if (!success) goto oerror;
     }
 
@@ -642,13 +646,13 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         char *version = smlDevInfCTCapGetVerCT(ctcap);
         char *esc_ct = osync_db_sql_escape(ct);
         char *esc_version = osync_db_sql_escape(version);
-        g_free(ct);
-        g_free(version);
+        secure_cfree(&ct);
+        secure_cfree(&version);
         const char *ctcaps_query = "REPLACE INTO content_type_capabilities (\"device_id\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s')";
         replace = g_strdup_printf(ctcaps_query, esc_devid, esc_ct, esc_version);
         // FIXME: unclean error handling
         success = osync_db_query(db, replace, oerror);
-	g_free(replace);
+	secure_cfree(&replace);
 
         /* adding properties */
 	osync_trace(TRACE_INTERNAL, "%s: adding properties", __func__);
@@ -668,9 +672,9 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             char *esc_prop_name = osync_db_sql_escape(prop_name);
             char *esc_data_type = osync_db_sql_escape(data_type);
             char *esc_display_name = osync_db_sql_escape(display_name);
-            g_free(prop_name);
-            g_free(data_type);
-            g_free(display_name);
+            secure_cfree(&prop_name);
+            secure_cfree(&data_type);
+            secure_cfree(&display_name);
             const char *property_query = "REPLACE INTO properties (\"device_id\", \"content_type\", \"version\", \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\") VALUES ('%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s')";
             replace = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_data_type,
@@ -678,9 +682,9 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                       esc_display_name);
             // FIXME: unclean error handling
             success = osync_db_query(db, replace, oerror);
-	    g_free(replace);
-            g_free(esc_data_type);
-            g_free(esc_display_name);
+	    secure_cfree(&replace);
+            secure_cfree(&esc_data_type);
+            secure_cfree(&esc_display_name);
 
             /* adding property values */
 	    osync_trace(TRACE_INTERNAL, "%s: adding property values", __func__);
@@ -691,14 +695,14 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 	        osync_trace(TRACE_INTERNAL, "%s: adding property value %d", __func__, l);
                 char *value = smlDevInfPropertyGetNthValEnum(property, l);
                 char *esc_value = osync_db_sql_escape(value);
-                g_free(value);
+                secure_cfree(&value);
                 const char *prop_value_query = "REPLACE INTO property_values (\"device_id\", \"content_type\", \"version\", \"property\", \"property_value\") VALUES ('%s', '%s', '%s', '%s', '%s')";
                 replace = g_strdup_printf(prop_value_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_value);
                 // FIXME: unclean error handling
                 success = osync_db_query(db, replace, oerror);
-	        g_free(replace);
-                g_free(esc_value);
+	        secure_cfree(&replace);
+                secure_cfree(&esc_value);
 	        osync_trace(TRACE_INTERNAL, "%s: adding property value %d", __func__, l);
             }
 
@@ -716,17 +720,17 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 char *esc_param_name = osync_db_sql_escape(param_name);
                 esc_data_type = osync_db_sql_escape(data_type);
                 esc_display_name = osync_db_sql_escape(display_name);
-                g_free(data_type);
-                g_free(display_name);
+                secure_cfree(&data_type);
+                secure_cfree(&display_name);
                 const char *prop_param_query = "REPLACE INTO property_params (\"device_id\", \"content_type\", \"version\", \"property\", \"property_param\", \"datatype\", \"display_name\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')";
                 replace = g_strdup_printf(prop_param_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_param_name,
                                       esc_data_type, esc_display_name);
                 // FIXME: unclean error handling
                 success = osync_db_query(db, replace, oerror);
-	        g_free(replace);
-                g_free(esc_data_type);
-                g_free(esc_display_name);
+	        secure_cfree(&replace);
+                secure_cfree(&esc_data_type);
+                secure_cfree(&esc_display_name);
 
                 /* adding property parameter values */
 	        osync_trace(TRACE_INTERNAL, "%s: adding property parameter values", __func__);
@@ -737,37 +741,37 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 	             osync_trace(TRACE_INTERNAL, "%s: adding property parameter value %d", __func__, m);
                      char *value = smlDevInfPropParamGetNthValEnum(propParam, m);
                      char *esc_value = osync_db_sql_escape(value);
-                     g_free(value);
+                     secure_cfree(&value);
                      const char *param_value_query = "REPLACE INTO property_param_values (\"device_id\", \"content_type\", \"version\", \"property\", \"property_param\", \"property_param_value\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s')";
                      replace = g_strdup_printf(param_value_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_param_name,
                                       esc_value);
                      // FIXME: unclean error handling
                      success = osync_db_query(db, replace, oerror);
-	             g_free(replace);
-                     g_free(esc_value);
+	             secure_cfree(&replace);
+                     secure_cfree(&esc_value);
 	             osync_trace(TRACE_INTERNAL, "%s: adding property parameter value %d", __func__, m);
                 }
 
                 /* cleanup property parameter*/
-                g_free(esc_param_name);
+                secure_cfree(&esc_param_name);
 	        osync_trace(TRACE_INTERNAL, "%s: added property parameter %d", __func__, l);
             }
 
             /* cleanup property */
-            g_free(esc_prop_name);
+            secure_cfree(&esc_prop_name);
 	    osync_trace(TRACE_INTERNAL, "%s: added property %d", __func__, k);
         }
 
         /* cleanup capability */
-        g_free(esc_ct);
-        g_free(esc_version);
+        secure_cfree(&esc_ct);
+        secure_cfree(&esc_version);
         // FIXME: unclean error handling because several times overwritten
         if (!success) goto oerror;
     }
 
     /* finalize database */
-    g_free(esc_devid);
+    secure_cfree(&esc_devid);
     if (!osync_db_close(db, oerror)) goto oerror;
     // FIXME: I cannot unref OSyncDB !?
     // FIXME: Is this an API bug?
@@ -829,7 +833,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     char *query = g_strdup_printf(device_query, esc_devid);
     // FIXME: unclean error handling
     GList *result = osync_db_query_table(db, query, oerror);
-    g_free(query);
+    secure_cfree(&query);
     unsigned int count = 0;
     GList *row;
     for (row = result; row; row = row->next)
@@ -854,7 +858,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     {
         // the device does not exist in this database
         // the caller should ask the remote peer for DevInf
-        g_free(esc_devid);
+        secure_cfree(&esc_devid);
         osync_trace(TRACE_EXIT, "%s - the device was not found in the database", __func__);
         return FALSE;
     }
@@ -864,7 +868,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     query = g_strdup_printf(datastore_query, esc_devid);
     // FIXME: unclean error handling
     result = osync_db_query_table(db, query, oerror);
-    g_free(query);
+    secure_cfree(&query);
     count = 0;
     for (row = result; row; row = row->next)
     {
@@ -908,7 +912,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     query = g_strdup_printf(ctcaps_query, esc_devid);
     // FIXME: unclean error handling
     result = osync_db_query_table(db, query, oerror);
-    g_free(query);
+    secure_cfree(&query);
     count = 0;
     for (row = result; row; row = row->next)
     {
@@ -932,7 +936,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         query = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version);
         // FIXME: unclean error handling
         GList *prop_result = osync_db_query_table(db, query, oerror);
-        g_free(query);
+        secure_cfree(&query);
         unsigned int prop_count = 0;
         GList *prop_row;
         for (prop_row = prop_result; prop_row; prop_row = prop_row->next)
@@ -961,7 +965,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                          esc_ct, esc_version, esc_prop_name);
             // FIXME: unclean error handling
             GList *prop_value_result = osync_db_query_table(db, query, oerror);
-            g_free(query);
+            secure_cfree(&query);
             unsigned int prop_value_count = 0;
             GList *prop_value_row;
             for (prop_value_row = prop_value_result; prop_value_row; prop_value_row = prop_value_row->next)
@@ -982,7 +986,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                          esc_ct, esc_version, esc_prop_name);
             // FIXME: unclean error handling
             GList *prop_param_result = osync_db_query_table(db, query, oerror);
-            g_free(query);
+            secure_cfree(&query);
             unsigned int prop_param_count = 0;
             GList *prop_param_row;
             for (prop_param_row = prop_param_result; prop_param_row; prop_param_row = prop_param_row->next)
@@ -1008,7 +1012,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                              esc_param_name);
                 // FIXME: unclean error handling
                 GList *param_value_result = osync_db_query_table(db, query, oerror);
-                g_free(query);
+                secure_cfree(&query);
                 unsigned int param_value_count = 0;
                 GList *param_value_row;
                 for (param_value_row = param_value_result; param_value_row; param_value_row = param_value_row->next)
@@ -1019,19 +1023,19 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                     smlDevInfPropParamAddValEnum(prop_param, g_list_nth_data(param_value_columns, 0));
                 }
                 osync_db_free_list(param_value_result);
-                g_free(esc_param_name);
+                secure_cfree(&esc_param_name);
             }
             osync_db_free_list(prop_param_result);
-            g_free(esc_prop_name);
+            secure_cfree(&esc_prop_name);
         }
         osync_db_free_list(prop_result);
-        g_free(esc_ct);
-        g_free(esc_version);
+        secure_cfree(&esc_ct);
+        secure_cfree(&esc_version);
     }
     osync_db_free_list(result);
 
     /* finalize database */
-    g_free(esc_devid);
+    secure_cfree(&esc_devid);
     if (!osync_db_close(db, oerror)) goto oerror;
     // FIXME: I cannot unref OSyncDB !?
     // FIXME: Is this an API bug?
@@ -1058,7 +1062,7 @@ char *get_devinf_identifier()
     return id;
     // osync_trace(TRACE_INTERNAL, "%s - %s", __func__, id);
     // char *b64 = g_base64_encode(id, strlen(id));
-    // g_free(id);
+    // secure_cfree(&id);
     // osync_trace(TRACE_EXIT, "%s - %s", __func__, b64);
     // return b64;
 }

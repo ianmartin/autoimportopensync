@@ -422,8 +422,7 @@ SmlBool _recv_alert_from_server(
     }
 
     osync_anchor_update(env->anchor_path, key, next);
-    g_free(key);
-    key = NULL;
+    secure_cfree(&key);
 
     // start the sync message
     if (!send_sync_message(database, _recv_sync_reply, &oserror))
@@ -435,7 +434,7 @@ error:
     osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
     smlErrorDeref(&error);
 oserror:
-    if (key) g_free(key);
+    if (key) secure_cfree(&key);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
     osync_error_unref(&oserror);
     return FALSE;
@@ -458,7 +457,7 @@ SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last,
 	
 	osync_trace(TRACE_INTERNAL, "%s: updating sync anchor %s to %s", __func__, key, next);
 	osync_anchor_update(env->anchor_path, key, next);
-	g_free(key);
+	secure_cfree(&key);
 	
 	if (osync_objtype_sink_get_slowsync(database->sink)) {
 		smlDsSessionSendAlert(dsession, SML_ALERT_SLOW_SYNC, last, next, _recv_alert_reply, database, NULL);
@@ -631,7 +630,7 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	/*
 	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL) && env->onlyLocaltime && type != SML_CHANGE_DELETE) {
 		char *_data = osync_time_vcal2utc(data);
-		g_free(data);
+		secure_cfree(&data);
 		data = _data;
 		size = strlen(data);
 	}
@@ -725,7 +724,7 @@ void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *n
 		// cleanup
 		osync_change_unref(ctx->change);
 		osync_context_unref(context);
-		g_free(ctx);
+		secure_free((gpointer *)&ctx);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

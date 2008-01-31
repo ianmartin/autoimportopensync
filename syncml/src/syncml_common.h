@@ -218,4 +218,7 @@ GList *g_list_add(GList *databases, void *database);
 
 void finalize(void *data);
 
+void secure_cfree(char **address);
+void secure_free(gpointer *address);
+
 #endif //_SYNCML_COMMON_H
