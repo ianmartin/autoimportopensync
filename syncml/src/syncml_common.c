@@ -339,9 +339,6 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	database->getChangesCtx = ctx;
 	osync_context_ref(database->getChangesCtx);
 
-	SmlError *error = NULL;
-	OSyncError *oserror = NULL;
-
 	/* this function is a server function
 	 * a server performs this function if connect succeeded
 	 * connect success means there is a syncml message from the client
@@ -355,12 +352,6 @@ void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-	
-error:
-	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-	smlErrorDeref(&error);
-	osync_context_report_osyncerror(ctx, oserror);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -655,7 +646,8 @@ void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncCon
     else
     {
         /* a server can send the sync message directly */
-        send_sync_message(database, _recv_sync_reply, &oserror);
+        if (!send_sync_message(database, _recv_sync_reply, &oserror))
+            goto oserror;
     }
 
     osync_trace(TRACE_EXIT, "%s", __func__);

@@ -526,13 +526,12 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
     g_assert(filename);
     g_assert(oerror);
     SmlBool success = TRUE;
-    SmlError *error = NULL;
 
     /* init database stuff */
     OSyncDB *db = osync_db_new(oerror);
-    if (!db) goto error;
-    if (!osync_db_open(db, filename, oerror)) goto error;
-    if (!init_devinf_database_schema(db, oerror)) goto error;
+    if (!db) goto oerror;
+    if (!osync_db_open(db, filename, oerror)) goto oerror;
+    if (!init_devinf_database_schema(db, oerror)) goto oerror;
 
     /* create basic device info */
     char *esc_devid  = osync_db_sql_escape(smlDevInfGetDeviceID(devinf));
@@ -558,7 +557,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
     g_free(esc_hw);
     g_free(esc_fw);
     g_free(replace);
-    if (!success) goto error;
+    if (!success) goto oerror;
 
     /* create datastore info */
     unsigned int num = smlDevInfNumDataStores(devinf);
@@ -629,7 +628,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         g_free(esc_tx_ct);
         g_free(esc_tx_version);
 	g_free(replace);
-        if (!success) goto error;
+        if (!success) goto oerror;
     }
 
     /* create content type capabilities info */
@@ -647,6 +646,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         g_free(version);
         const char *ctcaps_query = "REPLACE INTO content_type_capabilities (\"device_id\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s')";
         replace = g_strdup_printf(ctcaps_query, esc_devid, esc_ct, esc_version);
+        // FIXME: unclean error handling
         success = osync_db_query(db, replace, oerror);
 	g_free(replace);
 
@@ -676,6 +676,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                       esc_prop_name, esc_data_type,
                                       max_occur, max_size, no_truncate,
                                       esc_display_name);
+            // FIXME: unclean error handling
             success = osync_db_query(db, replace, oerror);
 	    g_free(replace);
             g_free(esc_data_type);
@@ -694,6 +695,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 const char *prop_value_query = "REPLACE INTO property_values (\"device_id\", \"content_type\", \"version\", \"property\", \"property_value\") VALUES ('%s', '%s', '%s', '%s', '%s')";
                 replace = g_strdup_printf(prop_value_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_value);
+                // FIXME: unclean error handling
                 success = osync_db_query(db, replace, oerror);
 	        g_free(replace);
                 g_free(esc_value);
@@ -720,6 +722,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 replace = g_strdup_printf(prop_param_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_param_name,
                                       esc_data_type, esc_display_name);
+                // FIXME: unclean error handling
                 success = osync_db_query(db, replace, oerror);
 	        g_free(replace);
                 g_free(esc_data_type);
@@ -739,6 +742,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                      replace = g_strdup_printf(param_value_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_param_name,
                                       esc_value);
+                     // FIXME: unclean error handling
                      success = osync_db_query(db, replace, oerror);
 	             g_free(replace);
                      g_free(esc_value);
@@ -758,23 +762,19 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         /* cleanup capability */
         g_free(esc_ct);
         g_free(esc_version);
-        if (!success) goto error;
+        // FIXME: unclean error handling because several times overwritten
+        if (!success) goto oerror;
     }
 
     /* finalize database */
     g_free(esc_devid);
-    if (!osync_db_close(db, oerror)) goto error;
+    if (!osync_db_close(db, oerror)) goto oerror;
     // FIXME: I cannot unref OSyncDB !?
     // FIXME: Is this an API bug?
 
     osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
     return TRUE;
-error:
-    if (error)
-    {
-        osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-        smlErrorDeref(&error);
-    }
+oerror:
     osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
     return FALSE;
 }
@@ -819,14 +819,15 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
 
     /* init database stuff */
     OSyncDB *db = osync_db_new(oerror);
-    if (!db) goto error;
-    if (!osync_db_open(db, filename, oerror)) goto error;
-    if (!init_devinf_database_schema(db, oerror)) goto error;
+    if (!db) goto oerror;
+    if (!osync_db_open(db, filename, oerror)) goto oerror;
+    if (!init_devinf_database_schema(db, oerror)) goto oerror;
 
     /* read basic device info */
     char *esc_devid  = osync_db_sql_escape(devid);
     const char *device_query = "SELECT \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\" FROM devices WHERE \"device_id\"='%s'";
     char *query = g_strdup_printf(device_query, esc_devid);
+    // FIXME: unclean error handling
     GList *result = osync_db_query_table(db, query, oerror);
     g_free(query);
     unsigned int count = 0;
@@ -861,6 +862,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     /* read datastore info */
     const char*datastore_query = "SELECT \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"rx_content_type\", \"rx_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"tx_content_type\", \"tx_version\", \"sync_cap\" FROM datastores WHERE \"device_id\"='%s'";
     query = g_strdup_printf(datastore_query, esc_devid);
+    // FIXME: unclean error handling
     result = osync_db_query_table(db, query, oerror);
     g_free(query);
     count = 0;
@@ -869,6 +871,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         count++;
         GList *columns = row->data;
 
+        // FIXME: unclean error handling
         SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(g_list_nth_data(columns, 0), &error);
         if (g_list_nth_data(columns, 1))
             smlDevInfDataStoreSetRxPref(
@@ -903,6 +906,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     /* read content type capabilities info */
     const char *ctcaps_query = "SELECT \"content_type\", \"version\" FROM content_type_capabilities WHERE  \"device_id\"='%s'";
     query = g_strdup_printf(ctcaps_query, esc_devid);
+    // FIXME: unclean error handling
     result = osync_db_query_table(db, query, oerror);
     g_free(query);
     count = 0;
@@ -926,6 +930,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         /* reading basic property info */
         const char *property_query = "SELECT \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\" FROM properties WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s'";
         query = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version);
+        // FIXME: unclean error handling
         GList *prop_result = osync_db_query_table(db, query, oerror);
         g_free(query);
         unsigned int prop_count = 0;
@@ -954,6 +959,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
             query = g_strdup_printf(
                          prop_value_query, esc_devid,
                          esc_ct, esc_version, esc_prop_name);
+            // FIXME: unclean error handling
             GList *prop_value_result = osync_db_query_table(db, query, oerror);
             g_free(query);
             unsigned int prop_value_count = 0;
@@ -974,6 +980,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
             query = g_strdup_printf(
                          prop_param_query, esc_devid,
                          esc_ct, esc_version, esc_prop_name);
+            // FIXME: unclean error handling
             GList *prop_param_result = osync_db_query_table(db, query, oerror);
             g_free(query);
             unsigned int prop_param_count = 0;
@@ -999,6 +1006,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                              prop_param_query, esc_devid,
                              esc_ct, esc_version, esc_prop_name,
                              esc_param_name);
+                // FIXME: unclean error handling
                 GList *param_value_result = osync_db_query_table(db, query, oerror);
                 g_free(query);
                 unsigned int param_value_count = 0;
@@ -1024,7 +1032,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
 
     /* finalize database */
     g_free(esc_devid);
-    if (!osync_db_close(db, oerror)) goto error;
+    if (!osync_db_close(db, oerror)) goto oerror;
     // FIXME: I cannot unref OSyncDB !?
     // FIXME: Is this an API bug?
 
@@ -1033,11 +1041,9 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
     return TRUE;
 error:
-    if (error)
-    {
-        osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-        smlErrorDeref(&error);
-    }
+    osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+    smlErrorDeref(&error);
+oerror:
     osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
     return FALSE;
 }

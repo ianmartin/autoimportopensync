@@ -48,6 +48,12 @@
 
 guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
 {
+    g_assert(env->url);
+    g_assert(env->identifier);
+    g_assert(env->tsp);
+    g_assert(env->manager);
+    g_assert(env->agent);
+
     /* cleanup old session */
     if (env->session)
     {
@@ -103,6 +109,8 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
+	g_assert(env);
+	g_assert(env->agent);
 
 	/* we need to ref the context here because we signal the success later
 	 * later means we signal the success in another function
@@ -138,9 +146,12 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	if (ctx)
 	{
 		/* send the device information */
-		smlDevInfAgentSendDevInf(env->agent, env->session, &error);
-		smlDevInfAgentRequestDevInf(env->agent, env->session, &error);
-		smlSessionFlush(env->session, TRUE, &error);
+		if (!smlDevInfAgentSendDevInf(env->agent, env->session, &error))
+			goto error;
+		if (!smlDevInfAgentRequestDevInf(env->agent, env->session, &error))
+			goto error;
+		if (!smlSessionFlush(env->session, TRUE, &error))
+			goto error;
 		osync_trace(TRACE_INTERNAL, "%s: sent devinf", __func__);
 
 		/* If we receive a device information from the server
@@ -162,6 +173,8 @@ error:
 		osync_context_report_osyncerror(env->connectCtx, oserror);
 		osync_context_unref(env->connectCtx);
 		env->connectCtx = NULL;
+	} else {
+		osync_error_unref(&oserror);
 	}
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }

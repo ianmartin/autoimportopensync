@@ -435,6 +435,7 @@ error:
     smlErrorDeref(&error);
 oserror:
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+    osync_error_unref(&oserror);
     return FALSE;
 }
 
