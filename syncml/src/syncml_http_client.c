@@ -349,7 +349,7 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 	SmlBool supportedDatabase = FALSE;
 	for (i=0; i < stores; i++)
 	{
-		SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
+		const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
 		// if (!strcmp(smlDevInfDataStoreGetSourceRef(datastore), database->objtype))
 		if (!strcmp(smlDevInfDataStoreGetSourceRef(datastore),
 			    database->url))
@@ -362,7 +362,7 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 			__func__, database->objtype);
 		for (i=0; i < stores; i++)
 		{
-			SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
+			const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
 			osync_trace(TRACE_INTERNAL, "%s: %s (supported)",
 				__func__, smlDevInfDataStoreGetSourceRef(datastore));
 		}
@@ -642,7 +642,7 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
 	unsigned int i;
 	for (i=0; i < stores; i++)
 	{
-		SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
+		const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
 		char *version;
 		char *contentType;
 		smlDevInfDataStoreGetRxPref(datastore, &contentType, &version);

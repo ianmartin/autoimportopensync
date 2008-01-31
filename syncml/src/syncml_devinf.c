@@ -567,7 +567,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 	osync_trace(TRACE_INTERNAL, "%s: adding datastore %d", __func__, i);
 	char *ct;
         char *version;
-        SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
+        const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
         char *esc_datastore = osync_db_sql_escape(smlDevInfDataStoreGetSourceRef(datastore));
 	char *esc_rx_pref_ct = NULL;
 	char *esc_rx_pref_version = NULL;
@@ -637,7 +637,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
     {
         /* adding basic capability info */
 	osync_trace(TRACE_INTERNAL, "%s: adding CTCap %d", __func__, i);
-        SmlDevInfCTCap *ctcap = smlDevInfGetNthCTCap(devinf, i);
+        const SmlDevInfCTCap *ctcap = smlDevInfGetNthCTCap(devinf, i);
         char *ct = smlDevInfCTCapGetCTType(ctcap);
         char *version = smlDevInfCTCapGetVerCT(ctcap);
         char *esc_ct = osync_db_sql_escape(ct);
@@ -658,7 +658,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         {
             /* adding basic property info */
 	    osync_trace(TRACE_INTERNAL, "%s: adding property %d", __func__, k);
-            SmlDevInfProperty *property = smlDevInfCTCapGetNthProperty(ctcap, k);
+            const SmlDevInfProperty *property = smlDevInfCTCapGetNthProperty(ctcap, k);
             char *prop_name = smlDevInfPropertyGetPropName(property);
             char *data_type = smlDevInfPropertyGetDataType(property);
             unsigned int max_occur = smlDevInfPropertyGetMaxOccur(property);
@@ -709,7 +709,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             {
                 /* adding basic property parameter info */
 	        osync_trace(TRACE_INTERNAL, "%s: adding property parameter %d", __func__, l);
-                SmlDevInfPropParam *propParam = smlDevInfPropertyGetNthPropParam(property, l);
+                const SmlDevInfPropParam *propParam = smlDevInfPropertyGetNthPropParam(property, l);
                 char *param_name = smlDevInfPropParamGetParamName(propParam);
                 data_type = smlDevInfPropParamGetDataType(propParam);
                 display_name = smlDevInfPropParamGetDisplayName(propParam);
