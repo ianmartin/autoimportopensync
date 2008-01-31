@@ -612,8 +612,10 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	g_assert(database->getChangesCtx);
 
 	if (!type) {
+		// FIXME: I think this is an error ...
 		osync_context_report_success(database->getChangesCtx);
-		osync_trace(TRACE_EXIT, "%s", __func__);
+		database->getChangesCtx = NULL;
+		osync_trace(TRACE_EXIT, "%s - missing change type", __func__);
 		return TRUE;
 	}
 
@@ -722,11 +724,11 @@ void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *n
 		if (newuid)
 			osync_change_set_uid(ctx->change, newuid);
 		osync_context_report_success(context);
-		// cleanup
-		osync_change_unref(ctx->change);
-		osync_context_unref(context);
-		secure_free((gpointer *)&ctx);
 	}
+	// cleanup
+	osync_change_unref(ctx->change);
+	osync_context_unref(context);
+	secure_free((gpointer *)&ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
