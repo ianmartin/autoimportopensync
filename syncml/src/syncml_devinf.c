@@ -1106,7 +1106,9 @@ SmlBool init_env_devinf (SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **ser
 
     return TRUE;
 error:
-    smlDevInfUnref(devinf);
+    if (devinf) smlDevInfUnref(devinf);
+    if (env->agent) smlDevInfAgentFree(env->agent);
     env->devinf = NULL;
+    env->agent = NULL;
     return FALSE;
 }
