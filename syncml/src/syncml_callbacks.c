@@ -112,6 +112,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				/* a real disconnet happens */
 				env->gotDisconnect = TRUE;
 				if (env->disconnectCtx) { 
+					osync_trace(TRACE_INTERNAL, "%s: signal disconnect via context", __func__);
 					osync_context_report_success(env->disconnectCtx);
 					env->disconnectCtx = NULL;
 				}

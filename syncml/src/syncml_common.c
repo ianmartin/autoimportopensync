@@ -373,6 +373,7 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	g_assert(env);
 
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
@@ -445,8 +446,9 @@ void finalize(void *data)
 	if (env->source) {
 		g_source_destroy(env->source);
 		g_source_unref(env->source);
-		secure_free((gpointer *)&(env->source_functions));
 	}
+	if (env->source_functions)
+		secure_free((gpointer *)&(env->source_functions));
 
 	while (env->databases) {
 		SmlDatabase *db = env->databases->data;
@@ -538,8 +540,11 @@ SmlBool send_sync_message(
         database->syncChanges[i] = NULL;
         database->syncContexts[i] = NULL;
     }
-    secure_free((gpointer *) &(database->syncChanges));
-    secure_free((gpointer *) &(database->syncContexts));
+    if (num)
+    {
+        secure_free((gpointer *) &(database->syncChanges));
+        secure_free((gpointer *) &(database->syncContexts));
+    }
 	
     if (!smlDsSessionCloseSync(database->session, &error))
         goto error;
