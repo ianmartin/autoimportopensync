@@ -36,7 +36,7 @@ void set_session_user(SmlPluginEnv *env, const char* user)
     }
 
     if (env->sessionUser)
-        secure_cfree(&(env->sessionUser));
+        safe_cfree(&(env->sessionUser));
     env->sessionUser = g_strdup(user);
 }
 
@@ -132,18 +132,18 @@ SmlBool flush_session_for_all_databases(
 void syncml_free_database(SmlDatabase *database)
 {
 	if (database->url)
-		secure_cfree(&(database->url));
+		safe_cfree(&(database->url));
 
 	if (database->objtype)
-		secure_cfree(&(database->objtype));
+		safe_cfree(&(database->objtype));
 
 	if (database->objformat_name)
-		secure_cfree(&(database->objformat_name));
+		safe_cfree(&(database->objformat_name));
 
 	if (database->sink)
 		osync_objtype_sink_unref(database->sink);
 
-	secure_free((gpointer *)&database);
+	safe_free((gpointer *)&database);
 }
 
 void _try_change_ctx_cleanup(SmlDatabase *database)
@@ -420,35 +420,35 @@ void finalize(void *data)
 		smlNotificationFree(env->san);
 
 	if (env->identifier)
-		secure_cfree(&(env->identifier));
+		safe_cfree(&(env->identifier));
 
 	if (env->username)
-		secure_cfree(&(env->username));
+		safe_cfree(&(env->username));
 
 	if (env->password)
-		secure_cfree(&(env->password));
+		safe_cfree(&(env->password));
 
 	if (env->bluetoothAddress)
-		secure_cfree(&(env->bluetoothAddress));
+		safe_cfree(&(env->bluetoothAddress));
 
 	if (env->url)
-		secure_cfree(&(env->url));
+		safe_cfree(&(env->url));
 
 	if (env->anchor_path)
-		secure_cfree(&(env->anchor_path));
+		safe_cfree(&(env->anchor_path));
 
 	if (env->devinf_path)
-		secure_cfree(&(env->devinf_path));
+		safe_cfree(&(env->devinf_path));
 
 	if (env->sessionUser)
-		secure_cfree(&(env->sessionUser));
+		safe_cfree(&(env->sessionUser));
 	
 	if (env->source) {
 		g_source_destroy(env->source);
 		g_source_unref(env->source);
 	}
 	if (env->source_functions)
-		secure_free((gpointer *)&(env->source_functions));
+		safe_free((gpointer *)&(env->source_functions));
 
 	while (env->databases) {
 		SmlDatabase *db = env->databases->data;
@@ -457,7 +457,7 @@ void finalize(void *data)
 		env->databases = g_list_remove(env->databases, db);
 	}
 
-	secure_free((gpointer *) &env);
+	safe_free((gpointer *) &env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -542,8 +542,8 @@ SmlBool send_sync_message(
     }
     if (num)
     {
-        secure_free((gpointer *) &(database->syncChanges));
-        secure_free((gpointer *) &(database->syncContexts));
+        safe_free((gpointer *) &(database->syncChanges));
+        safe_free((gpointer *) &(database->syncContexts));
     }
 	
     if (!smlDsSessionCloseSync(database->session, &error))
@@ -712,12 +712,12 @@ SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info)
     return database;
 } 
 
-void secure_cfree(char **address)
+void safe_cfree(char **address)
 {
-    secure_free((gpointer *)address);
+    safe_free((gpointer *)address);
 }
 
-void secure_free(gpointer *address)
+void safe_free(gpointer *address)
 {
     g_assert(address);
     g_assert(*address);

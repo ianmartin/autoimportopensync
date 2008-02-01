@@ -283,7 +283,7 @@ error_free_manager:
 error_free_transport:
 	smlTransportFree(env->tsp);
 error_free_env:
-	secure_free((gpointer *)&env);
+	safe_free((gpointer *)&env);
 error:
 	if (serror)
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&serror));

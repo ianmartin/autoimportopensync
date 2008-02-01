@@ -89,7 +89,7 @@ guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
                                  SML_PROTOCOL_SYNCML,
                                  target, source,
                                  sessionString, 0, error);
-    secure_cfree(&sessionString);
+    safe_cfree(&sessionString);
     if (!env->session) return 0;
 
     /* register all the add-ons */
@@ -387,7 +387,7 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 		alertType = SML_ALERT_TWO_WAY;
 		char *key = g_strdup_printf("remoteanchor%s", smlDsServerGetLocation(database->server));
 		last = osync_anchor_retrieve(database->env->anchor_path, key);
-		secure_cfree(&key);
+		safe_cfree(&key);
 	}
 
 	/* The OMA DS client starts the synchronization so there should be no
@@ -400,8 +400,8 @@ void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncC
 				last, next,
 				_recv_alert_reply, database,
 				&error);
-	secure_cfree(&next);
-	if (last) secure_cfree(&last);
+	safe_cfree(&next);
+	if (last) safe_cfree(&last);
 	if (!database->session)
 		goto error;
 
@@ -573,7 +573,7 @@ error_free_manager:
 error_free_transport:
 	smlTransportFree(env->tsp);
 error_free_env:
-	secure_free((gpointer *)&env);
+	safe_free((gpointer *)&env);
 error:
 	if (serror)
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&serror));
