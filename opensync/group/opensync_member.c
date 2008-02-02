@@ -624,7 +624,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 
-	char *version_str = g_strdup_printf("%u.%u", MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION);
+	char *version_str = g_strdup_printf("%u.%u", OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION);
 	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
 	g_free(version_str);
 

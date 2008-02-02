@@ -499,6 +499,10 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
+
+	char *version_str = g_strdup_printf("%u.%u", OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION);
+	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
+	g_free(version_str);
 	
 	// TODO: reimplement the filter!
 	//The filters
