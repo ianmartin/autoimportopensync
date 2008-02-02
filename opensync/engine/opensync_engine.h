@@ -164,8 +164,8 @@ typedef void (* osync_status_change_cb) (OSyncChangeUpdate *, void *);
 typedef void (* osync_status_mapping_cb) (OSyncMappingUpdate *, void *);
 typedef void (* osync_status_member_cb) (OSyncMemberUpdate *, void *);
 typedef void (* osync_status_engine_cb) (OSyncEngineUpdate *, void *);
-OSYNC_EXPORT 
-OSYNC_EXPORT /*void osync_engine_set_message_callback(OSyncEngine *engine, osync_message_cb callback, void *user_data);*/
+
+/* OSYNC_EXPORT void osync_engine_set_message_callback(OSyncEngine *engine, osync_message_cb callback, void *user_data);*/
 OSYNC_EXPORT void osync_engine_set_conflict_callback(OSyncEngine *engine, osync_conflict_cb callback, void *user_data);
 OSYNC_EXPORT void osync_engine_set_changestatus_callback(OSyncEngine *engine, osync_status_change_cb callback, void *user_data);
 OSYNC_EXPORT void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, osync_status_mapping_cb callback, void *user_data);
