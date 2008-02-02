@@ -57,6 +57,21 @@
 
 OPENSYNC_BEGIN_DECLS
 
+
+/**************************************************************
+ * Versions 
+ *************************************************************/
+
+#define OSYNC_GROUP_MAJOR_VERSION 1
+#define OSYNC_GROUP_MINOR_VERSION 0
+
+#define OSYNC_MEMBER_MAJOR_VERSION 1
+#define OSYNC_MEMBER_MINOR_VERSION 0
+
+#define OSYNC_PLUGIN_MAJOR_VERSION 1
+#define OSYNC_PLUGIN_MINOR_VERSION 0
+
+
 /**************************************************************
  * Defines
  *************************************************************/

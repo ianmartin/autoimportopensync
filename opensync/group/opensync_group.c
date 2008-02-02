@@ -1185,4 +1185,55 @@ void osync_group_set_converter_enabled(OSyncGroup *group, osync_bool converter_e
 	group->converter_enabled = converter_enabled;
 }
 
+/*! @brief Check if group configuration is up to date. 
+ * 
+ * @param group The group
+ * @returns TRUE if the group configuration is up to date, FALSE otherwise. 
+ */
+osync_bool osync_group_is_uptodate(OSyncGroup *group)
+{
+	osync_assert(group);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	OSyncError *error = NULL;
+	unsigned int version_major;
+	unsigned int version_minor;
+	xmlChar *version_str = NULL;
+	osync_bool uptodate = FALSE;
+
+	char *config = g_strdup_printf("%s%c%s",
+			osync_group_get_configdir(group),
+			G_DIR_SEPARATOR, "syncgroup.conf");
+	
+	/* If syncgroup isn't present, we assume that update is required. */
+	if (!osync_xml_open_file(&doc, &cur, config, "syncgroup", &error))
+		goto end;
+
+	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
+
+	/* No version node, means very outdated version. */
+	if (!version_str)
+		goto end;
+
+      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+
+	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
+			version_str, version_major, version_minor, 
+			OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION ); 
+
+	if (OSYNC_GROUP_MAJOR_VERSION == version_major 
+			&& OSYNC_GROUP_MINOR_VERSION == version_minor)
+		uptodate = TRUE;
+
+	xmlFree(version_str);
+
+end:
+	g_free(config);
+
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+	return uptodate;
+}
+
 /*@}*/

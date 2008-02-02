@@ -21,9 +21,6 @@
 #ifndef _OPENSYNC_MEMBER_H_
 #define _OPENSYNC_MEMBER_H_
 
-#define MEMBER_MAJOR_VERSION 1
-#define MEMBER_MINOR_VERSION 0
-
 OSYNC_EXPORT OSyncMember *osync_member_new(OSyncError **error);
 OSYNC_EXPORT OSyncMember *osync_member_ref(OSyncMember *member);
 OSYNC_EXPORT void osync_member_unref(OSyncMember *member);
@@ -69,5 +66,8 @@ OSYNC_EXPORT OSyncMerger *osync_member_get_merger(OSyncMember *member);
 OSYNC_EXPORT void osync_member_flush_objtypes(OSyncMember *member);
 
 OSYNC_EXPORT OSyncObjTypeSink *osync_member_get_main_sink(OSyncMember *member);
+
+OSYNC_EXPORT osync_bool osync_member_config_is_uptodate(OSyncMember *member);
+OSYNC_EXPORT osync_bool osync_member_plugin_is_uptodate(OSyncMember *member);
 
 #endif /* _OPENSYNC_MEMBER_H_ */

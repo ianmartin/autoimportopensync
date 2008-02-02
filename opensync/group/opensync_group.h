@@ -84,4 +84,6 @@ OSYNC_EXPORT void osync_group_set_merger_enabled(OSyncGroup *group, osync_bool e
 OSYNC_EXPORT osync_bool osync_group_get_converter_enabled(OSyncGroup *group);
 OSYNC_EXPORT void osync_group_set_converter_enabled(OSyncGroup *group, osync_bool enable_converter);
 
+OSYNC_EXPORT osync_bool osync_group_is_uptodate(OSyncGroup *group);
+
 #endif /* _OPENSYNC_GROUP_H_ */

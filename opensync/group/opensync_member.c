@@ -475,29 +475,12 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	}
 	g_free(filename);
 
-	xmlChar *version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
-	osync_bool uptodate = FALSE;
-	if (version_str && strlen(version_str) > 0) {
-		unsigned int version_major;
-		unsigned int version_minor;
-	      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
-		if (MEMBER_MAJOR_VERSION == version_major && MEMBER_MINOR_VERSION == version_minor)
-			uptodate = TRUE;
-		else
-		    osync_trace(TRACE_INTERNAL, "syncmember version str : %s current %u.%u required %u.%u", version_str, version_major, version_minor, MEMBER_MAJOR_VERSION, MEMBER_MINOR_VERSION ); 
-	}
-
-	xmlFree(version_str);
-
-	if (!uptodate)
-		osync_trace(TRACE_INTERNAL, "syncmember.conf version does not match the one required by this version of opensync !" );
-		
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
 				member->pluginname = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype") && uptodate ) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
 				OSyncObjTypeSink *sink = _osync_member_parse_objtype(cur->xmlChildrenNode, error);
 				if (!sink)
 					goto error_free_doc;
@@ -999,6 +982,110 @@ OSyncObjTypeSink *osync_member_get_main_sink(OSyncMember *member)
 {
 	osync_assert(member);
 	return member->main_sink;
+}
+
+/** @brief Checks if the member configuration is up to date. 
+ * 
+ * @param member The member
+ * @returns TRUE if member configuration is up to date. 
+ *
+ */
+osync_bool osync_member_config_is_uptodate(OSyncMember *member)
+{
+	osync_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	OSyncError *error = NULL;
+	unsigned int version_major;
+	unsigned int version_minor;
+	xmlChar *version_str = NULL;
+	osync_bool uptodate = FALSE;
+
+	char *config = g_strdup_printf("%s%c%s",
+			osync_member_get_configdir(member),
+			G_DIR_SEPARATOR, "syncmember.conf");
+	
+	/* If syncmember isn't present, we assume that update is required. */
+	if (!osync_xml_open_file(&doc, &cur, config, "syncmember", &error))
+		goto end;
+
+	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
+
+	/* No version node, means very outdated version. */
+	if (!version_str)
+		goto end;
+
+      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+
+	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
+			version_str, version_major, version_minor, 
+			OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION );
+
+	if (OSYNC_MEMBER_MAJOR_VERSION == version_major 
+			&& OSYNC_MEMBER_MINOR_VERSION == version_minor)
+		uptodate = TRUE;
+
+	xmlFree(version_str);
+
+end:
+	g_free(config);
+
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	return uptodate;
+}
+
+/** @brief Checks if the plugin configuration is up to date. 
+ * 
+ * @param member The member
+ * @returns TRUE if plugin configuration is up to date. 
+ *
+ */
+osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
+{
+	osync_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	OSyncError *error = NULL;
+	unsigned int version_major;
+	unsigned int version_minor;
+	xmlChar *version_str = NULL;
+	osync_bool uptodate = FALSE;
+
+	char *config = g_strdup_printf("%s%c%s",
+			osync_member_get_configdir(member),
+			G_DIR_SEPARATOR, osync_member_get_pluginname(member));
+	
+	/* If syncmember isn't present, we assume that update is required. */
+	if (!osync_xml_open_file(&doc, &cur, config, "plugin", &error))
+		goto end;
+
+	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
+
+	/* No version node, means very outdated version. */
+	if (!version_str)
+		goto end;
+
+      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+
+	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
+			version_str, version_major, version_minor, 
+			OSYNC_PLUGIN_MAJOR_VERSION, OSYNC_PLUGIN_MINOR_VERSION ); 
+
+	if (OSYNC_PLUGIN_MAJOR_VERSION == version_major 
+			&& OSYNC_PLUGIN_MINOR_VERSION == version_minor)
+		uptodate = TRUE;
+
+	xmlFree(version_str);
+
+end:
+	g_free(config);
+
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	return uptodate;
 }
 
 /*@}*/
