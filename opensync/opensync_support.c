@@ -503,6 +503,36 @@ static gboolean osyncThreadStartCallback(gpointer data)
 	return FALSE;
 }
 
+OSyncThread *osync_thread_create(GThreadFunc func, void *userdata, OSyncError **error)
+{
+	osync_assert(func);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, func, userdata, error);
+
+	GError *gerror;
+	
+	OSyncThread *thread = osync_try_malloc0(sizeof(OSyncThread), error);
+	if (!thread)
+		goto error;
+
+	if (!g_thread_supported ())
+		g_thread_init (NULL);
+
+	thread->thread = g_thread_create(func, userdata, TRUE, &gerror);
+
+	if (!thread->thread) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", gerror->message);
+		g_error_free(gerror);
+		goto error;
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return thread;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s", __func__, osync_error_print(error));
+	return NULL;
+}
+
 void osync_thread_start(OSyncThread *thread)
 {
 	GSource *idle = NULL;
@@ -519,8 +549,6 @@ void osync_thread_start(OSyncThread *thread)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }	
 
-
-
 void osync_thread_stop(OSyncThread *thread)
 {
 	GSource *source = NULL;
@@ -535,6 +563,23 @@ void osync_thread_stop(OSyncThread *thread)
 	thread->thread = NULL;
 	
 	g_source_unref(source);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_thread_exit(OSyncThread *thread, int retval)
+{
+	GSource *source = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, thread, retval);
+	osync_assert(thread);
+
+        source = g_idle_source_new();
+	g_source_set_callback(source, osyncThreadStopCallback, thread, NULL);
+        g_source_attach(source, thread->context);
+	g_source_unref(source);
+	thread->thread = NULL;
+
+	g_thread_exit(GINT_TO_POINTER(retval));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
