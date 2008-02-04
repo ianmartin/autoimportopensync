@@ -126,10 +126,10 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				o = env->databases;
 				for (; o; o = o->next) {
 					SmlDatabase *database = o->data;
-					if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
-					    database->getChangesCtx)
+					if (database->getChangesCtx)
 					{
-						_try_change_ctx_cleanup(database);
+						osync_context_report_success(database->getChangesCtx);
+						database->getChangesCtx = NULL;
 					}
 				}
 			}
@@ -198,33 +198,15 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * datastores sent their complete data. So if
 					 * one change context is finished then we
 					 * can be sure that all others are finished too.
+					 *
+					 * Please note that the final event is sometimes
+					 * faster than the handling of the change
+					 * events. Therefore there is a separate signal
+					 * GOTCHANGES to _ds_event. If both events were
+					 * received then then the cleanup starts.
 					 */
 					database->finalChanges = TRUE;
-					/* Cleanup of contexts / Reporting to OpenSync:
-					 * 
-					 * SERVER: The next step after receiving the
-					 *         package with the changes from the
-					 *         client is to send the package with
-					 *         the calculated changes. This is
-					 *         done by batch_commit. Therefore it
-					 *         is required to report the success
-					 *         on the change context.
-					 *
-					 * CLIENT: If the client received the changes
-					 *         from the server then the client must
-					 *         send the map and have to wait for
-					 *         the acknowledgement from the server
-					 *         for the map. After this the client
-					 *         can disconnect and re-connect to
-					 *         send the calculated changes of
-					 *         OpenSync. If the client wants to
-					 *         avoid to early calls of OpenSync to
-					 *         the function batch_commit then the
-					 *         client should report success only
-					 *         after disconnect.
-					 */
-					if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
-						_try_change_ctx_cleanup(database);
+					_init_change_ctx_cleanup(database, &error);
 				}
 
 				if (database->commitCtx) {
@@ -232,31 +214,6 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					database->commitCtx = NULL;
 				}
 			}
-
-			/* Flush handling:
-			 *
-			 * SERVER: An explicit flush is not necessary
-			 *         because the server replies
-			 *         automatically with its own changes if
-			 *         the success is reported via the
-			 *         change context.
-			 *
-			 * CLIENT: An explicit flush is necessary
-			 *         because the client prepares the map
-			 *         which must be send to the server.
-			 *         This is required to complete the DS
-			 *         session correctly.
-			 *
-			 * The maps are only flushed if this is a client and all
-			 * changes were received (because FINAL is set).
-			 */
-			if (env->prepareMapFlushing &&
-			    !smlSessionFlush(env->session, TRUE, &error))
-			{
-				osync_trace(TRACE_INTERNAL, "%s: Flushing the map failed.", __func__);
-				goto error;
-			}
-			env->prepareMapFlushing = FALSE;
 
 			break;
 		case SML_MANAGER_SESSION_END:
@@ -329,15 +286,9 @@ void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 	switch (event) {
 		case SML_DS_EVENT_GOTCHANGES:
 			database->gotChanges = TRUE;
-			if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
-			{
-				/* The OMA DS client will be managed on base of
-				 * the FINAL element. This is necessary because
-				 * the client needs a much more sophisticated
-				 * handling.
-				 */
-				_try_change_ctx_cleanup(database);
-			}
+			SmlError *error = NULL;
+			// FIXME: perhaps we should do something with an error
+			_init_change_ctx_cleanup(database, &error);
 			break;
 		case SML_DS_EVENT_COMMITEDCHANGES:	
 			break;
@@ -403,13 +354,25 @@ SmlBool _recv_alert_from_server(
     // if we expect a slow sync but get a normal sync
     // then we should sends a new slow sync alert
     //
+    // if this is the second session the we can ignore the checks
+    // if this is the second session then we only want to send
+    // the changes to the server
     if (
-        ((!last || !osync_anchor_compare(env->anchor_path, key, last)) && type == SML_ALERT_TWO_WAY)
-        ||
-        (osync_objtype_sink_get_slowsync(database->sink) && type != SML_ALERT_SLOW_SYNC)
+        (
+         ( ( !last ||                                           // missing anchor
+             !osync_anchor_compare(env->anchor_path, key, last) // last mismatches database
+           )
+          && type == SML_ALERT_TWO_WAY
+         )
+         ||
+         (osync_objtype_sink_get_slowsync(database->sink) && type != SML_ALERT_SLOW_SYNC)
+        )
+        && database->getChangesCtx                              // this is the first session
        )
     {
         // send slow sync alert
+        // FIXME: this is clearly an error
+        // FIXME: doe sit be better to crash on this error?
         osync_objtype_sink_set_slowsync(database->sink, TRUE);
         database->session = smlDsServerSendAlert(
                                 database->server,
@@ -420,15 +383,22 @@ SmlBool _recv_alert_from_server(
                                &error);
         if (!database->session)
             goto error;
+        if (!flush_session_for_all_databases(database->env, TRUE, &error))
+            goto error;
+        // re-register this callback
+	register_ds_session_callbacks(database, _recv_alert_from_server);
+    } else {
+
+        // if we do the update then we should store the new  anchor
+        // if the update fails then the next sync is a slow sync
+        osync_anchor_update(env->anchor_path, key, next);
+
+        // start the sync message
+        if (!send_sync_message(database, _recv_sync_reply, &oserror))
+            goto oserror;
     }
 
-    osync_anchor_update(env->anchor_path, key, next);
     safe_cfree(&key);
-
-    // start the sync message
-    if (!send_sync_message(database, _recv_sync_reply, &oserror))
-        goto oserror;
-
     osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
     return TRUE;
 error:

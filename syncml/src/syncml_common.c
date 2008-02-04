@@ -146,7 +146,7 @@ void syncml_free_database(SmlDatabase *database)
 	safe_free((gpointer *)&database);
 }
 
-void _try_change_ctx_cleanup(SmlDatabase *database)
+SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, finalChanges %i)", __func__,
 		 database->gotChanges, database->finalChanges);
@@ -158,12 +158,66 @@ void _try_change_ctx_cleanup(SmlDatabase *database)
 	// finalChanges must be resetted at every new message
 	// until we received a sync command (not alert)
 	if (database->gotChanges && database->finalChanges) {
-		osync_trace(TRACE_INTERNAL, "%s: reported success on change context.", __func__);
-		osync_context_report_success(database->getChangesCtx);
-		database->getChangesCtx = NULL;
+		/* Cleanup of contexts / Reporting to OpenSync:
+		 * 
+		 * SERVER: The next step after receiving the
+		 *         package with the changes from the
+		 *         client is to send the package with
+		 *         the calculated changes. This is
+		 *         done by batch_commit. Therefore it
+		 *         is required to report the success
+		 *         on the change context.
+		 *
+		 * CLIENT: If the client received the changes
+		 *         from the server then the client must
+		 *         send the map and have to wait for
+		 *         the acknowledgement from the server
+		 *         for the map. After this the client
+		 *         can disconnect and re-connect to
+		 *         send the calculated changes of
+		 *         OpenSync. If the client wants to
+		 *         avoid to early calls of OpenSync to
+		 *         the function batch_commit then the
+		 *         client should report success only
+		 *         after disconnect.
+		 */
+		if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
+		{
+			osync_trace(TRACE_INTERNAL, "%s: reported success on server change context.", __func__);
+			osync_context_report_success(database->getChangesCtx);
+			database->getChangesCtx = NULL;
+		} else {
+			osync_trace(TRACE_INTERNAL, "%s: flushing the map of a client.", __func__);
+
+			/* Flush handling:
+			 *
+			 * SERVER: An explicit flush is not necessary
+			 *         because the server replies
+			 *         automatically with its own changes if
+			 *         the success is reported via the
+			 *         change context.
+			 *
+			 * CLIENT: An explicit flush is necessary
+			 *         because the client prepares the map
+			 *         which must be send to the server.
+			 *         This is required to complete the DS
+			 *         session correctly.
+			 *
+			 * The maps are only flushed if this is a client and all
+			 * changes were received (because FINAL is set).
+			 */
+			if (database->env->prepareMapFlushing &&
+			    !smlSessionFlush(database->env->session, TRUE, error))
+			{
+				osync_trace(TRACE_EXIT_ERROR, "%s: Flushing the map failed.", __func__);
+				return FALSE;
+			}
+			database->env->prepareMapFlushing = FALSE;
+		}
 	}
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s - success", __func__);
+	return TRUE;
 }
 
 SmlChangeType _get_changetype(OSyncChange *change)

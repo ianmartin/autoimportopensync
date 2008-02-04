@@ -492,6 +492,16 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env->manager)
 		goto error;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
+
+	/* The authenticator is only used here to get a handler for the header.
+	 * This is not really elegant nor clean but we started as server ;)
+	 */
+	env->auth = smlAuthNew(&serror);
+	if (!env->auth)
+		goto error;
+	smlAuthSetEnable(env->auth, FALSE);
+	if (!smlAuthRegister(env->auth, env->manager, &serror))
+		goto error_free_auth;
 	
 	///* The authenticator */
 	///* disabled because the transport layer handles the authentication */
@@ -567,7 +577,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	return (void *)env;
 
 error_free_auth:
-	//smlAuthFree(env->auth);
+	smlAuthFree(env->auth);
 error_free_manager:
 	smlManagerFree(env->manager);
 error_free_transport:
@@ -584,6 +594,10 @@ error:
 void _publish_osync_error(void *publicError, OSyncError *error)
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
+    if (error)
+        osync_trace(TRACE_INTERNAL, "%s - failed", __func__);
+    else
+        osync_trace(TRACE_INTERNAL, "%s - succeeded", __func__);
     OSyncError **destError = publicError;
     *destError = error;
     osync_trace(TRACE_EXIT, "%s", __func__);
@@ -629,7 +643,7 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
         osync_version_unref(version);
 
 	/* let's wait for the device info of the server */
-	while (!smlDevInfAgentGetDevInf(env->agent))
+	while (!smlDevInfAgentGetDevInf(env->agent) && !*error)
 	{
 		unsigned int sleeping = 5;
 		osync_trace(TRACE_INTERNAL,
@@ -637,6 +651,14 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
 			__func__, sleeping);
 		sleep(sleeping);
 	}
+
+	/* check for error */
+	if (*error != NULL)
+	{
+		osync_trace(TRACE_INTERNAL, "%s - connect failed in some way", __func__);
+	}
+
+	/* print the device information */
 	SmlDevInf *devinf = smlDevInfAgentGetDevInf(env->agent);
 	unsigned int stores = smlDevInfNumDataStores(devinf);
 	unsigned int i;
@@ -650,6 +672,12 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
 			smlDevInfDataStoreGetSourceRef(datastore),
 			contentType, version);
 	}
+
+	/* disconnect from the syncml server */
+	OSyncContext *ctx = osync_context_new(error);
+	osync_context_set_callback(ctx, &_publish_osync_error, error);
+	osync_trace(TRACE_INTERNAL, "%s- close the connection with a new context (%p)", __func__, ctx);
+	disconnect(data, info, ctx);
 
         osync_trace(TRACE_EXIT, "%s", __func__);
         return TRUE;
