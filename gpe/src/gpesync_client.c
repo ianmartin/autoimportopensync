@@ -43,14 +43,21 @@ struct gpesync_client_query_context
 };
 
 
-static void
+static int
 write_command (gpesync_client * ctx, const char *buf)
 {
   if (verbose)
     fprintf (stderr, "[gpsyncclient %s]: %s\n", __func__, buf);
 
-  if (write (ctx->outfd, buf, strlen (buf)) == -1 && verbose)
-    fprintf (stderr, "[gpsyncclient %s]: failed\n", __func__);
+  if (write (ctx->outfd, buf, strlen (buf)) == -1) {
+    if (verbose) {
+      fprintf (stderr, "[gpsyncclient %s]: failed\n", __func__);
+      perror(__func__);
+    }
+    return 0;
+  }
+
+  return 1;
 }
 
 /*! \brief moves forward to the next line
@@ -170,6 +177,8 @@ read_response (struct gpesync_client_query_context *query_ctx)
           {
             perror ("read");
 	    ctx->busy = 0;
+	    query_ctx->result = GPESYNC_CLIENT_ERROR;
+	    query_ctx->aborting = TRUE;
             break;
           }
 
@@ -281,8 +290,13 @@ gpesync_client_open_ssh (const char *addr, const char * command, gchar **errmsg)
   if (pipe (out_fds) && verbose)
      fprintf(stderr, "[gpsyncclinet %s]: pipe fialed.\n", __func__);
 
+  fflush(NULL); // flush all buffers before fork
   pid = fork ();
-  if (pid == 0)
+  if (pid == -1) { 
+    /* fork error - cannot create child */
+    perror("fork");
+  }
+  else if (pid == 0)
     {
       dup2 (out_fds[0], 0);
       dup2 (in_fds[1], 1);
@@ -292,6 +306,7 @@ gpesync_client_open_ssh (const char *addr, const char * command, gchar **errmsg)
         fprintf (stderr, "connecting as %s to %s with command %s (argc=%d)\n", username, hostname, command, i);
       execvp ("ssh", argv);
       perror ("exec");
+      exit(1);
     }
 
   close (out_fds[0]);
@@ -342,8 +357,13 @@ gpesync_client_open_local (const char * command, gchar **errmsg)
   if (pipe (out_fds) && verbose)
      fprintf(stderr, "[gpsyncclinet %s]: pipe fialed.\n", __func__);
 
+  fflush(NULL); // flush all buffers before fork
   pid = fork ();
-  if (pid == 0)
+  if (pid == -1) { 
+    /* fork error - cannot create child */
+    perror("fork");
+  }
+  else if (pid == 0)
     {
       dup2 (out_fds[0], 0);
       dup2 (in_fds[1], 1);
@@ -353,6 +373,7 @@ gpesync_client_open_local (const char * command, gchar **errmsg)
         fprintf (stderr, "connecting to gpesyncd locally");
       execvp (argv[0], argv);
       perror ("exec");
+      exit(1);
     }
 
   close (out_fds[0]);
@@ -403,7 +424,7 @@ gpesync_client_open (const char *addr, int port, gchar **errmsg)
   bzero (buffer, BUFFER_LEN);
 
   if (read (ctx->socket, buffer, 255) < 0) {
-	  perror ("read");
+	  perror ("read2");
 	  exit (1);
   }
 
@@ -457,7 +478,10 @@ gpesync_client_exec (gpesync_client * ctx, const char *command,
   {
     g_string_append_printf (cmd, "%d:%s", (unsigned int) strlen (command), command);
 
-    write_command (ctx, cmd->str);
+    if (! write_command (ctx, cmd->str)) {
+      query.result = GPESYNC_CLIENT_ERROR;
+      goto err_exit;
+    }
 
   } else {
     int bytes_sent=0, n=0;
@@ -479,6 +503,7 @@ gpesync_client_exec (gpesync_client * ctx, const char *command,
   while (ctx->busy)
     read_response (&query);
 
+ err_exit:
   if (err)
     *err = query.error;
 

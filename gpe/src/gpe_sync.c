@@ -133,7 +133,9 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 static void free_sink(sink_environment *sinkenv)
 {
   if (sinkenv->sink) osync_objtype_sink_unref(sinkenv->sink);
+  sinkenv->sink = NULL;
   if (sinkenv->hashtable) osync_hashtable_free(sinkenv->hashtable);
+  sinkenv->hashtable = NULL;
 }
 
 
@@ -252,7 +254,13 @@ static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **e
 	}
 
 	// Get version info from the device
-	gpesync_client_exec(env->client, "version", client_callback_string, &response, NULL);
+	if (gpesync_client_exec(env->client, "version", client_callback_string, &response, &err_string) != 0) {
+	  osync_error_set(error, OSYNC_ERROR_NO_CONNECTION, err_string);
+	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: sending version command failed: %s", __func__, err_string);
+	  if (err_string) g_free(err_string);
+	  gpe_disconnect_internal(env);
+	  return FALSE;
+	}
 
 	if (sscanf(response, "OK:%u:%u:%u", &v_major, &v_minor, &v_edit) != 3) {
 	  osync_trace(TRACE_INTERNAL, "version command error: %s", response);
@@ -264,6 +272,7 @@ static osync_bool discover(void *userdata, OSyncPluginInfo *info, OSyncError **e
 			  v_major, v_minor, MIN_PROTOCOL_MAJOR, MIN_PROTOCOL_MINOR);
 	  osync_trace(TRACE_EXIT_ERROR, "GPE-SYNC %s: gpesyncd version %d.%d not supported -- require %d.%d", 
 		      __func__, v_major, v_minor, MIN_PROTOCOL_MAJOR, MIN_PROTOCOL_MINOR);
+	  gpe_disconnect_internal(env);
 	  g_free(response);
 	  return FALSE;
 	}
