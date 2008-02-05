@@ -47,9 +47,6 @@ typedef void (* param_handler_fn) (OSyncXMLField *xmlfield, VFormatParam *param)
 typedef OSyncXMLField * (* attr_handler_fn) (OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 typedef void (* attr_component_handler_fn) (OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
-/*** PARAMETER ***/
-void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-
 /** VFormat Attributes **/
 OSyncXMLField *handle_attribute_simple_content_timestamp(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error); 
 OSyncXMLField *handle_attribute_simple_content(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error); 

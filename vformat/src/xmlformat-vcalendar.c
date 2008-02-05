@@ -326,6 +326,25 @@ void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
 }
+
+void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	const char *value = vformat_attribute_param_get_nth_value(param, 0);
+	osync_trace(TRACE_INTERNAL, "Handling Value parameter %s\n", value);
+
+	// in case of value was within an alarm field, we call it AttachValue
+	// TODO check if base64 and inline is working
+	if (!strncmp(osync_xmlfield_get_name(xmlfield), "Alarm", 5)) {
+		if (!strcasecmp("DURATION", value) || !strcasecmp("DATE-TIME", value)) {
+			osync_xmlfield_set_attr(xmlfield, "Value", value);
+		} else {
+			osync_xmlfield_set_attr(xmlfield, "AttachValue", value);
+		}
+	} else {
+		osync_xmlfield_set_attr(xmlfield, "Value", value);
+	}
+
+}
 /* END: vcalendar20 parameters -> xml */
 
 
@@ -963,6 +982,9 @@ void handle_alarm_action_attribute(OSyncXMLField *xmlfield, VFormatAttribute *at
 	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"PROCEDURE")) {
 		osync_xmlfield_set_name(xmlfield, "AlarmProcedure");
 	}
+
+	// set AlarmAction
+	handle_simple_xmlfield(xmlfield, attr, "AlarmAction");
 }
 
 void handle_alarm_attach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 

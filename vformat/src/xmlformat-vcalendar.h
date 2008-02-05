@@ -66,6 +66,7 @@ void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_trigrel_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_attendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
