@@ -1199,8 +1199,8 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 	osync_assert(group);
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
 
-	xmlDocPtr doc;
-	xmlNodePtr cur;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr cur = NULL;
 	OSyncError *error = NULL;
 	unsigned int version_major;
 	unsigned int version_minor;
@@ -1212,8 +1212,11 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 			G_DIR_SEPARATOR, "syncgroup.conf");
 	
 	/* If syncgroup isn't present, we assume that update is required. */
-	if (!osync_xml_open_file(&doc, &cur, config, "syncgroup", &error))
+	if (!osync_xml_open_file(&doc, &cur, config, "syncgroup", &error)) {
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_error_unref(&error);
 		goto end;
+	}
 
 	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
 
@@ -1232,9 +1235,12 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 		uptodate = TRUE;
 
 	xmlFree(version_str);
-
+	xmlFreeDoc(doc);
 end:
 	g_free(config);
+
+	if (doc)
+		xmlFreeDoc(doc);
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
 	return uptodate;

@@ -1047,8 +1047,8 @@ osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 	osync_assert(member);
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 
-	xmlDocPtr doc;
-	xmlNodePtr cur;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr cur = NULL;
 	OSyncError *error = NULL;
 	unsigned int version_major;
 	unsigned int version_minor;
@@ -1083,6 +1083,9 @@ osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 
 end:
 	g_free(config);
+
+	if (doc)
+		xmlFreeDoc(doc);
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	return uptodate;
