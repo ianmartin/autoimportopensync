@@ -168,7 +168,7 @@ OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 	} 
 
 	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 3));
+	osync_xmlfield_set_key_value(xmlfield, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 1));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
