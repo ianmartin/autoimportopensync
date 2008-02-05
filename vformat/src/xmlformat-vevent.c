@@ -47,8 +47,10 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
         // [vcal-1.0] param (same order as in sepc!)
 	insert_param_handler(hooks->parameters, "TYPE", handle_vcal_type_parameter);
 	insert_param_handler(hooks->parameters, "VALUE", handle_vcal_value_parameter); 
-	// We don't need to handle encoding/charset here
-	insert_param_handler(hooks->parameters, "ENCODING", HANDLE_IGNORE); // handle_vcal_encoding_parameter
+	// QUOTED-PRINTABLE is already handled by vformat.c
+	insert_param_handler(hooks->parameters, "ENCODING=QUOTED-PRINTABLE", HANDLE_IGNORE);
+	insert_param_handler(hooks->parameters, "ENCODING", handle_vcal_encoding_parameter);
+	// CHARSET is already handled by vformat.c
 	insert_param_handler(hooks->parameters, "CHARSET", HANDLE_IGNORE); // handle_vcal_charset_parameter
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
 	insert_param_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
