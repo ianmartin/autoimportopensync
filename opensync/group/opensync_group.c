@@ -1235,7 +1235,6 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 		uptodate = TRUE;
 
 	xmlFree(version_str);
-	xmlFreeDoc(doc);
 end:
 	g_free(config);
 
