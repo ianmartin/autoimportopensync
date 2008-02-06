@@ -108,9 +108,13 @@ SmlBool flush_session_for_all_databases(
     g_assert(env);
 
     if (activeDatabase) env->num++;
-    osync_trace(TRACE_INTERNAL, "flush: %i, ignore: %i",
-                env->num, g_list_length(env->ignoredDatabases));
-    if (env->num != 0 &&
+    osync_trace(TRACE_INTERNAL, "%s - flush: %i, ignore: %i",
+                __func__, env->num, g_list_length(env->ignoredDatabases));
+    if ( (
+          env->num != 0 ||
+          smlDsServerGetServerType(((SmlDatabase *) env->databases->data)->server) == SML_DS_SERVER
+         )
+        &&
         env->num + g_list_length(env->ignoredDatabases) >= g_list_length(env->databases))
     {
         env->num = 0;

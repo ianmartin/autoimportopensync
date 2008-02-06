@@ -29,11 +29,30 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	env->tryDisconnect = FALSE;
 
+	/* it is necessary to register the context before the server is initialized */
 	env->connectCtx = ctx;
-
 	osync_context_ref(env->connectCtx);
 
+	/* Initialize the Transport */
+	SmlTransportHttpServerConfig config;
+	config.port = env->port;
+	config.url = env->url;
+	config.ssl_key = NULL;
+	config.ssl_crt = NULL;
+	SmlError *error = NULL;
+	OSyncError *oerror = NULL;
+	if (!smlTransportInitialize(env->tsp, &config, &error))
+		goto error;
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+error:
+	osync_error_set(&oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+	osync_context_report_osyncerror(env->connectCtx, oerror);
+	osync_context_unref(env->connectCtx);
+	env->connectCtx = NULL;
+	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&oerror));
 	return;
 }
 
@@ -258,19 +277,8 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->source = source;
 
-	SmlTransportHttpServerConfig config;
-	config.port = env->port;
-	config.url = env->url;
-	config.interface = NULL;
-	config.ssl_key = NULL;
-	config.ssl_crt = NULL;
-	
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
-		goto error;
-	
-	/* Initialize the Transport */
-	if (!smlTransportInitialize(env->tsp, &config, &serror))
 		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);

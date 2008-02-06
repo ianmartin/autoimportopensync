@@ -553,12 +553,12 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                     smlDevInfSupportsLargeObjs(devinf),
                                     smlDevInfSupportsNumberOfChanges(devinf));
         success = osync_db_query(db, replace, oerror);
-        safe_cfree(&esc_vendor);
-        safe_cfree(&esc_model);
-        safe_cfree(&esc_oem);
-        safe_cfree(&esc_sw);
-        safe_cfree(&esc_hw);
-        safe_cfree(&esc_fw);
+        if (esc_vendor) safe_cfree(&esc_vendor);
+        if (esc_model)  safe_cfree(&esc_model);
+        if (esc_oem)    safe_cfree(&esc_oem);
+        if (esc_sw)     safe_cfree(&esc_sw);
+        if (esc_hw)     safe_cfree(&esc_hw);
+        if (esc_fw)     safe_cfree(&esc_fw);
         safe_cfree(&replace);
         if (!success) goto oerror;
     }
@@ -672,9 +672,9 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             char *esc_prop_name = osync_db_sql_escape(prop_name);
             char *esc_data_type = osync_db_sql_escape(data_type);
             char *esc_display_name = osync_db_sql_escape(display_name);
-            safe_cfree(&prop_name);
-            safe_cfree(&data_type);
-            safe_cfree(&display_name);
+            if (prop_name)    safe_cfree(&prop_name);
+            if (data_type)    safe_cfree(&data_type);
+            if (display_name) safe_cfree(&display_name);
             const char *property_query = "REPLACE INTO properties (\"device_id\", \"content_type\", \"version\", \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\") VALUES ('%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s')";
             replace = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_data_type,
@@ -683,8 +683,8 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             // FIXME: unclean error handling
             success = osync_db_query(db, replace, oerror);
 	    safe_cfree(&replace);
-            safe_cfree(&esc_data_type);
-            safe_cfree(&esc_display_name);
+            if (esc_data_type)    safe_cfree(&esc_data_type);
+            if (esc_display_name) safe_cfree(&esc_display_name);
 
             /* adding property values */
 	    osync_trace(TRACE_INTERNAL, "%s: adding property values", __func__);
@@ -720,8 +720,8 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 char *esc_param_name = osync_db_sql_escape(param_name);
                 esc_data_type = osync_db_sql_escape(data_type);
                 esc_display_name = osync_db_sql_escape(display_name);
-                safe_cfree(&data_type);
-                safe_cfree(&display_name);
+                if (data_type)    safe_cfree(&data_type);
+                if (display_name) safe_cfree(&display_name);
                 const char *prop_param_query = "REPLACE INTO property_params (\"device_id\", \"content_type\", \"version\", \"property\", \"property_param\", \"datatype\", \"display_name\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')";
                 replace = g_strdup_printf(prop_param_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_param_name,
@@ -729,8 +729,8 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 // FIXME: unclean error handling
                 success = osync_db_query(db, replace, oerror);
 	        safe_cfree(&replace);
-                safe_cfree(&esc_data_type);
-                safe_cfree(&esc_display_name);
+                if (esc_data_type)    safe_cfree(&esc_data_type);
+                if (esc_display_name) safe_cfree(&esc_display_name);
 
                 /* adding property parameter values */
 	        osync_trace(TRACE_INTERNAL, "%s: adding property parameter values", __func__);

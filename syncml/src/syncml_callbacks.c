@@ -191,7 +191,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					__func__,
 					database->gotChanges, database->getChangesCtx, database->objtype);
 
-				if (database->getChangesCtx) {
+				if (database->syncReceived && database->getChangesCtx) {
 					/* If there is a change context then a package
 					 * with data was received actually. If such a
 					 * package is closed by a final element then all
@@ -468,7 +468,12 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, dsession, numchanges, userdata);
 	SmlDatabase *database = (SmlDatabase *)userdata;
-	
+
+	/* Only if this event was received then it makes sense to check for the
+	 * FINAL element because otherwise it is a FINAL from the wrong package.
+	 */
+	database->syncReceived = TRUE;
+
 	osync_trace(TRACE_INTERNAL,"Going to receive %i changes - objtype: %s", numchanges, database->objtype);
 	// printf("Going to receive %i changes\n", numchanges);
 	database->pendingChanges = numchanges;
