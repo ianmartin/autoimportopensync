@@ -471,7 +471,9 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
         // [vcal-1.0] param (same order as in spec!)
 	// TODO -> TYPE 
+	insert_xml_attr_handler(hooks->parameters, "FormatType", handle_xml_vcal_formattype_parameter); // (AALARM)
 	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
+	insert_xml_attr_handler(hooks->parameters, "AttachValue", handle_xml_vcal_attachvalue_parameter); // (AALRM)
 	insert_xml_attr_handler(hooks->parameters, "Encoding", handle_xml_encoding_parameter);
 	// TODO -> CHARSET
 	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
@@ -515,6 +517,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
         // [vcal-1.0] entprop (same order as in spec!)
 	// TODO -> AALARM
+	insert_xml_attr_handler(hooks->attributes, "AlarmAudio", handle_xml_vcal_aalarm_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
 	// TODO -> DALARM
@@ -827,7 +830,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
 
 		// Skip Alarm* and Timezone* xmlfields
-		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm")) {
+		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm") && target != VFORMAT_EVENT_10) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
 			continue;
 		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Method")) {

@@ -823,7 +823,7 @@ char *vformat_escape_string (const char *s, VFormatType type)
 			 * on vcard 2.1, unless it is in the end of a value.
 			 * See comments above for a better explanation
 			**/
-			if (*p != '\0' && type == VFORMAT_CARD_21) {
+			if (*p != '\0' && (type == VFORMAT_CARD_21 || type == VFORMAT_EVENT_10)) {
 				osync_trace(TRACE_INTERNAL, "[%s]We won't escape backslashes", __func__);
 				str = g_string_append_c(str, *p);
 			}
