@@ -150,6 +150,7 @@ OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 	} 
 
 	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
+	
 	osync_xmlfield_set_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 3));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 1));
@@ -185,36 +186,6 @@ OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 
 
 /* BEGIN: xml -> vcalendar10 parameters */
-void handle_xml_vcal_attachvalue_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling AttachValue xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "AttachValue");
-	if (content) {
-		if(!strcmp(content, "URI")) {
-			vformat_attribute_add_param_with_value(attr, "VALUE", "URL");
-		} else {
-			vformat_attribute_add_param_with_value(attr, "VALUE", content);
-		}
-	} else {
-		osync_trace(TRACE_INTERNAL, "Warning: No AttachValue parameter found!");
-	}
-}
-
-void handle_xml_vcal_formattype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling FormatType xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "FormatType");
-	if (content) {
-		if(!strcmp(content, "audio/x-wav")) {
-			vformat_attribute_add_param_with_value(attr, "TYPE", "WAVE");
-		} else {
-			vformat_attribute_add_param_with_value(attr, "TYPE", content);
-		}
-	} else {
-		osync_trace(TRACE_INTERNAL, "Warning: No FormatType parameter found!");
-	}
-}
-
 void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
@@ -236,50 +207,6 @@ VFormatAttribute *handle_xml_vcal_rrule_attribute(VFormat *vevent, OSyncXMLField
 {
 	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
 	return convert_xml_rrule_to_vcal(vevent, xmlfield, "RRULE", encoding); 
-}
-
-VFormatAttribute *handle_xml_vcal_aalarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling \"AALARM\" xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "AALARM");
-
-	// get values
-	const char *action = osync_xmlfield_get_key_value(xmlfield, "AlarmAction");
-	const char *attach = osync_xmlfield_get_key_value(xmlfield, "AlarmAttach");
-	const char *repeat = osync_xmlfield_get_key_value(xmlfield, "AlarmRepeat");
-	const char *duration = osync_xmlfield_get_key_value(xmlfield, "AlarmRepeatDuration");
-	const char *trigger = osync_xmlfield_get_key_value(xmlfield, "AlarmTrigger");
-	const char *value = osync_xmlfield_get_attr(xmlfield, "Value");
-	const char *attachvalue = osync_xmlfield_get_attr(xmlfield, "AttachValue");
-	const char *formattype = osync_xmlfield_get_attr(xmlfield, "FormatType");
-
-	printf("----------------------------------------------\n");
-	if (action)
-		printf("action: %s\n", action);
-	if (attach)
-		printf("attach: %s\n", attach);
-	if (repeat)
-		printf("repeat: %s\n", repeat);
-	if (duration)
-		printf("duration: %s\n", duration);
-	if(trigger)
-		printf("trigger: %s\n", trigger);
-	if(value)
-		printf("value: %s\n", value);
-	if(formattype)
-		printf("format type: %s\n", formattype);
-	if(attachvalue)
-		printf("attach value %s\n", attachvalue);
-	printf("----------------------------------------------\n");
-
-	vformat_attribute_add_value(attr, trigger);
-
-	//add_value(attr, xmlfield, "AlarmTrigger", encoding);
-	add_value(attr, xmlfield, "AlarmRepeatDuration", encoding);
-	add_value(attr, xmlfield, "AlarmRepeat", encoding);
-	add_value(attr, xmlfield, "AlarmAttach", encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
 }
 /* END: xml -> vcalendar10 only attributes */
 
