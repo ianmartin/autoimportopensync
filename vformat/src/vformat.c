@@ -1016,12 +1016,13 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			else {
 				attr_str = g_string_append_c (attr_str, ';');
 				/**
-				 * The "TYPE=" is optional skip it.
+				 * The "TYPE=" is optional skip it. (2.1.2 Property)
 				 * LOGO, PHOTO and SOUND multimedia formats MUST
 				 * have a "TYPE=" parameter
 				**/
 				gboolean must_have_type = FALSE;
-				if (!g_ascii_strcasecmp (attr->name, "PHOTO") || !g_ascii_strcasecmp (attr->name, "LOGO") || !g_ascii_strcasecmp (attr->name, "SOUND") )
+				if (!g_ascii_strcasecmp (attr->name, "PHOTO") || !g_ascii_strcasecmp (attr->name, "LOGO") || !g_ascii_strcasecmp (attr->name, "SOUND") ||
+						!g_ascii_strcasecmp (attr->name, "AALARM") || !g_ascii_strcasecmp (attr->name, "PALARM") )
 					must_have_type = TRUE;
 				if ( must_have_type || g_ascii_strcasecmp (param->name, "TYPE") )
 					attr_str = g_string_append (attr_str, param->name);
