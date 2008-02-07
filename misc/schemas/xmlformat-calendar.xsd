@@ -157,7 +157,7 @@
 
   <xsd:complexType name="Attendee">
     <xsd:sequence>
-      <xsd:element minOccurs="1" name="Content" type="xsd:anyURI"/>
+      <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
     </xsd:sequence>
     <xsd:attribute name="CUType" type="CalendarUserType"/>
     <xsd:attribute name="Member" type="CalAddressList"/>
