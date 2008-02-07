@@ -174,11 +174,6 @@ void register_ds_session_callbacks(
 		SmlDatabase *database,
 		SmlDsSessionAlertCb alertCallback);
 
-void get_changeinfo(
-			void *data, 
-			OSyncPluginInfo *info, 
-			OSyncContext *ctx);
-
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
 void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
@@ -187,13 +182,6 @@ SmlBool send_sync_message(
                         SmlDatabase *database,
                         void *func_ptr,
                         OSyncError **oserror);
-
-void batch_commit(
-			void *data, 
-			OSyncPluginInfo *info, 
-			OSyncContext *ctx, 
-			OSyncContext **contexts, 
-			OSyncChange **changes);
 
 osync_bool syncml_config_parse_database(
 			SmlPluginEnv *env,

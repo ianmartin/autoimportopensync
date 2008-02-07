@@ -1,6 +1,7 @@
 #include "syncml_common.h"
 #include "syncml_callbacks.h"
 #include "syncml_devinf.h"
+#include "syncml_ds_client.h"
 
 /* Some informations about the SyncML protocol
  * 
@@ -321,107 +322,6 @@ error:
 	return FALSE;
 }
 
-void syncml_http_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
-{
-        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-        SmlPluginEnv *env = (SmlPluginEnv *)data;
-
-        SmlDatabase *database = get_database_from_plugin_info(info);
-
-        database->getChangesCtx = ctx;
-        osync_context_ref(database->getChangesCtx);
-
-        SmlError *error = NULL;
-        OSyncError *oserror = NULL;
-
-	/* let's wait for the device info of the server */
-	while (!smlDevInfAgentGetDevInf(env->agent) && !smlSessionCheck(env->session))
-	{
-		unsigned int sleeping = 5;
-		osync_trace(TRACE_INTERNAL,
-			"%s: SyncML HTTP client is waiting for server's device info (%d seconds).",
-			__func__, sleeping);
-		sleep(sleeping);
-	}
-	SmlDevInf *devinf = smlDevInfAgentGetDevInf(env->agent);
-	unsigned int stores = smlDevInfNumDataStores(devinf);
-	unsigned int i;
-	SmlBool supportedDatabase = FALSE;
-	for (i=0; i < stores; i++)
-	{
-		const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
-		// if (!strcmp(smlDevInfDataStoreGetSourceRef(datastore), database->objtype))
-		if (!strcmp(smlDevInfDataStoreGetSourceRef(datastore),
-			    database->url))
-			supportedDatabase = TRUE;
-	}
-	if (!supportedDatabase)
-	{
-		osync_trace(TRACE_INTERNAL,
-			"%s: SyncML HTTP client uses unsupported objtype (%s) ...",
-			__func__, database->objtype);
-		for (i=0; i < stores; i++)
-		{
-			const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
-			osync_trace(TRACE_INTERNAL, "%s: %s (supported)",
-				__func__, smlDevInfDataStoreGetSourceRef(datastore));
-		}
-	} else {
-		osync_trace(TRACE_INTERNAL,
-			"%s: SyncML HTTP client uses supported objtype (%s: %s).\n",
-			__func__, database->objtype, database->url);
-	}
-
-	/* initialize the timestamps and alert type */
-	SmlAlertType alertType = SML_ALERT_SLOW_SYNC;
-	char *last = NULL; // perhaps NULL is better
-	char *next = malloc(sizeof(char)*17);
-	time_t htime = time(NULL);
-	if (env->onlyLocaltime)
-		strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
-	else
-		strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
-	if (!osync_objtype_sink_get_slowsync(database->sink))
-        {
-		/* this must be a two-way-sync */
-		alertType = SML_ALERT_TWO_WAY;
-		char *key = g_strdup_printf("remoteanchor%s", smlDsServerGetLocation(database->server));
-		last = osync_anchor_retrieve(database->env->anchor_path, key);
-		safe_cfree(&key);
-	}
-
-	/* The OMA DS client starts the synchronization so there should be no
-	 * DsSession (datastore session) present.
-	 */
-	database->session = smlDsServerSendAlert(
-				database->server,
-				env->session,
-				alertType,
-				last, next,
-				_recv_alert_reply, database,
-				&error);
-	safe_cfree(&next);
-	if (last) safe_cfree(&last);
-	if (!database->session)
-		goto error;
-
-	register_ds_session_callbacks(database, _recv_alert_from_server);
-
-	if (!flush_session_for_all_databases(env, TRUE, &error))
-		goto error;
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-	
-error:
-	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-	smlErrorDeref(&error);
-	osync_context_report_osyncerror(ctx, oserror);
-        osync_context_unref(database->getChangesCtx);
-        database->getChangesCtx = NULL;
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-}
-
 void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
@@ -472,9 +372,9 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.get_changes = syncml_http_client_get_changeinfo;
+                functions.get_changes = ds_client_get_changeinfo;
                 functions.sync_done = sync_done;
-		functions.batch_commit = batch_commit;
+		functions.batch_commit = ds_client_batch_commit;
                 
                 osync_objtype_sink_set_functions(sink, functions, database);
                 osync_plugin_info_add_objtype(info, sink);

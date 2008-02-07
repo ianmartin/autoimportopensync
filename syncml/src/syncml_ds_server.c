@@ -1,0 +1,123 @@
+#include "syncml_ds_server.h"
+#include "syncml_callbacks.h"
+
+void ds_server_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	g_assert(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	set_session_user(env, __func__);
+
+	SmlDatabase *database = get_database_from_plugin_info(info);
+
+	database->getChangesCtx = ctx;
+	osync_context_ref(database->getChangesCtx);
+
+	/* this function is a server function
+	 * a server performs this function if connect succeeded
+	 * connect success means there is a syncml message from the client
+	 * with a final element at the end
+	 * get_changeinfo is called after success is signalled
+	 * sometimes _ds_event is not called until get_changeinfo is called
+	 * so the DsSession is not available
+	 * so we have to wait for the DsSession
+	 */
+	register_ds_session_callbacks(database, _ds_server_recv_alert);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
+{
+    osync_trace(TRACE_ENTRY, "%s", __func__);
+    g_assert(ctx);
+
+    SmlError  *error = NULL;
+    OSyncError  *oserror = NULL;
+    SmlDatabase *database = get_database_from_plugin_info(info);
+    set_session_user(database->env, __func__);
+
+    /* Servers only answer on client alerts.
+     * If a client already started a sync for a database
+     * then this sync must be completed.
+     */
+    unsigned int num = get_num_changes(changes);
+    database->env->ignoredDatabases = g_list_remove(database->env->ignoredDatabases, database);
+    osync_trace(TRACE_INTERNAL, "%s - %i changes present to send", __func__, num);
+
+    database->commitCtx = ctx;
+    osync_context_ref(database->commitCtx);
+
+    // a batch commit should be called after the first DsSession
+    // was completely performed
+    g_assert(database->session);
+    g_assert(database->pendingChanges == 0); 
+
+    // cache changes
+    database->syncChanges = osync_try_malloc0((num + 1)*sizeof(OSyncChange *), &oserror);
+    if (!database->syncChanges) goto oserror;
+    database->syncChanges[num] = NULL;
+    database->syncContexts = osync_try_malloc0((num + 1)*sizeof(OSyncContext *), &oserror);
+    if (!database->syncContexts) goto oserror;
+    database->syncContexts[num] = NULL;
+    int i;
+    for (i=0; i < num; i++)
+    {
+        database->syncChanges[i] = changes[i];
+        database->syncContexts[i] = contexts[i];
+	osync_change_ref(changes[i]);
+	osync_context_ref(contexts[i]);
+    }
+
+    /* a server can send the sync message directly */
+    if (!send_sync_message(database, _recv_sync_reply, &oserror))
+        goto oserror;
+
+    osync_trace(TRACE_EXIT, "%s", __func__);
+    return;
+
+error:
+    osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+    smlErrorDeref(&error);
+oserror:
+    osync_context_report_osyncerror(ctx, oserror);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+}
+
+SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last, const char *next, void *userdata)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %s, %p)", __func__, dsession, type, last, next, userdata);
+	SmlDatabase *database = (SmlDatabase*) userdata;
+	SmlPluginEnv *env = database->env;
+	SmlBool ret = TRUE;
+	
+	char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
+
+	if ((!last || !osync_anchor_compare(env->anchor_path, key, last)) && type == SML_ALERT_TWO_WAY)
+		ret = FALSE;
+	
+	if (!ret || type != SML_ALERT_TWO_WAY)
+		osync_objtype_sink_set_slowsync(database->sink, TRUE);
+	
+	osync_trace(TRACE_INTERNAL, "%s: updating sync anchor %s to %s", __func__, key, next);
+	osync_anchor_update(env->anchor_path, key, next);
+	safe_cfree(&key);
+	
+	if (osync_objtype_sink_get_slowsync(database->sink)) {
+		smlDsSessionSendAlert(dsession, SML_ALERT_SLOW_SYNC, last, next, _recv_alert_reply, database, NULL);
+	} else {
+		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, NULL);
+	}
+
+	// This is a server function only - so we are in server mode.
+	// If a server replies on an alert and sends back an alert
+	// then we must flush after all alerts are ready to send.
+	if (!flush_session_for_all_databases(database->env, TRUE, NULL))
+	{
+		osync_trace(TRACE_EXIT_ERROR, "%s - flush failed", __func__);
+		return FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}

@@ -21,6 +21,7 @@
 #include "syncml_common.h"
 #include "syncml_callbacks.h"
 #include "syncml_devinf.h"
+#include "syncml_ds_server.h"
 
 void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
@@ -200,9 +201,9 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.get_changes = get_changeinfo;
+                functions.get_changes = ds_server_get_changeinfo;
                 functions.sync_done = sync_done;
-		functions.batch_commit = batch_commit;
+		functions.batch_commit = ds_server_batch_commit;
                 
                 osync_objtype_sink_set_functions(sink, functions, database);
                 database->sink = sink;

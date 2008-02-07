@@ -46,17 +46,9 @@ void _ds_alert(SmlDsSession *dsession, void *userdata);
 /* *****     Alert Callbacks     ***** */
 /* *********************************** */
 
-SmlBool _recv_alert_from_server(
-		SmlDsSession *dsession,
-		SmlAlertType type,
-		const char *last,
-		const char *next,
-		void *userdata);
-
-SmlBool _recv_alert(SmlDsSession *dsession,
-		SmlAlertType type,
-		const char *last, const char *next,
-		void *userdata);
+/* The real alert callbacks are specific for DS clients and servers.
+ * So please check syncml_ds_client.h and syncml_ds_server.h for more details.
+ */
 
 void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *userdata);
 
