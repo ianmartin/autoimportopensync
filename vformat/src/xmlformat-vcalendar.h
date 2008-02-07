@@ -42,9 +42,13 @@ OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 
+void handle_xml_vcal_attachvalue_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
+void handle_xml_vcal_formattype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
+void handle_xml_vcal_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 
 VFormatAttribute *handle_xml_vcal_rrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
+VFormatAttribute *handle_xml_vcal_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 
 // vcalendar20 only
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);

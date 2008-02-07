@@ -150,7 +150,6 @@ OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 	} 
 
 	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
-	
 	osync_xmlfield_set_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 3));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 1));
@@ -186,6 +185,36 @@ OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 
 
 /* BEGIN: xml -> vcalendar10 parameters */
+void handle_xml_vcal_attachvalue_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling AttachValue xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "AttachValue");
+	if (content) {
+		if(!strcmp(content, "URI")) {
+			vformat_attribute_add_param_with_value(attr, "VALUE", "URL");
+		} else {
+			vformat_attribute_add_param_with_value(attr, "VALUE", content);
+		}
+	} else {
+		osync_trace(TRACE_INTERNAL, "Warning: No AttachValue parameter found!");
+	}
+}
+
+void handle_xml_vcal_formattype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling FormatType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "FormatType");
+	if (content) {
+		if(!strcmp(content, "audio/x-wav")) {
+			vformat_attribute_add_param_with_value(attr, "TYPE", "WAVE");
+		} else {
+			vformat_attribute_add_param_with_value(attr, "TYPE", content);
+		}
+	} else {
+		osync_trace(TRACE_INTERNAL, "Warning: No FormatType parameter found!");
+	}
+}
+
 void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
@@ -198,6 +227,21 @@ void handle_xml_vcal_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfi
 		vformat_attribute_add_param_with_value(attr, "RSVP", content);
 	}
 }
+
+void handle_xml_vcal_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Value xml parameter");
+	
+	// xmlformat-event stores VALUE=DATE-TIME or VALUE=DURATION for alarms
+	// but vcal10 doesn't know something like this, so we skip it here
+	const char *alarm = osync_xmlfield_get_key_value(xmlfield, "AlarmAction");
+	if (alarm)
+		return;
+
+	// normal case
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Value");
+	vformat_attribute_add_param_with_value(attr, "VALUE", content);
+}
 /* END: xml -> vcalendar10 parameters */
 
 
@@ -207,6 +251,97 @@ VFormatAttribute *handle_xml_vcal_rrule_attribute(VFormat *vevent, OSyncXMLField
 {
 	osync_trace(TRACE_INTERNAL, "Handling \"RRULE\" xml attribute");
 	return convert_xml_rrule_to_vcal(vevent, xmlfield, "RRULE", encoding); 
+}
+
+VFormatAttribute *handle_xml_vcal_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", osync_xmlfield_get_name(xmlfield));
+	VFormatAttribute *attr = NULL;
+
+	osync_bool isruntime = FALSE;
+
+	const char *action = osync_xmlfield_get_key_value(xmlfield, "AlarmAction");
+	const char *trigger = osync_xmlfield_get_key_value(xmlfield, "AlarmTrigger");
+
+	// trigger and action are required
+	if (trigger && action) {
+
+		// create new attribute
+		if (!strcasecmp(action, "AUDIO")) {
+			attr = vformat_attribute_new(NULL, "AALARM");
+		} else if (!strcasecmp(action, "DISPLAY")) {
+			attr = vformat_attribute_new(NULL, "DALARM");
+		} else if (!strcasecmp(action, "EMAIL")) {
+			attr = vformat_attribute_new(NULL, "MALARM");
+		} else if (!strcasecmp(action, "PROCEDURE")) {
+			attr = vformat_attribute_new(NULL, "PALARM");
+		} else {
+			osync_trace(TRACE_INTERNAL, "Error: Could not parse action attribute of ALARM xmlfield");
+			return NULL;
+		}
+	} else {
+		osync_trace(TRACE_INTERNAL, "Error: No trigger or action property found");
+		return NULL;
+	}
+
+	// check if trigger is a valid timestamp or duration
+	if (strlen(trigger) >= 15)
+		isruntime = TRUE;	
+
+	if (isruntime == TRUE) {
+		vformat_attribute_add_value(attr, trigger);
+	} else {
+		const char *dtstart;
+		char *runtime = NULL;
+		time_t dtstarted; 
+		int duration;
+
+
+		// find DateStarted XMLField		
+		OSyncXMLField *tmpfield = NULL;
+		for (tmpfield = xmlfield; tmpfield != NULL; tmpfield = osync_xmlfield_get_next(tmpfield)) {
+			if (!strcasecmp(osync_xmlfield_get_name(tmpfield), "DateStarted")) {
+				dtstart = osync_xmlfield_get_key_value(tmpfield, "Content");
+			}
+		}
+
+		// we cannot calculate a new timestamp without a dtstart property :(
+		if (!dtstart) {
+			osync_trace(TRACE_INTERNAL, "Error: No dtstart property found, unable to create alarm field");
+			return NULL;
+		}
+		
+		duration = osync_time_alarmdu2sec(trigger);	
+		dtstarted = osync_time_vtime2unix(dtstart, 0);
+
+		dtstarted += duration;
+		runtime = osync_time_unix2vtime(&dtstarted);
+
+		if (!osync_time_isutc(dtstart)) {
+			osync_trace(TRACE_INTERNAL, "WARNNING: timestamp is not UTC - converting reminder to localtime");
+			char *utc_runtime = runtime;
+			runtime = osync_time_vtime2localtime(utc_runtime, 0);
+			g_free(utc_runtime);
+		}
+
+		vformat_attribute_add_value(attr, runtime);
+		g_free(runtime);
+	}
+
+	add_value(attr, xmlfield, "AlarmRepeatDuration", encoding);
+	add_value(attr, xmlfield, "AlarmRepeat", encoding);
+	
+	// AALARM and PALARM allows attachments
+	// DALARM and MALARM allows descriptions
+	if (!strcasecmp(action, "AUDIO") || !strcasecmp(action, "PROCEDURE")) {
+		add_value(attr, xmlfield, "AlarmAttach", encoding);
+	} else {
+		add_value(attr, xmlfield, "AlarmDescription", encoding);
+	}
+
+	vformat_add_attribute(vevent, attr);
+
+	return attr;
 }
 /* END: xml -> vcalendar10 only attributes */
 

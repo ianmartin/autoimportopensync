@@ -470,8 +470,11 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
 
         // [vcal-1.0] param (same order as in spec!)
+	// special parameter handler for alarms
+	insert_xml_attr_handler(hooks->parameters, "FormatType", handle_xml_vcal_formattype_parameter); // (AALARM)
+	insert_xml_attr_handler(hooks->parameters, "AttachValue", handle_xml_vcal_attachvalue_parameter); // (AALRM)
 	// TODO -> TYPE 
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_vcal_value_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Encoding", handle_xml_encoding_parameter);
 	// TODO -> CHARSET
 	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
@@ -514,13 +517,13 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
 
         // [vcal-1.0] entprop (same order as in spec!)
-	// TODO -> AALARM
+	insert_xml_attr_handler(hooks->attributes, "AlarmAudio", handle_xml_vcal_alarm_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmDisplay", handle_xml_vcal_alarm_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmEmail", handle_xml_vcal_alarm_attribute);
+	insert_xml_attr_handler(hooks->attributes, "AlarmProcedure", handle_xml_vcal_alarm_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
-	// TODO -> DALARM
 	insert_xml_attr_handler(hooks->attributes, "ExclusionDate", handle_xml_exdate_attribute);
-	// TODO -> MALARM
-	// TODO -> PALARM
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
@@ -827,7 +830,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
 
 		// Skip Alarm* and Timezone* xmlfields
-		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm")) {
+		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm") && target != VFORMAT_EVENT_10) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
 			continue;
 		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Method")) {
