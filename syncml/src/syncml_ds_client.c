@@ -14,44 +14,6 @@ void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *c
         SmlError *error = NULL;
         OSyncError *oserror = NULL;
 
-	/* let's wait for the device info of the server */
-	while (!smlDevInfAgentGetDevInf(env->agent) && !smlSessionCheck(env->session))
-	{
-		unsigned int sleeping = 5;
-		osync_trace(TRACE_INTERNAL,
-			"%s: SyncML HTTP client is waiting for server's device info (%d seconds).",
-			__func__, sleeping);
-		sleep(sleeping);
-	}
-	SmlDevInf *devinf = smlDevInfAgentGetDevInf(env->agent);
-	unsigned int stores = smlDevInfNumDataStores(devinf);
-	unsigned int i;
-	SmlBool supportedDatabase = FALSE;
-	for (i=0; i < stores; i++)
-	{
-		const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
-		// if (!strcmp(smlDevInfDataStoreGetSourceRef(datastore), database->objtype))
-		if (!strcmp(smlDevInfDataStoreGetSourceRef(datastore),
-			    database->url))
-			supportedDatabase = TRUE;
-	}
-	if (!supportedDatabase)
-	{
-		osync_trace(TRACE_INTERNAL,
-			"%s: SyncML HTTP client uses unsupported objtype (%s) ...",
-			__func__, database->objtype);
-		for (i=0; i < stores; i++)
-		{
-			const SmlDevInfDataStore *datastore = smlDevInfGetNthDataStore(devinf, i);
-			osync_trace(TRACE_INTERNAL, "%s: %s (supported)",
-				__func__, smlDevInfDataStoreGetSourceRef(datastore));
-		}
-	} else {
-		osync_trace(TRACE_INTERNAL,
-			"%s: SyncML HTTP client uses supported objtype (%s: %s).\n",
-			__func__, database->objtype, database->url);
-	}
-
 	/* initialize the timestamps and alert type */
 	SmlAlertType alertType = SML_ALERT_SLOW_SYNC;
 	char *last = NULL; // perhaps NULL is better
