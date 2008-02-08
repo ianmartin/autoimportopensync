@@ -1167,8 +1167,8 @@ VFormatAttribute *handle_xml_alarm_trigger_attribute(VFormat *vevent, OSyncXMLFi
 	add_value(attr, xmlfield, "AlarmTrigger", encoding);
 	if (osync_xmlfield_get_attr(xmlfield, "Value"))
 		handle_xml_value_parameter(attr, xmlfield);
-	if (osync_xmlfield_get_attr(xmlfield, "RelationshipType"))
-		handle_xml_reltype_parameter(attr, xmlfield);
+	if (osync_xmlfield_get_attr(xmlfield, "RelatedType"))
+		handle_xml_related_parameter(attr, xmlfield);
 
 	vformat_add_attribute(vevent, attr);
 	return attr;

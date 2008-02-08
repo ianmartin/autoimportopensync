@@ -141,7 +141,7 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
 	insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
 	insert_param_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
-	insert_param_handler(hooks->parameters, "RELATED", handle_trigrel_parameter); // trigrelparam -> TODO xsd
+	insert_param_handler(hooks->parameters, "RELATED", handle_trigrel_parameter); // trigrelparam
 	insert_param_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
 	insert_param_handler(hooks->parameters, "ROLE", handle_role_parameter); // roleparam
 	insert_param_handler(hooks->parameters, "RSVP", handle_rsvp_parameter); // rsvpparam
