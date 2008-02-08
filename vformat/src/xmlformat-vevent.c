@@ -93,13 +93,13 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	// X-Word
 
         // [vcal-1.0] entprop (same order as in spec!)
-	insert_attr_handler(hooks->attributes, "AALARM", handle_vcal_aalarm_attribute);
+	insert_attr_handler(hooks->attributes, "AALARM", handle_vcal_alarm_attribute);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
 	insert_attr_handler(hooks->attributes, "CLASS", handle_class_attribute);
-	insert_attr_handler(hooks->attributes, "DALARM", handle_vcal_dalarm_attribute);
+	insert_attr_handler(hooks->attributes, "DALARM", handle_vcal_alarm_attribute);
 	insert_attr_handler(hooks->attributes, "EXDATE", handle_exdate_attribute);
-	insert_attr_handler(hooks->attributes, "MALARM", HANDLE_IGNORE);  // TODO
-	insert_attr_handler(hooks->attributes, "PALARM", HANDLE_IGNORE);  // TODO
+	insert_attr_handler(hooks->attributes, "MALARM", handle_vcal_alarm_attribute);
+	insert_attr_handler(hooks->attributes, "PALARM", handle_vcal_alarm_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);

@@ -38,8 +38,7 @@ void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
-OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
-OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
+OSyncXMLField *handle_vcal_alarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 
 void handle_xml_vcal_attachvalue_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);

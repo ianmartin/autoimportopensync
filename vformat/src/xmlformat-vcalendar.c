@@ -140,34 +140,40 @@ void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 
 /* BEGIN: vcalendar10 only attributes -> xml */
-OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "AlarmAudio", error);
+OSyncXMLField *handle_vcal_alarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{
+	OSyncXMLField *xmlfield = NULL;	
+	const char *name = vformat_attribute_get_name(attr);
+
+	if (!strcasecmp(name, "AALARM")) {
+		osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
+		xmlfield = osync_xmlfield_new(xmlformat, "AlarmAudio", error);
+		osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
+	} else if (!strcasecmp(name, "DALARM")) {
+		osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
+		xmlfield = osync_xmlfield_new(xmlformat, "AlarmDisplay", error);
+		osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
+	} else if (!strcasecmp(name, "MALARM")) {
+		osync_trace(TRACE_INTERNAL, "Handling malarm attribute");
+		xmlfield = osync_xmlfield_new(xmlformat, "AlarmEmail", error);
+		osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "EMAIL");
+	} else if (!strcasecmp(name, "PALARM")) {
+		osync_trace(TRACE_INTERNAL, "Handling palarm attribute");
+		xmlfield = osync_xmlfield_new(xmlformat, "AlarmProcedure", error);
+		osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "PROCEDURE");
+	}
+
 	if(!xmlfield) {
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	} 
 
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 3));
-	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
-	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 1));
-	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
-	return xmlfield; 
-}
+	if (!strcasecmp(name, "AALARM") || !strcasecmp(name, "PALARM")) {
+		osync_xmlfield_set_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 3));
+	} else {
+		osync_xmlfield_set_key_value(xmlfield, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
+	}
 
-OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "AlarmDisplay", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	} 
-
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 1));
 	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
