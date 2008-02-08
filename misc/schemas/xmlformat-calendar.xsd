@@ -17,6 +17,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <xsd:simpleType name="RelatedType">
+    <xsd:restriction base="xsd:string">
+    	<xsd:enumeration value="START"/>
+	<xsd:enumeration value="END"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <xsd:simpleType name="TriggerValue">
     <xsd:restriction base="xsd:string">
     <!-- TODO: regular expression to check for DURATION or DATE-TIME -->
@@ -24,7 +31,6 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- FIXME -->
   <xsd:complexType name="Alarm">
     <xsd:sequence>
       <!-- Action was already set by renaming the xmlfield to e.g. AlarmAudio -->
@@ -41,7 +47,8 @@
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
     </xsd:sequence>
     <xsd:attribute name="Value" type="TriggerType"/>
-    <!-- Following fields are required for AlarmDescription -->
+    <xsd:attribute name="RelatedType" type="RelatedType"/>
+    <!-- Following fields are required for AlarmDescription and AlarmSummary -->
     <xsd:attribute name="AlternativeTextRep" type="xsd:string"/>
     <xsd:attribute name="Language" type="xsd:string"/>
     <!-- Following fields are required for AlarmAttach -->
@@ -50,32 +57,6 @@
     <xsd:attribute name="Encoding" type="xsd:string"/>
   </xsd:complexType>
 
-  <!-- Use AlarmRelatedEnd if the alarm got triggered related to the end point of the appointment.
-       Example:  5 minutes before or after the _end_ of the appointment.
-       If the alarm got triggered related to start use <Alarm>
-  -->
-  <xsd:complexType name="AlarmRelatedEnd">
-    <xsd:sequence>
-      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
-      <!-- TODO only allow Attachment element if Action is AUDIO or PROCEDURE --> 
-      <!-- FIXME xsd:string may be wrong (was xsd:anyURI) -->
-      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="xsd:string"/>
-      <!-- TODO only allow Description element if Action is DISPLAY or EMAIL --> 
-      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="MultiText"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
-      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
-    </xsd:sequence>
-    <xsd:attribute name="Value" type="TriggerType"/>
-    <!-- Following fields are required for AlarmDescription -->
-    <xsd:attribute name="AlternativeTextRep" type="xsd:string"/>
-    <xsd:attribute name="Language" type="xsd:string"/>
-    <!-- Following fields are required for AlarmAttach -->
-    <xsd:attribute name="AttachValue" type="AttachmentType"/>
-    <xsd:attribute name="FormatType" type="xsd:string"/>
-    <xsd:attribute name="Encoding" type="xsd:string"/>
-  </xsd:complexType>
-
- 
   <xsd:complexType name="Duration">
     <xsd:sequence>
       <!--
