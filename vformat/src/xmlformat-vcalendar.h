@@ -127,10 +127,8 @@ void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_sent_by_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield);
 
-VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_prodid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_method_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
-VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_geo_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_dtstamp_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_description_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);

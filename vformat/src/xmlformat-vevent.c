@@ -627,8 +627,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tz_rdate_attribute);
 	*/
 
-	//Alarm TODO
-	/*
+	// [RFC 2445] alarm props (audio, display, email, procedure)
 	insert_xml_attr_handler(hooks->attributes, "AlarmTrigger", handle_xml_alarm_trigger_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmRepeat", handle_xml_alarm_repeat_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmDuration", handle_xml_alarm_duration_attribute);
@@ -637,7 +636,6 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "AlarmDescription", handle_xml_alarm_description_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", handle_xml_alarm_attendee_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", handle_xml_alarm_summary_attribute);
-	*/
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -824,24 +822,29 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	}
 	vformat_add_attribute(vcalendar, attr);
 
-	// TODO: Handle VALARM component
-
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
 
-		// Skip Alarm* and Timezone* xmlfields
+		// we need to call xml_handle_component_attribute for alarm nodes
 		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm") && target != VFORMAT_EVENT_10) {
-			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
-			continue;
+			VFormatAttribute *start_attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_add_attribute_with_value(vcalendar, start_attr, "VALARM"); 
+			xml_handle_component_attribute(hooks, vcalendar, xmlfield, std_encoding);
+			VFormatAttribute *end_attr = vformat_attribute_new(NULL, "END");
+			vformat_add_attribute_with_value(vcalendar, end_attr, "VALARM"); 
+
+		// skip method -> TODO
 		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Method")) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
-			continue;
+
+		// skip timezone -> TODO
 		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Timezone")) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
-			continue;
-		}
 
-		xml_handle_attribute(hooks, vcalendar, xmlfield, std_encoding);
+		// default
+		} else {
+			xml_handle_attribute(hooks, vcalendar, xmlfield, std_encoding);
+		}
 	}
 
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes finished");

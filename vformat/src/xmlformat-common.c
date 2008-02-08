@@ -408,6 +408,45 @@ void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLFiel
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 }
 
+void xml_handle_component_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLField *xmlfield, const char *encoding)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vformat, xmlfield, xmlfield ? osync_xmlfield_get_name(xmlfield) : "None");
+
+	int fields = osync_xmlfield_get_key_count(xmlfield);		
+	int i;
+	for (i=0; i < fields; i++) {
+
+		VFormatAttribute *attr = NULL;
+		const char *name = osync_xmlfield_get_nth_key_name(xmlfield, i);
+	
+		//We need to find the handler for this attribute
+		VFormatAttribute *(* xml_attr_handler)(VFormat *vformat, OSyncXMLField *xmlfield, const char *) = g_hash_table_lookup(hooks->attributes, name);
+		osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
+		if (xml_attr_handler == HANDLE_IGNORE) {
+			osync_trace(TRACE_INTERNAL, "%s: Ignored", name);
+			continue;
+		}
+		if (xml_attr_handler) {
+			osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", name);
+			attr = xml_attr_handler(vformat, xmlfield, encoding);
+		} else {
+			osync_trace(TRACE_INTERNAL, "%s: Ignored2", name);
+		}
+	}
+
+	/*
+	 * component attributes handle parameter directly
+         *
+	//Handle all parameters of this attribute
+	int i, c = osync_xmlfield_get_attr_count(xmlfield);
+	for(i=0; i<c; i++) {
+		xml_handle_parameter(hooks, attr, xmlfield, i);
+	}
+	*/
+
+	osync_trace(TRACE_EXIT, "%s", __func__);	
+}
+
 /* some helper functions for hash table usage */
 void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
 {

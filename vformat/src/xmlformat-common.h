@@ -78,6 +78,7 @@ void handle_component_attribute(GHashTable *attrtable, GHashTable *paramtable, O
 /* XML Handler for Attributes and Parameters */
 void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr);
 void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
+void xml_handle_component_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
 
 /* Helper function for hash table usage */
 void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler);

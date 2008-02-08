@@ -908,12 +908,6 @@ void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 
 
 /* BEGIN: xml -> vcalendar20 (and vcalendar10) attributes */
-VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	// TODO
-	return NULL;
-}
-
 VFormatAttribute *handle_xml_prodid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "PRODID", encoding);
@@ -1169,13 +1163,21 @@ void handle_alarm_trigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *a
 /* BEGIN: xml -> alarm attributes (vcalendar20) */
 VFormatAttribute *handle_xml_alarm_trigger_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "TRIGGER", encoding);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "TRIGGER");
+	add_value(attr, xmlfield, "AlarmTrigger", encoding);
+	if (osync_xmlfield_get_attr(xmlfield, "Value"))
+		handle_xml_value_parameter(attr, xmlfield);
+	if (osync_xmlfield_get_attr(xmlfield, "RelationshipType"))
+		handle_xml_reltype_parameter(attr, xmlfield);
+
+	vformat_add_attribute(vevent, attr);
+	return attr;
 }
 
 VFormatAttribute *handle_xml_alarm_repeat_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "REPEAT");
-	add_value(attr, xmlfield, NULL, encoding);
+	add_value(attr, xmlfield, "AlarmRepeat", encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1183,7 +1185,7 @@ VFormatAttribute *handle_xml_alarm_repeat_attribute(VFormat *vevent, OSyncXMLFie
 VFormatAttribute *handle_xml_alarm_duration_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DURATION");
-	add_value(attr, xmlfield, NULL, encoding);
+	add_value(attr, xmlfield, "AlarmRepeatDuration", encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1191,8 +1193,7 @@ VFormatAttribute *handle_xml_alarm_duration_attribute(VFormat *vevent, OSyncXMLF
 VFormatAttribute *handle_xml_alarm_action_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "ACTION");
-	/* FIXME add_Value() #3 NULL is wrong */
-	add_value(attr, xmlfield, NULL, encoding);
+	add_value(attr, xmlfield, "AlarmAction", encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1200,9 +1201,12 @@ VFormatAttribute *handle_xml_alarm_action_attribute(VFormat *vevent, OSyncXMLFie
 VFormatAttribute *handle_xml_alarm_attach_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTACH");
-	/* FIXME add_Value() #3 NULL is wrong */
+	add_value(attr, xmlfield, "AlarmAttach", encoding);
+	if (osync_xmlfield_get_attr(xmlfield, "FormatType"))
+		handle_xml_format_type_parameter(attr, xmlfield);
+	if (osync_xmlfield_get_attr(xmlfield, "Encoding"))
+		handle_xml_encoding_parameter(attr, xmlfield);
 
-	add_value(attr, xmlfield, NULL, encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1210,9 +1214,12 @@ VFormatAttribute *handle_xml_alarm_attach_attribute(VFormat *vevent, OSyncXMLFie
 VFormatAttribute *handle_xml_alarm_description_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DESCRIPTION");
-	/* FIXME add_Value() #3 NULL is wrong */
+	add_value(attr, xmlfield, "AlarmDescription", encoding);
+	if (osync_xmlfield_get_attr(xmlfield, "AlternativeTextRep"))
+		handle_xml_altrep_parameter(attr, xmlfield);
+	if (osync_xmlfield_get_attr(xmlfield, "Language"))
+		handle_xml_language_parameter(attr, xmlfield);
 
-	add_value(attr, xmlfield, NULL, encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1220,9 +1227,8 @@ VFormatAttribute *handle_xml_alarm_description_attribute(VFormat *vevent, OSyncX
 VFormatAttribute *handle_xml_alarm_attendee_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTENDEE");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
+	add_value(attr, xmlfield, "AlarmAttendee", encoding);
+	// FIXME: add values
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1230,9 +1236,12 @@ VFormatAttribute *handle_xml_alarm_attendee_attribute(VFormat *vevent, OSyncXMLF
 VFormatAttribute *handle_xml_alarm_summary_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "SUMMARY");
-	/* FIXME add_Value() #3 NULL is wrong */
+	add_value(attr, xmlfield, "AlarmSummary", encoding);
+	if (osync_xmlfield_get_attr(xmlfield, "AlternativeTextRep"))
+		handle_xml_altrep_parameter(attr, xmlfield);
+	if (osync_xmlfield_get_attr(xmlfield, "Language"))
+		handle_xml_language_parameter(attr, xmlfield);
 
-	add_value(attr, xmlfield, NULL, encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
@@ -1518,7 +1527,6 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 
 
 
-/* Review and remove old and unused code */
 /*
 static void xml_handle_unknown_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
