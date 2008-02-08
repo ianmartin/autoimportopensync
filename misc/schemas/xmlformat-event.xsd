@@ -8,12 +8,10 @@
   <xsd:element name="event">
     <xsd:complexType>
       <xsd:sequence>
-	<!-- FIXME add AlarmRelatedEnd for each action type (audio, display, ...) -->
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="AlarmAudio" type="Alarm"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="AlarmDisplay" type="Alarm"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="AlarmEmail" type="Alarm"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="AlarmProcedure" type="Alarm"/>
-	<xsd:element maxOccurs="unbounded" minOccurs="0" name="AlarmRelatedEnd" type="AlarmRelatedEnd"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Attach" type="Attachment"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Attendee" type="Attendee"/>
 
