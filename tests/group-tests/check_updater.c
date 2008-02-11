@@ -213,13 +213,31 @@ START_TEST (updater_group_three_steps)
 	char *buf;
 	ssize_t size;
 	GError *gerror = NULL;
+
 	g_file_get_contents("configs/group1/syncgroup.conf", &buf, &size, &gerror);
 	fail_unless(gerror == NULL, NULL);
-
-	fail_unless(g_pattern_match_simple("<?xml version=\"*\"?>*<versionfour>*</versionfour>*", buf), NULL);
-
+	fail_unless(g_pattern_match_simple("<?xml version=\"*\"?>*<versionthree>0</versionthree>*", buf), "Buffer: %s", buf);
 	g_free(buf);
 
+	g_file_get_contents("configs/group1/1/mock-sync.conf", &buf, &size, &gerror);
+	fail_unless(gerror == NULL, NULL);
+	fail_unless(g_pattern_match_simple("<?xml version=\"*\"?>*<versionthree/></directory>*", buf), "Buffer: %s", buf);
+	g_free(buf);
+
+	g_file_get_contents("configs/group1/2/mock-sync.conf", &buf, &size, &gerror);
+	fail_unless(gerror == NULL, NULL);
+	fail_unless(g_pattern_match_simple("<?xml version=\"*\"?>*<versionthree/></directory>*", buf), "Buffer: %s", buf);
+	g_free(buf);
+
+	g_file_get_contents("configs/group1/1/syncmember.conf", &buf, &size, &gerror);
+	fail_unless(gerror == NULL, NULL);
+	fail_unless(g_pattern_match_simple("<?xml version=\"*\"?>*<versionthree/></name>*", buf), "Buffer: %s", buf);
+	g_free(buf);
+
+	g_file_get_contents("configs/group1/2/syncmember.conf", &buf, &size, &gerror);
+	fail_unless(gerror == NULL, NULL);
+	fail_unless(g_pattern_match_simple("<?xml version=\"*\"?>*<versionthree/></name>*", buf), "Buffer: %s", buf);
+	g_free(buf);
 
 	destroy_testbed(testbed);
 }
@@ -236,10 +254,8 @@ Suite *group_suite(void)
   create_case(s, "updater_updates_directory", updater_updates_directory);
   create_case(s, "updater_invalid_stylesheet", updater_invalid_stylesheet);
 
-  /* Prepare test stylesheets
   create_case(s, "updater_valid_stylesheet", updater_valid_stylesheet);
   create_case(s, "updater_group_three_steps", updater_group_three_steps);
-  */
 
   return s;
 }
