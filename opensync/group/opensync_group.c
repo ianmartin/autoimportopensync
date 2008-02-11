@@ -1241,7 +1241,7 @@ end:
 	if (doc)
 		xmlFreeDoc(doc);
 
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+	osync_trace(TRACE_EXIT, "%s(%p)", __func__, group);
 	return uptodate;
 }
 

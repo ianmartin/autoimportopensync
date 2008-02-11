@@ -1032,7 +1032,7 @@ osync_bool osync_member_config_is_uptodate(OSyncMember *member)
 end:
 	g_free(config);
 
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
 	return uptodate;
 }
 
@@ -1087,7 +1087,7 @@ end:
 	if (doc)
 		xmlFreeDoc(doc);
 
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
 	return uptodate;
 }
 
