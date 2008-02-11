@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <event>
-  <Alarm Value="DATE-TIME">
+  <AlarmDisplay Value="DATE-TIME">
     <AlarmAction>DISPLAY</AlarmAction>
     <AlarmRepeat>2</AlarmRepeat>
     <AlarmTrigger>20070120T230000Z</AlarmTrigger>
-  </Alarm>
+  </AlarmDisplay>
   <Attendee>
     <Content>MAILTO:nobody@localhost</Content>
   </Attendee>
