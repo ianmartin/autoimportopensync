@@ -37,5 +37,6 @@ OPENSYNC_ADD_TEST( objformat format-tests/check_objformat.c ${TEST_TARGET_LIBRAR
 OPENSYNC_ADD_TEST( proxy client-tests/check_proxy.c ${TEST_TARGET_LIBRARIES} )
 OPENSYNC_ADD_TEST( time format-tests/check_time.c ${TEST_TARGET_LIBRARIES} )
 OPENSYNC_ADD_TEST( version version-tests/check_version.c ${TEST_TARGET_LIBRARIES} )
+OPENSYNC_ADD_TEST( updater group-tests/check_updater.c ${TEST_TARGET_LIBRARIES} )
 OPENSYNC_ADD_TEST( xmlformat merger-tests/check_xmlformat.c ${TEST_TARGET_LIBRARIES} )
 

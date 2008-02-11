@@ -26,6 +26,7 @@ OPENSYNC_BEGIN_DECLS
 #include "group/opensync_group_env.h"
 #include "group/opensync_group.h"
 #include "group/opensync_member.h"
+#include "group/opensync_updater.h"
 
 OPENSYNC_END_DECLS
 

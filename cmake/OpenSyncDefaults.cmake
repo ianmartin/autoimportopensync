@@ -17,7 +17,7 @@
 #  OPENSYNC_DEBUG_MODULES       True if modules shouldn't get unloaded by OpenSync, to keep symbols of plugins
 #  OPENSYNC_UNITTESTS           True if unit tests should be build
 #
-# Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
+# Copyright (c) 2007-2008 Daniel Gollub <dgollub@suse.de>
 #
 
 INCLUDE( OpenSyncPlatforms )
@@ -35,6 +35,8 @@ SET( OPENSYNC_CAPABILITIESDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/capabili
 SET( OPENSYNC_CONFIGDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/defaults" CACHE PATH "OpenSync plugin configuration directory" )
 SET( OPENSYNC_DESCRIPTIONSDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/descriptions" CACHE PATH "OpenSync descriptions directory" )
 SET( OPENSYNC_SCHEMASDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/schemas" CACHE PATH "OpenSync schemas directory" )
+SET( OPENSYNC_UPDATESDIR "${SHARE_INSTALL_DIR}/${OPENSYNC_API_DIR}/updates" CACHE PATH "OpenSync configuration updates directory" )
+
 
 SET( OPENSYNC_LIBRARIES_DIR "${LIB_INSTALL_DIR}" CACHE PATH "OpenSync library location" )
 SET( OPENSYNC_LIBEXEC_DIR "${LIBEXEC_INSTALL_DIR}/${OPENSYNC_API_DIR}" CACHE PATH "OpenSync libexec location" )
