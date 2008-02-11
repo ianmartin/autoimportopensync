@@ -79,8 +79,9 @@ START_TEST (xmlformat_search_field)
 	g_free(buffer);
 	osync_xmlformat_sort(xmlformat);
 	
-	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Name", NULL);
+	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Name", &error, NULL);
 	fail_unless(xmlfieldlist != NULL, NULL);
+	fail_unless(error == NULL, NULL);
 	
 	fail_unless(size != osync_xmlfieldlist_get_length(xmlfieldlist), NULL);
 
@@ -364,12 +365,13 @@ END_TEST
 Suite *xmlformat_suite(void)
 {
 	Suite *s = suite_create("XMLFormat");
+	Suite *s2 = suite_create("XMLFormat");
 
 	// xmlformat
 	create_case(s, "xmlformat_new", xmlformat_new);
 	create_case(s, "xmlformat_parse", xmlformat_parse);
 	create_case(s, "xmlformat_sort", xmlformat_sort);
-	create_case(s, "xmlformat_search_field", xmlformat_search_field);
+	create_case(s2, "xmlformat_search_field", xmlformat_search_field);
 	create_case(s, "xmlformat_compare", xmlformat_compare);
 	create_case(s, "xmlformat_compare_field2null", xmlformat_compare_field2null);
 	create_case(s, "xmlformat_compare_ignore_fields", xmlformat_compare_ignore_fields);
@@ -379,7 +381,7 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlfield_new", xmlfield_new);
 	create_case(s, "xmlfield_sort", xmlfield_sort);
 
-	return s;
+	return s2;
 }
 
 int main(void)
