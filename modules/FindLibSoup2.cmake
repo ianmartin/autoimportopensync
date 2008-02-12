@@ -2,7 +2,7 @@
 # Find libsoup headers, libraries and the answer to all questions.
 #
 #  LIBSOUP2_FOUND               True if libsoup got found
-#  LIBSOUP2_INCLUDE_DIRS         Location of libsoup headers 
+#  LIBSOUP2_INCLUDE_DIRS        Location of libsoup headers 
 #  LIBSOUP2_LIBRARIES           List of libaries to use libsoup
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
@@ -21,12 +21,27 @@ ELSE( LibSoup2_FIND_REQUIRED )
 	SET( _pkgconfig_REQUIRED "" )	
 ENDIF ( LibSoup2_FIND_REQUIRED )
 
-IF ( LIBSOUP2_MIN_VERSION )
-	PKG_SEARCH_MODULE( LIBSOUP2 ${_pkgconfig_REQUIRED} libsoup-2.2>=${LIBSOUP2_MIN_VERSION} libsoup2>=${LIBSOUP2_MIN_VERSION} )
-ELSE ( LIBSOUP2_MIN_VERSION )
-	PKG_SEARCH_MODULE( LIBSOUP2 ${_pkgconfig_REQUIRED} libsoup-2.2 libsoup2 )
-ENDIF ( LIBSOUP2_MIN_VERSION )
+IF ( LIBSOUP24_MIN_VERSION )
+	PKG_SEARCH_MODULE( LIBSOUP2 ${_pkgconfig_REQUIRED} libsoup-2.4>=${LIBSOUP24_MIN_VERSION} libsoup2>=${LIBSOUP24_MIN_VERSION} )
+ELSE ( LIBSOUP24_MIN_VERSION )
+	PKG_SEARCH_MODULE( LIBSOUP2 ${_pkgconfig_REQUIRED} libsoup-2.4 libsoup2 )
+ENDIF ( LIBSOUP24_MIN_VERSION )
 
+IF ( LIBSOUP2_FOUND )
+	OPTION ( HAVE_LIBSOUP24 "building with libsoup 2.4" ON )
+	OPTION ( HAVE_LIBSOUP22 "building with libsoup 2.2" OFF )
+ELSE ( LIBSOUP2_FOUND )
+	IF ( LIBSOUP22_MIN_VERSION )
+		PKG_SEARCH_MODULE( LIBSOUP2 ${_pkgconfig_REQUIRED} libsoup-2.2>=${LIBSOUP22_MIN_VERSION} libsoup2>=${LIBSOUP22_MIN_VERSION} )
+	ELSE ( LIBSOUP22_MIN_VERSION )
+		PKG_SEARCH_MODULE( LIBSOUP2 ${_pkgconfig_REQUIRED} libsoup-2.2 libsoup2 )
+	ENDIF ( LIBSOUP22_MIN_VERSION )
+
+	IF ( LIBSOUP2_FOUND )
+		SET ( HAVE_LIBSOUP24 OFF )
+		SET ( HAVE_LIBSOUP22 ON )
+	ENDIF ( LIBSOUP2_FOUND )
+ENDIF ( LIBSOUP2_FOUND )
 
 IF( NOT LIBSOUP2_FOUND AND NOT PKG_CONFIG_FOUND )
 
