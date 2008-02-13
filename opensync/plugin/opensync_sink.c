@@ -778,7 +778,7 @@ void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read)
  *
  * If you are using hashtables, you should call this function in your sink's
  * get_changes() function and if slow-sync has been requested, call
- * osync_hashtable_reset() on your hashtable. If you don't do this, OpenSync
+ * osync_hashtable_slowsync() on your hashtable. If you don't do this, OpenSync
  * will assume that all entries should be deleted, which is usually not what 
  * the user wants.
  *

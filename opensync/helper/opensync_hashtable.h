@@ -23,14 +23,18 @@
 
 OSYNC_EXPORT OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSyncError **error);
 OSYNC_EXPORT void osync_hashtable_free(OSyncHashTable *table);
-OSYNC_EXPORT 
-OSYNC_EXPORT void osync_hashtable_reset(OSyncHashTable *table);
+
+OSYNC_EXPORT osync_bool osync_hashtable_slowsync(OSyncHashTable *table, OSyncError **error);
+
 OSYNC_EXPORT int osync_hashtable_num_entries(OSyncHashTable *table);
 OSYNC_EXPORT osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash);
 OSYNC_EXPORT void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *hash);
 OSYNC_EXPORT void osync_hashtable_delete(OSyncHashTable *table, const char *uid);
 OSYNC_EXPORT void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, const char *uid, const char *hash);
+
 OSYNC_EXPORT void osync_hashtable_report(OSyncHashTable *table, const char *uid);
+OSYNC_EXPORT void osync_hashtable_reset_reports(OSyncHashTable *table);
+
 OSYNC_EXPORT char **osync_hashtable_get_deleted(OSyncHashTable *table);
 OSYNC_EXPORT OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *hash);
 OSYNC_EXPORT char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid);

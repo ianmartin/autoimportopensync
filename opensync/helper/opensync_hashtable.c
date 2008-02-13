@@ -1,6 +1,7 @@
 /*
  * libopensync - A synchronization framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2008       Daniel Gollub <dgollub@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,6 +26,41 @@
 #include "opensync-data.h"
 #include "opensync-helper.h"
 #include "opensync-db.h"
+
+/**
+ * @defgroup OSyncHashtableAPI OpenSync Hashtables
+ * @ingroup OSyncPrivate
+ * @brief A Hashtable can be used to detect changes
+ */
+
+/*@{*/
+
+/*! @brief Creates the database table for the hashtable 
+ * 
+ * @param table The hashtable
+ * @param objtype the object type of the hashtable
+ * @param error An error struct
+ * @returns TRUE on success, or FALSE if an error occurred.
+ * 
+ */
+
+static osync_bool osync_hashtable_create(OSyncHashTable *table, const char *objtype, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, objtype, error);
+
+	char *query = g_strdup_printf("CREATE TABLE tbl_hash_%s (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", objtype);
+	if (!osync_db_query(table->dbhandle, query, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
+		return FALSE;
+	}
+
+	g_free(query);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+/*@}*/
 
 /**
  * @defgroup OSyncHashtableAPI OpenSync Hashtables
@@ -66,22 +102,6 @@
  * 
  */
 /*@{*/
-
-osync_bool osync_hashtable_create(OSyncHashTable *table, const char *objtype, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, objtype, error);
-
-	char *query = g_strdup_printf("CREATE TABLE tbl_hash_%s (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", objtype);
-	if (!osync_db_query(table->dbhandle, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_free(query);
-		return FALSE;
-	}
-
-	g_free(query);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
 
 /*! @brief Loads or creates a hashtable
  * 
@@ -162,24 +182,52 @@ void osync_hashtable_free(OSyncHashTable *table)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/*! @brief Prepares the hashtable for a slowsync and flush the entire hashtable
+ * 
+ * This function should be called to prepare the hashtable for a slowsync.
+ * The entire database, which stores the values of the hashtable beyond the
+ * synchronization, gets flushed.
+ * 
+ * @param table The hashtable
+ * @param error An error struct
+ * @returns TRUE on success, or FALSE if an error occurred.
+ * 
+ */
+osync_bool osync_hashtable_slowsync(OSyncHashTable *table, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, error);
+	osync_assert(table);
+	osync_assert(table->dbhandle);
+
+	if (!osync_db_reset(table->dbhandle, table->tablename, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 /*! @brief Makes a hashtable forget
  * 
  * You can ask the hashtable to detect the changes. In the end you can
  * ask the hashtable for all items that have been deleted since the last sync.
  * For this the hashtable maintains a internal table of items you already reported and
- * reports the items it didnt see yet as deleted.
+ * reports the items it didn't see yet as deleted.
  * This function resets the internal table so it start to report deleted items again
  * 
  * @param table The hashtable
  * 
  */
-void osync_hashtable_reset(OSyncHashTable *table)
+void osync_hashtable_reset_reports(OSyncHashTable *table)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
-	osync_db_reset(table->dbhandle, table->tablename, NULL);
+	/* Only free the internal hashtable of reported entries.
+	   Don't flush the real database. */
+	g_hash_table_remove_all(table->used_entries);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -418,7 +466,7 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table)
 
 	osync_db_free_list(result);
 
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, ret);
+	osync_trace(TRACE_EXIT, "%s: %p(%i)", __func__, ret, num);
 	return ret;
 }
 
