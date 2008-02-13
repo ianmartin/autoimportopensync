@@ -180,7 +180,6 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 
-        dir->committed_all = TRUE;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	
@@ -196,18 +195,18 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		return;
 	}
 
-	osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
-	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-	dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
-	g_free(tablepath);
-	
-	if (!dir->hashtable)
-		goto error;
+	if (mock_get_error(info->memberid, "CONNECT_SLOWSYNC"))
+		osync_objtype_sink_set_slowsync(sink, TRUE);
+
+	/* Skip Objtype related stuff like hashtable and anchor */
+	if (mock_get_error(info->memberid, "MAINSINK_CONNECT"))
+		goto end;
 
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
 	if (!osync_anchor_compare(anchorpath, path_field, dir->path))
 		osync_objtype_sink_set_slowsync(dir->sink, TRUE);
+
 	g_free(anchorpath);
 	g_free(path_field);
 	
@@ -215,7 +214,8 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s is not a directory", dir->path);
 		goto error;
 	}
-	
+
+end:	
 	osync_context_report_success(ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -230,12 +230,6 @@ error:
 static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-
-	if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
-		fail_unless(dir->committed_all == TRUE, NULL);
-	dir->committed_all = FALSE;
 
 	if (mock_get_error(info->memberid, "DISCONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering DISCONNECT_ERROR error");
@@ -244,12 +238,6 @@ static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	if (mock_get_error(info->memberid, "DISCONNECT_TIMEOUT"))
 		return;
 
-	
-	if (dir->hashtable) {
-		osync_hashtable_free(dir->hashtable);
-		dir->hashtable = NULL;
-	}
-	
 	osync_context_report_success(ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -387,7 +375,7 @@ static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncCo
 	char *path = NULL;
 	GDir *dir = NULL;
 	OSyncError *error = NULL;
-	
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, directory, subdir, ctx);
 	
 	path = g_build_filename(directory->path, subdir, NULL);
@@ -463,7 +451,6 @@ static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncCo
 			}
 			file->path = g_strdup(relative_filename);
 			
-			OSyncError *error = NULL;
 			OSyncData *odata = NULL;
 
 			if (mock_get_error(info->memberid, "ONLY_INFO")) {
@@ -521,6 +508,8 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	fail_unless(dir->committed_all == TRUE, NULL);
 	dir->committed_all = FALSE;
 
+	osync_hashtable_reset_reports(dir->hashtable);
+
 	if (mock_get_error(info->memberid, "GET_CHANGES_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_CHANGES_ERROR error");
 		osync_trace(TRACE_EXIT_ERROR, "%s - Triggering GET_CHANGES error", __func__);
@@ -537,7 +526,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 		
 	if (osync_objtype_sink_get_slowsync(dir->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
-		osync_hashtable_reset(dir->hashtable);
+		fail_unless(osync_hashtable_slowsync(dir->hashtable, &error), NULL);
 	}
 	
 	osync_trace(TRACE_INTERNAL, "get_changes for %s", osync_objtype_sink_get_name(sink));
@@ -729,10 +718,21 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	
 	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
 	
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	
 	if (!mock_parse_settings(env, info, error))
 		goto error_free_env;
+
+	if (mock_get_error(info->memberid, "MAINSINK_CONNECT")) {
+		OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(error);
+
+		OSyncObjTypeSinkFunctions functions;
+		memset(&functions, 0, sizeof(functions));
+
+		functions.connect = mock_connect;
+		functions.disconnect = mock_disconnect;
+
+		osync_objtype_sink_set_functions(mainsink, functions, NULL);
+		osync_plugin_info_set_main_sink(info, mainsink);
+	}
 	
 	/* Now we register the objtypes that we can sync. This plugin is special. It can
 	 * synchronize any objtype we configure it to sync and where a conversion
@@ -747,13 +747,28 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		
 		dir->sink = sink;
 		
+		/* For sanity checks if each sink function get called only once. */
+		dir->committed_all = TRUE;
+
+		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
+		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+		dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
+		g_free(tablepath);
+		
+		if (!dir->hashtable)
+			goto error_free_env;
+
 		osync_objtype_sink_add_objformat(sink, osync_objformat_get_name(dir->objformat));
 		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
 		memset(&functions, 0, sizeof(functions));
-		functions.connect = mock_connect;
-		functions.disconnect = mock_disconnect;
+
+		if (!mock_get_error(info->memberid, "MAINSINK_CONNECT")) {
+			functions.connect = mock_connect;
+			functions.disconnect = mock_disconnect;
+		}
+
 		functions.get_changes = mock_get_changes;
 
 		//Rewrite the batch commit functions so we can enable them if necessary
@@ -832,6 +847,24 @@ error:
 static void mock_finalize(void *data)
 {
 	mock_env *env = data;
+
+	GList *o = env->directories;
+	for (; o; o = o->next) {
+		OSyncFileDir *dir = o->data;
+
+		if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
+			fail_unless(dir->committed_all == TRUE, NULL);
+
+		dir->committed_all = FALSE;
+
+	
+		if (dir->hashtable) {
+			osync_hashtable_free(dir->hashtable);
+			dir->hashtable = NULL;
+		}
+
+
+	}
 
 	free_env(env);
 }

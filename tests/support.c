@@ -6,6 +6,7 @@ static void reset_env(void)
 {
 	unsetenv("CONNECT_ERROR");
 	unsetenv("CONNECT_TIMEOUT");
+	unsetenv("CONNECT_SLOWSYNC");
 	unsetenv("INIT_NULL");
 	unsetenv("GET_CHANGES_ERROR");
 	unsetenv("GET_CHANGES_TIMEOUT");
@@ -19,6 +20,7 @@ static void reset_env(void)
 	unsetenv("BATCH_COMMIT");
 	unsetenv("COMMITTED_ALL_ERROR");
 	unsetenv("NO_COMMITTED_ALL_CHECK");
+	unsetenv("MAINSINK_CONNECT");
 }
 
 char *setup_testbed(char *fkt_name)
@@ -77,6 +79,8 @@ char *setup_testbed(char *fkt_name)
 	if (chdir(testbed))
 		abort();
 	
+	reset_counters();
+
 	osync_trace(TRACE_INTERNAL, "Seting up %s at %s", fkt_name, testbed);
 /*	printf(".");
 	fflush(NULL);*/
