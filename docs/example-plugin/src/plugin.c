@@ -95,14 +95,24 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
         OSyncError *error = NULL;
 
+	// Reset the list of reported changes, to detect deleted changes
+        osync_hashtable_reset_reports(sinkenv->hashtable);
+
 	//If you use opensync hashtables you can detect if you need
 	//to do a slow-sync and set this on the hastable directly
 	//otherwise you have to make 2 function like "get_changes" and
 	//"get_all" and decide which to use using
-	//osync_member_get_slow_sync
+	//osync_objtype_sink_get_slow_sync
         if (osync_objtype_sink_get_slowsync(sinkenv->sink)) {
                 osync_trace(TRACE_INTERNAL, "Slow sync requested");
-                osync_hashtable_reset(sinkenv->hashtable);
+
+                if (osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+			osync_error_unref(&error);
+			return;
+		}
+
         }
 
 	/*
