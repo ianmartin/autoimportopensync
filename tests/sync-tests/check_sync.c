@@ -2636,6 +2636,207 @@ START_TEST (sync_slowsync_connect)
 }
 END_TEST
 
+/* sync_slowsync_mainsink_connect is intendet to check if a slow-sync got triggered
+   for all members/sinks when the slow-sync got requested during the MAINSINK connect()
+   function of one of the members (e.g. anchor mismatch). The MAINSINK is the interesting
+   part of this test, compared to sync_slowsync_connect which is using regulars sink functions. */
+START_TEST (sync_slowsync_mainsink_connect)
+{
+	char *testbed = setup_testbed("sync");
+	system("cp testdata data1/testdata");
+
+	setenv("MAINSINK_CONNECT", "1", TRUE);
+	
+	OSyncError *error = NULL;
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_unref(group);
+	
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+	
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(1));
+	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, GINT_TO_POINTER(1));
+	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
+	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
+	
+	
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_finalize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_engine_unref(engine);
+	
+	/* Client checks */
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_main_connected == 2, NULL);
+	fail_unless(num_client_read == 2, NULL);
+	fail_unless(num_client_main_read == 2, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	fail_unless(num_client_main_written == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	fail_unless(num_client_main_disconnected == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_sync_done == 2, NULL);
+	fail_unless(num_client_main_sync_done == 2, NULL);
+	
+	/* Client checks */
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_written == 1, NULL);
+	fail_unless(num_engine_sync_done == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+	fail_unless(num_engine_prev_unclean == 0, NULL);
+
+	/* Change checks */
+	fail_unless(num_change_read == 1, NULL);
+	fail_unless(num_change_written == 1, NULL);
+	fail_unless(num_change_error == 0, NULL);
+
+	/* Mapping checks */
+	fail_unless(num_mapping_solved == 1, NULL);
+	//fail_unless(num_mapping_written == 1, NULL);
+	fail_unless(num_mapping_errors == 0, NULL);
+	fail_unless(num_mapping_conflicts == 0, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	
+	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+	check_mapping(maptable, 1, 1, 2, "testdata");
+	check_mapping(maptable, 2, 1, 2, "testdata");
+    osync_mapping_table_close(maptable);
+    osync_mapping_table_unref(maptable);
+    
+	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+	osync_hashtable_free(table);
+
+	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
+    table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+	osync_hashtable_free(table);
+
+	/* 2nd Sync trigger a SlowSync within the MAINSINK connect function. */
+	reset_counters();
+	setenv("CONNECT_SLOWSYNC", "1", TRUE);
+	system("rm data2/testdata");
+	
+	group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	engine = osync_engine_new(group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_unref(group);
+	
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+	
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(1));
+	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, GINT_TO_POINTER(1));
+	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
+	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
+	
+	
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_finalize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_engine_unref(engine);
+	
+	/* Client checks */
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_main_connected == 2, NULL);
+	fail_unless(num_client_read == 2, NULL);
+	fail_unless(num_client_main_read == 2, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	fail_unless(num_client_main_written == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	fail_unless(num_client_main_disconnected == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_sync_done == 2, NULL);
+	fail_unless(num_client_main_sync_done == 2, NULL);
+	
+	/* Client checks */
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_written == 1, NULL);
+	fail_unless(num_engine_sync_done == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+	fail_unless(num_engine_prev_unclean == 0, NULL);
+
+	/* Change checks */
+	fail_unless(num_change_read == 1, NULL);
+	fail_unless(num_change_written == 1, NULL);
+	fail_unless(num_change_error == 0, NULL);
+
+	/* Mapping checks */
+	fail_unless(num_mapping_solved == 1, NULL);
+	//fail_unless(num_mapping_written == 1, NULL);
+	fail_unless(num_mapping_errors == 0, NULL);
+	fail_unless(num_mapping_conflicts == 0, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	
+	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
+	maptable = mappingtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+	check_mapping(maptable, 1, 1, 2, "testdata");
+	check_mapping(maptable, 2, 1, 2, "testdata");
+    osync_mapping_table_close(maptable);
+    osync_mapping_table_unref(maptable);
+    
+	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
+    table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+	osync_hashtable_free(table);
+
+	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
+    table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+	osync_hashtable_free(table);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Sync");
@@ -2660,6 +2861,7 @@ Suite *env_suite(void)
 	create_case(s, "sync_detect_obj2", sync_detect_obj2);
 
 	create_case(s, "sync_slowsync_connect", sync_slowsync_connect);
+	create_case(s, "sync_slowsync_mainsink_connect", sync_slowsync_mainsink_connect);
 
 	//stateless sync
 	

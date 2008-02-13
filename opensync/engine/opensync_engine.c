@@ -805,9 +805,12 @@ static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 
 static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
-	OSyncEngine *engine = userdata;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, proxy, userdata, slowsync, error);
-	
+
+	GList *o = NULL;
+	OSyncEngine *engine = userdata;
+
 	int position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
@@ -817,6 +820,14 @@ static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userda
 	} else {
 		engine->proxy_connects = engine->proxy_connects | (0x1 << position);
 		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_CONNECTED, NULL, NULL);
+	}
+
+	/* If MainSink request a SlowSync, flag all objengines with SlowSync */
+	if (slowsync) {
+		for (o = engine->object_engines; o; o = o->next) {
+			OSyncObjEngine *objengine = o->data;
+			osync_obj_engine_set_slowsync(objengine, TRUE);
+		}
 	}
 	
 	_osync_engine_generate_connected_event(engine);
