@@ -250,41 +250,15 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
 	osync_plugin_info_set_main_sink(info, env->mainsink);
 
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-                SmlDatabase *database = o->data;
-		database->gotChanges = FALSE;
-		database->finalChanges = FALSE;
-
-                OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
-                if (!sink)
-                        goto error_free_env;
-
-		database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
-		if (!database->objformat) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
-			return FALSE;
-		}
-
-		// TODO:... in case of maemo ("plain text") we have to set "memo"...
-		osync_objtype_sink_add_objformat(sink, database->objformat_name);
-                
-                OSyncObjTypeSinkFunctions functions;
-                memset(&functions, 0, sizeof(functions));
-                functions.get_changes = ds_server_get_changeinfo;
-                functions.sync_done = sync_done;
-		functions.batch_commit = ds_server_batch_commit;
-                
-                osync_objtype_sink_set_functions(sink, functions, database);
-                database->sink = sink;
-                osync_plugin_info_add_objtype(info, sink);
-	}
+	if (!ds_server_init_databases(env, info, error))
+		goto error_free_env;
 
 	env->context = osync_plugin_info_get_loop(info); 
 
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
-	env->mutex = g_mutex_new();
+	env->connectMutex = g_mutex_new();
+	env->managerMutex = g_mutex_new();
 
 	/* Create the SAN */
 	env->san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &serror);
@@ -317,7 +291,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror))
 		goto error_free_auth;
 	
-	o = env->databases;
+	GList *o = env->databases;
 	for (; o; o = o->next) { 
 		SmlDatabase *database = o->data;
 
@@ -344,7 +318,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		if (!add_devinf_datastore(env->devinf, database, error))
 			goto error_free_auth;
 	}
-
 
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
 	functions->prepare = _sessions_prepare;

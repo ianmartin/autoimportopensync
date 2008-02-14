@@ -112,6 +112,8 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncError *oserror = NULL;
 	g_assert(env);
 	g_assert(env->agent);
+	g_assert(env->connectMutex);
+	g_mutex_lock(env->connectMutex);
 
 	/* we need to ref the context here because we signal the success later
 	 * later means we signal the success in another function
@@ -164,6 +166,7 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		 */
 	}
 	
+	g_mutex_unlock(env->connectMutex);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 error:
@@ -177,6 +180,7 @@ error:
 	} else {
 		osync_error_unref(&oserror);
 	}
+	g_mutex_unlock(env->connectMutex);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
@@ -339,7 +343,8 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->num = 0;	
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-	env->mutex = g_mutex_new();
+	env->connectMutex = g_mutex_new();
+	env->managerMutex = g_mutex_new();
 
 	/* Register main sink for connect and disconnect functions */
 	env->mainsink = osync_objtype_main_sink_new(error);
@@ -355,30 +360,8 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
 	osync_plugin_info_set_main_sink(info, env->mainsink);
 
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-                SmlDatabase *database = o->data;
-		database->gotChanges = FALSE;
-		database->finalChanges = FALSE;
-
-                OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
-                if (!sink)
-                        goto error_free_env;
-                
-                database->sink = sink;
-
-		if (!init_objformat(info, database, error))
-			goto error_free_env;
-                
-                OSyncObjTypeSinkFunctions functions;
-                memset(&functions, 0, sizeof(functions));
-                functions.get_changes = ds_client_get_changeinfo;
-                functions.sync_done = sync_done;
-		functions.batch_commit = ds_client_batch_commit;
-                
-                osync_objtype_sink_set_functions(sink, functions, database);
-                osync_plugin_info_add_objtype(info, sink);
-	}
+	if (!ds_client_init_databases(env, info, error))
+		goto error_free_env;
 	
 	env->context = osync_plugin_info_get_loop(info); 
 	
@@ -415,7 +398,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_WORKSTATION, &serror))
 		goto error_free_auth;
 
-	o = env->databases;
+	GList *o = env->databases;
 	for (; o; o = o->next) { 
 		SmlDatabase *database = o->data;
 		osync_trace(TRACE_INTERNAL, "preparing DsServer %s", database->url);

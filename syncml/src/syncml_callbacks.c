@@ -30,7 +30,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, manager, type, session, error, userdata);
 	SmlPluginEnv *env = userdata;
 	GList *o = NULL;
-	g_mutex_lock(env->mutex);
+	g_mutex_lock(env->managerMutex);
 
 	switch (type) {
 		case SML_MANAGER_SESSION_FLUSH:
@@ -77,7 +77,9 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			osync_trace(TRACE_INTERNAL, "resetted finalChanges");
 			break;
 		case SML_MANAGER_CONNECT_DONE:
+			g_mutex_lock(env->connectMutex);
 			env->gotDisconnect = FALSE;
+			env->isConnected = TRUE;
 			if (env->connectCtx) {
 				osync_trace(TRACE_INTERNAL, "%s: signal successful connect", __func__);
 				osync_context_report_success(env->connectCtx);
@@ -85,6 +87,24 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			} else {
 				osync_trace(TRACE_INTERNAL, "%s: connect done but no context available", __func__);
 			}
+			o = env->databases;
+			for (; o; o = o->next) {
+				SmlDatabase *database = o->data;
+				if (database->syncModeCtx)
+				{
+					/* If this is a DS client then we have
+					 * to start the sync mode initialization
+					 * here. If this is a server then we do
+					 * this in _ds_alert because a server
+					 * needs the DS session from libsyncml
+					 * whilst the DS client creates the DS
+					 * session by itself.
+					 */
+					if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
+						ds_client_init_sync_mode(database);
+				}
+			}
+			g_mutex_unlock(env->connectMutex);
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
 			osync_trace(TRACE_INTERNAL, "%s: connection with device has ended", __func__);
@@ -143,9 +163,9 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					while (!env->gotDisconnect) {
 						/* Unlock the mutex, smlManagerDispatch will call this function
 						   again if events are left in the smlManager queue. Avoids deadlocks! */ 
-						g_mutex_unlock(env->mutex);
+						g_mutex_unlock(env->managerMutex);
 						smlManagerDispatch(manager);
-						g_mutex_lock(env->mutex);
+						g_mutex_lock(env->managerMutex);
 					}
 				} else {
 					env->gotDisconnect = TRUE;
@@ -233,7 +253,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			printf("Unknown event received: %d.\n", type);
 	}
 	
-	g_mutex_unlock(env->mutex);
+	g_mutex_unlock(env->managerMutex);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -268,7 +288,7 @@ error:;
 		
 	}
 
-	g_mutex_unlock(env->mutex);
+	g_mutex_unlock(env->managerMutex);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
@@ -317,7 +337,13 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	/* set callbacks if the DsSession was not ready before */
 	database->session = dsession;
 	smlDsSessionRef(dsession);
-	register_ds_session_callbacks(database, NULL);
+
+	/* Start synchronization mode initialization if this is a DS server.
+	 * DS clients do this directly after connect because DS clients create
+	 * the DsSession object by themselves.
+	 */
+	if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
+		ds_server_init_sync_mode(database);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

@@ -169,7 +169,8 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->num = 0;
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
-	env->mutex = g_mutex_new();
+	env->connectMutex = g_mutex_new();
+	env->managerMutex = g_mutex_new();
 
 	/* Register main sink for connect and disconnect functions */
 	env->mainsink = osync_objtype_main_sink_new(error);
@@ -184,31 +185,8 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
 	osync_plugin_info_set_main_sink(info, env->mainsink);
 
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-                SmlDatabase *database = o->data;
-		database->gotChanges = FALSE;
-		database->finalChanges = FALSE;
-
-                OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
-                if (!sink)
-                        goto error_free_env;
-                
-                database->sink = sink;
-                
-		if (!init_objformat(info, database, error))
-			goto error_free_env;
-                
-                OSyncObjTypeSinkFunctions functions;
-                memset(&functions, 0, sizeof(functions));
-                functions.get_changes = ds_server_get_changeinfo;
-                functions.sync_done = sync_done;
-		functions.batch_commit = ds_server_batch_commit;
-                
-                osync_objtype_sink_set_functions(sink, functions, database);
-                database->sink = sink;
-                osync_plugin_info_add_objtype(info, sink);
-	}
+	if (!ds_server_init_databases(env, info, error))
+		goto error_free_env;
 	
 	env->context = osync_plugin_info_get_loop(info); 
 	
@@ -239,7 +217,7 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror))
 		goto error_free_auth;
 
-	o = env->databases;
+	GList *o = env->databases;
 	for (; o; o = o->next) { 
 		SmlDatabase *database = o->data;
 

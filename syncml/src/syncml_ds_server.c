@@ -1,32 +1,96 @@
 #include "syncml_ds_server.h"
 #include "syncml_callbacks.h"
 
-void ds_server_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	g_assert(ctx);
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	GList *o = env->databases;
+	for (; o; o = o->next) {
+                SmlDatabase *database = o->data;
+		database->gotChanges = FALSE;
+		database->finalChanges = FALSE;
+
+                OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
+                if (!sink)
+			return FALSE;
+                
+                database->sink = sink;
+                
+		if (!init_objformat(info, database, error))
+			return FALSE;
+                
+                OSyncObjTypeSinkFunctions functions;
+                memset(&functions, 0, sizeof(functions));
+		functions.connect = ds_server_register_sync_mode;
+                functions.get_changes = ds_server_get_changeinfo;
+                functions.sync_done = sync_done;
+		functions.batch_commit = ds_server_batch_commit;
+                
+                osync_objtype_sink_set_functions(sink, functions, database);
+                osync_plugin_info_add_objtype(info, sink);
+	}
+	return TRUE;
+}
+
+void ds_server_register_sync_mode(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+        SmlPluginEnv *env = (SmlPluginEnv *)data;
+
+	/* only one function can run correctly in connect context */
+	g_mutex_lock(env->connectMutex);
+
+	/* prepare the database env to handle the sync mode context */
+        SmlDatabase *database = get_database_from_plugin_info(info);
+        database->syncModeCtx = ctx;
+        osync_context_ref(database->syncModeCtx);
+
+	/* if there is already a connect then run the sync mode init */
+	if (env->isConnected && database->session)
+		ds_server_init_sync_mode(database);
+
+	g_mutex_unlock(env->connectMutex);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+void ds_server_init_sync_mode(SmlDatabase *database)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, database);
+	SmlPluginEnv *env = database->env;
 	set_session_user(env, __func__);
+	g_assert(database->session);
 
-	SmlDatabase *database = get_database_from_plugin_info(info);
-
-	database->getChangesCtx = ctx;
-	osync_context_ref(database->getChangesCtx);
-
-	/* this function is a server function
-	 * a server performs this function if connect succeeded
-	 * connect success means there is a syncml message from the client
-	 * with a final element at the end
-	 * get_changeinfo is called after success is signalled
-	 * sometimes _ds_event is not called until get_changeinfo is called
-	 * so the DsSession is not available
-	 * so we have to wait for the DsSession
+	/* This function should only be called if the DsSession is available.
+	/* Only the alert callback is registered here because the changes should
+	 * be managed after the function ds_server_get_changeinfo was called.
 	 */
-	register_ds_session_callbacks(database, _ds_server_recv_alert);
+	smlDsSessionGetAlert(database->session, _ds_server_recv_alert, database);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
+
+void ds_server_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+        SmlPluginEnv *env = (SmlPluginEnv *)data;
+
+        SmlDatabase *database = get_database_from_plugin_info(info);
+	g_assert(database->session);
+
+        database->getChangesCtx = ctx;
+        osync_context_ref(database->getChangesCtx);
+
+	/* register all functions which are needed to manage the sync command */
+	smlDsSessionGetEvent(database->session, _ds_event, database);
+	smlDsSessionGetSync(database->session, _recv_sync, database);
+	smlDsSessionGetChanges(database->session, _recv_change, database);
+
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
 void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -90,9 +154,12 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	SmlDatabase *database = (SmlDatabase*) userdata;
 	SmlPluginEnv *env = database->env;
 	SmlBool ret = TRUE;
+	OSyncError *oserror = NULL;
+	SmlError *error = NULL;
 	
 	char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
 
+	/* FIXME: does it be really correct to return FALSE if we can tolerate this!? */
 	if ((!last || !osync_anchor_compare(env->anchor_path, key, last)) && type == SML_ALERT_TWO_WAY)
 		ret = FALSE;
 	
@@ -104,20 +171,39 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	safe_cfree(&key);
 	
 	if (osync_objtype_sink_get_slowsync(database->sink)) {
-		smlDsSessionSendAlert(dsession, SML_ALERT_SLOW_SYNC, last, next, _recv_alert_reply, database, NULL);
+		if (!smlDsSessionSendAlert(dsession, SML_ALERT_SLOW_SYNC, last, next, _recv_alert_reply, database, &error))
+			goto error;
 	} else {
-		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, NULL);
+		if (!smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, database, &error))
+			goto error;
 	}
 
 	// This is a server function only - so we are in server mode.
 	// If a server replies on an alert and sends back an alert
 	// then we must flush after all alerts are ready to send.
-	if (!flush_session_for_all_databases(database->env, TRUE, NULL))
+	if (!flush_session_for_all_databases(database->env, TRUE, &error))
+		goto error;
+
+	/* signal the success to the sync mode context */
+	if (database->syncModeCtx)
 	{
-		osync_trace(TRACE_EXIT_ERROR, "%s - flush failed", __func__);
-		return FALSE;
+		osync_context_report_success(database->syncModeCtx);
+		osync_context_unref(database->syncModeCtx);
+		database->syncModeCtx = NULL;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+oserror:
+	if (database->syncModeCtx)
+	{
+		osync_context_report_osyncerror(database->syncModeCtx, oserror);
+		osync_context_unref(database->syncModeCtx);
+		database->syncModeCtx = NULL;
+	}
+	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&oserror));
+	return FALSE;
 }

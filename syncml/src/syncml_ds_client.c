@@ -1,15 +1,62 @@
 #include "syncml_ds_client.h"
 #include "syncml_callbacks.h"
 
-void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **error)
+{
+	GList *o = env->databases;
+	for (; o; o = o->next) {
+                SmlDatabase *database = o->data;
+		database->gotChanges = FALSE;
+		database->finalChanges = FALSE;
+
+                OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
+                if (!sink)
+			return FALSE;
+                
+                database->sink = sink;
+
+		if (!init_objformat(info, database, error))
+			return FALSE;
+                
+                OSyncObjTypeSinkFunctions functions;
+                memset(&functions, 0, sizeof(functions));
+		functions.connect = ds_client_register_sync_mode;
+                functions.get_changes = ds_client_get_changeinfo;
+                functions.sync_done = sync_done;
+		functions.batch_commit = ds_client_batch_commit;
+                
+                osync_objtype_sink_set_functions(sink, functions, database);
+                osync_plugin_info_add_objtype(info, sink);
+	}
+	return TRUE;
+}
+	
+void ds_client_register_sync_mode(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
         SmlPluginEnv *env = (SmlPluginEnv *)data;
 
-        SmlDatabase *database = get_database_from_plugin_info(info);
+	/* only one function can run correctly in connect context */
+	g_mutex_lock(env->connectMutex);
 
-        database->getChangesCtx = ctx;
-        osync_context_ref(database->getChangesCtx);
+	/* prepare the database env to handle the sync mode context */
+        SmlDatabase *database = get_database_from_plugin_info(info);
+        database->syncModeCtx = ctx;
+        osync_context_ref(database->syncModeCtx);
+
+	/* if there is already a connect then run the sync mode init */
+	if (env->isConnected)
+		ds_client_init_sync_mode(database);
+
+	g_mutex_unlock(env->connectMutex);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void ds_client_init_sync_mode(SmlDatabase *database)
+{
+        osync_trace(TRACE_ENTRY, "%s(%p)", __func__, database);
+        SmlPluginEnv *env = database->env;
+	g_assert(env->session);
 
         SmlError *error = NULL;
         OSyncError *oserror = NULL;
@@ -47,7 +94,10 @@ void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *c
 	if (!database->session)
 		goto error;
 
-	register_ds_session_callbacks(database, _ds_client_recv_alert);
+	/* Only the alert callback is registered here because the changes should
+	 * be managed after the function ds_client_get_changeinfo was called.
+	 */
+	smlDsSessionGetAlert(database->session, _ds_client_recv_alert, database);
 
 	if (!flush_session_for_all_databases(env, TRUE, &error))
 		goto error;
@@ -58,10 +108,43 @@ void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *c
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(ctx, oserror);
+	osync_context_report_osyncerror(database->syncModeCtx, oserror);
+        osync_context_unref(database->syncModeCtx);
+        database->syncModeCtx = NULL;
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+}
+
+void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+        SmlPluginEnv *env = (SmlPluginEnv *)data;
+
+        SmlDatabase *database = get_database_from_plugin_info(info);
+
+        database->getChangesCtx = ctx;
+        osync_context_ref(database->getChangesCtx);
+
+	/* register all functions which are needed to manage the sync command */
+	smlDsSessionGetEvent(database->session, _ds_event, database);
+	smlDsSessionGetSync(database->session, _recv_sync, database);
+	smlDsSessionGetChanges(database->session, _recv_change, database);
+
+	/* We received the alert from the server.
+	 * The alert mode from the server was accepted.
+	 * We have only to send the sync message.
+	 * The sync message is flushed automatically.
+	 */
+        OSyncError *error = NULL;
+        if (!send_sync_message(database, _recv_sync_reply, &error))
+            goto error;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+error:
+	osync_context_report_osyncerror(database->getChangesCtx, error);
         osync_context_unref(database->getChangesCtx);
         database->getChangesCtx = NULL;
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
@@ -158,7 +241,11 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     if (!database->session)
         goto error;
 
-    register_ds_session_callbacks(database, _ds_client_recv_alert);
+    /* register all callbacks again because it is a new session */
+    smlDsSessionGetAlert(database->session, _ds_client_recv_alert, database);
+    smlDsSessionGetEvent(database->session, _ds_event, database);
+    smlDsSessionGetSync(database->session, _recv_sync, database);
+    smlDsSessionGetChanges(database->session, _recv_change, database);
 
     if (!flush_session_for_all_databases(database->env, TRUE, &error))
         goto error;
@@ -190,71 +277,63 @@ SmlBool _ds_client_recv_alert(
 
     SmlDatabase *database = (SmlDatabase*) userdata;
     SmlPluginEnv *env = database->env;
-    SmlError *error = NULL;
     OSyncError *oserror = NULL;
 
     char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
 
-    // we get a normal sync but we have trouble with the sync anchors
-    // this requires a slow sync alert before doing anything else
-    //
-    // if we expect a slow sync but get a normal sync
-    // then we should sends a new slow sync alert
-    //
-    // if this is the second session the we can ignore the checks
-    // if this is the second session then we only want to send
-    // the changes to the server
-    if (
-        (
-         ( ( !last ||                                           // missing anchor
-             !osync_anchor_compare(env->anchor_path, key, last) // last mismatches database
-           )
-          && type == SML_ALERT_TWO_WAY
-         )
-         ||
-         (osync_objtype_sink_get_slowsync(database->sink) && type != SML_ALERT_SLOW_SYNC)
-        )
-        && database->getChangesCtx                              // this is the first session
-       )
+    if (database->syncModeCtx)
     {
-        // send slow sync alert
-        // FIXME: this is clearly an error
-        // FIXME: doe sit be better to crash on this error?
-        osync_objtype_sink_set_slowsync(database->sink, TRUE);
-        database->session = smlDsServerSendAlert(
-                                database->server,
-                                env->session,
-                                SML_ALERT_SLOW_SYNC,
-                                NULL, next,
-                               _recv_alert_reply, database,
-                               &error);
-        if (!database->session)
-            goto error;
-        if (!flush_session_for_all_databases(database->env, TRUE, &error))
-            goto error;
-        // re-register this callback
-	register_ds_session_callbacks(database, _ds_client_recv_alert);
-    } else {
-
-        // if we do the update then we should store the new  anchor
-        // if the update fails then the next sync is a slow sync
-        osync_anchor_update(env->anchor_path, key, next);
-
-        // start the sync message
-        if (!send_sync_message(database, _recv_sync_reply, &oserror))
+        /* actually the checks are only performed for the first session */
+        if (!last && type != SML_ALERT_SLOW_SYNC)
+        {
+            osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "TWO-WAY-SYNC is requested but there is no LAST anchor.");
             goto oserror;
+        }
+        if (!osync_anchor_compare(env->anchor_path, key, last) && type != SML_ALERT_SLOW_SYNC)
+        {
+            char *local = osync_anchor_retrieve(env->anchor_path, key);
+            osync_error_set(
+                &oserror, OSYNC_ERROR_GENERIC,
+                "TWO-WAY-SYNC is requested but the cached LAST anchor (%) does not match the presented LAST anchor from the remote peer (%).",
+                local, last);
+            safe_cfree(&local);
+            goto oserror;
+        }
+        if (osync_objtype_sink_get_slowsync(database->sink) && type != SML_ALERT_SLOW_SYNC)
+        {
+            osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "SLOW-SYNC is requested but the local sink still wants a TWO-WAY-SYNC.");
+            goto oserror;
+        }
     }
 
+    if (type == SML_ALERT_SLOW_SYNC)
+        osync_objtype_sink_set_slowsync(database->sink, TRUE);
+
+    // if we do the update then we should store the new  anchor
+    // if the update fails then the next sync is a slow sync
+    osync_anchor_update(env->anchor_path, key, next);
     safe_cfree(&key);
+
+    /* signal the success to the context */
+    if (database->syncModeCtx)
+    {
+        osync_context_report_success(database->syncModeCtx);
+        osync_context_unref(database->syncModeCtx);
+        database->syncModeCtx = NULL;
+    }
+
     osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
     return TRUE;
-error:
-    osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-    smlErrorDeref(&error);
 oserror:
-    if (key) safe_cfree(&key);
+    if (key)
+        safe_cfree(&key);
+    if (database->syncModeCtx)
+    {
+        osync_context_report_osyncerror(database->syncModeCtx, oserror);
+        osync_context_unref(database->syncModeCtx);
+        database->syncModeCtx = NULL;
+    }
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-    osync_error_unref(&oserror);
     return FALSE;
 }
 

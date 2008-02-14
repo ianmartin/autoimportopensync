@@ -349,52 +349,6 @@ gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpointer user
 	return TRUE;
 }
 
-void register_ds_session_callbacks(
-		SmlDatabase *database,
-		SmlDsSessionAlertCb alertCallback)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, database, alertCallback);
-	g_assert(database);
-
-	if (!alertCallback)
-	{
-		if (!database->dsSessionCallback)
-		{
-			// if no cached callback then there is no cached init
-			osync_trace(TRACE_INTERNAL, "%s: no cached init", __func__);
-		}
-		else
-		{
-			// complete a DsSession initialization
-			osync_trace(TRACE_INTERNAL, "%s: execute cached init", __func__);
-			g_assert(database->dsSessionCallback);
-			smlDsSessionGetAlert(database->session, database->dsSessionCallback, database);
-			smlDsSessionGetEvent(database->session, _ds_event, database);
-			smlDsSessionGetSync(database->session, _recv_sync, database);
-			smlDsSessionGetChanges(database->session, _recv_change, database);
-			database->dsSessionCallback = NULL;
-		}
-	}
-	else
-	{
-		if (database->session)
-		{
-			osync_trace(TRACE_INTERNAL, "%s: execute immediate init", __func__);
-			smlDsSessionGetAlert(database->session, alertCallback, database);
-			smlDsSessionGetEvent(database->session, _ds_event, database);
-			smlDsSessionGetSync(database->session, _recv_sync, database);
-			smlDsSessionGetChanges(database->session, _recv_change, database);
-		}
-		else
-		{
-			osync_trace(TRACE_INTERNAL, "%s: caching init", __func__);
-			database->dsSessionCallback = alertCallback;
-		}
-	}
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_context_report_success(ctx);
@@ -428,7 +382,12 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(ctx, oserror);
+	if (env->disconnectCtx)
+	{
+		osync_context_report_osyncerror(ctx, oserror);
+		osync_context_unref(env->disconnectCtx);
+		env->disconnectCtx = NULL;
+	}
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 

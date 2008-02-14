@@ -3,6 +3,13 @@
 
 #include "syncml_common.h"
 
+void ds_client_register_sync_mode(
+         void *data,
+         OSyncPluginInfo *info,
+         OSyncContext *ctx);
+
+void ds_client_init_sync_mode(SmlDatabase *database);
+
 void ds_client_get_changeinfo(
          void *data,
          OSyncPluginInfo *info,

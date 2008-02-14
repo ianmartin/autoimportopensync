@@ -118,8 +118,6 @@ typedef struct SmlPluginEnv {
 	GList *eventEntries;
 	unsigned int numEventEntries;
 
-	osync_bool isConnected;
-
 	SmlAuthType authType;
 	osync_bool fakeDevice;
 	SmlProtocolVersion syncmlVersion;
@@ -127,15 +125,17 @@ typedef struct SmlPluginEnv {
         char *fakeModel;
         char *fakeSoftwareVersion;
 
+	osync_bool isConnected;
 	OSyncContext *connectCtx;
 	OSyncContext *disconnectCtx;
+	GMutex *connectMutex;
 
 	/* This function pointer is necessary to start the second OMA DS session
 	 * if the synchronization uses an OMA DS client.
 	 */
 	OSyncSinkConnectFn connectFunction;
 
-	GMutex *mutex;
+	GMutex *managerMutex;
 } SmlPluginEnv;
 
 typedef struct SmlDatabase {
@@ -157,6 +157,7 @@ typedef struct SmlDatabase {
 	osync_bool finalChanges; 
 	unsigned int pendingChanges;
 
+	OSyncContext *syncModeCtx;
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
 } SmlDatabase;
@@ -169,10 +170,6 @@ gboolean _sessions_dispatch(
 			GSource *source, 
 			GSourceFunc callback, 
 			gpointer user_data);
-
-void register_ds_session_callbacks(
-		SmlDatabase *database,
-		SmlDsSessionAlertCb alertCallback);
 
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
@@ -204,6 +201,8 @@ SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info);
 /* the function guarantees that an object exists only once in */
 /* this GList. No double entrees. */
 GList *g_list_add(GList *databases, void *database);
+
+void initEnv(SmlPluginEnv *env);
 
 void finalize(void *data);
 
