@@ -584,7 +584,7 @@ static osync_bool osync_updater_restore_backup(OSyncUpdater *updater, const char
 
 	/* Sanity check if group got loaded and a configdir is present */
 	if (!groupdir) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "No group configuration directory set. Couldn't restore Backup.");
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "No group configuration directory set. Couldn't restore Backup.");
 		goto error;
 	}
 
