@@ -159,9 +159,33 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	
 	char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
 
-	/* FIXME: does it be really correct to return FALSE if we can tolerate this!? */
-	if ((!last || !osync_anchor_compare(env->anchor_path, key, last)) && type == SML_ALERT_TWO_WAY)
-		ret = FALSE;
+	/* We return FALSE if we need a special return code as answer:
+	 * SML_ERROR_REQUIRE_REFRESH 508
+	 * This return code enforces a SLOW-SYNC.
+	 */
+	if (type == SML_ALERT_TWO_WAY)
+	{
+		if (!last)
+		{
+			osync_trace(TRACE_INTERNAL, "%s: TWO-WAY-SYNC but last is missing", __func__);
+			ret = FALSE;
+		}
+		if (!osync_anchor_compare(env->anchor_path, key, last))
+		{
+			char *local = osync_anchor_retrieve(env->anchor_path, key);
+			osync_trace(TRACE_INTERNAL,
+				"%s: TWO-WAY-SYNC but received LAST(%s) and cached LAST (%s) mismatch",
+				__func__, local, last);
+			safe_cfree(&local);
+			ret = FALSE;
+		}
+		if (osync_objtype_sink_get_slowsync(database->sink))
+		{
+			/* OpenSync wants to perform a SLOW-SYNC */
+			osync_trace(TRACE_INTERNAL, "%s: TWO-WAY-SYNC but OpenSync needs SLOW-SYNC", __func__);
+			ret = FALSE;
+		}
+	}
 	
 	if (!ret || type != SML_ALERT_TWO_WAY)
 		osync_objtype_sink_set_slowsync(database->sink, TRUE);
