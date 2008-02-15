@@ -155,9 +155,15 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		return;
 	}
 
+	osync_hashtable_reset_reports(hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync, resetting hashtable");
-		osync_hashtable_reset(hashtable);
+		if (!osync_hashtable_slowsync(hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
+			return;
+		}
 	}
 
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);

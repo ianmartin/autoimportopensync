@@ -291,22 +291,32 @@ void KCalEventDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
+	OSyncError *error = NULL;
+
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vevent20");
 
+	osync_hashtable_reset_reports(hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
-		osync_hashtable_reset(hashtable);
+		if (!osync_hashtable_slowsync(hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
+			return;
+		}
 	}
 
 	if (!kcal->get_event_changes(this, info, ctx)) {
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error while reciving latest changes.");
 		osync_trace(TRACE_EXIT_ERROR, "%s: error in get_todo_changes", __PRETTY_FUNCTION__);
 		return;
 	}
 
 	if (!report_deleted(info, ctx, objformat)) {
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error while detecting latest changes.");
 		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
 		return;
 	}
@@ -319,23 +329,34 @@ void KCalTodoDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
+	OSyncError *error = NULL;
+
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vtodo20");
 
+	osync_hashtable_reset_reports(hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
-		osync_hashtable_reset(hashtable);
+		if (!osync_hashtable_slowsync(hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
+			return;
+		}
+
 	}
 
 	if (!kcal->get_todo_changes(this, info, ctx)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: error in get_todo_changes", __PRETTY_FUNCTION__);
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error while detecting latest changes.");
 		return;
 	}
 
 	if (!report_deleted(info, ctx, objformat)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error while detecting deleted entries.");
 		return;
 	}
 

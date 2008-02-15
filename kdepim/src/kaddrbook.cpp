@@ -120,9 +120,18 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
+	OSyncError *error = NULL;
+
+	osync_hashtable_reset_reports(hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync, resetting hashtable");
-		osync_hashtable_reset(hashtable);
+		if (!osync_hashtable_slowsync(hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
+			return;
+
+		}
 	}
 
 	// We must reload the KDE addressbook in order to retrieve the latest changes.
@@ -143,12 +152,15 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		QString data = converter.createVCard(*it, KABC::VCardConverter::v3_0);
 
 		if (!report_change(info, ctx, it->uid(), data, calc_hash(*it), objformat)) {
+
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Failed to get changes");
 			osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
 			return;
 		}
 	}
 
 	if (!report_deleted(info, ctx, objformat)) {
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Failed detecting deleted changes.");
 		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
 		return;
 	}
