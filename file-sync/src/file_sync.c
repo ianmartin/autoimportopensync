@@ -572,10 +572,18 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 	OSyncFileEnv *env = (OSyncFileEnv *)data;
 	int i = 0;
 	OSyncError *error = NULL;
+
 	
+	osync_hashtable_reset_reports(dir->hashtable);
 	if (osync_objtype_sink_get_slowsync(dir->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
-		osync_hashtable_reset(dir->hashtable);
+		if (!osync_hashtable_slowsync(dir->hashtable, &error))
+		{
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&error));
+			osync_error_unref(&error);
+			return;
+		}
 	}
 	
 	osync_trace(TRACE_INTERNAL, "get_changes for %s", osync_objtype_sink_get_name(sink));
