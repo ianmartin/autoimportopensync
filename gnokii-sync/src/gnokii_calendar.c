@@ -354,11 +354,18 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
         gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
 	gnokii_environment *env = (gnokii_environment *) plugindata;
 
+	// reset reports internal hashtable list, to discover deleted entries
+	osync_hashtable_reset_reports(sinkenv->hashtable);
+
 	// check for slowsync and prepare the "event" hashtable if needed
 	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		assert(sinkenv->hashtable);
-		osync_hashtable_reset(sinkenv->hashtable);
+		if (osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+			return;
+		}
 	}
 
 	// get all notes 

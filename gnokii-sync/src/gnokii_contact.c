@@ -397,11 +397,17 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 	osync_trace(TRACE_INTERNAL, "sinkenv: %p", sinkenv);
 
+	// reset reports internal hashtable list, to discover deleted entries
+	osync_hashtable_reset_reports(sinkenv->hashtable);
 
 	// check for slowsync and prepare the "contact" hashtable if needed
 	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
-		osync_hashtable_reset(sinkenv->hashtable);
+		if (osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+			return;
+		}
 	}
 
 	// get all notes 
