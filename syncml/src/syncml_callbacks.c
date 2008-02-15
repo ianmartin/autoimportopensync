@@ -534,7 +534,17 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	osync_data_set_objtype(odata, database->objtype);
 
 	osync_change_set_data(change, odata);
-	osync_change_set_changetype(change, _to_osync_changetype(type));
+
+	/* If a SLOW-SYNC happens then OpenSync only expects ADD commands.
+	 * If a REPLACE is detected instead of an ADD then this is fixed.
+	 */
+	if (osync_objtype_sink_get_slowsync(database->sink) &&
+	    type == SML_CHANGE_REPLACE)
+	{
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
+	} else {
+		osync_change_set_changetype(change, _to_osync_changetype(type));
+	}
 
 	osync_data_unref(odata);
 	odata = NULL;
