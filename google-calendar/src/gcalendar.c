@@ -268,8 +268,14 @@ static void gc_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	char sizeline[1024];
 	int status;
 
+	/* Flush internal reports of hashtable to determin deleted entries. */
+	osync_hashtable_reset_reports(plgdata->hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
-		osync_hashtable_reset(plgdata->hashtable);
+		if (osync_hashtable_slowsync(plgdata->hashtable, &error)) {
+			osync_context_report_osyncerror(ctx, &error);
+			goto error;
+		}
 	}
 
 	if (!run_helper(plgdata, "get_all", NULL,
