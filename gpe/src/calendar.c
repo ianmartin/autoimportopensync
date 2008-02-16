@@ -112,12 +112,21 @@ void gpe_calendar_get_changes(void *userdata, OSyncPluginInfo *info, OSyncContex
 {
 	osync_trace(TRACE_ENTRY, "GPE-SYNC %s(%p, %p, %p)", __func__, userdata, info, ctx);
 
+	OSyncError *error = NULL;
 	gpe_environment *env = (gpe_environment *)userdata;
 	sink_environment *sinkenv = (sink_environment *)osync_objtype_sink_get_userdata(osync_plugin_info_get_sink(info));
 
+	/* Reset internal list of hashtable report, so we can detect
+	   deleted entries */
+	osync_hashtable_reset_reports(sinkenv->hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sinkenv->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
-		osync_hashtable_reset(sinkenv->hashtable);
+		if (!osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+			osync_context_report_osyncerror(ctx, error);
+			return;
+		}
 	}
 
 	gchar *errmsg = NULL;
