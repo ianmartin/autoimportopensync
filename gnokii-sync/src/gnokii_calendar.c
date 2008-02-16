@@ -361,7 +361,7 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
 	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		assert(sinkenv->hashtable);
-		if (osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
+		if (!osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
 			osync_context_report_osyncerror(ctx, error);
 			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 			return;

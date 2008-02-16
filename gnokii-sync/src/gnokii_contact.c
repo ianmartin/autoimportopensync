@@ -403,7 +403,7 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 	// check for slowsync and prepare the "contact" hashtable if needed
 	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
-		if (osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
+		if (!osync_hashtable_slowsync(sinkenv->hashtable, &error)) {
 			osync_context_report_osyncerror(ctx, error);
 			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 			return;
