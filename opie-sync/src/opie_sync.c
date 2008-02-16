@@ -323,9 +323,18 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 	OSyncError *error = NULL;
 
+	/* Reset internal list of hashtable report, so we can detect
+	   deleted entries */
+	osync_hashtable_reset_reports(env->hashtable);
+
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
-		osync_hashtable_reset(env->hashtable);
+
+		if (!osync_hashtable_slowsync(env->hashtable, &error)) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+			osync_context_report_osyncerror(ctx, error);
+			return;
+		}
 	}
 
 	xmlNode *item_node = opie_xml_get_first(env->doc, env->listelement, env->itemelement);
