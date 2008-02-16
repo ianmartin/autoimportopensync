@@ -272,7 +272,7 @@ static void gc_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_hashtable_reset_reports(plgdata->hashtable);
 
 	if (osync_objtype_sink_get_slowsync(sink)) {
-		if (osync_hashtable_slowsync(plgdata->hashtable, &error)) {
+		if (!osync_hashtable_slowsync(plgdata->hashtable, &error)) {
 			osync_context_report_osyncerror(ctx, &error);
 			goto error;
 		}
