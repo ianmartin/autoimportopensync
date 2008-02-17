@@ -28,9 +28,19 @@ typedef struct {} HashTable;
 		osync_hashtable_free(self);
 	}
 
-	void reset() {
-		osync_hashtable_reset(self);
+	void reset_reports() {
+		osync_hashtable_reset_reports(self);
 	}
+
+        bool slowsync() {
+                Error *err = NULL;
+                osync_hashtable_slowsync(self, &err);
+
+                if (raise_exception_on_error(err))
+                        return FALSE;
+
+                return TRUE;
+        }
 
 	int num_entries() {
 		return osync_hashtable_num_entries(self);
