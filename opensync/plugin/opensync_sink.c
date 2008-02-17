@@ -317,7 +317,7 @@ osync_bool osync_objtype_sink_get_function_read(OSyncObjTypeSink *sink)
 /*! @brief Sets the status of the read sink function
  *
  * @param sink Pointer to sink
- * @param write TRUE if the sink has a read function, FALSE otherwise
+ * @param read TRUE if the sink has a read function, FALSE otherwise
  */
 void osync_objtype_sink_set_function_read(OSyncObjTypeSink *sink, osync_bool read)
 {
@@ -339,7 +339,7 @@ osync_bool osync_objtype_sink_get_function_getchanges(OSyncObjTypeSink *sink)
 /*! @brief Sets the status of the get_changes sink function
  *
  * @param sink Pointer to sink
- * @param write TRUE if the sink has a get_changes function, FALSE otherwise
+ * @param getchanges TRUE if the sink has a get_changes function, FALSE otherwise
  */
 void osync_objtype_sink_set_function_getchanges(OSyncObjTypeSink *sink, osync_bool getchanges)
 {
@@ -716,7 +716,7 @@ void osync_objtype_sink_set_write(OSyncObjTypeSink *sink, osync_bool write)
  * See osync_objtype_sink_get_getchanges()
  *
  * @param sink Pointer to sink
- * @param write Set TRUE if the sink is allowed to get latest changes, FALSE otherwise
+ * @param getchanges Set TRUE if the sink is allowed to get latest changes, FALSE otherwise
  *
  */
 void osync_objtype_sink_set_getchanges(OSyncObjTypeSink *sink, osync_bool getchanges)
@@ -811,162 +811,324 @@ void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync
 	sink->slowsync = slowsync;
 }
 
+/*! @brief Sets the connect timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_connect_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.connect = timeout;
 }
 
+/*! @brief Get the current or default connect timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_connect_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.connect ? sink->timeout.connect : OSYNC_SINK_TIMEOUT_CONNECT;
 }
 
+/*! @brief Get the current connect timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_connect_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.connect;
 }
 
+/*! @brief Sets the disconnect timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_disconnect_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.disconnect = timeout;
 }
 
+/*! @brief Get the current or default disconnect timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_disconnect_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.disconnect ? sink->timeout.disconnect : OSYNC_SINK_TIMEOUT_DISCONNECT;
 }
 
+/*! @brief Get the current disconnect timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_disconnect_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.disconnect;
 }
 
+/*! @brief Sets the get_changes timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_getchanges_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.get_changes = timeout;
 }
 
+/*! @brief Get the current or default getchanges timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_getchanges_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.commit ? sink->timeout.get_changes : OSYNC_SINK_TIMEOUT_GETCHANGES;
 }
 
+/*! @brief Get the current getchanges timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_getchanges_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.get_changes;
 }
 
+/*! @brief Sets the commit timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_commit_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.commit = timeout;
 }
 
+/*! @brief Get the current or default commit timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_commit_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.commit ? sink->timeout.commit : OSYNC_SINK_TIMEOUT_COMMIT;
 }
 
+/*! @brief Get the current commit timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_commit_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.commit;
 }
 
+/*! @brief Sets the batchcommit timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_batchcommit_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.batch_commit = timeout;
 }
 
+/*! @brief Get the current or default batchcommit timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_batchcommit_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.batch_commit ? sink->timeout.batch_commit : OSYNC_SINK_TIMEOUT_BATCHCOMMIT;
 }
 
+/*! @brief Get the current batchcommit timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_batchcommit_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.batch_commit;
 }
 
+/*! @brief Sets the committedall timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_committedall_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.committed_all = timeout;
 }
 
+/*! @brief Get the current or default committedall timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_committedall_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.committed_all ? sink->timeout.committed_all : OSYNC_SINK_TIMEOUT_COMMITTEDALL;
 }
 
+/*! @brief Get the current committedall timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_committedall_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.committed_all;
 }
 
+/*! @brief Sets the syncdone timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_syncdone_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.sync_done = timeout;
 }
 
+/*! @brief Get the current or default syncdone timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_syncdone_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.sync_done ? sink->timeout.sync_done : OSYNC_SINK_TIMEOUT_SYNCDONE;
 }
 
+/*! @brief Get the current syncdone timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_syncdone_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.sync_done;
 }
 
+/*! @brief Sets the write timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_write_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.write = timeout;
 }
 
+/*! @brief Get the current or default write timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_write_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.write ? sink->timeout.write : OSYNC_SINK_TIMEOUT_WRITE;
 }
 
+/*! @brief Get the current write timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_write_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.write;
 }
 
+/*! @brief Sets the read timeout in seconds for the OSyncObjTypeSink 
+ * 
+ * @param sink Pointer to the sink
+ * @param timeout The timeout in seconds 
+ * 
+ */
 void osync_objtype_sink_set_read_timeout(OSyncObjTypeSink *sink, unsigned int timeout)
 {
 	osync_assert(sink);
 	sink->timeout.read = timeout;
 }
 
+/*! @brief Get the current or default read timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_read_timeout_or_default(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->timeout.read ? sink->timeout.read : OSYNC_SINK_TIMEOUT_READ;
 }
 
+/*! @brief Get the current read timeout in seconds 
+ * 
+ * @param sink Pointer to the sink
+ * @return The timeout in seconds 
+ * 
+ */
 unsigned int osync_objtype_sink_get_read_timeout(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);

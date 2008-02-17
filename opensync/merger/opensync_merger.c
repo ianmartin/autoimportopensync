@@ -46,6 +46,7 @@
 
 /**
  * @brief Creates a new merger object
+ * @param capabilities Pointer to capabilities which should be taken in account by the Merger
  * @param error The error which will hold the info in case of an error
  * @return The pointer to the newly allocated merger object or NULL in case of error
  */

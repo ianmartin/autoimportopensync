@@ -108,6 +108,12 @@ const char *osync_error_get_name(OSyncError **error)
 	return osync_error_name_from_type((*error)->type);
 }
 
+/** @brief Increase the reference count of the error object 
+ * 
+ * @param error The error object 
+ * @returns The referenced error pointer
+ * 
+ */
 OSyncError **osync_error_ref(OSyncError **error)
 {
 	if (!osync_error_is_set(error))
@@ -118,6 +124,11 @@ OSyncError **osync_error_ref(OSyncError **error)
 	return error;
 }
 
+/** @brief Decrease the reference count of the error object
+ * 
+ * @param error The error object 
+ * 
+ */
 void osync_error_unref(OSyncError **error)
 {
 	if (!osync_error_is_set(error))
@@ -182,6 +193,13 @@ const char *osync_error_print(OSyncError **error)
 	return (*error)->message;
 }
 
+
+/*! @brief Returns the entired error stack as single string 
+ * 
+ * @param error The error stack to print
+ * @returns The message of the error or NULL if no error
+ * 
+ */
 char *osync_error_print_stack(OSyncError **error)
 {
 	if (!osync_error_is_set(error))
@@ -239,6 +257,14 @@ void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format
 	va_end (args);
 }
 
+/*! @brief Stack error on another error object 
+ * 
+ * Use this function to stack all errors to  describe the root cause of an error 
+ * 
+ * @param parent A pointer to a error which gets the child stacked 
+ * @param child A pointer to a error to which get stacked on parent error
+ * 
+ */
 void osync_error_stack(OSyncError **parent, OSyncError **child)
 {
 	if (!parent || !*parent)
@@ -258,6 +284,13 @@ void osync_error_stack(OSyncError **parent, OSyncError **child)
 	osync_error_ref(child);
 }
 
+/*! @brief Get stacked child of an error object 
+ * 
+ * Use this function to read an error stack 
+ * 
+ * @param parent A pointer to a error stack 
+ * 
+ */
 OSyncError *osync_error_get_child(OSyncError **parent)
 {
 	if (!parent || !*parent)

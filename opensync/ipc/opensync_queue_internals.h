@@ -29,21 +29,35 @@
 #include <sys/time.h>
 #include <signal.h>
 
+/**
+ * @ingroup OSyncQueueInternal
+ * @brief A Queue used for asynchronous communication between thread
+ */
+
+/*@{*/
+
 /*! @brief Represents a Queue which can be used to receive messages
  */
 struct OSyncQueue {
+	/** The queue type **/
 	OSyncQueueType type;
+
 	/** The real asynchronous queue from glib **/
 	int fd;
+
 	/** The path name of this queue **/
 	char *name;
+
 	/** The message handler for this queue **/
 	OSyncMessageHandler message_handler;
+
 	/** The user_data associated with this queue **/
 	gpointer user_data;
+
 	/** The source associated with this queue */
 	GSourceFuncs *incoming_functions;
 	GSource *incoming_source;
+
 	/** The context in which the IO of the queue is dispatched */
 	GMainContext *context;
 	GMainContext *incomingContext;
@@ -53,6 +67,7 @@ struct OSyncQueue {
 	GAsyncQueue *incoming;
 	GAsyncQueue *outgoing;
 	
+	/** List of pending replies */
 	GList *pendingReplies;
 	GMutex *pendingLock;
 	
@@ -68,15 +83,20 @@ struct OSyncQueue {
 	
 	GMutex *disconnectLock;
 
+	/** Connection status **/
 	osync_bool connected;
 };
 
 
+/*! @brief Timeout object 
+ */
 typedef struct OSyncTimeoutInfo {
 	/** Expiration date */
 	GTimeVal expiration; 
 } OSyncTimeoutInfo;
 
+/*! @brief Pending Message object 
+ */
 typedef struct OSyncPendingMessage {
 	/** ID of the expected Message */
 	long long int id;

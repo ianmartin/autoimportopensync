@@ -45,13 +45,20 @@ const char *trace = NULL;
  */
 /*@{*/
 
-/** This function will reset the indentation of the trace function. use this
- * after you forked your process. the new process should call this function */
+/*! @brief Reset the indentation of the trace function. 
+ *
+ * Use this function after when process got forked. It's up to the forked
+ * process (child) to reset the indent.
+ * 
+ */
 void osync_trace_reset_indent(void)
 {
 	g_private_set(current_tabs, GINT_TO_POINTER(0));
 }
 
+/*! @brief Disable tracing
+ *
+ */
 void osync_trace_disable(void)
 {
 	if (!trace_disabled)
@@ -60,6 +67,9 @@ void osync_trace_disable(void)
 	g_private_set(trace_disabled, GINT_TO_POINTER(1));
 }
 
+/*! @brief Enable tracing
+ *
+ */
 void osync_trace_enable(void)
 {
 	if (!trace_disabled)
@@ -72,6 +82,9 @@ void osync_trace_enable(void)
 
 }
 
+/*! @brief Initailize tracing 
+ *
+ */
 static void _osync_trace_init()
 {
 	trace = g_getenv("OSYNC_TRACE");
@@ -251,6 +264,46 @@ char *osync_print_binary(const unsigned char *data, int len)
 
 /**
  * @defgroup OSyncEnvAPIMisc OpenSync Misc
+ * @ingroup OSyncPrivate
+ * @brief Some helper functions
+ * 
+ */
+/*@{*/
+
+/*! @brief Stop callback function to stop thread mainloop
+ *
+ * @param data Pointer to passed callback data
+ * @returns Always FALSE
+ */
+static gboolean osyncThreadStopCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+	
+	g_main_loop_quit(thread->loop);
+	
+	return FALSE;
+}
+
+/*! @brief Start callback function to emit signal when thread's mainloop got started
+ *
+ * @param data Pointer to passed callback data
+ * @returns Always FALSE
+ */
+static gboolean osyncThreadStartCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+	
+	g_mutex_lock(thread->started_mutex);
+	g_cond_signal(thread->started);
+	g_mutex_unlock(thread->started_mutex);
+	
+	return FALSE;
+}
+
+/*@}*/
+
+/**
+ * @defgroup OSyncEnvAPIMisc OpenSync Misc
  * @ingroup OSyncPublic
  * @brief Some helper functions
  * 
@@ -381,6 +434,13 @@ void *osync_try_malloc0(unsigned int size, OSyncError **error)
 	return result;
 }
 
+/*! @brief Allocates a new thread with a g_mainloop 
+ * 
+ * @param context Pointer to GMainContext 
+ * @param error The error which will hold the info in case of an error
+ * @returns A pointer to the new allocated OSyncThread with inactive thread and mainloop 
+ * 
+ */
 OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
 {
 	OSyncThread *thread = NULL;
@@ -407,6 +467,11 @@ error:
 	return NULL;
 }
 
+/*! @brief Frees thread object 
+ * 
+ * @param thread Pointer to OSyncThread
+ * 
+ */
 void osync_thread_free(OSyncThread *thread)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
@@ -441,15 +506,6 @@ void osync_thread_free(OSyncThread *thread)
 	return NULL;
 }*/
 
-static gboolean osyncThreadStopCallback(gpointer data)
-{
-	OSyncThread *thread = data;
-	
-	g_main_loop_quit(thread->loop);
-	
-	return FALSE;
-}
-
 /*void osync_thread_start(OSyncThread *thread)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
@@ -464,17 +520,15 @@ static gboolean osyncThreadStopCallback(gpointer data)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }*/
 
-static gboolean osyncThreadStartCallback(gpointer data)
-{
-	OSyncThread *thread = data;
-	
-	g_mutex_lock(thread->started_mutex);
-	g_cond_signal(thread->started);
-	g_mutex_unlock(thread->started_mutex);
-	
-	return FALSE;
-}
 
+/*! @brief Start thread and it's mainloop 
+ * 
+ * @param func GThreadFunc Pointer  
+ * @param userdata Custom data poitner which get supplied to thread function
+ * @param error Pointer to error struct
+ * @return Newly allocate OSyncThread object with inactive mainloop
+ * 
+ */
 OSyncThread *osync_thread_create(GThreadFunc func, void *userdata, OSyncError **error)
 {
 	osync_assert(func);
@@ -505,6 +559,12 @@ error:
 	return NULL;
 }
 
+
+/*! @brief Start thread and it's mainloop 
+ * 
+ * @param thread Thread object 
+ * 
+ */
 void osync_thread_start(OSyncThread *thread)
 {
 	GSource *idle = NULL;
@@ -521,6 +581,11 @@ void osync_thread_start(OSyncThread *thread)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }	
 
+/*! @brief Stops thread's mainloop and joins the thread
+ * 
+ * @param thread Thread object 
+ * 
+ */
 void osync_thread_stop(OSyncThread *thread)
 {
 	GSource *source = NULL;
@@ -539,6 +604,12 @@ void osync_thread_stop(OSyncThread *thread)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/*! @brief Exit thread 
+ * 
+ * @param thread Thread object 
+ * @param retval Return value of thread while exiting
+ * 
+ */
 void osync_thread_exit(OSyncThread *thread, int retval)
 {
 	GSource *source = NULL;
@@ -556,6 +627,15 @@ void osync_thread_exit(OSyncThread *thread, int retval)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+
+/*! @brief String replace
+ * 
+ * @param input Input string to work on
+ * @param delimiter Delimiter
+ * @param replacement Replacement
+ * @returns Replaced/Modified string result 
+ * 
+ */
 char *osync_strreplace(const char *input, const char *delimiter, const char *replacement)
 {
 	osync_return_val_if_fail(input != NULL, NULL);
@@ -569,6 +649,14 @@ char *osync_strreplace(const char *input, const char *delimiter, const char *rep
 	return ret;
 }
 
+/*! @brief Bit counting
+ * 
+ * MIT HAKMEM Count, Bit counting in constant time and memory. 
+ * 
+ * @param u unsigned integer value to count bits
+ * @returns The bit counting result 
+ * 
+ */
 int osync_bitcount(unsigned int u)
 {
 	unsigned int uCount = u - ((u >> 1) & 033333333333) - ((u >> 2) & 011111111111);

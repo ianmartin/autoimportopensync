@@ -242,6 +242,7 @@ const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield)
 
 /**
  * @brief Set the name of a xmlfield
+ * @param name The name to set
  * @param xmlfield The pointer to a xmlfield object
  */
 void osync_xmlfield_set_name(OSyncXMLField *xmlfield, const char *name)

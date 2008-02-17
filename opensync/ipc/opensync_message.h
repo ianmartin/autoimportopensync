@@ -57,16 +57,15 @@ typedef enum {
 	OSYNC_MESSAGE_QUEUE_HUP
 } OSyncMessageCommand;
 
-/*@}*/
-
 /*! @brief Function which can receive messages
  * 
- * @param sender The sender of the received reply
  * @param message The reply that is being received.
  * @param user_data The userdata which was set previously
  * 
  */
 typedef void (*OSyncMessageHandler)(OSyncMessage *message, void *user_data);
+
+/*@}*/
 
 OSYNC_EXPORT OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
 OSYNC_EXPORT OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);

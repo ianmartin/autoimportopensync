@@ -194,6 +194,11 @@ void *osync_plugin_get_data(OSyncPlugin *plugin)
 	return plugin->plugin_data;
 }
 
+/*! @brief Set the plugin_info data for the plugin object
+ *
+ * @param plugin Pointer to the plugin
+ * @param data Pointer to data which should get set 
+ */
 void osync_plugin_set_data(OSyncPlugin *plugin, void *data)
 {
 	osync_assert(plugin);
@@ -222,12 +227,22 @@ void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType co
 	plugin->config_type = config_type;
 }
 
+/*! @brief Returns start type of plugin 
+ *
+ * @param plugin Pointer to the plugin
+ * @returns The start type of the plugin
+ */
 OSyncStartType osync_plugin_get_start_type(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->start_type;
 }
 
+/*! @brief Sets the start type of the plugin 
+ *
+ * @param plugin Pointer to the plugin
+ * @param start_type The start type of the plugin
+ */
 void osync_plugin_set_start_type(OSyncPlugin *plugin, OSyncStartType start_type)
 {
 	osync_assert(plugin);
@@ -281,18 +296,38 @@ void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn discover)
 	plugin->discover = discover;
 }
 
+/*! @brief Initialize Plugin 
+ *
+ * @param plugin Pointer to the plugin
+ * @param info Pointer to OSyncPluginInfo which describes the plugin 
+ * @param error Pointer to error-struct
+ * @return Userdata returned by the plugin on success, NULL on error
+ */
 void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
 	return plugin->initialize(plugin, info, error);
 }
 
+/*! @brief Finalize Plugin 
+ *
+ * @param plugin Pointer to the plugin
+ * @param data Pointer to userdata which got returned by plugin initialize function
+ */
 void osync_plugin_finalize(OSyncPlugin *plugin, void *data)
 {
 	osync_assert(plugin);
 	plugin->finalize(data);
 }
 
+/*! @brief Call plugin discovery
+ *
+ * @param plugin Pointer to the plugin
+ * @param data Pointer to userdata which got returned by plugin initialize function
+ * @param info Pointer to OSyncPluginInfo which describes the plugin 
+ * @param error Pointer to error-struct
+ * @return TRUE on success, FALSE otherwise 
+ */
 osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
@@ -322,42 +357,86 @@ osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
 	return TRUE;
 }
 
+/*** FIXME Get discovery timeout is missing */
+
+/*! @brief Set timeout interval for plugin discovery
+ * 
+ * @param plugin The plugin to check
+ * @param timeout Timeout value 
+ * 
+ */
 void osync_plugin_set_discover_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.discover = timeout;
 }
 
+/*! @brief Get timeout interval for plugin initialization 
+ * 
+ * @param plugin The plugin to check
+ * @return Timeout value
+ * 
+ */
 unsigned int osync_plugin_get_initialize_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.initialize;
 }
 
+/*! @brief Set timeout interval for plugin initialization 
+ * 
+ * @param plugin The plugin to check
+ * @param timeout Timeout value 
+ * 
+ */
 void osync_plugin_set_initialize_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.initialize = timeout;
 }
 
+/*! @brief Get timeout interval for plugin finalization
+ * 
+ * @param plugin The plugin to check
+ * @return Timeout value
+ * 
+ */
 unsigned int osync_plugin_get_finalize_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.finalize;
 }
 
+/*! @brief Set timeout interval for plugin finalization 
+ * 
+ * @param plugin The plugin to check
+ * @param timeout Timeout value 
+ * 
+ */
 void osync_plugin_set_finalize_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.finalize = timeout;
 }
 
+/*! @brief Get timeout interval for plugin "usable" function
+ * 
+ * @param plugin The plugin to check
+ * @return Timeout value
+ * 
+ */
 unsigned int osync_plugin_get_useable_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.useable;
 }
 
+/*! @brief Set timeout interval for plugin "usable" function
+ * 
+ * @param plugin The plugin to check
+ * @param timeout Timeout value 
+ * 
+ */
 void osync_plugin_set_useable_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);

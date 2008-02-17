@@ -87,256 +87,17 @@ error:
 	return -1;
 }
 
-/*@}*/
-
 /**
- * @defgroup OSyncVersionAPI OpenSync Version
- * @ingroup OSyncPublic
- * @brief The public part of the OSyncVersion
- * 
+ * @brief Loads description from a specified directory and returns an OSyncList
+ * with OSyncVersions objects.
+ *
+ * This internal function allows to adjust the description and schema directories.
+ *
+ * @param error Pointer to error-struct
+ * @param descriptiondir Path to description directory
+ * @param schemadir Path to XML schema directory
+ * @returns List of OSyncVersion objects, NULL if none found
  */
-/*@{*/
-
-/**
- * @brief Creates a new version object
- * @param error The error which will hold the info in case of an error
- * @return The pointer to the newly allocated version object or NULL in case of error
- */
-OSyncVersion *osync_version_new(OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
-	
-	OSyncVersion *version = osync_try_malloc0(sizeof(OSyncVersion), error);
-	if(!version) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	
-	version->ref_count = 1;
-	version->plugin = g_strdup("");
-	version->priority = g_strdup("");
-	version->vendor = g_strdup("");
-	version->modelversion = g_strdup("");
-	version->firmwareversion = g_strdup("");
-	version->softwareversion = g_strdup("");
-	version->hardwareversion = g_strdup("");
-	version->identifier = g_strdup("");
-	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, version);
-	return version;
-}
-
-/**
- * @brief Increments the reference counter
- * @param version The pointer to a version object
- */
-OSyncVersion *osync_version_ref(OSyncVersion *version)
-{
-	osync_assert(version);
-	
-	g_atomic_int_inc(&(version->ref_count));
-
-	return version;
-}
-
-/**
- * @brief Decrement the reference counter. The version object will 
- *  be freed if there is no more reference to it.
- * @param version The pointer to a version object
- */
-void osync_version_unref(OSyncVersion *version)
-{
-	osync_assert(version);
-			
-	if (g_atomic_int_dec_and_test(&(version->ref_count))) {
-
-		if(version->plugin)
-			g_free(version->plugin);
-		if(version->priority)
-			g_free(version->priority);
-		if(version->vendor)
-			g_free(version->vendor);
-		if(version->modelversion)
-			g_free(version->modelversion);
-		if(version->firmwareversion)
-			g_free(version->firmwareversion);
-		if(version->softwareversion)
-			g_free(version->softwareversion);
-		if(version->hardwareversion)
-			g_free(version->hardwareversion);
-		if(version->identifier)
-			g_free(version->identifier);
-
-		g_free(version);
-	}
-}
-
-char *osync_version_get_plugin(OSyncVersion *version)
-{
-	return version->plugin;
-}
-
-char *osync_version_get_priority(OSyncVersion *version)
-{
-	return version->priority;
-}
-
-char *osync_version_get_vendor(OSyncVersion *version)
-{
-	return version->vendor;
-}
-
-char *osync_version_get_modelversion(OSyncVersion *version)
-{
-	return version->modelversion;
-}
-
-char *osync_version_get_firmwareversion(OSyncVersion *version)
-{
-	return version->firmwareversion;
-}
-
-char *osync_version_get_softwareversion(OSyncVersion *version)
-{
-	return version->softwareversion;
-}
-
-char *osync_version_get_hardwareversion(OSyncVersion *version)
-{
-	return version->hardwareversion;
-}
-
-char *osync_version_get_identifier(OSyncVersion *version)
-{
-	return version->identifier;
-}
-
-void osync_version_set_plugin(OSyncVersion *version, const char *plugin)
-{
-	if(version->plugin)
-		g_free(version->plugin);
-	if(!plugin)
-		version->plugin = g_strdup("");
-	else
-		version->plugin = g_strdup(plugin);
-}
-
-void osync_version_set_priority(OSyncVersion *version, const char *priority)
-{
-	if(version->priority)
-		g_free(version->priority);
-	if(!priority)
-		version->priority = g_strdup("");
-	else
-		version->priority =  g_strdup(priority);
-}
-
-void osync_version_set_vendor(OSyncVersion *version, const char *vendor)
-{
-	if(version->vendor)
-		g_free(version->vendor);
-	if(!vendor)
-		version->vendor = g_strdup("");
-	else
-		version->vendor =  g_strdup(vendor);
-}
-
-void osync_version_set_modelversion(OSyncVersion *version, const char *modelversion)
-{
-	if(version->modelversion)
-		g_free(version->modelversion);
-	if(!modelversion)
-		version->modelversion = g_strdup("");
-	else
-		version->modelversion =  g_strdup(modelversion);
-}
-
-void osync_version_set_firmwareversion(OSyncVersion *version, const char *firmwareversion)
-{
-	if(version->firmwareversion)
-		g_free(version->firmwareversion);
-	if(!firmwareversion)
-		version->firmwareversion = g_strdup("");
-	else
-		version->firmwareversion =  g_strdup(firmwareversion);
-}
-
-void osync_version_set_softwareversion(OSyncVersion *version, const char *softwareversion)
-{
-	if(version->softwareversion)
-		g_free(version->softwareversion);
-	if(!softwareversion)
-		version->softwareversion = g_strdup("");
-	else
-		version->softwareversion =  g_strdup(softwareversion);
-	
-}
-
-void osync_version_set_hardwareversion(OSyncVersion *version, const char *hardwareversion)
-{
-	if(version->hardwareversion)
-		g_free(version->hardwareversion);
-	if(!hardwareversion)
-		version->hardwareversion = g_strdup("");
-	else
-		version->hardwareversion =  g_strdup(hardwareversion);
-}
-
-void osync_version_set_identifier(OSyncVersion *version, const char *identifier)
-{
-	if(version->identifier)
-		g_free(version->identifier);
-	if(!identifier)
-		version->identifier = g_strdup("");
-	else
-		version->identifier =  g_strdup(identifier);
-}
-
-int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, pattern, version, error);
-
-	osync_assert(pattern);
-	osync_assert(version);
-	
-	int ret;
-	
-	ret = _osync_version_match(osync_version_get_plugin(pattern), osync_version_get_plugin(version), error);
-	if(ret <= 0)
-		goto error;
-	
-	ret = _osync_version_match(osync_version_get_vendor(pattern), osync_version_get_vendor(version), error);
-	if(ret <= 0)
-		goto error;
-
-	ret = _osync_version_match(osync_version_get_modelversion(pattern), osync_version_get_modelversion(version), error);
-	if(ret <= 0)
-		goto error;
-	
-	ret = _osync_version_match(osync_version_get_firmwareversion(pattern), osync_version_get_firmwareversion(version), error);
-	if(ret <= 0)
-		goto error;
-	
-	ret = _osync_version_match(osync_version_get_softwareversion(pattern), osync_version_get_softwareversion(version), error);
-	if(ret <= 0)
-		goto error;
-	
-	ret = _osync_version_match(osync_version_get_hardwareversion(pattern), osync_version_get_hardwareversion(version), error);
-	if(ret <= 0)
-		goto error;
-	
-	ret = atoi(osync_version_get_priority(pattern));
-
-error:
-	if(ret >= 0) {
-		osync_trace(TRACE_EXIT, "%s: %i" , __func__, ret);
-		return ret;
-	}
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-	return -1;
-}
-
-
 OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir)
 {
 	GDir *dir = NULL;
@@ -440,12 +201,364 @@ error:
 	return NULL;
 }
 
+/*@}*/
+
+/**
+ * @defgroup OSyncVersionAPI OpenSync Version
+ * @ingroup OSyncPublic
+ * @brief The public part of the OSyncVersion
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Creates a new version object
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated version object or NULL in case of error
+ */
+OSyncVersion *osync_version_new(OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+	
+	OSyncVersion *version = osync_try_malloc0(sizeof(OSyncVersion), error);
+	if(!version) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	version->ref_count = 1;
+	version->plugin = g_strdup("");
+	version->priority = g_strdup("");
+	version->vendor = g_strdup("");
+	version->modelversion = g_strdup("");
+	version->firmwareversion = g_strdup("");
+	version->softwareversion = g_strdup("");
+	version->hardwareversion = g_strdup("");
+	version->identifier = g_strdup("");
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, version);
+	return version;
+}
+
+/**
+ * @brief Increments the reference counter
+ * @param version The pointer to a version object
+ */
+OSyncVersion *osync_version_ref(OSyncVersion *version)
+{
+	osync_assert(version);
+	
+	g_atomic_int_inc(&(version->ref_count));
+
+	return version;
+}
+
+/**
+ * @brief Decrement the reference counter. The version object will 
+ *  be freed if there is no more reference to it.
+ * @param version The pointer to a version object
+ */
+void osync_version_unref(OSyncVersion *version)
+{
+	osync_assert(version);
+			
+	if (g_atomic_int_dec_and_test(&(version->ref_count))) {
+
+		if(version->plugin)
+			g_free(version->plugin);
+		if(version->priority)
+			g_free(version->priority);
+		if(version->vendor)
+			g_free(version->vendor);
+		if(version->modelversion)
+			g_free(version->modelversion);
+		if(version->firmwareversion)
+			g_free(version->firmwareversion);
+		if(version->softwareversion)
+			g_free(version->softwareversion);
+		if(version->hardwareversion)
+			g_free(version->hardwareversion);
+		if(version->identifier)
+			g_free(version->identifier);
+
+		g_free(version);
+	}
+}
+
+/**
+ * @brief Get Plugin Name
+ * @param version The pointer to a version object
+ * @returns Plugin Name or NULL
+ */
+/* FIXME: char* to const char* */
+char *osync_version_get_plugin(OSyncVersion *version)
+{
+	return version->plugin;
+}
+
+/**
+ * @brief Get Priority 
+ * @param version The pointer to a version object
+ * @returns Priority or NULL
+ */
+char *osync_version_get_priority(OSyncVersion *version)
+{
+	return version->priority;
+}
+
+/**
+ * @brief Get Vendor 
+ * @param version The pointer to a version object
+ * @returns Vendor or NULL
+ */
+char *osync_version_get_vendor(OSyncVersion *version)
+{
+	return version->vendor;
+}
+
+/**
+ * @brief Get Model Version
+ * @param version The pointer to a version object
+ * @returns Model Version or NULL
+ */
+char *osync_version_get_modelversion(OSyncVersion *version)
+{
+	return version->modelversion;
+}
+
+/**
+ * @brief Get Firmware Version
+ * @param version The pointer to a version object
+ * @returns Firmware Version or NULL
+ */
+char *osync_version_get_firmwareversion(OSyncVersion *version)
+{
+	return version->firmwareversion;
+}
+
+/**
+ * @brief Get Software Version
+ * @param version The pointer to a version object
+ * @returns Software Version or NULL
+ */
+char *osync_version_get_softwareversion(OSyncVersion *version)
+{
+	return version->softwareversion;
+}
+
+/**
+ * @brief Get Hardware Version
+ * @param version The pointer to a version object
+ * @returns Hardware Version or NULL
+ */
+char *osync_version_get_hardwareversion(OSyncVersion *version)
+{
+	return version->hardwareversion;
+}
+
+/**
+ * @brief Get Identifier 
+ * @param version The pointer to a version object
+ * @returns Identifier or NULL
+ */
+char *osync_version_get_identifier(OSyncVersion *version)
+{
+	return version->identifier;
+}
+
+/**
+ * @brief Set Plugin Name 
+ * @param version The pointer to a version object
+ * @param plugin Plugin Name
+ */
+void osync_version_set_plugin(OSyncVersion *version, const char *plugin)
+{
+	if(version->plugin)
+		g_free(version->plugin);
+	if(!plugin)
+		version->plugin = g_strdup("");
+	else
+		version->plugin = g_strdup(plugin);
+}
+
+/**
+ * @brief Set Priority
+ * @param version The pointer to a version object
+ * @param priority Priority
+ */
+void osync_version_set_priority(OSyncVersion *version, const char *priority)
+{
+	if(version->priority)
+		g_free(version->priority);
+	if(!priority)
+		version->priority = g_strdup("");
+	else
+		version->priority =  g_strdup(priority);
+}
+
+/**
+ * @brief Set Vendor 
+ * @param version The pointer to a version object
+ * @param vendor Vendor 
+ */
+void osync_version_set_vendor(OSyncVersion *version, const char *vendor)
+{
+	if(version->vendor)
+		g_free(version->vendor);
+	if(!vendor)
+		version->vendor = g_strdup("");
+	else
+		version->vendor =  g_strdup(vendor);
+}
+
+/**
+ * @brief Set Model Version 
+ * @param version The pointer to a version object
+ * @param modelversion Model Version 
+ */
+void osync_version_set_modelversion(OSyncVersion *version, const char *modelversion)
+{
+	if(version->modelversion)
+		g_free(version->modelversion);
+	if(!modelversion)
+		version->modelversion = g_strdup("");
+	else
+		version->modelversion =  g_strdup(modelversion);
+}
+
+/**
+ * @brief Set Firmware Version 
+ * @param version The pointer to a version object
+ * @param firmwareversion Firmware Version 
+ */
+void osync_version_set_firmwareversion(OSyncVersion *version, const char *firmwareversion)
+{
+	if(version->firmwareversion)
+		g_free(version->firmwareversion);
+	if(!firmwareversion)
+		version->firmwareversion = g_strdup("");
+	else
+		version->firmwareversion =  g_strdup(firmwareversion);
+}
+
+/**
+ * @brief Set Software Version 
+ * @param version The pointer to a version object
+ * @param softwareversion Software Version 
+ */
+void osync_version_set_softwareversion(OSyncVersion *version, const char *softwareversion)
+{
+	if(version->softwareversion)
+		g_free(version->softwareversion);
+	if(!softwareversion)
+		version->softwareversion = g_strdup("");
+	else
+		version->softwareversion =  g_strdup(softwareversion);
+	
+}
+
+/**
+ * @brief Set Hardware Version 
+ * @param version The pointer to a version object
+ * @param hardwareversion Hardware Version 
+ */
+void osync_version_set_hardwareversion(OSyncVersion *version, const char *hardwareversion)
+{
+	if(version->hardwareversion)
+		g_free(version->hardwareversion);
+	if(!hardwareversion)
+		version->hardwareversion = g_strdup("");
+	else
+		version->hardwareversion =  g_strdup(hardwareversion);
+}
+
+/**
+ * @brief Set Identifier 
+ * @param version The pointer to a version object
+ * @param identifier Identifier 
+ */
+void osync_version_set_identifier(OSyncVersion *version, const char *identifier)
+{
+	if(version->identifier)
+		g_free(version->identifier);
+	if(!identifier)
+		version->identifier = g_strdup("");
+	else
+		version->identifier =  g_strdup(identifier);
+}
+
+/**
+ * @brief Matchs the version object with a pattern object and returns the priority
+ * of the pattern if it matchs the original version object.
+ *
+ * @param pattern The pointer to a version object which acts as pattern
+ * @param version The version (original) object supplied to find a fitting version pattern
+ * @param error Pointer to a error-struct
+ * @returns Priority of matching pattern, -1 on error
+ */
+int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, pattern, version, error);
+
+	osync_assert(pattern);
+	osync_assert(version);
+	
+	int ret;
+	
+	ret = _osync_version_match(osync_version_get_plugin(pattern), osync_version_get_plugin(version), error);
+	if(ret <= 0)
+		goto error;
+	
+	ret = _osync_version_match(osync_version_get_vendor(pattern), osync_version_get_vendor(version), error);
+	if(ret <= 0)
+		goto error;
+
+	ret = _osync_version_match(osync_version_get_modelversion(pattern), osync_version_get_modelversion(version), error);
+	if(ret <= 0)
+		goto error;
+	
+	ret = _osync_version_match(osync_version_get_firmwareversion(pattern), osync_version_get_firmwareversion(version), error);
+	if(ret <= 0)
+		goto error;
+	
+	ret = _osync_version_match(osync_version_get_softwareversion(pattern), osync_version_get_softwareversion(version), error);
+	if(ret <= 0)
+		goto error;
+	
+	ret = _osync_version_match(osync_version_get_hardwareversion(pattern), osync_version_get_hardwareversion(version), error);
+	if(ret <= 0)
+		goto error;
+	
+	ret = atoi(osync_version_get_priority(pattern));
+
+error:
+	if(ret >= 0) {
+		osync_trace(TRACE_EXIT, "%s: %i" , __func__, ret);
+		return ret;
+	}
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+	return -1;
+}
+
+/**
+ * @brief Loads description from the default description directory and returns an OSyncList
+ * with OSyncVersions objects.
+ *
+ * @param error Pointer to error-struct
+ * @returns List of OSyncVersion objects, NULL if none found
+ */
 OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 {
 	return _osync_version_load_from_descriptions(error, NULL, NULL);
 }
 
-
+/**
+ * @brief Searching for capabilities for specified OSyncVersion object. 
+ *
+ * @param version Pointer to OSyncVersion object
+ * @param error Pointer to error-struct
+ * @returns Pointer to OSyncCapabilties object, NULL if none capabilities are found
+ */
 OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, version, error);

@@ -41,7 +41,7 @@
  */
 
 /**
- * @defgroup OSyncEnvAPI OpenSync Environment
+ * @defgroup OSyncPluginEnvAPI OpenSync Environment
  * @ingroup OSyncPublic
  * @brief The public API of the opensync environment
  * 
@@ -105,7 +105,7 @@ void osync_plugin_env_free(OSyncPluginEnv *env)
  * 
  * Loads all sync modules from a directory into a osync environment
  * 
- * @param env Pointer to a OSyncEnv environment
+ * @param env Pointer to a OSyncPluginEnv environment
  * @param path The path where to look for plugins
  * @param error Pointer to a error struct to return a error
  * @returns TRUE on success, FALSE otherwise
@@ -170,6 +170,12 @@ error:
 	return FALSE;
 }
 
+/*! @brief Register plugin to plugin environment 
+ * 
+ * @param env Pointer to a plugin environment
+ * @param plugin Pointer to plugin which should get added to environment
+ * 
+ */
 void osync_plugin_env_register_plugin(OSyncPluginEnv *env, OSyncPlugin *plugin)
 {
 	osync_assert(env);
@@ -179,6 +185,14 @@ void osync_plugin_env_register_plugin(OSyncPluginEnv *env, OSyncPlugin *plugin)
 	osync_plugin_ref(plugin);
 }
 
+/*! @brief Loads a module into the plugin environment 
+ * 
+ * @param env Pointer to a plugin environment
+ * @param filename Module filename, as full path, to load
+ * @param error Pointer to error-struct
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
 osync_bool osync_plugin_env_load_module(OSyncPluginEnv *env, const char *filename, OSyncError **error)
 {
 	OSyncModule *module = NULL;
@@ -234,7 +248,7 @@ error:
  * 
  * Finds the plugin with the given name
  * 
- * @param env Pointer to a OSyncEnv environment
+ * @param env Pointer to a OSyncPluginEnv environment
  * @param name The name to search for
  * @returns The plugin or NULL if not found
  * 
@@ -255,7 +269,7 @@ OSyncPlugin *osync_plugin_env_find_plugin(OSyncPluginEnv *env, const char *name)
  * 
  * Returns the number of loaded plugins. 0 if used before initialization
  * 
- * @param env Pointer to a OSyncEnv environment
+ * @param env Pointer to a OSyncPluginEnv environment
  * @returns Number of plugins
  * 
  */
@@ -268,7 +282,7 @@ int osync_plugin_env_num_plugins(OSyncPluginEnv *env)
  * 
  * Returns pointer to nth plugin
  * 
- * @param env Pointer to a OSyncEnv environment
+ * @param env Pointer to a OSyncPluginEnv environment
  * @param nth Which plugin to return
  * @returns Pointer to plugin
  * 
@@ -278,8 +292,17 @@ OSyncPlugin *osync_plugin_env_nth_plugin(OSyncPluginEnv *env, int nth)
 	return (OSyncPlugin *)g_list_nth_data(env->plugins, nth);
 }
 
+/*! @brief Checks if plugin is usable 
+ * 
+ * @param env Pointer to a OSyncPluginEnv environment
+ * @param pluginname The name of the plugin
+ * @param error Pointer to error-struct
+ * @returns TRUE if plugin is usable, FALSE otherwise 
+ * 
+ */
 osync_bool osync_plugin_env_plugin_is_usable(OSyncPluginEnv *env, const char *pluginname, OSyncError **error)
 {
+	/* TODO: implement USABLE functions */
 	return TRUE;
 }
 

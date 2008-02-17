@@ -22,13 +22,16 @@
 #define _OPENSYNC_QUEUE_H
 
 /**
- * @defgroup OSEngineQueue OpenSync Message Queues Internals
- * @ingroup OSEnginePrivate
+ * @ingroup OSyncQueue
  * @brief A Queue used for asynchronous communication between thread
- * 
  */
 
 /*@{*/
+
+
+/*! @brief The type of a queue event 
+ * 
+ */
 
 typedef enum {
 	OSYNC_QUEUE_EVENT_NONE,
@@ -37,10 +40,17 @@ typedef enum {
 	OSYNC_QUEUE_EVENT_HUP
 } OSyncQueueEvent;
 
+
+/*! @brief The queue type 
+ * 
+ */
+
 typedef enum {
 	OSYNC_QUEUE_SENDER,
 	OSYNC_QUEUE_RECEIVER
 } OSyncQueueType;
+
+/*@}*/
 
 OSYNC_EXPORT OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
 OSYNC_EXPORT OSyncQueue *osync_queue_new_from_fd(int fd, OSyncError **error);
@@ -69,8 +79,6 @@ OSYNC_EXPORT const char *osync_queue_get_path(OSyncQueue *queue);
 OSYNC_EXPORT int osync_queue_get_fd(OSyncQueue *queue);
 
 OSYNC_EXPORT osync_bool osync_queue_is_alive(OSyncQueue *queue);
-
-/*@}*/
 
 #endif //_OPENSYNC_QUEUE_H
 

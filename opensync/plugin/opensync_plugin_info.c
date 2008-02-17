@@ -105,18 +105,34 @@ void osync_plugin_info_unref(OSyncPluginInfo *info)
 	}
 }
 
+/*! @brief Set reference to loop for the specific plugin 
+ * 
+ * @param info Pointer to the plugin info object
+ * @param loop Pointer to the loop which get set for specified OSyncPluginInfo object
+ * 
+ */
 void osync_plugin_info_set_loop(OSyncPluginInfo *info, void *loop)
 {
 	osync_assert(info);
 	info->loop = loop;
 }
 
+/*! @brief Get loop reference of OSyncPluginInfo object
+ *
+ * @param info Pointer to the plugin info object
+ * @returns Reference to the loop of the OSyncPluginInfo object
+ */
 void *osync_plugin_info_get_loop(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return info->loop;
 }
 
+/*! @brief Set  the plugin configuration data
+ *
+ * @param info Pointer to the plugin info object
+ * @param config Plugin configuration data
+ */
 void osync_plugin_info_set_config(OSyncPluginInfo *info, const char *config)
 {
 	osync_assert(info);
@@ -137,6 +153,12 @@ const char *osync_plugin_info_get_config(OSyncPluginInfo *info)
 	return info->config;
 }
 
+/*! @brief Set plugin configuration directory 
+ * 
+ * @param info Pointer to the plugin info object
+ * @param configdir Configuration directory to set
+ * 
+ */
 void osync_plugin_info_set_configdir(OSyncPluginInfo *info, const char *configdir)
 {
 	osync_assert(info);
@@ -157,6 +179,12 @@ const char *osync_plugin_info_get_configdir(OSyncPluginInfo *info)
 	return info->configdir;
 }
 
+/*! @brief Set Group Name for plugin info object 
+ * 
+ * @param info Pointer to the plugin info object
+ * @param groupname Group name 
+ * 
+ */
 void osync_plugin_info_set_groupname(OSyncPluginInfo *info, const char *groupname)
 {
 	osync_assert(info);
@@ -165,12 +193,25 @@ void osync_plugin_info_set_groupname(OSyncPluginInfo *info, const char *groupnam
 	info->groupname = g_strdup(groupname);
 }
 
+/*! @brief Get Group Name of the OSyncPluginInfo object
+ * 
+ * @param info Pointer to the OSyncPluginInfo object
+ * @returns Group Name of the OSyncPluginInfo object
+ * 
+ */
 const char *osync_plugin_info_get_groupname(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return info->groupname;
 }
 
+/*! @brief Find ObjTypeSink of corresponding Object Type in OSyncPluginInfo object
+ * 
+ * @param info Pointer to the OSyncPluginInfo object
+ * @param name Name of the Object Type
+ * @returns Pointer to OSyncPluginInfo for searched objtype, NULL if not available 
+ * 
+ */
 OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, info, name);
@@ -239,12 +280,25 @@ OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, int nth)
 	return g_list_nth_data(info->objtypes, nth);
 }
 
+/*! @brief Returns the Main Sink 
+ * 
+ * @param info Pointer to the plugin info object
+ * @returns the Main Sink
+ * 
+ */
 OSyncObjTypeSink *osync_plugin_info_get_main_sink(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return info->main_sink;
 }
 
+
+/*! @brief Sets the Main Sink 
+ * 
+ * @param info Pointer to the plugin info object
+ * @param sink The OSyncObjTypeSink which acts as Main Sink
+ * 
+ */
 void osync_plugin_info_set_main_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 {
 	osync_assert(info);
@@ -265,6 +319,12 @@ OSyncObjTypeSink *osync_plugin_info_get_sink(OSyncPluginInfo *info)
 	return info->current_sink;
 }
 
+/*! @brief Sets the current OSyncObjTypeSink 
+ * 
+ * @param info Pointer to the plugin info object
+ * @param sink The OSyncObjTypeSink which should act as current OSyncObjTypeSink
+ * 
+ */
 void osync_plugin_info_set_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 {
 	osync_assert(info);
@@ -284,6 +344,12 @@ OSyncFormatEnv *osync_plugin_info_get_format_env(OSyncPluginInfo *info)
 	return info->formatenv;
 }
 
+/*! @brief Set Format Environment for OSyncPluginInfo object
+ *
+ * @param info Pointer to the plugin info object
+ * @param env Pointer to Format environment which gets assigned to the OSyncPluginInfo object
+ *
+ */
 void osync_plugin_info_set_format_env(OSyncPluginInfo *info, OSyncFormatEnv *env)
 {
 	osync_assert(info);
@@ -291,6 +357,12 @@ void osync_plugin_info_set_format_env(OSyncPluginInfo *info, OSyncFormatEnv *env
 	info->formatenv = env;
 }
 
+
+/*! @brief Set OSyncVersion for OSyncPluginInfo object
+ *
+ * @param info Pointer to the plugin info object
+ * @param version Pointer to OSyncVersion
+ */
 void osync_plugin_info_set_version(OSyncPluginInfo *info, OSyncVersion *version)
 {
 	osync_assert(info);
@@ -303,12 +375,22 @@ void osync_plugin_info_set_version(OSyncPluginInfo *info, OSyncVersion *version)
 	info->version = version;
 }
 
+/*! @brief Get OSyncVersion of the OSyncPluginInfo object
+ *
+ * @param info Pointer to the plugin info object
+ * @returns Pointer of the OSyncVersion from OSyncPluginInfo object
+ */
 OSyncVersion *osync_plugin_info_get_version(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return info->version;
 }
 
+/*! @brief Set OSyncCapabilities of the OSyncPluginInfo object
+ *
+ * @param info Pointer to the plugin info object
+ * @param capabilities Pointer to the capabilities
+ */
 void osync_plugin_info_set_capabilities(OSyncPluginInfo *info, OSyncCapabilities *capabilities)
 {
 	osync_assert(info);
@@ -321,6 +403,11 @@ void osync_plugin_info_set_capabilities(OSyncPluginInfo *info, OSyncCapabilities
 	info->capabilities = capabilities;
 }
 
+/*! @brief Get OSyncCapabilities of the OSyncPluginInfo object
+ *
+ * @param info Pointer to the plugin info object
+ * @returns OSyncCapabilities of the OSyncPluginInfo object
+ */
 OSyncCapabilities *osync_plugin_info_get_capabilities(OSyncPluginInfo *info)
 {
 	osync_assert(info);
