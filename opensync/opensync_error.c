@@ -111,7 +111,7 @@ const char *osync_error_get_name(OSyncError **error)
 OSyncError **osync_error_ref(OSyncError **error)
 {
 	if (!osync_error_is_set(error))
-		return;
+		return error;
 	
 	g_atomic_int_inc(&(*error)->ref_count);
 
