@@ -113,8 +113,9 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 
 		toinfo = pending->timeout_info;
 
-		if (current_time.tv_sec == toinfo->expiration.tv_sec
-				|| current_time.tv_sec >= toinfo->expiration.tv_sec && current_time.tv_usec >= toinfo->expiration.tv_usec) {
+		if (current_time.tv_sec == toinfo->expiration.tv_sec ||
+			(current_time.tv_sec >= toinfo->expiration.tv_sec 
+			&& current_time.tv_usec >= toinfo->expiration.tv_usec)) {
 
 			/* Call the callback of the pending message */
 			osync_assert(pending->callback);
