@@ -716,7 +716,7 @@ error:
 /*! @brief Change version of group configuration. Only for testing.
  *
  * @param updater Pointer to the OSyncUpdater 
- * @param int Major Version number to set
+ * @param major Major Version number to set
  */
 void osync_updater_set_group_version(OSyncUpdater *updater, int major)
 {

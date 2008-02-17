@@ -268,6 +268,7 @@ error:
 /** @brief Increase the reference count of the group
  * 
  * @param group The group
+ * @returns The referenced group pointer
  * 
  */
 OSyncGroup *osync_group_ref(OSyncGroup *group)

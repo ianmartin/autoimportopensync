@@ -247,33 +247,7 @@ char *osync_print_binary(const unsigned char *data, int len)
   return g_string_free(str, FALSE);
 }
 
-/*! @brief Creates a random string
- * 
- * Creates a random string of given length or less
- * 
- * @param maxlength The maximum length of the string
- * @returns The random string
- * 
- */
-char *osync_rand_str(int maxlength)
-{
-	char *randchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIKLMNOPQRSTUVWXYZ1234567890";
-	
-	int length;
-	char *retchar;
-	int i = 0;
-
-	length = g_random_int_range(1, maxlength + 1);
-	retchar = malloc(length * sizeof(char) + 1);
-	retchar[0] = 0;
-
-	for (i = 0; i < length; i++) {
-		retchar[i] = randchars[g_random_int_range(0, strlen(randchars))];
-		retchar[i + 1] = 0;
-	}
-
-	return retchar;
-}
+/*@}*/
 
 /**
  * @defgroup OSyncEnvAPIMisc OpenSync Misc
@@ -406,8 +380,6 @@ void *osync_try_malloc0(unsigned int size, OSyncError **error)
 	memset(result, 0, size);
 	return result;
 }
-
-/*@}*/
 
 OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
 {
@@ -602,4 +574,33 @@ int osync_bitcount(unsigned int u)
 	unsigned int uCount = u - ((u >> 1) & 033333333333) - ((u >> 2) & 011111111111);
 	return ((uCount + (uCount >> 3)) & 030707070707) % 63;
 }
+
+/*! @brief Creates a random string
+ * 
+ * Creates a random string of given length or less
+ * 
+ * @param maxlength The maximum length of the string
+ * @returns The random string
+ * 
+ */
+char *osync_rand_str(int maxlength)
+{
+	char *randchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIKLMNOPQRSTUVWXYZ1234567890";
+	
+	int length;
+	char *retchar;
+	int i = 0;
+
+	length = g_random_int_range(1, maxlength + 1);
+	retchar = malloc(length * sizeof(char) + 1);
+	retchar[0] = 0;
+
+	for (i = 0; i < length; i++) {
+		retchar[i] = randchars[g_random_int_range(0, strlen(randchars))];
+		retchar[i + 1] = 0;
+	}
+
+	return retchar;
+}
+/*@}*/
 

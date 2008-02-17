@@ -74,7 +74,6 @@ inline struct tm* gmtime_r (const time_t *clock, struct tm *result)
  * @brief The public part of the OSyncTimeAPI
  * 
  */
-/*@{*/
 
 /* Floating Timestamps...... (handle tzid!) */
 
@@ -406,7 +405,7 @@ time_t osync_time_localtm2unix(const struct tm *tmtime)
 
 /*! @brief Function converts struct tm, in utc, to unix timestamp.
  *
- * @param tmtime The struct tm, in utc, which gets converted
+ * @param utctime The struct tm, in utc, which gets converted
  * @returns time_t (in UTC of course)
  *
  * This algorithm abuses the POSIX time functions, only because
@@ -545,7 +544,7 @@ struct tm *osync_time_unix2utctm(const time_t *timestamp)
  *	localtime in seconds east of UTC.  (i.e. east is positive,
  *	west is negative)
  * 
- * @param time is the point in time when the offset have to be calculated,
+ * @param local The point in time when the offset have to be calculated,
  *	specified in localtime (need for CEST/CET)
  * @returns Seconds of timezone offset
  */  
@@ -707,7 +706,8 @@ end:
 
 /*! @brief Functions converts a UTC vtime stamp to a localtime vtime stamp
  * 
- * @param utc The timestap in UTC timezone whic gets converted to localtime 
+ * @param utc The timestap in UTC timezone which gets converted to localtime 
+ * @param offset The offset in seconds between UTC and localtime
  * @returns vtime in local  timezon (caller is preponsible for freeing) 
  */ 
 char *osync_time_vtime2localtime(const char* utc, int offset)
@@ -1028,7 +1028,7 @@ int osync_time_alarmdu2sec(const char *alarm)
 
 /*! @brief Function converts a week day string to the struct tm wday integer. 
  *
- * @param weekday string of the week day
+ * @param swday string of the week day
  * @returns integer of the weekday (Sunday = 0), or -1 on error
  */ 
 int osync_time_str2wday(const char *swday)
@@ -1583,6 +1583,4 @@ time_t osync_time_xml2unix(OSyncXMLFormat *event, OSyncXMLField *dateTimeContent
 	return ret;
 }
 #endif
-
-/*@}*/
 

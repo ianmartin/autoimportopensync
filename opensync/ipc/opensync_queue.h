@@ -70,4 +70,7 @@ OSYNC_EXPORT int osync_queue_get_fd(OSyncQueue *queue);
 
 OSYNC_EXPORT osync_bool osync_queue_is_alive(OSyncQueue *queue);
 
+/*@}*/
+
 #endif //_OPENSYNC_QUEUE_H
+

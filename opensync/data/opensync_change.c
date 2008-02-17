@@ -302,6 +302,7 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
  * This is used if a uid is not unique.
  * 
  * @param change The change to duplicate
+ * @param dirty Reference which stores value if change still needs to be multiplied (dirty)
  * @param error An error struct
  * @returns TRUE if the uid was duplicated successfully, FALSE otherwise.
  * 

@@ -612,6 +612,12 @@ osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, 
 	return TRUE;
 }
 
+/*! @brief Register Object Format to the Format Environment 
+ * 
+ * @param env Pointer to the environment
+ * @param format Pointer ot the Object Format which sould be registred
+ * 
+ */
 void osync_format_env_register_objformat(OSyncFormatEnv *env, OSyncObjFormat *format)
 {
 	osync_assert(env);
@@ -668,6 +674,11 @@ OSyncObjFormat *osync_format_env_nth_objformat(OSyncFormatEnv *env, int nth)
 	return g_list_nth_data(env->objformats, nth);
 }
 
+/*! @brief Registers Format Converter or Detector to Format Environment
+ * 
+ * @param env The format environment
+ * @param converter Pointer of the Format Converter or Detector
+ */
 void osync_format_env_register_converter(OSyncFormatEnv *env, OSyncFormatConverter *converter)
 {
 	osync_assert(env);
@@ -688,7 +699,7 @@ void osync_format_env_register_converter(OSyncFormatEnv *env, OSyncFormatConvert
 	osync_converter_ref(converter);
 }
 
-/*! @brief Finds the converter with the given source and target format
+/*! @brief Finds first converter with the given source and target format
  * 
  * @param env Pointer to the environment
  * @param sourceformat The source format
@@ -718,7 +729,14 @@ OSyncFormatConverter *osync_format_env_find_converter(OSyncFormatEnv *env, OSync
 	return NULL;
 }
 
-
+/*! @brief Returns a list of all converters with the given source and target format
+ * 
+ * @param env Pointer to the environment
+ * @param sourceformat The source format
+ * @param targetformat The target format
+ * @returns List of OSyncFormatConverter, or NULL if none found
+ * 
+ */
 OSyncList *osync_format_env_find_converters(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat)
 {
         OSyncList *r = NULL;
@@ -741,9 +759,6 @@ OSyncList *osync_format_env_find_converters(OSyncFormatEnv *env, OSyncObjFormat 
         
         return r;
 }
-
-
-
 
 /*! @brief Returns the number of available converters
  * 
@@ -770,6 +785,12 @@ OSyncFormatConverter *osync_format_env_nth_converter(OSyncFormatEnv *env, int nt
 	return g_list_nth_data(env->converters, nth);
 }
 
+/*! @brief Register Filter in Format Environment 
+ * 
+ * @param env The format environment
+ * @param filter Pointer of Custom Filter to register
+ * 
+ */
 void osync_format_env_register_filter(OSyncFormatEnv *env, OSyncCustomFilter *filter)
 {
 	osync_assert(env);
@@ -997,6 +1018,18 @@ error:
 	return NULL;
 }
 
+/*! @brief Find a conversion path from the source format to a specific format with help of detectors.
+ * 
+ * This will find a conversion path between two object formats
+ * if possible.
+ *
+ * @param env The format environment to use
+ * @param sourcedata The OSyncData object which should be converted and the detectors will run on
+ * @param targetformat The target format to be converted to 
+ * @param error The error-return location
+ * @returns The appropriate conversion path, or NULL if an error occurred.
+ * 
+ */
 OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat *targetformat, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
@@ -1013,9 +1046,6 @@ OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatE
 }
 
 /*! @brief Find a conversion path from one format to one of a list of formats
- * 
- * This will convert the change with its data to one of the specified formats
- * if possible.
  * 
  * @param env The conversion environment to use
  * @param sourceformat The source format to be converted from
@@ -1048,6 +1078,15 @@ error:
 	return NULL;
 }
 
+/*! @brief Find a conversion path from one format to one of a list of formats with the help of detectors
+ * 
+ * @param env The format environment to use
+ * @param sourcedata The OSyncData object which should be converted and the detectors will run on
+ * @param targets NULL-Terminated array of possible formats to convert to
+ * @param error The error-return location
+ * @returns The appropriate conversion path, or NULL if an error occurred.
+ * 
+ */
 OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat **targets, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;

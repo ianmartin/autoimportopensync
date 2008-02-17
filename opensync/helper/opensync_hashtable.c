@@ -337,6 +337,12 @@ char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid)
        return hash;
 }
 
+/*! @brief Write the hash value for given uid
+ *
+ * @param table The hashtable
+ * @param uid The uid
+ * @param hash The hash
+ */
 void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *hash)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, hash);
@@ -359,6 +365,11 @@ void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *h
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/*! @brief Delete hashtable entries for given uid
+ *
+ * @param table The hashtable
+ * @param uid The uid of the entry to delete
+ */
 void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
@@ -373,6 +384,7 @@ void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
 		g_free(query);
 		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot delete hashtable entry.", __func__);
 		return;
+		/* TODO: Error handling */
 	}
 	g_free(query);
 

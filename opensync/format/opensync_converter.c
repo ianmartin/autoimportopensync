@@ -67,6 +67,15 @@ OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjForma
 	return converter;
 }
 
+/**
+ * @brief Creates a new detector
+ *
+ * @param sourceformat the source format for the converter
+ * @param targetformat the target format for the converter
+ * @param detect_func the detection function
+ * @param error Pointer to an error struct
+ * @returns The pointer to the newly allocated detector or NULL in case of error
+ */
 OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error)
 {
 	OSyncFormatConverter *converter = NULL;
@@ -159,17 +168,23 @@ OSyncConverterType osync_converter_get_type(OSyncFormatConverter *converter)
 	return converter->type;
 }
 
-OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncData *data)
+/**
+ * @brief Detects the Object Format of passed OSyncData 
+ * @param detector Pointer to the detector 
+ * @param data Pointer to OSyncData object which should be detected
+ * @returns The detected Object Format or NULL 
+ */
+OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *detector, OSyncData *data)
 {
 	OSyncObjFormat *sourceformat = NULL;
 	char *buffer = NULL;
 	unsigned int size = 0;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, converter, data);
-	osync_assert(converter);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, detector, data);
+	osync_assert(detector);
 	osync_assert(data);
 	
-	if (converter->type != OSYNC_CONVERTER_DETECTOR) {
+	if (detector->type != OSYNC_CONVERTER_DETECTOR) {
 		osync_trace(TRACE_EXIT, "%s: Not a detector", __func__);
 		return NULL;
 	}
@@ -177,30 +192,38 @@ OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncDat
 	sourceformat = osync_data_get_objformat(data);
 	
 	/* First, we check if this is a "inverse" detection. So we check if our targetformat
-	 * is the sourceformat of the data. There must always be a converter capable of converting
+	 * is the sourceformat of the data. There must always be a detector capable of converting
 	 * this case */
-	if (osync_objformat_is_equal(converter->target_format, sourceformat)) {
-		osync_trace(TRACE_EXIT, "%s: %p", __func__, converter->source_format);
-		return converter->source_format;
+	if (osync_objformat_is_equal(detector->target_format, sourceformat)) {
+		osync_trace(TRACE_EXIT, "%s: %p", __func__, detector->source_format);
+		return detector->source_format;
 	}
 	
-	if (!osync_objformat_is_equal(converter->source_format, sourceformat)) {
+	if (!osync_objformat_is_equal(detector->source_format, sourceformat)) {
 		osync_trace(TRACE_EXIT, "%s: Format does not match", __func__);
 		return NULL;
 	}
 	
 	osync_data_get_data(data, &buffer, &size);
-	if (!converter->detect_func || converter->detect_func(buffer, size)) {
+	if (!detector->detect_func || detector->detect_func(buffer, size)) {
 		/* Successfully detected the data */
-		osync_trace(TRACE_EXIT, "%s: %p", __func__, converter->target_format);
-		return converter->target_format;
+		osync_trace(TRACE_EXIT, "%s: %p", __func__, detector->target_format);
+		return detector->target_format;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: Not detected", __func__);
 	return NULL;
 }
 
-/** Function does not replace the objtype */
+/**
+ * @brief Invokes converter for OSyncData object with passed format converter configuration 
+ *
+ * @param converter Pointer to the converter 
+ * @param data Pointer to OSyncData object which should be detected
+ * @param config Format converter configuration
+ * @param error Pointer to an error struct
+ * @returns TRUE on successful conversion, FALSE on error
+ */
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *data, const char *config, OSyncError **error)
 {
 	char *input_data = NULL;
@@ -241,6 +264,12 @@ error:
 	return FALSE;
 }
 
+/**
+ * @brief Checks if the Format Converter fits the Object Format of OSyncData object 
+ * @param converter Pointer to the converter 
+ * @param data Pointer to OSyncData object which should be converted 
+ * @returns TRUE if Object Format matches the Converter source format, FALSE otherwise
+ */
 osync_bool osync_converter_matches(OSyncFormatConverter *converter, OSyncData *data)
 {
 	OSyncObjFormat *format = NULL;
@@ -272,6 +301,7 @@ OSyncFormatConverterPath *osync_converter_path_new(OSyncError **error)
 /*! @brief Increase the reference count on a converter path
  * 
  * @param path Pointer to the converter path
+ * @returns Pointer of converter path object
  * 
  */
 OSyncFormatConverterPath *osync_converter_path_ref(OSyncFormatConverterPath *path)
@@ -339,12 +369,20 @@ OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConverterPath *pa
 	return g_list_nth_data(path->converters, nth);
 }
 
+/*! @brief Returns configuration for converter path 
+ * @param path Pointer to the converter path
+ * @returns The converter path configuration 
+ */
 const char *osync_converter_path_get_config(OSyncFormatConverterPath *path)
 {
 	osync_assert(path);
 	return path->config;
 }
 
+/*! @brief Sets the configuration for converter path 
+ * @param path Pointer to the converter path
+ * @param config The converter path configuration
+ */
 void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config)
 {
 	osync_assert(path);

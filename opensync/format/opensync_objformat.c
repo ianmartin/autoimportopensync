@@ -129,6 +129,7 @@ const char *osync_objformat_get_config(OSyncObjFormat *format)
 /**
  * @brief Set the conversion path config of an object format
  * @param format Pointer to the object format
+ * @param format_config Format specific configuration 
  * @return The conversion config of the specified object format's object type
  */
 void osync_objformat_set_config(OSyncObjFormat *format, const char *format_config)
@@ -219,12 +220,27 @@ void osync_objformat_destroy(OSyncObjFormat *format, char *data, unsigned int si
 	format->destroy_func(data, size);
 }
 
+/**
+ * @brief Set copy function for the specified format
+ * @param format Pointer to the object format
+ * @param copy_func Copy function to set
+ */
 void osync_objformat_set_copy_func(OSyncObjFormat *format, OSyncFormatCopyFunc copy_func)
 {
 	osync_assert(format);
 	format->copy_func = copy_func;
 }
 
+/**
+ * @brief Copy data in the specified way of the format
+ * @param format Pointer to the object format
+ * @param indata Source to copy
+ * @param insize Size of source
+ * @param outdata Copy destination
+ * @param outsize Size of copy
+ * @param error Pointer to an error struct
+ * @returns TRUE on success, FALSE otherwise 
+ */
 osync_bool osync_objformat_copy(OSyncObjFormat *format, const char *indata, unsigned int insize, char **outdata, unsigned int *outsize, OSyncError **error)
 {
 	osync_assert(format);
@@ -279,6 +295,7 @@ void osync_objformat_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDupli
  * @param newuid The new uid for the duplicate object
  * @param output Pointer to a pointer to be set to the duplicate object
  * @param outsize Pointer to a variable to be set to the size of the duplicate object
+ * @param dirty Reference of dirty flag. Dirty flags determines if change still needs to be multiplied/written
  * @param error Pointer to an error struct
  * @return TRUE if the duplication succeeded, FALSE otherwise.
  */
@@ -294,12 +311,25 @@ osync_bool osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, co
 	return format->duplicate_func(uid, input, insize, newuid, output, outsize, dirty, error);
 }
 
+/**
+ * @brief Set object creation function of the specified format 
+ *
+ * @param format Pointer to the object format
+ * @param create_func Create function
+ */
 void osync_objformat_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func)
 {
 	osync_assert(format);
 	format->create_func = create_func;
 }
 
+/**
+ * @brief Object creation function of the specified format 
+ *
+ * @param format Pointer to the object format
+ * @param data Pointer to the data
+ * @param size Size of the data
+ */
 void osync_objformat_create(OSyncObjFormat *format, char **data, unsigned int *size)
 {
 	osync_assert(format);
@@ -334,6 +364,7 @@ void osync_objformat_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc
  * @param format Pointer to the object format
  * @param data Pointer to the object to destroy
  * @param size Size in bytes of the object specified by the data parameter
+ * @returns Human readable string of the specified object. Caller is responsible for freeing the string
  */
 char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size)
 {
@@ -345,12 +376,27 @@ char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned i
 	return format->print_func(data, size);
 }
 
+/**
+ * @brief Sets the revision function for an object format
+ *
+ * @param format Pointer to the object format
+ * @param revision_func The revision function to set
+ */
 void osync_objformat_set_revision_func(OSyncObjFormat *format, OSyncFormatRevisionFunc revision_func)
 {
 	osync_assert(format);
 	format->revision_func = revision_func;
 }
 
+/**
+ * @brief Returns revision of the supplied data in specified format 
+ *
+ * @param format Pointer to the object format
+ * @param data Pointer to the object to get the revision
+ * @param size Size in bytes of the object specified by the data parameter
+ * @param error Pointer to an error struct
+ * @returns Revision of the specified object in seconds since 1970, -1 on error
+ */
 time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_assert(format);
@@ -364,18 +410,40 @@ time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, un
 	return format->revision_func(data, size, error);
 }
 
+/**
+ * @brief Sets the marshal function for an object format
+ *
+ * @param format Pointer to the object format
+ * @param marshal_func The marshal function to set
+ */
 void osync_objformat_set_marshal_func(OSyncObjFormat *format, OSyncFormatMarshalFunc marshal_func)
 {
 	osync_assert(format);
 	format->marshal_func = marshal_func;
 }
 
+/**
+ * @brief Checks if the format needs to be marshaled or not. 
+ *
+ * @param format Pointer to the object format
+ * @returns TRUE if format needs to be marshaled, FALSE otherwise 
+ */
 osync_bool osync_objformat_must_marshal(OSyncObjFormat *format)
 {
 	osync_assert(format);
 	return format->marshal_func ? TRUE : FALSE;
 }
 
+/**
+ * @brief Marshals supplied input in format specific way into a serialized OSyncMessage
+ *
+ * @param format Pointer to the object format
+ * @param input Data to marshal
+ * @param inpsize Size of supplied data
+ * @param message Marshaled data in a OSyncMessage
+ * @param error Pointer to an error struct
+ * @returns TRUE on success, FALSE otherwise 
+ */
 osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
 	osync_assert(format);
@@ -383,12 +451,28 @@ osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, un
 	return format->marshal_func(input, inpsize, message, error);
 }
 
+/**
+ * @brief Sets the demarshal function for an object format
+ *
+ * @param format Pointer to the object format
+ * @param demarshal_func The demarshal function to set
+ */
 void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemarshalFunc demarshal_func)
 {
 	osync_assert(format);
 	format->demarshal_func = demarshal_func;
 }
 
+/**
+ * @brief Demarshals supplied OSyncMessage in format specific way 
+ *
+ * @param format Pointer to the object format
+ * @param message Marshaled data as OSyncMessage
+ * @param output Data to store unserialized Message content
+ * @param outpsize Size of demarshled data in output parameter 
+ * @param error Pointer to an error struct
+ * @returns TRUE on success, FALSE otherwise 
+ */
 osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
 	osync_assert(format);

@@ -150,7 +150,7 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 
 /** @brief Creates a new member for a group
  * 
- * @param group The parent group. NULL if none
+ * @param error Pointer to a error-struct
  * @returns A newly allocated member
  * 
  */
@@ -366,6 +366,11 @@ error_free_filename:
 	return NULL;
 }
 
+/** @brief Checks if Member has configuration
+ *
+ * @param member The member
+ * @returns TURE if member has configuration, FALSE otherwise
+ */
 osync_bool osync_member_has_config(OSyncMember *member)
 {
 	osync_assert(member);
@@ -765,6 +770,7 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
  * @param member The member pointer
  * @param objtype The searched object type 
  * @param format The name of the Object Format 
+ * @param format_config The Object Format specific configuration
  * 
  */
 void osync_member_add_objformat_with_config(OSyncMember *member, const char *objtype, const char *format, const char *format_config)
@@ -875,7 +881,7 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
 /** @brief Enables or disables a object type on a member
  * 
  * @param member The member
- * @param objtypestr The name of the object type to change
+ * @param objtype The name of the object type to change
  * @param enabled Set to TRUE if you want to sync the object type, FALSE otherwise
  * 
  * Note: this function should be called only after sink information for the member
