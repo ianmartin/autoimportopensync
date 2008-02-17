@@ -532,7 +532,7 @@ static osync_bool _osync_member_save_sink_add_timeout(xmlNode *cur, const char *
 		return TRUE;
 
 	char *str = g_strdup_printf("%u", timeout);
-	xmlNewChild(cur, NULL, (xmlChar*)timeoutname, str);
+	xmlNewChild(cur, NULL, (xmlChar*)timeoutname, BAD_CAST str);
 	g_free(str);
 
 	return TRUE;
@@ -541,7 +541,6 @@ static osync_bool _osync_member_save_sink_add_timeout(xmlNode *cur, const char *
 static osync_bool _osync_member_save_sink_timeout(xmlNode *cur, OSyncObjTypeSink *sink, OSyncError **error)
 {
 	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"timeout", NULL);
-	char *timeout = NULL;
 
 	_osync_member_save_sink_add_timeout(node, "connect", osync_objtype_sink_get_connect_timeout(sink), error);
 	_osync_member_save_sink_add_timeout(node, "disconnect", osync_objtype_sink_get_disconnect_timeout(sink), error);
@@ -1017,7 +1016,7 @@ osync_bool osync_member_config_is_uptodate(OSyncMember *member)
 	if (!version_str)
 		goto end;
 
-      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+      	sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
 
 	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
 			version_str, version_major, version_minor, 
@@ -1069,7 +1068,7 @@ osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 	if (!version_str)
 		goto end;
 
-      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+      	sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
 
 	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
 			version_str, version_major, version_minor, 

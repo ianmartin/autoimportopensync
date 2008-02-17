@@ -1224,7 +1224,7 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 	if (!version_str)
 		goto end;
 
-      	sscanf(version_str, "%u.%u", &version_major, &version_minor);
+      	sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
 
 	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
 			version_str, version_major, version_minor, 

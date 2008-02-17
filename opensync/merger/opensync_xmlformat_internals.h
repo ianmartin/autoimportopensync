@@ -23,6 +23,8 @@
 #ifndef OPENSYNC_XMLFORMAT_INTERNALS_H_
 #define OPENSYNC_XMLFORMAT_INTERNALS_H_
 
+#include <opensync/opensync_xml.h>
+
 /** 
  * @brief Represent a XMLFormat object
  * @ingroup OSyncXMLFormatPrivateAPI
@@ -44,5 +46,6 @@ struct OSyncXMLFormat {
 };
 
 int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname);
+osync_bool _osync_xmlformat_validate(OSyncXMLFormat *xmlformat, const char *path);
 
 #endif /*OPENSYNC_XMLFORMAT_INTERNAL_H_*/

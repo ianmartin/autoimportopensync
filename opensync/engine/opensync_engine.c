@@ -983,7 +983,6 @@ static void _osync_engine_generate_event(OSyncEngine *engine, OSyncEngineEvent e
 
 static void _osync_engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent event, OSyncError *error, void *userdata)
 {
-	OSyncError *locerror = NULL;
 	OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, objengine, event, error, userdata);
 

@@ -42,8 +42,7 @@ OSYNC_EXPORT osync_bool osync_updater_action_required(OSyncUpdater *updater);
 OSYNC_EXPORT osync_bool osync_updater_process(OSyncUpdater *updater, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_updater_process_and_block(OSyncUpdater *updater, OSyncError **error);
 
-OSYNC_EXPORT char *osync_updater_get_version(OSyncUpdater *updater);
-OSYNC_EXPORT int osync_updater_get_major_version(OSyncUpdater *updater);
-OSYNC_EXPORT int osync_updater_get_minor_version(OSyncUpdater *updater);
+OSYNC_EXPORT void osync_updater_set_updates_directory(OSyncUpdater *updater, const char *path);
+OSYNC_EXPORT const char *osync_updater_get_updates_directory(OSyncUpdater *updater);
 
 #endif /* _OPENSYNC_UPDATER_H_ */

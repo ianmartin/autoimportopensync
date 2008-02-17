@@ -98,7 +98,6 @@ OSyncObjTypeSink *osync_objtype_sink_ref(OSyncObjTypeSink *sink)
  */
 void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 {
-	OSyncList *f = NULL;
 	osync_assert(sink);
 	
 	if (g_atomic_int_dec_and_test(&(sink->ref_count))) {
