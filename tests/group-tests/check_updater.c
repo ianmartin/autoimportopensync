@@ -4,6 +4,8 @@
 #include <opensync/opensync-group.h>
 #include <opensync/opensync_internals.h>
 
+#include "opensync/group/opensync_updater_internals.h"
+
 static int status_callback_calls = 0;
 
 static void updater_reset_counters()
@@ -11,7 +13,7 @@ static void updater_reset_counters()
 	status_callback_calls = 0;
 }
 
-void updater_status_cb(OSyncUpdater *updater, OSyncUpdaterStatus *status, void *userdata)
+void updater_status_cb(OSyncUpdater *updater, OSyncUpdaterStatus *status)
 {
 	status_callback_calls++;
 }
@@ -37,6 +39,8 @@ END_TEST
 START_TEST (updater_without_loaded_group)
 {
 	OSyncError *error = NULL;
+
+        updater_reset_counters();
 
 	OSyncGroup *group = osync_group_new(&error);
 	fail_unless(group != NULL, NULL);
@@ -211,7 +215,7 @@ START_TEST (updater_group_three_steps)
 	osync_group_unref(group);
 
 	char *buf;
-	ssize_t size;
+	size_t size;
 	GError *gerror = NULL;
 
 	g_file_get_contents("configs/group1/syncgroup.conf", &buf, &size, &gerror);

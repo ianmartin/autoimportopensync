@@ -2,6 +2,8 @@
 
 #include <opensync/opensync-merger.h>
 
+#include "opensync/merger/opensync_xmlformat_internals.h"
+
 START_TEST (xmlformat_new)
 {
 	char *testbed = setup_testbed("merger");

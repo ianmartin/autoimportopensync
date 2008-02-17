@@ -266,6 +266,9 @@ END_TEST
    Make this implementation independet of vformat plugin (feel free to rename vcard to mockobjtypeX).
    This filtering isn't about obfjromat filtering - it's about objtype filtering.
 */
+
+/* FIXME */
+#if 0
 START_TEST (filter_sync_vcard_only)
 {
 	char *testbed = setup_testbed("filter_sync_vcard_only");
@@ -320,6 +323,7 @@ START_TEST (filter_sync_vcard_only)
 	destroy_testbed(testbed);
 }
 END_TEST
+#endif /* FIXME */
 
 START_TEST(filter_destobjtype_delete)
 {
