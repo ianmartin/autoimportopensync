@@ -21,9 +21,6 @@
 #ifndef _OPENSYNC_FORMAT_ENV_INTERNALS_H_
 #define _OPENSYNC_FORMAT_ENV_INTERNALS_H_
 
-
-
-
 /** A target function for osync_conv_find_path_fn() */
 typedef osync_bool (*OSyncPathTargetFn)(const void *data, OSyncObjFormat *fmt);
 
