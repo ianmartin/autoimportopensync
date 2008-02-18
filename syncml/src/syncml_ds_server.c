@@ -144,8 +144,8 @@ error:
     osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
     smlErrorDeref(&error);
 oserror:
-    osync_context_report_osyncerror(ctx, oserror);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+    report_error_on_context(&(database->commitCtx), &oserror, TRUE);
 }
 
 SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last, const char *next, void *userdata)
@@ -210,24 +210,16 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 
 	/* signal the success to the sync mode context */
 	if (database->syncModeCtx)
-	{
-		osync_context_report_success(database->syncModeCtx);
-		osync_context_unref(database->syncModeCtx);
-		database->syncModeCtx = NULL;
-	}
-	
+		report_success_on_context(&(database->syncModeCtx));
+
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
 oserror:
-	if (database->syncModeCtx)
-	{
-		osync_context_report_osyncerror(database->syncModeCtx, oserror);
-		osync_context_unref(database->syncModeCtx);
-		database->syncModeCtx = NULL;
-	}
 	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&oserror));
+	if (database->syncModeCtx)
+		report_error_on_context(&(database->syncModeCtx), &oserror, TRUE);
 	return FALSE;
 }

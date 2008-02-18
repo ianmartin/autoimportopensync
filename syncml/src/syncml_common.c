@@ -188,8 +188,7 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 		if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
 		{
 			osync_trace(TRACE_INTERNAL, "%s: reported success on server change context.", __func__);
-			osync_context_report_success(database->getChangesCtx);
-			database->getChangesCtx = NULL;
+			report_success_on_context(&(database->getChangesCtx));
 		} else {
 			osync_trace(TRACE_INTERNAL, "%s: flushing the map of a client.", __func__);
 
@@ -351,7 +350,7 @@ gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpointer user
 
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_context_report_success(ctx);
+	report_success_on_context(&ctx);
 }
 
 void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -383,11 +382,7 @@ error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
 	if (env->disconnectCtx)
-	{
-		osync_context_report_osyncerror(ctx, oserror);
-		osync_context_unref(env->disconnectCtx);
-		env->disconnectCtx = NULL;
-	}
+		report_error_on_context(&(env->disconnectCtx), &oserror, TRUE);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
@@ -488,15 +483,15 @@ SmlBool send_sync_message(
 
     int i = 0;
     for (i = 0; i < num; i++) {
-        osync_trace(TRACE_INTERNAL, "handling change %i", i);
+        osync_trace(TRACE_INTERNAL, "%s: handling change %i", i);
         OSyncChange *change = database->syncChanges[i];
         OSyncContext *context = database->syncContexts[i];
         g_assert(change);
         g_assert(context);
-        osync_trace(TRACE_INTERNAL, "params checked (%p, %p)", change, context);
+        osync_trace(TRACE_INTERNAL, "%s: params checked (%p, %p)", change, context);
 		
         osync_trace(TRACE_INTERNAL,
-                    "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"",
+                    "%s: Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"",
                     osync_change_get_uid(change),
                     osync_change_get_objtype(change),
                     osync_change_get_changetype(change));
@@ -514,7 +509,7 @@ SmlBool send_sync_message(
         unsigned int size = 0;
         osync_data_get_data(data, &buf, &size);
 	
-        osync_trace(TRACE_INTERNAL, "Committing entry \"%s\": \"%s\"", osync_change_get_uid(change), buf);
+        osync_trace(TRACE_INTERNAL, "%s: Committing entry \"%s\": \"%s\"", osync_change_get_uid(change), buf);
         if (!smlDsSessionQueueChange(
                  database->session,
                  _get_changetype(change),
@@ -549,8 +544,8 @@ error:
     osync_error_set(oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
     smlErrorDeref(&error);
 oserror:
-    osync_context_report_osyncerror(database->commitCtx, *oserror);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(oserror));
+    report_error_on_context(&(database->commitCtx), oserror, FALSE);
     return FALSE;
 }
 
@@ -594,4 +589,27 @@ void safe_free(gpointer *address)
     g_assert(*address);
     g_free(*address);
     *address = NULL;
+}
+
+void report_success_on_context(OSyncContext **ctx)
+{
+    osync_trace(TRACE_INTERNAL, "%s: report success on osync_context %p.", __func__, *ctx);
+    osync_context_report_success(*ctx);
+    osync_context_unref(*ctx);
+    *ctx = NULL;
+}
+
+void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool cleanupError)
+{
+    osync_trace(
+        TRACE_INTERNAL, "%s: report error on osync_context %p (%s).", __func__,
+        *ctx, osync_error_print(error));
+    osync_context_report_osyncerror(*ctx, *error);
+    osync_context_unref(*ctx);
+    *ctx = NULL;
+    if (cleanupError)
+    {
+        osync_error_unref(error);
+        *error = NULL;
+    }
 }

@@ -647,7 +647,9 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         char *esc_ct = osync_db_sql_escape(ct);
         char *esc_version = osync_db_sql_escape(version);
         safe_cfree(&ct);
-        safe_cfree(&version);
+        /* SyncML 1.0 and 1.1 send CTCap without version numbers of CTType */
+	if (version)
+            safe_cfree(&version);
         const char *ctcaps_query = "REPLACE INTO content_type_capabilities (\"device_id\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s')";
         replace = g_strdup_printf(ctcaps_query, esc_devid, esc_ct, esc_version);
         // FIXME: unclean error handling
@@ -765,7 +767,9 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 
         /* cleanup capability */
         safe_cfree(&esc_ct);
-        safe_cfree(&esc_version);
+        /* SyncML 1.0 and 1.1 send CTCap without version numbers of CTType */
+	if (esc_version)
+            safe_cfree(&esc_version);
         // FIXME: unclean error handling because several times overwritten
         if (!success) goto oerror;
     }
@@ -803,6 +807,7 @@ SmlBool load_remote_devinf(SmlPluginEnv *env, OSyncError **error)
 				env->agent,
 				env->session,
 				&serror);
+			return FALSE;
 		} else {
 			env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
 		}

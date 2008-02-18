@@ -82,8 +82,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			env->isConnected = TRUE;
 			if (env->connectCtx) {
 				osync_trace(TRACE_INTERNAL, "%s: signal successful connect", __func__);
-				osync_context_report_success(env->connectCtx);
-				env->connectCtx = NULL;
+				report_success_on_context(&(env->connectCtx));
 			} else {
 				osync_trace(TRACE_INTERNAL, "%s: connect done but no context available", __func__);
 			}
@@ -133,8 +132,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				env->gotDisconnect = TRUE;
 				if (env->disconnectCtx) { 
 					osync_trace(TRACE_INTERNAL, "%s: signal disconnect via context", __func__);
-					osync_context_report_success(env->disconnectCtx);
-					env->disconnectCtx = NULL;
+					report_success_on_context(&(env->disconnectCtx));
 				}
 			} else {
 				/* This is the disconnect of the first session
@@ -147,10 +145,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				for (; o; o = o->next) {
 					SmlDatabase *database = o->data;
 					if (database->getChangesCtx)
-					{
-						osync_context_report_success(database->getChangesCtx);
-						database->getChangesCtx = NULL;
-					}
+						report_success_on_context(&(database->getChangesCtx));
 				}
 			}
 			break;
@@ -229,10 +224,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					_init_change_ctx_cleanup(database, &error);
 				}
 
-				if (database->commitCtx) {
-					osync_context_report_success(database->commitCtx);
-					database->commitCtx = NULL;
-				}
+				if (database->commitCtx)
+					report_success_on_context(&(database->commitCtx));
 			}
 
 			break;
@@ -262,34 +255,26 @@ error:;
 	OSyncError *oserror = NULL;
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
 
-	if (env->connectCtx) {
-		osync_context_report_osyncerror(env->connectCtx, oserror);
-		env->connectCtx = NULL;
-	}
+	if (env->connectCtx)
+		report_error_on_context(&(env->connectCtx), &oserror, FALSE);
 	
-	if (env->disconnectCtx) {
-		osync_context_report_osyncerror(env->disconnectCtx, oserror);
-		env->disconnectCtx = NULL;
-	}
+	if (env->disconnectCtx)
+		report_error_on_context(&(env->disconnectCtx), &oserror, FALSE);
 
 	o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
 		
-		if (database->getChangesCtx) {
-			osync_context_report_osyncerror(database->getChangesCtx, oserror);
-			database->getChangesCtx = NULL;
-		}
+		if (database->getChangesCtx)
+			report_error_on_context(&(database->getChangesCtx), &oserror, FALSE);
 
-		if (database->commitCtx) {
-			osync_context_report_osyncerror(database->commitCtx, oserror);
-			database->commitCtx = NULL;
-		}
-		
+		if (database->commitCtx)
+			report_error_on_context(&(database->commitCtx), &oserror, FALSE);
 	}
 
 	g_mutex_unlock(env->managerMutex);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	osync_error_unref(&oserror);
 }
 
 /* *************************************** */
@@ -331,7 +316,8 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	{
 		OSyncError *error = NULL;
 		store_devinf(database->env->devinf, database->env->devinf_path, &error);
-		load_remote_devinf(database->env, &error);
+		if (load_remote_devinf(database->env, &error))
+			set_capabilities(database->env, &error);
 	}
 
 	/* set callbacks if the DsSession was not ready before */
@@ -361,7 +347,35 @@ void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *userdata)
 
 	osync_trace(TRACE_INTERNAL, "Received an reply to our Alert - %s\n", database->objtype);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	/* If we talk as an OMA DS client with server like an OCS
+	 * then it can happen that this server denies the alert
+	 * because of an internal problem.
+	 * Example OCS: If there is an error inside of an SyncML session
+	 *              then you must wait a configured time before you
+	 *              can again sucessfully connect this server.
+	 *              Typically the server responds with error 503.
+	 */
+	unsigned int code = smlStatusGetCode(status);
+	if (code >= 300 && code != SML_ERROR_REQUIRE_REFRESH)
+	{
+		/* This is an error. */
+		OSyncError *error = NULL;
+		osync_error_set(
+			&error, OSYNC_ERROR_GENERIC,
+			"The alert response signals an error - %d.", code);
+		osync_error_ref(&error);
+
+		/* Signal it if possible. */
+		g_mutex_lock(database->env->connectMutex);
+		if (database->syncModeCtx)
+			report_error_on_context(&(database->syncModeCtx), &error, TRUE);
+		g_mutex_unlock(database->env->connectMutex);
+
+		osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&error));
+		osync_error_unref(&error);
+	} else {
+		osync_trace(TRACE_EXIT, "%s", __func__);
+	}
 }
 
 /* ********************************** */
@@ -407,11 +421,13 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 	 * cache the DevInf of the client then it can happen that we
 	 * receive here the DevInf from the client (third message).
 	 */
+	OSyncError *error = NULL;
 	if (database->env->devinf_path && !database->env->remote_devinf)
 	{
-		OSyncError *error = NULL;
 		load_remote_devinf(database->env, &error);
 	}
+	if (database->env->remote_devinf)
+		set_capabilities(database->env, &error);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -492,8 +508,7 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 
 	if (!type) {
 		// FIXME: I think this is an error ...
-		osync_context_report_success(database->getChangesCtx);
-		database->getChangesCtx = NULL;
+		report_success_on_context(&(database->getChangesCtx));
 		osync_trace(TRACE_EXIT, "%s - missing change type", __func__);
 		return TRUE;
 	}
@@ -605,18 +620,21 @@ void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *n
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, dsession, status, newuid, userdata);
 	struct commitContext *ctx = userdata;
-	OSyncContext *context = ctx->context;
 	
 	if (smlStatusGetClass(status) != SML_ERRORCLASS_SUCCESS) {
-		osync_context_report_error(context, OSYNC_ERROR_GENERIC, "Unable to commit change. Error %i", smlStatusGetCode(status));
+		OSyncError *error = NULL;
+		osync_error_set(
+			&error, OSYNC_ERROR_GENERIC,
+			"Unable to commit change. Error %i",
+			smlStatusGetCode(status));
+		report_error_on_context(&(ctx->context), &error, TRUE);
 	} else {
 		if (newuid)
 			osync_change_set_uid(ctx->change, newuid);
-		osync_context_report_success(context);
+		report_success_on_context(&(ctx->context));
 	}
 	// cleanup
 	osync_change_unref(ctx->change);
-	osync_context_unref(context);
 	safe_free((gpointer *)&ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

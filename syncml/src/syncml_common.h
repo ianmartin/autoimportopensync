@@ -87,7 +87,7 @@ typedef struct SmlPluginEnv {
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
 	
-	OSyncMember *member;
+	OSyncPluginInfo *pluginInfo;
 	char *anchor_path;
 	char *devinf_path;
 
@@ -208,5 +208,8 @@ void finalize(void *data);
 
 void safe_cfree(char **address);
 void safe_free(gpointer *address);
+
+void report_success_on_context(OSyncContext **ctx);
+void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool cleanupError);
 
 #endif //_SYNCML_COMMON_H

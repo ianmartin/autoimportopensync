@@ -172,16 +172,12 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	if (ctx)
-	{
-		osync_context_report_osyncerror(env->connectCtx, oserror);
-		osync_context_unref(env->connectCtx);
-		env->connectCtx = NULL;
-	} else {
-		osync_error_unref(&oserror);
-	}
-	g_mutex_unlock(env->connectMutex);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	if (ctx)
+		report_error_on_context(&(env->connectCtx), &oserror, TRUE);
+	else
+		osync_error_unref(&oserror);
+	g_mutex_unlock(env->connectMutex);
 }
 
 osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
@@ -334,6 +330,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), error);
 	if (!env)
 		goto error;
+	env->pluginInfo = info;
 
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
@@ -343,6 +340,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->num = 0;	
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
 	env->connectMutex = g_mutex_new();
 	env->managerMutex = g_mutex_new();
 

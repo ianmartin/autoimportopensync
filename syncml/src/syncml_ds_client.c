@@ -157,6 +157,9 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     SmlDatabase *database = get_database_from_plugin_info(info);
     set_session_user(database->env, __func__);
 
+    database->commitCtx = ctx;
+    osync_context_ref(database->commitCtx);
+
     unsigned int num = get_num_changes(changes);
     if (num == 0)
     {
@@ -166,16 +169,13 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
         database->env->ignoredDatabases = g_list_add(database->env->ignoredDatabases, database);
 	if (!flush_session_for_all_databases(database->env, FALSE, &error))
         	goto error;
-        osync_context_report_success(ctx);
+        report_success_on_context(&(database->commitCtx));
         osync_trace(TRACE_EXIT, "%s - no changes present to send", __func__);
         return;
     } else {
         database->env->ignoredDatabases = g_list_remove(database->env->ignoredDatabases, database);
         osync_trace(TRACE_INTERNAL, "%s - %i changes present to send", __func__, num);
     }
-
-    database->commitCtx = ctx;
-    osync_context_ref(database->commitCtx);
 
     // a batch commit should be called after the first DsSession
     // was completely performed
@@ -257,8 +257,8 @@ error:
     osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
     smlErrorDeref(&error);
 oserror:
-    osync_context_report_osyncerror(ctx, oserror);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+    report_error_on_context(&(database->commitCtx), &oserror, TRUE);
 }
 
 SmlBool _ds_client_recv_alert(
@@ -316,24 +316,16 @@ SmlBool _ds_client_recv_alert(
 
     /* signal the success to the context */
     if (database->syncModeCtx)
-    {
-        osync_context_report_success(database->syncModeCtx);
-        osync_context_unref(database->syncModeCtx);
-        database->syncModeCtx = NULL;
-    }
+        report_success_on_context(&(database->syncModeCtx));
 
     osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
     return TRUE;
 oserror:
     if (key)
         safe_cfree(&key);
-    if (database->syncModeCtx)
-    {
-        osync_context_report_osyncerror(database->syncModeCtx, oserror);
-        osync_context_unref(database->syncModeCtx);
-        database->syncModeCtx = NULL;
-    }
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+    if (database->syncModeCtx)
+        report_error_on_context(&(database->syncModeCtx), &oserror, TRUE);
     return FALSE;
 }
 

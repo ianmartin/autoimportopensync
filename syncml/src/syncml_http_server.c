@@ -50,10 +50,8 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 error:
 	osync_error_set(&oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(env->connectCtx, oerror);
-	osync_context_unref(env->connectCtx);
-	env->connectCtx = NULL;
 	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&oerror));
+	report_error_on_context(&(env->connectCtx), &oerror, TRUE);
 	return;
 }
 
@@ -159,6 +157,7 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), error);
 	if (!env)
 		goto error;
+	env->pluginInfo = info;
 
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);

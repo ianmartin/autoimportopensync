@@ -61,8 +61,8 @@ error_free_san:
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-	osync_context_report_osyncerror(ctx, oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	report_error_on_context(&(env->connectCtx), &oserror, TRUE);
 }
 
 osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
@@ -196,6 +196,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), error);
 	if (!env)
 		goto error;
+	env->pluginInfo = info;
 
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
