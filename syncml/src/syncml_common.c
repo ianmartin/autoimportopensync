@@ -483,15 +483,16 @@ SmlBool send_sync_message(
 
     int i = 0;
     for (i = 0; i < num; i++) {
-        osync_trace(TRACE_INTERNAL, "%s: handling change %i", i);
+        osync_trace(TRACE_INTERNAL, "%s: handling change %i", __func__, i);
         OSyncChange *change = database->syncChanges[i];
         OSyncContext *context = database->syncContexts[i];
         g_assert(change);
         g_assert(context);
-        osync_trace(TRACE_INTERNAL, "%s: params checked (%p, %p)", change, context);
+        osync_trace(TRACE_INTERNAL, "%s: params checked (%p, %p)", __func__, change, context);
 		
         osync_trace(TRACE_INTERNAL,
                     "%s: Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"",
+                    __func__,
                     osync_change_get_uid(change),
                     osync_change_get_objtype(change),
                     osync_change_get_changetype(change));
@@ -509,7 +510,8 @@ SmlBool send_sync_message(
         unsigned int size = 0;
         osync_data_get_data(data, &buf, &size);
 	
-        osync_trace(TRACE_INTERNAL, "%s: Committing entry \"%s\": \"%s\"", osync_change_get_uid(change), buf);
+        osync_trace(TRACE_INTERNAL, "%s: Committing entry \"%s\": \"%s\"",
+                    __func__, osync_change_get_uid(change), buf);
         if (!smlDsSessionQueueChange(
                  database->session,
                  _get_changetype(change),
