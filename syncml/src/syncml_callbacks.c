@@ -129,6 +129,18 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			}
 			if (disconnectOpenSync)
 			{
+				/* This is the real end of the sync process and
+				 * so it is a good idea to commit the changes here
+				 * and not earlier because now the remote peer
+				 * commits too.
+				 */
+				o = env->databases;
+				for (; o; o = o->next) {
+					SmlDatabase *database = o->data;
+					if (database->commitCtx)
+						report_success_on_context(&(database->commitCtx));
+				}
+
 				/* a real disconnet happens */
 				env->gotDisconnect = TRUE;
 				if (env->disconnectCtx) { 
@@ -207,6 +219,16 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					__func__,
 					database->gotChanges, database->getChangesCtx, database->objtype);
 
+				if (database->getChangesCtx) {
+					/* The final element must be signalled without
+					 * a received sync sometimes because only one
+					 * final signal is sent but there are potentially
+					 * several sync commands. Additionally the order
+					 * is not deterministic. So first the final is
+					 * made persistent and then the sync is handled.
+					 */
+					database->finalChanges = TRUE;
+				}
 				if (database->syncReceived && database->getChangesCtx) {
 					/* If there is a change context then a package
 					 * with data was received actually. If such a
@@ -221,12 +243,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * GOTCHANGES to _ds_event. If both events were
 					 * received then then the cleanup starts.
 					 */
-					database->finalChanges = TRUE;
 					_init_change_ctx_cleanup(database, &error);
 				}
-
-				if (database->commitCtx)
-					report_success_on_context(&(database->commitCtx));
 			}
 
 			break;

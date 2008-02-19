@@ -117,7 +117,14 @@ SmlBool flush_session_for_all_databases(
         &&
         env->num + g_list_length(env->ignoredDatabases) >= g_list_length(env->databases))
     {
+	/* reset the flush database counter */
         env->num = 0;
+
+	/* reset the map flushing of OMA DS clients */
+	if (env->prepareMapFlushing)
+		env->prepareMapFlushing = FALSE;
+
+	/* perform the flush */
         if (!smlSessionFlush(env->session, TRUE, error))
         {
             osync_trace(TRACE_EXIT_ERROR, "%s - session flush failed", __func__);
@@ -210,12 +217,11 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 			 * changes were received (because FINAL is set).
 			 */
 			if (database->env->prepareMapFlushing &&
-			    flush_session_for_all_databases(database->env, TRUE, error))
+			    !flush_session_for_all_databases(database->env, TRUE, error))
 			{
 				osync_trace(TRACE_EXIT_ERROR, "%s: Flushing the map failed.", __func__);
 				return FALSE;
 			}
-			database->env->prepareMapFlushing = FALSE;
 		}
 	}
 
@@ -364,16 +370,22 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	
 	env->gotFinal = FALSE;
 
-	/* It is necessary to place the context at the right position before
-	 * calling a function of libsyncml because the library can send signals
-	 * very fast if there is nothing to do (e.g. no status/command is
-	 * waiting for a flush).
-	 */
-	env->disconnectCtx = ctx;
-	osync_context_ref(env->disconnectCtx);
+	if (env->gotDisconnect)
+	{
+		/* The disconnect already happened. */
+		report_success_on_context(&ctx);
+	} else {
+		/* It is necessary to place the context at the right position before
+		 * calling a function of libsyncml because the library can send signals
+		 * very fast if there is nothing to do (e.g. no status/command is
+		 * waiting for a flush).
+		 */
+		env->disconnectCtx = ctx;
+		osync_context_ref(env->disconnectCtx);
 
-	if (!smlSessionEnd(env->session, &error))
-		goto error;
+		if (!smlSessionEnd(env->session, &error))
+			goto error;
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;

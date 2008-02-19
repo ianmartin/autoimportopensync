@@ -314,9 +314,27 @@ SmlBool _ds_client_recv_alert(
     osync_anchor_update(env->anchor_path, key, next);
     safe_cfree(&key);
 
-    /* signal the success to the context */
     if (database->syncModeCtx)
+    {
+        /* If we have a syncMode context from the connect function
+	 * then this is the first OMA DS session
+         * which handles later the function get_changeinfo. It is only
+         * necessary to signal the success.
+         */
+        osync_trace(TRACE_INTERNAL, "%s: alert for first session received", __func__);
         report_success_on_context(&(database->syncModeCtx));
+    } else if (database->commitCtx) {
+        /* If we have a commit context from the batch_commit function
+	 * then this is the second OMA DS session
+         * which handles the calculated changes from batch_commit. The
+         * prepared sync command must now be sent.
+         */
+        osync_trace(TRACE_INTERNAL, "%s: alert for second session received", __func__);
+        if (!send_sync_message(database, _recv_sync_reply, &oserror))
+            goto oserror;
+    } else {
+        g_error("OpenSync SyncML Plugin: An alert was received during an OMA DS session but the context is unknown.");
+    }
 
     osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
     return TRUE;
@@ -326,6 +344,8 @@ oserror:
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
     if (database->syncModeCtx)
         report_error_on_context(&(database->syncModeCtx), &oserror, TRUE);
+    if (database->commitCtx)
+        report_error_on_context(&(database->commitCtx), &oserror, TRUE);
     return FALSE;
 }
 
