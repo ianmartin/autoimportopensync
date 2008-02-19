@@ -281,15 +281,15 @@ SmlBool _ds_client_recv_alert(
 
     char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
 
-    if (database->syncModeCtx)
+    if (database->syncModeCtx && type == SML_ALERT_TWO_WAY)
     {
         /* actually the checks are only performed for the first session */
-        if (!last && type != SML_ALERT_SLOW_SYNC)
+        if (!last)
         {
             osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "TWO-WAY-SYNC is requested but there is no LAST anchor.");
             goto oserror;
         }
-        if (!osync_anchor_compare(env->anchor_path, key, last) && type != SML_ALERT_SLOW_SYNC)
+        if (!osync_anchor_compare(env->anchor_path, key, last))
         {
             char *local = osync_anchor_retrieve(env->anchor_path, key);
             osync_error_set(
@@ -299,7 +299,7 @@ SmlBool _ds_client_recv_alert(
             safe_cfree(&local);
             goto oserror;
         }
-        if (osync_objtype_sink_get_slowsync(database->sink) && type != SML_ALERT_SLOW_SYNC)
+        if (osync_objtype_sink_get_slowsync(database->sink))
         {
             osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "SLOW-SYNC is requested but the local sink still wants a TWO-WAY-SYNC.");
             goto oserror;

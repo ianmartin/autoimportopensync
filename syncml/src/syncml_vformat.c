@@ -78,7 +78,6 @@ GHashTable* get_ical_hash()
 
 SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error)
 {
-    return TRUE;
     osync_trace(TRACE_ENTRY, "%s", __func__);
 
     /*check the requirements */

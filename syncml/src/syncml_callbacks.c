@@ -20,6 +20,7 @@
 
 #include "syncml_common.h"
 #include "syncml_callbacks.h"
+#include "syncml_vformat.h"
 
 /* **************************************** */
 /* *****     Management Callbacks     ***** */
