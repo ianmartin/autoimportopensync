@@ -210,7 +210,7 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 			 * changes were received (because FINAL is set).
 			 */
 			if (database->env->prepareMapFlushing &&
-			    !smlSessionFlush(database->env->session, TRUE, error))
+			    flush_session_for_all_databases(database->env, TRUE, error))
 			{
 				osync_trace(TRACE_EXIT_ERROR, "%s: Flushing the map failed.", __func__);
 				return FALSE;
