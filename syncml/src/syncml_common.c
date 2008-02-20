@@ -159,8 +159,8 @@ void syncml_free_database(SmlDatabase *database)
 
 SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, finalChanges %i)", __func__,
-		 database->gotChanges, database->finalChanges);
+	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, gotFinal %i)", __func__,
+		 database->gotChanges, database->env->gotFinal);
 
 	g_assert(database->getChangesCtx);
 	
@@ -168,9 +168,8 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 	//     SML_MANAGER_SESSION_FINAL
 	//     SML_DS_EVENT_GOTCHANGES
 	// both events are required for a complete cleanup
-	// finalChanges must be resetted at every new message
-	// until we received a sync command (not alert)
-	if (database->gotChanges && database->finalChanges) {
+	// gotFinal must be resetted at every new message
+	if (database->gotChanges && database->env->gotFinal) {
 		/* Cleanup of contexts / Reporting to OpenSync:
 		 * 
 		 * SERVER: The next step after receiving the

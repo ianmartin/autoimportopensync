@@ -35,48 +35,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 
 	switch (type) {
 		case SML_MANAGER_SESSION_FLUSH:
-			// finalChanges must be resetted because every SML_MANAGER_SESSION_FINAL
-			// sets this status to true but not every message is a SYNC message
-			// if we do not reset finalChanges at the beginning of a SYNC
-			// then we set finalChanges at the client on receiving the SYNC alert
-			// and not the sync itself from the server
-			//
-			// perspective: client
-			//
-			// client: sends sync alert
-			//         --> finalChanges = FALSE on SESSION_FLUSH (gotChanges == FALSE)
-			// client: receives sync alert from server
-			//         --> finalChanges = TRUE on SESSION_FINAL (gotChanges == FALSE)
-			// client: sends sync with changes
-			//         --> finalChanges = FALSE on SESSION_FLUSH (gotChanges == FALSE)
-			// client: receives sync with changes from server
-			//         --> finalChanges = TRUE on SESSION_FINAL (gotChanges == TRUE)
-			//         --> finalChanges + gotChanges --> getChangesCtx = NULL
-			osync_trace(TRACE_INTERNAL, "resetting finalChanges if necessary ...");
-			o = env->databases;
-			osync_trace(TRACE_INTERNAL, "    got GList");
-			for (; o; o = o->next) {
-				SmlDatabase *database = o->data;
-				osync_trace(TRACE_INTERNAL, "    got database");
-
-				osync_trace(TRACE_INTERNAL, "%s: old: gotChanges: %i, finalChanges: %i, objtype: %s",
-					__func__,
-					database->gotChanges, database->finalChanges, database->objtype);
-
-				// if no changes received and context present
-				// then reset finalChanges
-				osync_trace(TRACE_INTERNAL, "    check conditions");
-				if (!database->gotChanges && database->getChangesCtx) {
-					database->finalChanges = FALSE;
-				}
-				osync_trace(TRACE_INTERNAL, "    performed acction");
-
-				osync_trace(TRACE_INTERNAL, "%s: new: gotChanges: %i, finalChanges: %i, objtype: %s",
-					__func__,
-					database->gotChanges, database->finalChanges, database->objtype);
-			}
-			osync_trace(TRACE_INTERNAL, "resetted finalChanges");
 			env->gotFinal = FALSE;
+			osync_trace(TRACE_INTERNAL, "resetted gotFinal on session flush");
 			break;
 		case SML_MANAGER_CONNECT_DONE:
 			g_mutex_lock(env->connectMutex);
@@ -212,6 +172,13 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			break;
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final", smlSessionGetSessionID(session));
+
+			/* The final element must be signalled first
+			 * because other events like sync commands can
+			 * happen several times and in a non-deterministic
+			 * order. So first the final is made persistent
+			 * and then the other events like sync are handled.
+			 */
 			env->gotFinal = TRUE;
 
 			SmlBool flushMap = FALSE;
@@ -228,18 +195,11 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * then libsyncml does not disconnect
 					 * automatically. So the commit must be
 					 * managed similar to the change context.
+					 *
+					 * NOTE: this function only perform an action
+					 *       if a map was received.
 					 */
 					_init_commit_ctx_cleanup(database, &error);
-				}
-				if (database->getChangesCtx) {
-					/* The final element must be signalled without
-					 * a received sync sometimes because only one
-					 * final signal is sent but there are potentially
-					 * several sync commands. Additionally the order
-					 * is not deterministic. So first the final is
-					 * made persistent and then the sync is handled.
-					 */
-					database->finalChanges = TRUE;
 				}
 				if (database->syncReceived && database->getChangesCtx) {
 					/* If there is a change context then a package

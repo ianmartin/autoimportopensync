@@ -154,7 +154,6 @@ typedef struct SmlDatabase {
 	OSyncContext **syncContexts;
 	osync_bool syncReceived;
 	osync_bool gotChanges;
-	osync_bool finalChanges; 
 	unsigned int pendingChanges;
 	osync_bool gotMap;
 

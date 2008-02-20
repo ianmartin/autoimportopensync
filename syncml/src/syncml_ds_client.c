@@ -7,7 +7,6 @@ SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
 		database->gotChanges = FALSE;
-		database->finalChanges = FALSE;
 
                 OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
                 if (!sink)
