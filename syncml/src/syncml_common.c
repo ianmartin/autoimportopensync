@@ -161,6 +161,8 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, finalChanges %i)", __func__,
 		 database->gotChanges, database->finalChanges);
+
+	g_assert(database->getChangesCtx);
 	
 	// we should try to cleanup getChangesCtx if
 	//     SML_MANAGER_SESSION_FINAL
@@ -227,6 +229,27 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 
 	osync_trace(TRACE_EXIT, "%s - success", __func__);
 	return TRUE;
+}
+
+void _init_commit_ctx_cleanup(SmlDatabase *database, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(gotMap: %i, gotFinal %i)", __func__,
+		 database->gotMap, database->env->gotFinal);
+
+	g_assert(database->commitCtx);
+
+	// we should try to cleanup commitCtx if
+	//     SML_MANAGER_SESSION_FINAL
+	//     SML_DS_EVENT_COMMITEDCHANGES
+	// both events are required for a complete cleanup
+	// gotFinal must be resetted at every new message
+	// until we received a sync command (not alert)
+	if (database->env->gotFinal && database->gotMap) {
+		osync_trace(TRACE_INTERNAL, "%s: reported success on server change context.", __func__);
+		report_success_on_context(&(database->commitCtx));
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 SmlChangeType _get_changetype(OSyncChange *change)

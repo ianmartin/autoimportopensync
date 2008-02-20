@@ -76,6 +76,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					database->gotChanges, database->finalChanges, database->objtype);
 			}
 			osync_trace(TRACE_INTERNAL, "resetted finalChanges");
+			env->gotFinal = FALSE;
 			break;
 		case SML_MANAGER_CONNECT_DONE:
 			g_mutex_lock(env->connectMutex);
@@ -132,7 +133,10 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				/* This is the real end of the sync process and
 				 * so it is a good idea to commit the changes here
 				 * and not earlier because now the remote peer
-				 * commits too.
+				 * commits too. This happens in two situations:
+				 *     - this is an OMA DS client
+				 *     - this is an OMA DS server and the remote
+				 *       does not send a map
 				 */
 				o = env->databases;
 				for (; o; o = o->next) {
@@ -219,6 +223,14 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					__func__,
 					database->gotChanges, database->getChangesCtx, database->objtype);
 
+				if (database->commitCtx) {
+					/* If this is a server which received a map
+					 * then libsyncml does not disconnect
+					 * automatically. So the commit must be
+					 * managed similar to the change context.
+					 */
+					_init_commit_ctx_cleanup(database, &error);
+				}
 				if (database->getChangesCtx) {
 					/* The final element must be signalled without
 					 * a received sync sometimes because only one
@@ -307,14 +319,23 @@ void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 	SmlDatabase *database = (SmlDatabase *)userdata;
 
 	osync_trace(TRACE_INTERNAL, "database: %s", database->objtype);
+	SmlError *error = NULL;
 	switch (event) {
 		case SML_DS_EVENT_GOTCHANGES:
 			database->gotChanges = TRUE;
-			SmlError *error = NULL;
-			// FIXME: perhaps we should do something with an error
 			_init_change_ctx_cleanup(database, &error);
 			break;
-		case SML_DS_EVENT_COMMITEDCHANGES:	
+		case SML_DS_EVENT_COMMITEDCHANGES:
+			/* This event only happens if a map was received
+			 * and completely handled. So this is an OMA DS
+			 * server and it is necessary to commit the
+			 * stuff here manually
+			 * because the automatic disconnect of libsyncml
+			 * only works if the last message does not
+			 * contain any commands (a map is a command).
+			 */
+			database->gotMap = TRUE;
+			_init_commit_ctx_cleanup(database, &error);
 			break;
 	}
 
