@@ -132,8 +132,14 @@ SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error)
                 const char *value = g_hash_table_lookup(hash, name);
 		if (value == NULL)
 		{
-                    /* This is a bug. So we crash with some infos. */
-                    g_warning("The %s property %s is not supported.\n", cttype, name);
+                    if (strstr(name, "X-") != name)
+                    {
+                        /* This is a bug. So we crash with some infos. */
+                        g_warning("The %s property %s is not supported.\n", cttype, name);
+                    } else {
+                        /* X-.* fields are proprietary extensions and so we can ignore them. */
+                        g_message("The proprietary %s property %s is not supported.\n", cttype, name);
+                    }
 		} else {
                     /* Good news - OpenSync knows the field. */
                     if (strlen(value))
