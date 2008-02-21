@@ -90,8 +90,26 @@ static void _osync_client_connect_callback(void *data, OSyncError *error)
 	OSyncMessage *message = baton->message;
 	OSyncClient *client = baton->client;
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(client->plugin_info);
+	char *objtype = NULL;
+	osync_message_read_string(message, &objtype);
+	OSyncObjTypeSink *sink = NULL;
+	if (objtype) {
+		// objtype sink (e.g. event, contact, ...)
+		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
+		
+		if (!sink) {
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+			g_free(objtype);
+			goto error;
+		}
+		
+		g_free(objtype);
+	} else {
+		// main sink
+		sink = osync_plugin_info_get_sink(client->plugin_info);
+	}
 	int slowsync = osync_objtype_sink_get_slowsync(sink);
+	osync_trace(TRACE_INTERNAL, "%s: slowsync %i", __func__, slowsync);
 
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
@@ -693,9 +711,16 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 	char *objtype = NULL;
 	int slowsync;
 	OSyncMessage *reply = NULL;
-	
+
+	/* The message content is read and the objtype is written back immediately
+	 * because the connect callback needs a safe way to determine the correct
+	 * sink. The current sink of the plugin info is usually not correct
+	 * because the connect functions work asynchronous and the last sink
+	 * (usually the main sink) is the current sink.
+	 */
 	osync_message_read_string(message, &objtype);
 	osync_message_read_int(message, &slowsync);
+	osync_message_write_string(message, objtype);
 	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
 	
 	OSyncObjTypeSink *sink = NULL;
