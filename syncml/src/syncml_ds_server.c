@@ -136,10 +136,6 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     if (!send_sync_message(database, _recv_sync_reply, &oserror))
         goto oserror;
 
-    /* If there are no changes then commit here because there will be no events. */
-    if (num == 0)
-        report_success_on_context(&(database->commitCtx));
-
     osync_trace(TRACE_EXIT, "%s", __func__);
     return;
 

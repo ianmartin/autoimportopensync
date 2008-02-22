@@ -191,13 +191,11 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					database->gotChanges, database->getChangesCtx, database->objtype);
 
 				if (database->commitCtx) {
-					/* If this is a server which received a map
-					 * then libsyncml does not disconnect
-					 * automatically. So the commit must be
-					 * managed similar to the change context.
-					 *
-					 * NOTE: this function only perform an action
-					 *       if a map was received.
+					/* If a sync command was sent then it is
+					 * good idea to commit manually and not
+					 * to rely on the disconnect which does
+					 * not work properly for example if a
+					 * client sends a map.
 					 */
 					_init_commit_ctx_cleanup(database, &error);
 				}
@@ -286,15 +284,10 @@ void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 			_init_change_ctx_cleanup(database, &error);
 			break;
 		case SML_DS_EVENT_COMMITEDCHANGES:
-			/* This event only happens if a map was received
-			 * and completely handled. So this is an OMA DS
-			 * server and it is necessary to commit the
-			 * stuff here manually
-			 * because the automatic disconnect of libsyncml
-			 * only works if the last message does not
-			 * contain any commands (a map is a command).
+			/* This event only happens if a sync reply was
+			 * received and completely handled.
 			 */
-			database->gotMap = TRUE;
+			database->commitWrite = TRUE;
 			_init_commit_ctx_cleanup(database, &error);
 			break;
 	}
@@ -345,7 +338,7 @@ void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *userdata)
 	
 	SmlDatabase *database = (SmlDatabase*) userdata;
 
-	osync_trace(TRACE_INTERNAL, "Received an reply to our Alert - %s\n", database->objtype);
+	osync_trace(TRACE_INTERNAL, "Received a reply to our Alert - %s\n", database->objtype);
 
 	/* If we talk as an OMA DS client with server like an OCS
 	 * then it can happen that this server denies the alert

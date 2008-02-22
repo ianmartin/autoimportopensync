@@ -232,8 +232,8 @@ SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
 
 void _init_commit_ctx_cleanup(SmlDatabase *database, SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(gotMap: %i, gotFinal %i)", __func__,
-		 database->gotMap, database->env->gotFinal);
+	osync_trace(TRACE_ENTRY, "%s(commitWrite: %i, gotFinal %i)", __func__,
+		 database->commitWrite, database->env->gotFinal);
 
 	g_assert(database->commitCtx);
 
@@ -243,8 +243,8 @@ void _init_commit_ctx_cleanup(SmlDatabase *database, SmlError **error)
 	// both events are required for a complete cleanup
 	// gotFinal must be resetted at every new message
 	// until we received a sync command (not alert)
-	if (database->env->gotFinal && database->gotMap) {
-		osync_trace(TRACE_INTERNAL, "%s: reported success on server change context.", __func__);
+	if (database->env->gotFinal && database->commitWrite) {
+		osync_trace(TRACE_INTERNAL, "%s: reported success on server commit context.", __func__);
 		report_success_on_context(&(database->commitCtx));
 	}
 
