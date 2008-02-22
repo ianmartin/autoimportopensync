@@ -175,7 +175,8 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 			osync_trace(TRACE_INTERNAL,
 				"%s: TWO-WAY-SYNC but received LAST(%s) and cached LAST (%s) mismatch",
 				__func__, local, last);
-			safe_cfree(&local);
+			if (local)
+				safe_cfree(&local);
 			ret = FALSE;
 		}
 		if (osync_objtype_sink_get_slowsync(database->sink))
