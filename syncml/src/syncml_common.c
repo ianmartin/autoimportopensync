@@ -142,17 +142,76 @@ SmlBool flush_session_for_all_databases(
 
 void syncml_free_database(SmlDatabase *database)
 {
+	// cleanup SyncML stuff
+
+	if (database->session) {
+		smlDsSessionUnref(database->session);
+		database->session = NULL;
+	}
+	if (database->server) {
+		smlDsServerFree(database->server);
+		database->server = NULL;
+	}
+
+	// cleanup configuration stuff
+
 	if (database->url)
 		safe_cfree(&(database->url));
-
 	if (database->objtype)
 		safe_cfree(&(database->objtype));
-
 	if (database->objformat_name)
 		safe_cfree(&(database->objformat_name));
-
-	if (database->sink)
+	if (database->objformat) {
+		osync_objformat_unref(database->objformat);
+		database->objformat = NULL;
+	}
+	if (database->sink) {
 		osync_objtype_sink_unref(database->sink);
+		database->sink = NULL;
+	}
+
+	// cleanup contexts
+	// if something is present here then it must be failed
+	// because this is a software bug
+
+	while (database->syncChanges != NULL && database->syncChanges[0] != NULL) {
+		osync_trace(TRACE_ERROR, "%s: detected old change", __func__);
+		osync_change_unref(database->syncChanges[0]);
+		database->syncChanges[0] = NULL;
+		database->syncChanges = &(database->syncChanges[1]);
+	}
+	if (database->syncChanges != NULL) {
+		osync_trace(TRACE_ERROR, "%s: detected old change array", __func__);
+		safe_free((void **) &(database->syncChanges));
+	}
+	while (database->syncContexts != NULL && database->syncContexts[0] != NULL) {
+		OSyncError **error = NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - context discovered on finalize", __func__);
+		report_error_on_context(&(database->syncContexts[0]), error, TRUE);
+		database->syncContexts = &(database->syncContexts[1]);
+	}
+	if (database->syncContexts != NULL) {
+		osync_trace(TRACE_ERROR, "%s: detected old change context array", __func__);
+		safe_free((void **) &(database->syncContexts));
+	}
+
+	if (database->syncModeCtx) {
+		OSyncError **error = NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - syncModeCtx context discovered on finalize", __func__);
+		report_error_on_context(&(database->syncModeCtx), error, TRUE);
+	}
+	if (database->getChangesCtx) {
+		OSyncError **error = NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - getChangesCtx context discovered on finalize", __func__);
+		report_error_on_context(&(database->getChangesCtx), error, TRUE);
+	}
+	if (database->commitCtx) {
+		OSyncError **error = NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - commitCtx context discovered on finalize", __func__);
+		report_error_on_context(&(database->commitCtx), error, TRUE);
+	}
+
+	// free the database struct itself
 
 	safe_free((gpointer *)&database);
 }
@@ -424,59 +483,142 @@ void finalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
-	
+
 	/* Stop the manager */
+
 	if (env->manager)
 		smlManagerStop(env->manager);
-	
-	if (env->tsp)
+
+	/* Cleanup the libsyncml library */
+
+	if (env->tsp) {
 		smlTransportFinalize(env->tsp, NULL);
-	
-	if (env->tsp)
+	}
+//	if (env->manager) {
+//		/* The manager needs a transport.
+//		 * So never free the transport before the manager.
+//		 */
+//		smlManagerFree(env->manager);
+//		env->manager = NULL;
+//	}
+	if (env->tsp) {
 		smlTransportFree(env->tsp);
-
-	if (env->san)
-		smlNotificationFree(env->san);
-
-	if (env->identifier)
-		safe_cfree(&(env->identifier));
-
-	if (env->username)
-		safe_cfree(&(env->username));
-
-	if (env->password)
-		safe_cfree(&(env->password));
-
-	if (env->bluetoothAddress)
-		safe_cfree(&(env->bluetoothAddress));
-
-	if (env->url)
-		safe_cfree(&(env->url));
-
-	if (env->anchor_path)
-		safe_cfree(&(env->anchor_path));
-
-	if (env->devinf_path)
-		safe_cfree(&(env->devinf_path));
-
-	if (env->sessionUser)
-		safe_cfree(&(env->sessionUser));
-	
-	if (env->source) {
-		g_source_destroy(env->source);
-		g_source_unref(env->source);
+		env->tsp = NULL;
 	}
-	if (env->source_functions)
-		safe_free((gpointer *)&(env->source_functions));
+//	if (env->san) {
+//		smlNotificationFree(env->san);
+//		env->san = NULL;
+//	}
+//	if (env->devinf) {
+//		smlDevInfUnref(env->devinf);
+//		env->devinf = NULL;
+//	}
+//	if (env->remote_devinf) {
+//		smlDevInfUnref(env->remote_devinf);
+//		env->remote_devinf = NULL;
+//	}
+//	if (env->session) {
+//		smlSessionUnref(env->session);
+//		env->session = NULL;
+//	}
+//	if (env->agent) {
+//		smlDevInfAgentFree(env->agent);
+//		env->agent = NULL;
+//	}
+//	if (env->auth) {
+//		smlAuthFree(env->auth);
+//		env->auth = NULL;
+//	}
+//	while (env->databases) {
+//		SmlDatabase *db = env->databases->data;
+//		syncml_free_database(db);
+//		env->databases = g_list_remove(env->databases, db);
+//	}
 
-	while (env->databases) {
-		SmlDatabase *db = env->databases->data;
-		syncml_free_database(db);
+	/* cleanup the configuration */
 
-		env->databases = g_list_remove(env->databases, db);
-	}
+//	if (env->identifier)
+//		safe_cfree(&(env->identifier));
+//	if (env->username)
+//		safe_cfree(&(env->username));
+//	if (env->password)
+//		safe_cfree(&(env->password));
+//	if (env->bluetoothAddress)
+//		safe_cfree(&(env->bluetoothAddress));
+//	if (env->bluetoothChannel)
+//		safe_cfree(&(env->bluetoothChannel));
+//	if (env->url)
+//		safe_cfree(&(env->url));
+//	if (env->port)
+//		safe_cfree(&(env->port));
+//	if (env->proxy)
+//		safe_cfree(&(env->proxy));
+//	if (env->cafile)
+//		safe_cfree(&(env->cafile));
+//	if (env->fakeManufacturer)
+//		safe_cfree(&(env->fakeManufacturer));
+//	if (env->fakeModel)
+//		safe_cfree(&(env->fakeModel));
+//	if (env->fakeSoftwareVersion)
+//		safe_cfree(&(env->fakeSoftwareVersion));
 
-	safe_free((gpointer *) &env);
+	/* plugin config */
+
+//	if (env->anchor_path)
+//		safe_cfree(&(env->anchor_path));
+//	if (env->devinf_path)
+//		safe_cfree(&(env->devinf_path));
+//	if (env->sessionUser)
+//		safe_cfree(&(env->sessionUser));
+//	if (env->ignoredDatabases) {
+//		g_list_free(env->ignoredDatabases);
+//		env->ignoredDatabases = NULL;
+//	}
+
+	/* Signal forgotten contexts */
+
+//	if (env->connectCtx) {
+//		OSyncError **error = NULL;
+//		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
+//		report_error_on_context(&(env->connectCtx), error, TRUE);
+//	}
+//	if (env->disconnectCtx) {
+//		OSyncError **error = NULL;
+//		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
+//		report_error_on_context(&(env->disconnectCtx), error, TRUE);
+//	}
+
+	/* cleanup OpenSync stuff
+	 *
+	 * I (bellmich) am not sure if we should cleanup these two variables.
+	 * Both are controlled by OpenSync so perhaps this can lead to SEGFAULT
+	 * because of double free situations.
+	 *
+	 * OSyncPluginInfo *pluginInfo;
+	 * OSyncObjTypeSink *mainsink;
+	 *
+	 * If somebody is sure what to do then please document it here.
+	 *
+	 */
+
+	/* glib stuff */
+
+//	if (env->source) {
+//		g_source_destroy(env->source);
+//		g_source_unref(env->source);
+//	}
+//	if (env->source_functions)
+//		safe_free((gpointer *)&(env->source_functions));
+//	if (env->context) {
+//		g_main_context_unref(env->context);
+//		env->context = NULL;
+//	}
+//	if (env->managerMutex) {
+//		g_mutex_free(env->managerMutex);
+//		env->managerMutex = NULL;
+//	}
+
+//	safe_free((gpointer *) &env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

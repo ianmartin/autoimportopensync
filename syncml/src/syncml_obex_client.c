@@ -100,7 +100,7 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
-				env->interface = g_strdup(str);
+				env->port = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"identifier") && strlen(str)) {
@@ -246,12 +246,12 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!smlTransportSetConnectionType(env->tsp, env->type, &serror))
 		goto error_free_env;
 	switch(env->type) {
-		case SML_OBEX_TYPE_USB:
-			if (!smlTransportSetConfigOption(env->tsp, "PORT", env->interface, &serror))
+		case SML_TRANSPORT_CONNECTION_TYPE_USB:
+			if (!smlTransportSetConfigOption(env->tsp, "PORT", env->port, &serror))
 				goto error_free_env;
 			break;
 
-		case SML_OBEX_TYPE_BLUETOOTH:
+		case SML_TRANSPORT_CONNECTION_TYPE_BLUETOOTH:
 			if (!env->bluetoothAddress) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
 				goto error_free_env;
@@ -261,8 +261,8 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 				goto error_free_env;
 			break;
 
-		case SML_OBEX_TYPE_SERIAL:
-		case SML_OBEX_TYPE_IRDA: 
+		case SML_TRANSPORT_CONNECTION_TYPE_SERIAL:
+		case SML_TRANSPORT_CONNECTION_TYPE_IRDA: 
 			if (!smlTransportSetConfigOption(env->tsp, "URL", env->bluetoothAddress, &serror))
 				goto error_free_env;
 			break;

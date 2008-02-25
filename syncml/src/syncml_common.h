@@ -44,10 +44,6 @@
 
 #include <libsyncml/syncml.h>
 
-#include <libsyncml/obex_client.h>
-#include <libsyncml/http_server.h>
-#include <libsyncml/http_client.h>
-
 #include <libsyncml/sml_auth.h>
 #include <libsyncml/sml_devinf_obj.h>
 #include <libsyncml/sml_ds_server.h>
@@ -56,8 +52,6 @@
 #include <libxml/parser.h>
 
 typedef struct SmlPluginEnv {
-	char *path;
-	char *interface;
 	char *bluetoothAddress;
 	char *bluetoothChannel;
 	char *identifier;
@@ -68,7 +62,7 @@ typedef struct SmlPluginEnv {
 	SmlBool useStringtable;
 	SmlBool onlyReplace;
 	SmlBool onlyLocaltime;
-	SmlTransportObexClientType type;
+	SmlTransportConnectionType type;
 	char *port;
 	char *url;
 	char *proxy;
@@ -92,7 +86,6 @@ typedef struct SmlPluginEnv {
 	GSourceFuncs *source_functions;
 
 	GMainContext *context;
-	GMainLoop *loop;
 	
 	SmlTransport *tsp;
 	SmlAuthenticator *auth;
@@ -109,9 +102,6 @@ typedef struct SmlPluginEnv {
 	char *sessionUser;
 
 	int num;
-
-	GList *eventEntries;
-	unsigned int numEventEntries;
 
 	SmlAuthType authType;
 	osync_bool fakeDevice;
