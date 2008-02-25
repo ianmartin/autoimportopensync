@@ -197,7 +197,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * not work properly for example if a
 					 * client sends a map.
 					 */
-					_init_commit_ctx_cleanup(database, &error);
+					_init_commit_ctx_cleanup(database);
 				}
 				if (database->syncReceived && database->getChangesCtx) {
 					/* If there is a change context then a package
@@ -281,14 +281,16 @@ void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 	switch (event) {
 		case SML_DS_EVENT_GOTCHANGES:
 			database->gotChanges = TRUE;
-			_init_change_ctx_cleanup(database, &error);
+			if (database->getChangesCtx)
+				_init_change_ctx_cleanup(database, &error);
 			break;
 		case SML_DS_EVENT_COMMITEDCHANGES:
 			/* This event only happens if a sync reply was
 			 * received and completely handled.
 			 */
 			database->commitWrite = TRUE;
-			_init_commit_ctx_cleanup(database, &error);
+			if (database->commitCtx)
+				_init_commit_ctx_cleanup(database);
 			break;
 	}
 
@@ -626,10 +628,14 @@ void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *n
 			osync_change_set_uid(ctx->change, newuid);
 		report_success_on_context(&(ctx->context));
 	}
+
 	// cleanup
 	osync_change_unref(ctx->change);
+	ctx->database->pendingCommits--;
+	_init_commit_ctx_cleanup(ctx->database);
+	ctx->database = NULL;
 	safe_free((gpointer *)&ctx);
-	
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

@@ -35,14 +35,11 @@ void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_context_ref(env->connectCtx);
 
 	/* Initialize the Transport */
-	SmlTransportHttpServerConfig config;
-	config.port = env->port;
-	config.url = env->url;
-	config.ssl_key = NULL;
-	config.ssl_crt = NULL;
 	SmlError *error = NULL;
 	OSyncError *oerror = NULL;
-	if (!smlTransportInitialize(env->tsp, &config, &error))
+	if (!smlTransportSetConfigOption(env->tsp, "PORT", env->port, &error) ||
+	    !smlTransportSetConfigOption(env->tsp, "URL", env->url, &error) ||
+	    !smlTransportInitialize(env->tsp, &error))
 		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -61,7 +58,7 @@ osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
 
-	env->port = 8080;
+	env->port = g_strdup("8080");
 	env->url = NULL;
 	env->username = NULL;
 	env->recvLimit = 0;
@@ -90,7 +87,9 @@ osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str && strlen(str)) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
-				env->port = atoi(str);
+				if (env->port)
+					safe_cfree(&(env->port));
+				env->port = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {

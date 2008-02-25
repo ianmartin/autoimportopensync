@@ -336,7 +336,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
 	
 	if (!syncml_http_client_parse_config(env, configdata, error))
-		goto error_free_transport;
+		goto error_free_env;
 
 	env->num = 0;	
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
@@ -366,12 +366,12 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	/* The transport needed to transport the data */
 	env->tsp = smlTransportNew(SML_TRANSPORT_HTTP_CLIENT, &serror);
 	if (!env->tsp)
-		goto error;
+		goto error_free_env;
 	
 	/* The manager responsible for handling the other objects */
 	env->manager = smlManagerNew(env->tsp, &serror);
 	if (!env->manager)
-		goto error;
+		goto error_free_env;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
 
 	/* The authenticator is only used here to get a handler for the header.
@@ -382,7 +382,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		goto error;
 	smlAuthSetEnable(env->auth, FALSE);
 	if (!smlAuthRegister(env->auth, env->manager, &serror))
-		goto error_free_auth;
+		goto error_free_env;
 	
 	///* The authenticator */
 	///* disabled because the transport layer handles the authentication */
@@ -394,7 +394,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	//	goto error_free_auth;
 
 	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_WORKSTATION, &serror))
-		goto error_free_auth;
+		goto error_free_env;
 
 	GList *o = env->databases;
 	for (; o; o = o->next) { 
@@ -404,16 +404,16 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		/* We now create the ds server at the given location */
 		SmlLocation *loc = smlLocationNew(database->url, NULL, &serror);
 		if (!loc)
-			goto error_free_auth;
+			goto error_free_env;
 		
 		database->server = smlDsClientNew(
 					get_database_pref_content_type(database, error),
                                 	loc, loc, &serror);
 		if (!database->server)
-			goto error_free_auth;
+			goto error_free_env;
 			
 		if (!smlDsServerRegister(database->server, env->manager, &serror))
-			goto error_free_auth;
+			goto error_free_env;
 	
 		// this is a client and not a server
 		// but the callback initializes only database->session (DsSession)
@@ -421,7 +421,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 		/* And we also add the devinfo to the devinf agent */
 		if (!add_devinf_datastore(env->devinf, database, error))
-			goto error_free_auth;
+			goto error_free_env;
 	}
 	
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
@@ -438,32 +438,31 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	env->source = source;
 
-	SmlTransportHttpClientConfig config;
-	config.url = env->url;
-	config.cafile = env->cafile;
-	config.proxy = env->proxy;
-	config.username = env->username;
-	config.password = env->password;
    	env->isConnected = FALSE;
 	
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
-		goto error;
+		goto error_free_env;
 	
 	/* Initialize the Transport */
-	if (!smlTransportInitialize(env->tsp, &config, &serror))
-		goto error;
+	if (!smlTransportSetConfigOption(env->tsp, "URL", env->url, &serror) ||
+            !smlTransportSetConfigOption(env->tsp, "SSL_CA_FILE", env->cafile, &serror) ||
+            !smlTransportSetConfigOption(env->tsp, "PROXY", env->proxy, &serror) ||
+            !smlTransportSetConfigOption(env->tsp, "USERNAME", env->username, &serror) ||
+            !smlTransportSetConfigOption(env->tsp, "PASSWORD", env->password, &serror) ||
+	    !smlTransportInitialize(env->tsp, &serror))
+		goto error_free_env;
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 
-error_free_auth:
-	smlAuthFree(env->auth);
-error_free_manager:
-	smlManagerFree(env->manager);
-error_free_transport:
-	smlTransportFree(env->tsp);
 error_free_env:
+	if (env->auth)
+		smlAuthFree(env->auth);
+	if (env->manager)
+		smlManagerFree(env->manager);
+	if (env->tsp)
+		smlTransportFree(env->tsp);
 	safe_free((gpointer *)&env);
 error:
 	if (serror)

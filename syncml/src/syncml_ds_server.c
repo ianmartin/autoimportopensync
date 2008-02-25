@@ -104,9 +104,9 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
      * If a client already started a sync for a database
      * then this sync must be completed.
      */
-    unsigned int num = get_num_changes(changes);
+    database->pendingCommits = get_num_changes(changes);
     database->env->ignoredDatabases = g_list_remove(database->env->ignoredDatabases, database);
-    osync_trace(TRACE_INTERNAL, "%s - %i changes present to send", __func__, num);
+    osync_trace(TRACE_INTERNAL, "%s - %i changes present to send", __func__, database->pendingCommits);
 
     database->commitCtx = ctx;
     osync_context_ref(database->commitCtx);
@@ -117,14 +117,14 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     g_assert(database->pendingChanges == 0); 
 
     // cache changes
-    database->syncChanges = osync_try_malloc0((num + 1)*sizeof(OSyncChange *), &oserror);
+    database->syncChanges = osync_try_malloc0((database->pendingCommits + 1)*sizeof(OSyncChange *), &oserror);
     if (!database->syncChanges) goto oserror;
-    database->syncChanges[num] = NULL;
-    database->syncContexts = osync_try_malloc0((num + 1)*sizeof(OSyncContext *), &oserror);
+    database->syncChanges[database->pendingCommits] = NULL;
+    database->syncContexts = osync_try_malloc0((database->pendingCommits + 1)*sizeof(OSyncContext *), &oserror);
     if (!database->syncContexts) goto oserror;
-    database->syncContexts[num] = NULL;
+    database->syncContexts[database->pendingCommits] = NULL;
     int i;
-    for (i=0; i < num; i++)
+    for (i=0; i < database->pendingCommits; i++)
     {
         database->syncChanges[i] = changes[i];
         database->syncContexts[i] = contexts[i];

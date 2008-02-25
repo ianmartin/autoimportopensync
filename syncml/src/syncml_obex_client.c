@@ -96,11 +96,11 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_channel")) {
-				env->bluetoothChannel = atoi(str);
+				env->bluetoothChannel = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
-				env->interface = atoi(str);
+				env->interface = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"identifier") && strlen(str)) {
@@ -207,33 +207,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->num = 0;	
 	env->isConnected = FALSE;
 
-	SmlTransportObexClientConfig config;
-	config.type = env->type;
-	switch(config.type) {
-		case SML_OBEX_TYPE_USB:
-			config.url = NULL;
-			config.port = env->interface;
-			break;
-
-		case SML_OBEX_TYPE_BLUETOOTH:
-			if (!env->bluetoothAddress) {
-				osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
-				goto error_free_auth;
-			}
-			config.url = g_strdup(env->bluetoothAddress);
-			config.port = env->bluetoothChannel;
-			break;
-
-		case SML_OBEX_TYPE_SERIAL:
-		case SML_OBEX_TYPE_IRDA: 
-			config.url = env->bluetoothAddress;
-			break;
-
-		default:
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
-			goto error_free_auth;
-	}
-
 	/* Create the alert for the remote device */
 	if (!env->identifier)
 		env->identifier = get_devinf_identifier();
@@ -270,27 +243,56 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->tsp = smlTransportNew(SML_TRANSPORT_OBEX_CLIENT, &serror);
 	if (!env->tsp)
 		goto error_free_env;
+	if (!smlTransportSetConnectionType(env->tsp, env->type, &serror))
+		goto error_free_env;
+	switch(env->type) {
+		case SML_OBEX_TYPE_USB:
+			if (!smlTransportSetConfigOption(env->tsp, "PORT", env->interface, &serror))
+				goto error_free_env;
+			break;
+
+		case SML_OBEX_TYPE_BLUETOOTH:
+			if (!env->bluetoothAddress) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
+				goto error_free_env;
+			}
+			if (!smlTransportSetConfigOption(env->tsp, "URL", env->bluetoothAddress, &serror) ||
+			    !smlTransportSetConfigOption(env->tsp, "PORT", env->bluetoothChannel, &serror))
+				goto error_free_env;
+			break;
+
+		case SML_OBEX_TYPE_SERIAL:
+		case SML_OBEX_TYPE_IRDA: 
+			if (!smlTransportSetConfigOption(env->tsp, "URL", env->bluetoothAddress, &serror))
+				goto error_free_env;
+			break;
+
+		default:
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
+			goto error_free_env;
+	}
+
 	
 	/* The manager responsible for handling the other objects */
 	env->manager = smlManagerNew(env->tsp, &serror);
 	if (!env->manager)
-		goto error_free_transport;
+		goto error_free_env;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
 	
 	/* The authenticator */
 	env->auth = smlAuthNew(&serror);
 	if (!env->auth)
-		goto error_free_manager;
+		goto error_free_env;
 	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
 	
 	if (!env->username)
 		smlAuthSetEnable(env->auth, FALSE);
 	
 	if (!smlAuthRegister(env->auth, env->manager, &serror))
-		goto error_free_auth;
+		goto error_free_env;
 
 	if (!init_env_devinf(env, SML_DEVINF_DEVTYPE_SERVER, &serror))
-		goto error_free_auth;
+		goto error_free_env;
 	
 	GList *o = env->databases;
 	for (; o; o = o->next) { 
@@ -299,25 +301,25 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		/* We now create the ds server hat the given location */
 		SmlLocation *loc = smlLocationNew(database->url, NULL, &serror);
 		if (!loc)
-			goto error_free_auth;
+			goto error_free_env;
 		
 		database->server = smlDsServerNew(
 					get_database_pref_content_type(database, error),
                                 	loc, &serror);
 		if (!database->server)
-			goto error_free_auth;
+			goto error_free_env;
 
 		if (!smlDsServerAddSan(database->server, env->san, &serror))
-			goto error_free_san;
+			goto error_free_env;
 
 		if (!smlDsServerRegister(database->server, env->manager, &serror))
-			goto error_free_auth;
+			goto error_free_env;
 		
 		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
 		if (!add_devinf_datastore(env->devinf, database, error))
-			goto error_free_auth;
+			goto error_free_env;
 	}
 
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
@@ -337,25 +339,26 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
-		goto error_free_auth;
+		goto error_free_env;
 	
 	/* Initialize the Transport */
-	if (!smlTransportInitialize(env->tsp, &config, &serror))
-		goto error_free_auth;
+	if (!smlTransportInitialize(env->tsp, &serror))
+		goto error_free_env;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 
-error_free_san:
-	smlNotificationFree(env->san);
-	env->san = NULL;
-error_free_auth:
-error_free_manager:
-error_free_transport:
-	if (env->auth) smlAuthFree(env->auth);
-	if (env->manager) smlManagerFree(env->manager);
-	if (env->tsp) smlTransportFree(env->tsp);
 error_free_env:
+	if (env->san) {
+		smlNotificationFree(env->san);
+		env->san = NULL;
+	}
+	if (env->auth)
+		smlAuthFree(env->auth);
+	if (env->manager)
+		smlManagerFree(env->manager);
+	if (env->tsp)
+		smlTransportFree(env->tsp);
 	finalize(env);
 error:
 	if (serror)

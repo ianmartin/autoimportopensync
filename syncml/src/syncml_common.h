@@ -55,16 +55,11 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-struct commitContext {
-	OSyncContext *context;
-	OSyncChange *change;
-};
-
 typedef struct SmlPluginEnv {
 	char *path;
-	unsigned int interface;
+	char *interface;
 	char *bluetoothAddress;
-	int bluetoothChannel;
+	char *bluetoothChannel;
 	char *identifier;
 	SmlNotificationVersion version;
 	osync_bool useWbxml;
@@ -74,7 +69,7 @@ typedef struct SmlPluginEnv {
 	SmlBool onlyReplace;
 	SmlBool onlyLocaltime;
 	SmlTransportObexClientType type;
-	unsigned int port;
+	char *port;
 	char *url;
 	char *proxy;
 	char *cafile;
@@ -156,11 +151,18 @@ typedef struct SmlDatabase {
 	osync_bool gotChanges;
 	unsigned int pendingChanges;
 	osync_bool commitWrite;
+	unsigned int pendingCommits;
 
 	OSyncContext *syncModeCtx;
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
 } SmlDatabase;
+
+struct commitContext {
+	OSyncContext *context;
+	OSyncChange *change;
+	SmlDatabase *database;
+};
 
 gboolean _sessions_prepare(GSource *source, gint *timeout_);
 

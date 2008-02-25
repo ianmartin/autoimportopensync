@@ -159,8 +159,8 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     database->commitCtx = ctx;
     osync_context_ref(database->commitCtx);
 
-    unsigned int num = get_num_changes(changes);
-    if (num == 0)
+    database->pendingCommits = get_num_changes(changes);
+    if (database->pendingCommits == 0)
     {
         // if there are no changes then we do nothing
         // especially for OMA DS clients it makes no sense
@@ -173,7 +173,7 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
         return;
     } else {
         database->env->ignoredDatabases = g_list_remove(database->env->ignoredDatabases, database);
-        osync_trace(TRACE_INTERNAL, "%s - %i changes present to send", __func__, num);
+        osync_trace(TRACE_INTERNAL, "%s - %i changes present to send", __func__, database->pendingCommits);
     }
 
     // a batch commit should be called after the first DsSession
@@ -182,14 +182,14 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     g_assert(database->pendingChanges == 0); 
 
     // cache changes
-    database->syncChanges = osync_try_malloc0((num + 1)*sizeof(OSyncChange *), &oserror);
+    database->syncChanges = osync_try_malloc0((database->pendingCommits + 1)*sizeof(OSyncChange *), &oserror);
     if (!database->syncChanges) goto oserror;
-    database->syncChanges[num] = NULL;
-    database->syncContexts = osync_try_malloc0((num + 1)*sizeof(OSyncContext *), &oserror);
+    database->syncChanges[database->pendingCommits] = NULL;
+    database->syncContexts = osync_try_malloc0((database->pendingCommits + 1)*sizeof(OSyncContext *), &oserror);
     if (!database->syncContexts) goto oserror;
-    database->syncContexts[num] = NULL;
+    database->syncContexts[database->pendingCommits] = NULL;
     int i;
-    for (i=0; i < num; i++)
+    for (i=0; i < database->pendingCommits; i++)
     {
         database->syncChanges[i] = changes[i];
         database->syncContexts[i] = contexts[i];
