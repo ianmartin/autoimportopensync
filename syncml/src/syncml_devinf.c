@@ -625,12 +625,16 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         safe_cfree(&esc_datastore);
         safe_cfree(&esc_rx_pref_ct);
         safe_cfree(&esc_rx_pref_version);
-        safe_cfree(&esc_rx_ct);
-        safe_cfree(&esc_rx_version);
+        if (esc_rx_ct)
+		safe_cfree(&esc_rx_ct);
+        if (esc_rx_version)
+		safe_cfree(&esc_rx_version);
         safe_cfree(&esc_tx_pref_ct);
         safe_cfree(&esc_tx_pref_version);
-        safe_cfree(&esc_tx_ct);
-        safe_cfree(&esc_tx_version);
+        if (esc_tx_ct)
+		safe_cfree(&esc_tx_ct);
+	if (esc_tx_version)
+        	safe_cfree(&esc_tx_version);
 	safe_cfree(&replace);
         if (!success) goto oerror;
     }
