@@ -484,6 +484,27 @@ void finalize(void *data)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 
+	/* glib stuff */
+	/* It is necessary to stop the glib dispatching or
+	 * otherwise it can happen that the manager is called
+	 * when it is already cleaned up.
+	 */
+
+	if (env->source) {
+		g_source_destroy(env->source);
+		g_source_unref(env->source);
+	}
+	if (env->source_functions)
+		safe_free((gpointer *)&(env->source_functions));
+	if (env->context) {
+		g_main_context_unref(env->context);
+		env->context = NULL;
+	}
+	if (env->managerMutex) {
+		g_mutex_free(env->managerMutex);
+		env->managerMutex = NULL;
+	}
+
 	/* Stop the manager */
 
 	if (env->manager)
@@ -494,99 +515,99 @@ void finalize(void *data)
 	if (env->tsp) {
 		smlTransportFinalize(env->tsp, NULL);
 	}
-//	if (env->manager) {
-//		/* The manager needs a transport.
-//		 * So never free the transport before the manager.
-//		 */
-//		smlManagerFree(env->manager);
-//		env->manager = NULL;
-//	}
+	if (env->manager) {
+		/* The manager needs a transport.
+		 * So never free the transport before the manager.
+		 */
+		smlManagerFree(env->manager);
+		env->manager = NULL;
+	}
 	if (env->tsp) {
 		smlTransportFree(env->tsp);
 		env->tsp = NULL;
 	}
-//	if (env->san) {
-//		smlNotificationFree(env->san);
-//		env->san = NULL;
-//	}
-//	if (env->devinf) {
-//		smlDevInfUnref(env->devinf);
-//		env->devinf = NULL;
-//	}
-//	if (env->remote_devinf) {
-//		smlDevInfUnref(env->remote_devinf);
-//		env->remote_devinf = NULL;
-//	}
-//	if (env->session) {
-//		smlSessionUnref(env->session);
-//		env->session = NULL;
-//	}
-//	if (env->agent) {
-//		smlDevInfAgentFree(env->agent);
-//		env->agent = NULL;
-//	}
-//	if (env->auth) {
-//		smlAuthFree(env->auth);
-//		env->auth = NULL;
-//	}
-//	while (env->databases) {
-//		SmlDatabase *db = env->databases->data;
-//		syncml_free_database(db);
-//		env->databases = g_list_remove(env->databases, db);
-//	}
+	if (env->san) {
+		smlNotificationFree(env->san);
+		env->san = NULL;
+	}
+	if (env->devinf) {
+		smlDevInfUnref(env->devinf);
+		env->devinf = NULL;
+	}
+	if (env->remote_devinf) {
+		smlDevInfUnref(env->remote_devinf);
+		env->remote_devinf = NULL;
+	}
+	if (env->session) {
+		smlSessionUnref(env->session);
+		env->session = NULL;
+	}
+	if (env->agent) {
+		smlDevInfAgentFree(env->agent);
+		env->agent = NULL;
+	}
+	if (env->auth) {
+		smlAuthFree(env->auth);
+		env->auth = NULL;
+	}
+	while (env->databases) {
+		SmlDatabase *db = env->databases->data;
+		syncml_free_database(db);
+		env->databases = g_list_remove(env->databases, db);
+	}
 
 	/* cleanup the configuration */
 
-//	if (env->identifier)
-//		safe_cfree(&(env->identifier));
-//	if (env->username)
-//		safe_cfree(&(env->username));
-//	if (env->password)
-//		safe_cfree(&(env->password));
-//	if (env->bluetoothAddress)
-//		safe_cfree(&(env->bluetoothAddress));
-//	if (env->bluetoothChannel)
-//		safe_cfree(&(env->bluetoothChannel));
-//	if (env->url)
-//		safe_cfree(&(env->url));
-//	if (env->port)
-//		safe_cfree(&(env->port));
-//	if (env->proxy)
-//		safe_cfree(&(env->proxy));
-//	if (env->cafile)
-//		safe_cfree(&(env->cafile));
-//	if (env->fakeManufacturer)
-//		safe_cfree(&(env->fakeManufacturer));
-//	if (env->fakeModel)
-//		safe_cfree(&(env->fakeModel));
-//	if (env->fakeSoftwareVersion)
-//		safe_cfree(&(env->fakeSoftwareVersion));
+	if (env->identifier)
+		safe_cfree(&(env->identifier));
+	if (env->username)
+		safe_cfree(&(env->username));
+	if (env->password)
+		safe_cfree(&(env->password));
+	if (env->bluetoothAddress)
+		safe_cfree(&(env->bluetoothAddress));
+	if (env->bluetoothChannel)
+		safe_cfree(&(env->bluetoothChannel));
+	if (env->url)
+		safe_cfree(&(env->url));
+	if (env->port)
+		safe_cfree(&(env->port));
+	if (env->proxy)
+		safe_cfree(&(env->proxy));
+	if (env->cafile)
+		safe_cfree(&(env->cafile));
+	if (env->fakeManufacturer)
+		safe_cfree(&(env->fakeManufacturer));
+	if (env->fakeModel)
+		safe_cfree(&(env->fakeModel));
+	if (env->fakeSoftwareVersion)
+		safe_cfree(&(env->fakeSoftwareVersion));
 
 	/* plugin config */
 
-//	if (env->anchor_path)
-//		safe_cfree(&(env->anchor_path));
-//	if (env->devinf_path)
-//		safe_cfree(&(env->devinf_path));
-//	if (env->sessionUser)
-//		safe_cfree(&(env->sessionUser));
-//	if (env->ignoredDatabases) {
-//		g_list_free(env->ignoredDatabases);
-//		env->ignoredDatabases = NULL;
-//	}
+	if (env->anchor_path)
+		safe_cfree(&(env->anchor_path));
+	if (env->devinf_path)
+		safe_cfree(&(env->devinf_path));
+	if (env->sessionUser)
+		safe_cfree(&(env->sessionUser));
+	if (env->ignoredDatabases) {
+		g_list_free(env->ignoredDatabases);
+		env->ignoredDatabases = NULL;
+	}
 
 	/* Signal forgotten contexts */
 
-//	if (env->connectCtx) {
-//		OSyncError **error = NULL;
-//		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
-//		report_error_on_context(&(env->connectCtx), error, TRUE);
-//	}
-//	if (env->disconnectCtx) {
-//		OSyncError **error = NULL;
-//		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
-//		report_error_on_context(&(env->disconnectCtx), error, TRUE);
-//	}
+	if (env->connectCtx) {
+		OSyncError **error = NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
+		report_error_on_context(&(env->connectCtx), error, TRUE);
+	}
+	if (env->disconnectCtx) {
+		OSyncError **error = NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
+		report_error_on_context(&(env->disconnectCtx), error, TRUE);
+	}
 
 	/* cleanup OpenSync stuff
 	 *
@@ -601,24 +622,7 @@ void finalize(void *data)
 	 *
 	 */
 
-	/* glib stuff */
-
-//	if (env->source) {
-//		g_source_destroy(env->source);
-//		g_source_unref(env->source);
-//	}
-//	if (env->source_functions)
-//		safe_free((gpointer *)&(env->source_functions));
-//	if (env->context) {
-//		g_main_context_unref(env->context);
-//		env->context = NULL;
-//	}
-//	if (env->managerMutex) {
-//		g_mutex_free(env->managerMutex);
-//		env->managerMutex = NULL;
-//	}
-
-//	safe_free((gpointer *) &env);
+	safe_free((gpointer *) &env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -704,8 +708,11 @@ SmlBool send_sync_message(
         database->syncChanges[i] = NULL;
         database->syncContexts[i] = NULL;
     }
-    if (num)
+    if (num || smlDsServerGetServerType(database->server) == SML_DS_SERVER)
     {
+        /* If this is an OMA DS server then the arrays are
+         * always configured and must be freed.
+         */
         safe_free((gpointer *) &(database->syncChanges));
         safe_free((gpointer *) &(database->syncContexts));
     }
@@ -736,11 +743,12 @@ osync_bool init_objformat(OSyncPluginInfo *info, SmlDatabase *database, OSyncErr
 	if (!database->objformat) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
 		return FALSE;
-	} else {
-		osync_trace(TRACE_INTERNAL, "%s: objformat is %s for %s", __func__,
-			osync_objformat_get_objtype(database->objformat),
-			osync_objformat_get_name(database->objformat));
 	}
+
+	osync_objformat_ref(database->objformat);
+	osync_trace(TRACE_INTERNAL, "%s: objformat is %s for %s", __func__,
+		osync_objformat_get_objtype(database->objformat),
+		osync_objformat_get_name(database->objformat));
 
 	// TODO:... in case of maemo ("plain text") we have to set "memo"...
 	osync_objtype_sink_add_objformat(database->sink, database->objformat_name);
