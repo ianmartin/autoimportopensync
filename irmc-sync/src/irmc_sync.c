@@ -887,6 +887,7 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
 	   return;
 	  }
+	  env->isConnected = TRUE;
   }
 
   // load the general synchronization anchors
