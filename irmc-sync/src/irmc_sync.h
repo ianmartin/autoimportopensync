@@ -61,7 +61,7 @@ typedef struct irmc_environment {
   char *anchor_path;             // The path of the irmc anchor
   irmc_config config;            // The configuration
   GList *databases;		 // List of irmc_datase
-  osync_bool isConnected;
+  int isConnected;
 } irmc_environment;
 
 typedef struct irmc_database {

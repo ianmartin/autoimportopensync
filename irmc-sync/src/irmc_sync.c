@@ -876,7 +876,7 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
   g_free( anchor );
 
   OSyncError *error = NULL;
-  if (! env->isConnected) {
+  if (env->isConnected == 0) {
 
 	  config->obexhandle = irmc_obex_client(config);
 	  // connect to the device
@@ -886,8 +886,8 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
 	   return;
 	  }
-	  env->isConnected = TRUE;
   }
+  env->isConnected++;
 
   // load the general synchronization anchors
   load_sync_anchors(env);
@@ -922,9 +922,12 @@ static void irmcDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
   irmc_environment *env = (irmc_environment *)data;
 
-  // TODO: handle disconnect of several sink engines..
   // disconnect from the device
-  irmc_disconnect(&(env->config));
+  if (env->isConnected <= 1) {
+    irmc_disconnect(&(env->config));
+  } else {
+    env->isConnected--;
+  }
 
   save_sync_anchors(env);
 
@@ -1377,7 +1380,7 @@ static void *irmcInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
   if (!env)
     goto error;
 
-  env->isConnected = FALSE;
+  env->isConnected = 0;
 
   // retrieve the config data
   configdata = osync_plugin_info_get_config(info); 
