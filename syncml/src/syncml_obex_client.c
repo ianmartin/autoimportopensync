@@ -197,6 +197,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env)
 		goto error;
 	env->pluginInfo = info;
+	osync_plugin_info_ref(env->pluginInfo);
 
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
@@ -212,8 +213,8 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		env->identifier = get_devinf_identifier();
 
 	/* Register main sink for connect and disconnect functions */
-	env->mainsink = osync_objtype_main_sink_new(error);
-	if (!env->mainsink)
+	OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(error);
+	if (!mainsink)
 		goto error_free_env;
 
 	OSyncObjTypeSinkFunctions main_functions;
@@ -221,8 +222,9 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	main_functions.connect = connect_obex_client;
 	main_functions.disconnect = disconnect;
 
-	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
-	osync_plugin_info_set_main_sink(info, env->mainsink);
+	osync_objtype_sink_set_functions(mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, mainsink);
+	osync_objtype_sink_unref(mainsink);
 
 	if (!ds_server_init_databases(env, info, error))
 		goto error_free_env;

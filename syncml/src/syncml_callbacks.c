@@ -153,6 +153,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			if (env->session) {
 				osync_trace(TRACE_INTERNAL, "%s: WARNING: There was an old session %s in the environment.",
 					__func__, smlSessionGetSessionID(env->session));
+				smlSessionUnref(env->session);
+				env->session = NULL;
 			}
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);

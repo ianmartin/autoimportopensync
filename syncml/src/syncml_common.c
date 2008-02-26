@@ -142,7 +142,9 @@ SmlBool flush_session_for_all_databases(
 
 void syncml_free_database(SmlDatabase *database)
 {
-	// cleanup SyncML stuff
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, database);
+
+	// cleanup libsyncml stuff
 
 	if (database->session) {
 		smlDsSessionUnref(database->session);
@@ -152,6 +154,7 @@ void syncml_free_database(SmlDatabase *database)
 		smlDsServerFree(database->server);
 		database->server = NULL;
 	}
+	osync_trace(TRACE_INTERNAL, "%s - libsyncml cleaned", __func__);
 
 	// cleanup configuration stuff
 
@@ -169,6 +172,7 @@ void syncml_free_database(SmlDatabase *database)
 		osync_objtype_sink_unref(database->sink);
 		database->sink = NULL;
 	}
+	osync_trace(TRACE_INTERNAL, "%s - configuration cleaned", __func__);
 
 	// cleanup contexts
 	// if something is present here then it must be failed
@@ -210,10 +214,13 @@ void syncml_free_database(SmlDatabase *database)
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - commitCtx context discovered on finalize", __func__);
 		report_error_on_context(&(database->commitCtx), error, TRUE);
 	}
+	osync_trace(TRACE_INTERNAL, "%s - contexts cleaned", __func__);
 
 	// free the database struct itself
 
 	safe_free((gpointer *)&database);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
@@ -504,11 +511,13 @@ void finalize(void *data)
 		g_mutex_free(env->managerMutex);
 		env->managerMutex = NULL;
 	}
+	osync_trace(TRACE_INTERNAL, "%s - glib cleaned", __func__);
 
 	/* Stop the manager */
 
 	if (env->manager)
 		smlManagerStop(env->manager);
+	osync_trace(TRACE_INTERNAL, "%s - manager stopped", __func__);
 
 	/* Cleanup the libsyncml library */
 
@@ -555,6 +564,7 @@ void finalize(void *data)
 		syncml_free_database(db);
 		env->databases = g_list_remove(env->databases, db);
 	}
+	osync_trace(TRACE_INTERNAL, "%s - libsyncml cleaned", __func__);
 
 	/* cleanup the configuration */
 
@@ -582,6 +592,7 @@ void finalize(void *data)
 		safe_cfree(&(env->fakeModel));
 	if (env->fakeSoftwareVersion)
 		safe_cfree(&(env->fakeSoftwareVersion));
+	osync_trace(TRACE_INTERNAL, "%s - libsyncml configuration cleaned", __func__);
 
 	/* plugin config */
 
@@ -595,6 +606,7 @@ void finalize(void *data)
 		g_list_free(env->ignoredDatabases);
 		env->ignoredDatabases = NULL;
 	}
+	osync_trace(TRACE_INTERNAL, "%s - plugin configuration cleaned", __func__);
 
 	/* Signal forgotten contexts */
 
@@ -608,19 +620,17 @@ void finalize(void *data)
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
 		report_error_on_context(&(env->disconnectCtx), error, TRUE);
 	}
+	osync_trace(TRACE_INTERNAL, "%s - contexts cleaned", __func__);
 
-	/* cleanup OpenSync stuff
-	 *
-	 * I (bellmich) am not sure if we should cleanup these two variables.
-	 * Both are controlled by OpenSync so perhaps this can lead to SEGFAULT
-	 * because of double free situations.
-	 *
-	 * OSyncPluginInfo *pluginInfo;
-	 * OSyncObjTypeSink *mainsink;
-	 *
-	 * If somebody is sure what to do then please document it here.
-	 *
-	 */
+	/* cleanup OpenSync stuff */
+
+	if (env->pluginInfo) {
+		osync_plugin_info_unref(env->pluginInfo);
+		env->pluginInfo = NULL;
+	}
+	osync_trace(TRACE_INTERNAL, "%s - plugin info cleaned", __func__);
+
+	/* final cleanup */
 
 	safe_free((gpointer *) &env);
 

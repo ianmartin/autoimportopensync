@@ -80,8 +80,6 @@ typedef struct SmlPluginEnv {
 	char *anchor_path;
 	char *devinf_path;
 
-	OSyncObjTypeSink *mainsink;
-
 	GSource *source;
 	GSourceFuncs *source_functions;
 

@@ -93,6 +93,15 @@ guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
     safe_cfree(&sessionString);
     if (!env->session) return 0;
 
+    /* It is necessary to increment the reference counter
+     * because smlManagerSessionAdd consumes the session
+     * without incrementing the reference counter by itself.
+     * So if env wants to use the session by itself
+     * then env must increment the reference counter
+     * or env->session must be set to NULL.
+     */
+    smlSessionRef(env->session);
+
     /* register all the add-ons */
     if (cred)
         smlSessionSetCred(env->session, cred);
@@ -194,9 +203,9 @@ osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config
 	env->password = NULL;
 	env->syncmlVersion = SML_VERSION_12;
 	env->fakeDevice = FALSE;
-	env->fakeManufacturer = "NOKIA";
-	env->fakeModel = "E60";
-	env->fakeSoftwareVersion = "1.0";
+	env->fakeManufacturer = g_strdup("NOKIA");
+	env->fakeModel = g_strdup("E60");
+	env->fakeSoftwareVersion = g_strdup("1.0");
         env->onlyLocaltime = FALSE;
         env->maxObjSize = 0;
         env->recvLimit = 0;
@@ -331,6 +340,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env)
 		goto error;
 	env->pluginInfo = info;
+	osync_plugin_info_ref(env->pluginInfo);
 
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
@@ -345,8 +355,8 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->managerMutex = g_mutex_new();
 
 	/* Register main sink for connect and disconnect functions */
-	env->mainsink = osync_objtype_main_sink_new(error);
-	if (!env->mainsink)
+	OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(error);
+	if (!mainsink)
 		goto error_free_env;
 
 	OSyncObjTypeSinkFunctions main_functions;
@@ -355,8 +365,9 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	main_functions.disconnect = disconnect;
 	env->connectFunction = connect_http_client;
 
-	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
-	osync_plugin_info_set_main_sink(info, env->mainsink);
+	osync_objtype_sink_set_functions(mainsink, main_functions, NULL);
+	osync_plugin_info_set_main_sink(info, mainsink);
+	osync_objtype_sink_ref(mainsink);
 
 	if (!ds_client_init_databases(env, info, error))
 		goto error_free_env;
