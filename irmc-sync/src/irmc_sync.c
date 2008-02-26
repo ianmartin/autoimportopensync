@@ -132,6 +132,8 @@ char* sync_connect_get_serial(irmc_config *config)
 // Unique function name so not other plugin is called accidentally.
 void irmc_disconnect(irmc_config *config)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, config);
+
   if (config->obexhandle) {
     OSyncError *error = NULL;
     irmc_obex_disconnect(config->obexhandle, &error);
@@ -142,6 +144,8 @@ void irmc_disconnect(irmc_config *config)
   }
 
   config->obexhandle = 0;
+
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
