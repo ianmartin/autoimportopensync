@@ -314,7 +314,6 @@ void create_calendar_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncCont
 
 
 	OSyncData *odata = NULL;
-	//TODO: strlen() + 1
         event_size = strlen(event);
 
         if (objtype == SYNC_OBJECT_TYPE_CALENDAR) {
@@ -396,7 +395,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncC
         vcard_end += strlen("END:VCARD");
 
       if (vcard_start && vcard_end) {
-        vcard_size = vcard_end - vcard_start+1;
+        vcard_size = (vcard_end - vcard_start)+1;
         vcard = g_malloc(vcard_size);
         memcpy(vcard, vcard_start, vcard_end - vcard_start);
         vcard[vcard_end - vcard_start] = 0;
@@ -412,6 +411,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncC
           }
         }
 
+	vcard_size = strlen(vcard);
         OSyncData *odata = osync_data_new(vcard, vcard_size, database->objformat, &error);
 
         osync_change_set_data(change, odata);
@@ -474,7 +474,7 @@ void create_notebook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncCont
         vnote_end += strlen("END:VNOTE");
 
       if (vnote_start && vnote_end) {
-        int vnote_size = vnote_end - vnote_start+1;
+        int vnote_size = (vnote_end - vnote_start)+1;
         vnote = g_malloc(vnote_size);
         memcpy(vnote, vnote_start, vnote_end - vnote_start);
         vnote[vnote_end - vnote_start] = 0;
@@ -492,7 +492,6 @@ void create_notebook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncCont
           }
         }
 
-	// TODO: strlen() + 1
         vnote_size = strlen(vnote);
         OSyncData *data = osync_data_new(vnote, vnote_size, database->objformat, &error);
 
@@ -1430,7 +1429,7 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 
   osync_plugin_set_name(plugin, "irmc-sync");
   osync_plugin_set_longname(plugin, "IrMC Mobile Device");
-  osync_plugin_set_description(plugin, "IrMC Protocl based Mobiles like older Sony Ericsson, Siemens or other modles");
+  osync_plugin_set_description(plugin, "IrMC Protocl based Mobiles like older Sony Ericsson, Siemens or other models");
 
   osync_plugin_set_initialize(plugin, irmcInitialize);
   osync_plugin_set_finalize(plugin, irmcFinalize);
