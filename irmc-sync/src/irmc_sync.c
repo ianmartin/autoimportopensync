@@ -197,7 +197,8 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
           config->connectmedium = MEDIUM_CABLE;
 #ifdef HAVE_BLUETOOTH
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
-        baswap(&(config->bdaddr), strtoba(str));
+        str2ba(str, &(config->bdaddr));
+        //baswap(&(config->bdaddr), strtoba(str));
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {
         config->btchannel = atoi(str);
 #endif
@@ -888,13 +889,14 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	    irmc_disconnect(config);
 	    osync_context_report_osyncerror(ctx, error);
 	    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-	   return;
+	    return;
 	  }
+
+          // load the general synchronization anchors
+          load_sync_anchors(env);
+
   }
   env->isConnected++;
-
-  // load the general synchronization anchors
-  load_sync_anchors(env);
 
   // check whether a slowsync is necessary
   gboolean slowsync = FALSE;
@@ -1284,14 +1286,19 @@ static void irmcFinalize(void *data)
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 
   irmc_environment *env = (irmc_environment *)data;
+  irmc_config *config = &(env->config);
 
   g_free(env->anchor_path);
 
   while (env->databases) {
     irmc_database *db = env->databases->data;
+    if(db->sink) osync_objtype_sink_unref(db->sink);
+    if(db->dbid) g_free(db->dbid);
     g_free(db);
     env->databases = g_list_remove(env->databases, db);
   }
+
+  if(config->serial_number) g_free(config->serial_number);
 
   g_free(env);
 
