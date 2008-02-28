@@ -132,13 +132,23 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 				if (env->tryDisconnect == FALSE) {
 					env->tryDisconnect = TRUE;
 					smlTransportDisconnect(env->tsp, NULL, NULL);
-					while (!env->gotDisconnect) {
-						/* Unlock the mutex, smlManagerDispatch will call this function
-						   again if events are left in the smlManager queue. Avoids deadlocks! */ 
-						g_mutex_unlock(env->managerMutex);
-						smlManagerDispatch(manager);
-						g_mutex_lock(env->managerMutex);
-					}
+					/* It is not a good idea to wait for the
+					 * disconnect here. First this is an
+					 * asynchronous software so it is always
+					 * bad if the software blocks. Second it
+					 * is dangerous to call smlManagerDispatch
+					 * here because an error during these
+					 * dispatch activities can lead to another
+					 * error which overwrites the original
+					 * error.
+					 *
+					 * Deadlock must be handled in another way.
+					 * The SyncML protocol is usually already
+					 * broken if this happens (TRANSPORT_ERROR).
+					 *
+					 * So yes, it is important to disconnect
+					 * and no, it must not run dispatch.
+					 */
 				} else {
 					env->gotDisconnect = TRUE;
 					osync_trace(TRACE_EXIT, "%s: error while disconnecting: %s", __func__, smlErrorPrint(&error));
@@ -256,6 +266,9 @@ error:;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
 		
+		if (database->syncModeCtx)
+			report_error_on_context(&(database->syncModeCtx), &oserror, FALSE);
+
 		if (database->getChangesCtx)
 			report_error_on_context(&(database->getChangesCtx), &oserror, FALSE);
 

@@ -10,7 +10,7 @@
   <type>2</type>
   
   <!-- (Only for bluetooth) The bluetooth address if the bluetooth mode is selected.
-       `hciconfig scan` to search bluetooth devices.  -->
+       `hcitool scan` to search bluetooth devices.  -->
   <bluetooth_address></bluetooth_address>
   
   <!-- (Only for bluetooth) The bluetooth channel to use.
