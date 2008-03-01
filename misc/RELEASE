@@ -16,7 +16,7 @@ To make a release of OpenSync, do the following:
 
  - once the commit succeeds, "svn cp trunk tags/opensync-0.XX"
 
- - create tarballs with "make package_source" (out of source build!)
+ - create tarballs with "OPENSYNC_RELEASE=1 cmake .; make package_source" (out of source build!)
 
  - upload the tarball to releases. make sure the version numbers are the same!
 
