@@ -1,0 +1,108 @@
+%\documentclass[a4paper,10pt,draft,oneside,openbib,openright]{report}
+\documentclass[a4paper,10pt,oneside,openright,openbib]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[american]{babel}
+\usepackage[T1]{fontenc}
+%\usepackage[dvips,pdftex]{graphicx}
+% only for DRAFT purposes
+\usepackage[dvips]{graphicx}
+\usepackage{makeidx}
+\usepackage{pst-all}
+\usepackage{subfigure}
+
+\usepackage{ulem}
+
+\usepackage{lastpage}
+\usepackage{verbatim}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{wrapfig}
+\usepackage[nonumberlist, toc, section]{glossaries}
+\usepackage{listings}
+\usepackage{multicol}
+
+\usepackage[light]{draftcopy}
+%\usepackage[dvips,pdftex]{hyperref}
+%
+\usepackage{hyperref}
+\hypersetup{colorlinks, 
+	   citecolor=black,
+	   filecolor=black,
+	   linkcolor=black,
+	   urlcolor=black,
+	   bookmarksopen=true,
+%	   pdftex}
+}
+
+
+\author{
+%Armin Bauer <abauer@>\\ % TODO: ask for permission
+Daniel Gollub <dgollub@suse.de>\\
+}
+
+\title{\huge{OpenSync}\\\large{A Synchronization Framework}}
+
+\date{\today}
+
+
+\begin{document}
+
+
+\maketitle
+
+\begin{quote}
+Copyright \copyright{}  2008  Daniel Gollub.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included in the section entitled ``GNU
+Free Documentation License''. 
+\end{quote}
+
+\vfill
+\begin{center}
+(This page is \textbf{not} kept intentionally blank.)
+\end{center}
+\vfill
+
+\tableofcontents
+
+\newpage
+
+%Abstract
+\input{abstract.tex}
+
+%Introduction
+\input{introduction.tex}
+
+%Synchronization
+\input{synchronization.tex}
+
+%Framework Architecture
+\input{architecture.tex}
+
+%Plugins
+\input{plugins.tex}
+
+%Format Plugins
+\input{formatplugins.tex}
+
+
+%Environments
+\input{environments.tex}
+
+
+%Credits
+\input{credits.tex}
+
+\appendix
+
+%Exampes
+\input{examples.tex}
+
+%GNU FDL
+\input{fdl.tex}
+
+\end{document}

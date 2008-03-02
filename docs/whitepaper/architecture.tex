@@ -1,0 +1,145 @@
+\chapter{Framework Architecture}
+
+\section{IPC}
+Part of the OpenSync framework is an Interprocess Communication system to
+communicate with the Plugins. To avoid confusion between the different process
+types of Plugins, and to make the IPC independent of Plugins, the neutral terms
+">Client"< and >"Client Proxy<" got introduced. The IPC is allows full duplex 
+(bidirectional) communication between Client and Proxy. Independent of the 
+process type of the Client. The frameworks allows to communicate between three 
+different process types of Clients:
+\begin{itemize}
+\item Threaded via pipes (two pipes for full duplex/bidirectional ipc. See
+pipe(7))
+\item Forked via pipes (two pipes for full duplex/bidirectional ipc. See pipe(7))
+\item External process via named pipes (FIFO)
+\end{itemize}
+This IPC also to send specific type of messages between the Client and the
+Proxy. The Proxy takes care about timeout handling, if a client doesn't
+response in time. This is only supported for messages which have a callback
+function assigned. Such callbacks (command handler) get executed as soon if the
+message reply by the Client is retrieved. On a timeout or error the callback
+function got called with the custom error or timeout message.
+
+\subsection{Client}
+Clients handle all requests from the Proxy. Each request from the proxy gets
+replied. Threaded and Forked clients get started by the Proxy. Most common use of
+the Client is to call Plugin specific functions, requested with message send by
+the Proxy. The client replies the result of the function calls with replying to
+the messaged which requested the event.
+
+\subsection{Proxy}
+The Proxy handles all request to and from the Client. For each Client there is
+one Proxy. The proxy got mainly used by the OpenSync framework engines to
+communicate with the Plugin processes.
+
+\subsection{Messaging Queues}
+The communication between Client and Proxy is based on message queues. There are
+two types of such Queues: Sender- and Receiver-Queue. The Queue object supports
+(anonymous) pipes as well as named pipes (FIFO).\\
+\\
+Note: When using Queues along forked processes the read and write ends have to
+be disconnected/closed for proper communication. See pipe(7).\\
+\\
+There is a specified set of Message Commands for simple communication between
+Client and Proxy. For synchronized communication between Client and Proxy the
+Client simply replies the Message Command from the Proxy, when Client executed
+the requested command. If Client failed while executing the command, it has to
+reply with an error reply. Synchronize communication requires that the caller
+assign a message handler to the Message object, which got called when the
+message got replied. This message handler should check carefully the received
+replied message type, and handle provide proper error handling.\\
+\\
+For synchronized communication it's recommended to send message with a timeout
+via the message queue. To avoid deadlocks when the counterpart fails to reply.
+No timeout handling is needed for asynchronized communication without command
+handler, since no reply is expected.\\
+\\
+Additional content of the message have to be marshaled/demarshaled, to make the
+content usable even it's running in a different address space. (rough rule of 
+thumb: everything which includes a pointers/memory addresses)
+
+\section{Engines}
+So called engines are the core of the entire framework and control the entire
+sequence of every single step which is done during a synchronization. When the
+engine got initialized it checks if a previous synchronization was unclean
+(failed) and a slow sync is required. If the previous synchronization was
+unclean or not could be only determined by engine itself if an group environment
+is used. Beside the group environment it also initializes the plugin, format.
+The engine isn't restricted to get called with a group environment, the group 
+environment is only of optional use.\\
+\\
+If the group environment is used, the engine locks the group when the engine
+gets initialized. If the group detects an unassigned lock the engine will
+request while synchronization a slow sync.\\
+\\
+To determine a previous unclean synchronization without a group environment , 
+it's up to OpenSync framework using program to provide facilities to store such 
+information. If so, the engine MUST be set to trigger a slow sync, after it got 
+initialized. When the engine got finalized or synchronized successful the slow 
+sync engine status got reseted.\\
+\\
+With the engine initialization also the members of the group got initialized.
+The member initialization creates for corresponding member plugin a Client Proxy
+which got initialized and spawns the plugin. For more details check the IPC
+section about the Proxy.\\
+\\
+After all members got initialized, the >"Object Engines<" for each enabled
+Object Type got initialized. If no Object Type is enabled or discovered the
+engine initialization aborts with an error. The engine needs at least one Object
+Type to synchronize. Often this error appears if not all or none members got
+discovered. See discover section of "Merging capabilities" for more details.
+
+\subsection{Object Engine}
+For each Object Type, which have to be synchronized, one Object Engine gets 
+started by the (main) engine. If the engine detected that previous 
+synchronization was unclean, each Object Engine get the slow sync flag set to 
+perform a slow sync on the next sync. If the Object Engine got finalized or 
+synchronized (successful or unsuccessful) the slow sync flag get reseted. If 
+the synchronization failed, it's most likely that the (main) engine will set 
+the slow sync flag again on the next synchronization.\\
+\\
+The Object Engines allows to perform actions only for a certain Object Type. For
+example to request a slow sync only for specific Object Engines (this means also
+for specific Object Types).\\
+\\
+The initialization of an Object Engine creates for each Client Proxy (read 
+Members' Plugin) a Sink Engine, which maps each Client Proxy with an Object
+Type. (More about the Sink Engine in the next section.)\\
+\\
+If a slow sync got set for the Object Engine, then all >"Mappings<" with the
+Object Type of the Object Engine got deleted from the >"Mapping Table<". This is
+done to avoid loss of the data inconsistence while performing a slow sync.\\
+\\
+If no slow sync got set for this Object Engine the >"Mapping Table<" got loaded
+and creates for each Mapping a >"Mapping Engine<".
+
+%TODO: Injecting ignored entries in mapping engine
+
+%TODO
+
+
+\subsection{Mapping Engine}
+\subsection{Mapping Entry Engine}
+
+
+\subsection{Sink Engine}
+The Sink Engine currently doesn't consists of any logic. The only relation to
+Engines of the Sink Engine object is, it maps all the already mentioned engines
+together.\\
+\\
+The Sink Engine maps the Client Proxy and Object Engine together. With this 
+combination the Sink Engine is able to handle Object Type specific (aka. 
+ObjTypeSink) tasks. Additionally it contains of a list of Mapping Engines, 
+which handle Object Type and Client related Mappings only.
+
+\section{Merging Different Capabilities}
+\subsection{Capabilities}
+\subsection{Archive}
+\subsection{Merger \& Demerger}
+\section{Helpers}
+\subsection{Anchor Table}
+\subsection{Hash Table}
+\subsection{Time Helper}
+\section{Filter}
+\subsection{Custom Fiter}

@@ -1,0 +1,72 @@
+\chapter{Introduction}
+\label{chap:intro}
+OpenSync is intended to be an universal Synchronization Framework, not limited to
+a platform or desktop nor to PIM!
+
+\section{History}
+MultiSync, started by Bo Lincoln, was intended to synchronize various mobiles,
+PDAs and PIM applications. MultiSync was a GTK application and provided
+support for different PIM applications and devices by providing  plugins.
+Primary focus of MultiSync was to synchronize just PIM data (contacts, 
+appointments, notes). Unfortunately this approach was fixed to a single UI and 
+only limited to PIM synchronization. Development branch MultiSync 0.9x was 
+intended fix those needs.\\
+\\
+Early in 2005, Armin Bauer started refactoring the MultiSync project and
+separated the UI code from MultiSync and the Plugin interface and
+Synchronization logic. Result of his work is the most powerful and
+flexible Synchronization Framework, known today as OpenSync.
+\section{Big Picture}
+OpenSync is intended to provide a low-level synchronization API for all kind of 
+data.
+\\
+\begin{figure}
+ \centering
+ % \includegraphics[bb=0 0 222 140,scale=0.5]{bigpicture}
+ % bigpicture.png: 222x140 pixel, 72dpi, 7.83x4.94 cm, bb=0 0 222 140
+ \caption{OpenSync}
+ \label{fig:bigpicture}
+\end{figure}
+
+
+\section{Goals}
+The goals of the OpenSync project are:
+
+\begin{itemize}
+ \item Reusabilty. OpenSync should be usable for all kind of synchronization 
+ applications
+ \item Speed. Synchronization should be efficent and fast as possible to give the
+ user the best experience.
+ \item Flexibility. Nobody can predict what comes next to synchronize; after the
+ G- \& iPhone. So OpenSync has to be designed and built as flexible and modular 
+ as possible.
+ \item Integrity. Data MUST never be lost or malformed, no matter what happens. 
+ Data loss is just a no go!
+ \item Portability. OpenSync should just run on as many platforms as possible as 
+ possible.
+ \item Fun. The experience of using and developing OpenSync MUST be fun! You 
+ should not work on OpenSync if you're unhappy :)
+\end{itemize}
+Not all of the mentioned goals are reached already, but OpenSync tries to get 
+close as possible over time.
+
+\section{Who should read this document?}
+This Document is intended for everyone who is interested in a Open Source 
+Synchronization solution. This is not a HowTo, Tutorial or Guide how to use 
+OpenSync. It's a detailed introducation in the OpenSync framework. No (high) 
+programming skills/experince are required for this document.
+
+\section{How should this document be read?}
+Some chapter are very detailed about internal technial stuff, which is mainly 
+intended for developers or people who are interested in how OpenSync ticks. Those
+chapters could be safetly skipped if someone isn't interested in touching the
+internals of the OpenSync Framework. Such section are marked with a little hint.
+
+\section{Is this the most recent version of this paper?}
+Maybe not, OpenSync is in a very early stage of development and lots of stuff
+might changed within the last weeks. On doubts you might compare your version 
+with the one from:\\
+\\
+\hyperref[http://www.opensync.org/download/LATEST-WHITEPAPER]{http://www.opensync.org/download/LATEST-WHITEPAPER}\\
+\\
+This paper was created on: \today

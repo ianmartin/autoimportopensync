@@ -1,0 +1,155 @@
+\chapter{Synchronization}
+This chapter give a brief introduction of synchronization basics as well as how
+OpenSync works and handles real life synchronization issues.\\
+\\
+Different synchronization techniques used nowadays, which have some of the
+following tasks in common:
+\begin{itemize}
+ \item Connect
+ \item Get changes
+ \item Conflict resolution
+ \item Multiply changes
+ \item Commit changes
+ \item Disconnect
+\end{itemize}
+Those tasks are in common for synchronization technique/protocol, but differ in
+detail to fit the needs for different circumstances to meet the best efficiency.
+Such circumstances could be:
+\begin{itemize}
+ \item Number of synchronization parties. If the number of synchronization
+ parties is two, then multiplying of changes is just simple duplication of the
+ change.
+ \item Unidirectional/Bidirectional synchronization. On unidirectional
+ synchronization no conflict resolution required for two parties.
+ \item Resource. Depending of the type of data resource further work is required
+ to get changes. Is the resource able to tell which data changed since the last
+ synchronization, by its own? Or is further help/facility required to detect
+ which data changed since the last sync. Example: file systems, databases,
+ stacked data in a single file, ...
+ \item Type of data. Is the data in a consistent format and supported by all
+ parties? File synchronization. Is the data not consistent and contains unique
+ information which doesn't allow to do a binary compare? Weak compare? Is 
+ conversion to a common format for different parties required?
+ \item Protocol. Does the protocol require to read only the latest changes or 
+ all at once? Does the protocol support single commits or only all at once 
+ (batch commit)?
+ \item Transport. Are various transport layer involved? Does it require to
+ connect and disconnect in a specified way? Limited bandwidth? Example: 
+ Bluetooth, USB, ...
+\end{itemize}
+You see, there lots of different circumstances which makes it quite complicated
+to meet all the needs of different ways to synchronize and synchronization 
+protocols.\\
+This is also only the tip of the iceberg, since it describes only the
+synchronization role of the ">Server"<. 
+
+\section{Synchronization Role}
+The term ">Server"< is quite confusing,
+especially in the combination of a synchronization protocol which uses a
+transport protocol based on the ">Client"<- and ">Server<"-Model. Most famous
+example is ">SyncML"<, which support among others the HTTP and OBEX protocol as
+transport. You might know ">HTTP Server"< like the Apache Webserver and ">HTTP
+Client"< like the Firefox Webbrowser. In SyncML you can have for example (same 
+for other transports supported by SyncML):
+\begin{itemize}
+\item HTTP Server transport and act as Synchronization Server
+\item HTTP Client transport and act as Synchronization Server
+\item HTTP Server transport and act as Synchronization Client
+\item HTTP Client transport and act as Synchronization Client
+\end{itemize}
+OpenSync doesn't care much about Transport Server/Client role, this is
+up to the Plugins. There is only a little detail which OpenSync have to care
+about plugin when they're acting as the transport Server role, which is about
+that the plugin has to be initialized all the time so the client can connect.
+More about this in the Plugin chapter.\\
+\\
+Unfortunately OpenSync supports in version 0.40 only the Synchronization role
+Server. The passive role as Synchronization Client isn't yet implemented, but is
+on the top of the project agenda. The reason for this is that the current
+implementation of synchronization tasks/steps mentioned above are currently
+fixed. As Synchronization Client the order and number of this synchronization 
+steps/tasks would differ to the Server role. More about this issue you can find
+in the Framework Chapter in section Synchronization Role.
+
+\section{Slow Sync}
+Various Synchronization protocols are using so called ">Slow Sync"<
+synchronization technique. This consists of two types of synchronizations, the
+already mentioned ">Slow Sync"< and a regular Synchronization (sometimes called
+">Fast Sync<"). The difference between the Slow and the regular (Fast) Sync is 
+that the regular one only transfers changes since the last synchronization. 
+This means on a regular synchronization not all entries have to be transfered, 
+converted. This makes the synchronization quite efficient and very fast. The
+so called ">Slow Sync"< requests intentionally all entries, which makes the
+synchronization a bit slower. Additionally the Synchronization Framework has to
+interpret every single entry/change as newly added, since the Framework vanished
+in advance the entire mappings and has to compare every single reported entry
+from each party and find the fitting counterpart. This and the combination of
+transferring all entries makes the synchronization compared to the regular
+(Fast) synchronization very slow. The ">Slow Sync"< is only used in certain
+cases to avoid data inconsistence and to keep all the data in sync. ">Slow
+Sync"< got emitted in following circumstances:
+\begin{itemize}
+\item First/Initial Synchronization
+\item Party got reseted (same as first sync)
+\item Party got synchronized in meanwhile within another environment 
+\item After an aborted/failed synchronization
+\end{itemize}
+\section{Object Types}
+The term ">Object Types"< is in OpenSync used to describe the type/category of 
+data. Example for ">Object Types"< are Contacts, Events, Todos, Notes or plain 
+Data (like the content of a file) and others. (It's not limited to PIM Data!). 
+Those Object Types get separated processed, to make it configurable which 
+Object Type should get synchronized. Example: Only synchronize contacts of the 
+mobile, no events, todos nor notes.
+\section{Formats}
+The ability to synchronize different Parties which use different formats, makes
+the OpenSync Framework to a very powerful Synchronization Framework. In OpenSync
+each Format is associated with one Object Type (see previous chapter). This
+Object Type as common denominator for different formats makes it possible to
+determine a conversion path between different formats. The conversion path
+consists of various format converters, which are provided by Format Plugins.
+Example: Two parties should synchronize their contacts (the Object Type). Party
+A stores the contacts as VCard 3.0 and Party B stores the contacts in some
+Binary Format. To synchronize the VCard 3.0 and the Random Binary Contact Format
+format plugins have to register those formats and provide converters. The
+Plugins don't have to provide converters for every known Format, often a certain
+amount of converters to common formats or a common denominator format is enough
+to create a conversion path between VCard 3.0 to Binary Contact Format.
+\section{Mappings}
+If an entry got changed on one Party, the logical same entry has to be updated
+on the other parties while synchronization. Often different parties use
+different ids to identify their entries. So it's required to map the logical
+same entries which each others native id. The combination of those different
+entries on different parties are called ">Mappings"<. Those ">Mappings"< make it
+possible to determine a conflict if mapped entries got changed on different
+parties the same time in a different way.
+\section{Conflicts}
+So called ">Conflicts"< appear if at least two entries of the same mapping got
+changed in a different way. No conflict appears if all entries of the mapping
+changed the same way. Such conflicts have to be handled by the Synchronization
+Framework to avoid data loss. There are several ways to solve such conflicts.
+OpenSync provides several different for a proper conflict resolution without
+gaining unintended loss of data. Following conflict resolution are supported by
+the OpenSync Framework:
+
+\begin{itemize}
+\item Solve, means intentionally choosing one of the conflicting entries to
+solve the conflict. The chosen one will be multiplied to all parties and will
+overwrite the other conflicting changes. This also allows to configure in
+advance who is the ">Winning"< Party, who's changes will always used as the 
+solving change (">master change"<) for the conflict.
+\item Duplicate, (intentionally) will duplicate all changed entries. 
+\item Latest, using the latest changed entry of the conflicting entries. This is
+only an conflict resolution option if all changes provide within their formats
+enough information to determine which got most recently changed.
+\item Ignoring, (temporarily) the conflict till the next synchronization.
+Conflicting entries will be read and compared again by the OpenSync Framework on
+the next synchronization. To avoid inconsistence and data loss. If the
+entries/changes are equal on the next synchronization the conflict is solved as
+well. (This conflict resolution requires that the protocol of all parties is
+able to request single entries, without triggering a "Slow Sync".)
+\end{itemize}
+\section{Capabilities}
+\section{Filter}
+OpenSync provides initial code for filtering, but it's not yet usable within
+OpenSync 0.40. Looking forward to OpenSync 0.41!
