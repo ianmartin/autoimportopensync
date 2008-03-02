@@ -36,15 +36,15 @@ START_TEST (engine_new)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncMember *member = osync_member_new(&error);
-	fail_unless(member != NULL, NULL);
+	OSyncMember *member1 = osync_member_new(&error);
+	fail_unless(member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_group_add_member(group, member);
+	osync_group_add_member(group, member1);
 	
-	member = osync_member_new(&error);
-	fail_unless(member != NULL, NULL);
+	OSyncMember *member2 = osync_member_new(&error);
+	fail_unless(member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_group_add_member(group, member);
+	osync_group_add_member(group, member2);
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -54,6 +54,8 @@ START_TEST (engine_new)
 	osync_engine_unref(engine);
 	osync_engine_unref(engine);
 
+	osync_member_unref(member1);
+	osync_member_unref(member2);
 	osync_group_unref(group);
 	
 	destroy_testbed(testbed);
@@ -70,24 +72,24 @@ START_TEST (engine_init)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncMember *member = osync_member_new(&error);
-	fail_unless(member != NULL, NULL);
+	OSyncMember *member1 = osync_member_new(&error);
+	fail_unless(member1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_group_add_member(group, member);
-	_member_add_format(member, "mockobjtype1", "mockformat1");
-	osync_member_set_pluginname(member, "mock-sync");
+	osync_group_add_member(group, member1);
+	_member_add_format(member1, "mockobjtype1", "mockformat1");
+	osync_member_set_pluginname(member1, "mock-sync");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
-	osync_member_set_configdir(member, path);
+	osync_member_set_configdir(member1, path);
 	g_free(path);
 	
-	member = osync_member_new(&error);
-	fail_unless(member != NULL, NULL);
+	OSyncMember *member2 = osync_member_new(&error);
+	fail_unless(member2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_group_add_member(group, member);
-	_member_add_format(member, "mockobjtype1", "mockformat1");
-	osync_member_set_pluginname(member, "mock-sync");
+	osync_group_add_member(group, member2);
+	_member_add_format(member2, "mockobjtype1", "mockformat1");
+	osync_member_set_pluginname(member2, "mock-sync");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
-	osync_member_set_configdir(member, path);
+	osync_member_set_configdir(member2, path);
 	g_free(path);
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -104,6 +106,9 @@ START_TEST (engine_init)
 	fail_unless(error == NULL, NULL);
 	
 	osync_engine_unref(engine);
+
+	osync_member_unref(member1);
+	osync_member_unref(member2);
 
 	osync_group_unref(group);
 	

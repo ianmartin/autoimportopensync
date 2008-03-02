@@ -135,6 +135,10 @@ const char *osync_objformat_get_config(OSyncObjFormat *format)
 void osync_objformat_set_config(OSyncObjFormat *format, const char *format_config)
 {
 	osync_assert(format);
+
+	if (format->config)
+		g_free(format->config);
+
 	format->config = g_strdup(format_config);
 }
 

@@ -1498,8 +1498,10 @@ void osync_client_error_shutdown(OSyncClient *client, OSyncError *error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, client, error);
 
 	OSyncMessage *message = osync_message_new_error(error, NULL);
-	if (message)
+	if (message) {
 		osync_queue_send_message(client->outgoing, NULL, message, NULL);
+		osync_message_unref(message);
+	}
 
 	osync_client_shutdown(client);
 

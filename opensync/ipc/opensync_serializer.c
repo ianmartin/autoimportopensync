@@ -103,6 +103,7 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 		goto error;
 	}
 	osync_objformat_set_config(format, objformat_config);
+	g_free(objformat_config);
 
 	unsigned int input_size = 0;
 	char *input_data = NULL;

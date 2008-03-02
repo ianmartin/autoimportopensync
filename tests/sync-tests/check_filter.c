@@ -37,6 +37,8 @@ START_TEST (filter_setup)
 	fail_unless(osync_group_num_filters(group) == 0, NULL);
 	osync_filter_unref(filter);
 
+	osync_group_unref(group);
+
 	destroy_testbed(testbed);
 }
 END_TEST
