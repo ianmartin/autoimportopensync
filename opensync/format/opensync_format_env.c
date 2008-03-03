@@ -429,11 +429,25 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		osync_trace(TRACE_INTERNAL, "Next vertice : %s.", osync_objformat_get_name(current->format));	
 		/* Check if we have reached a target format */
 		if (target_fn(fndata, current->format)) {
+			osync_trace(TRACE_INTERNAL, "Target %s found", osync_objformat_get_name(current->format));
 			/* Done. return the result */
 			result = current;
 			break;
 		}
 		
+		/* Optimitazion:
+		 * Check if saved result is equal to current regarding losses, objtype_changes
+		 * and conversions. If yes, we can skip further searches and break here */
+		if (result) {
+			if (result->losses <= current->losses && result->objtype_changes <= current->objtype_changes && result->conversions <= current->conversions) {
+				osync_trace(TRACE_INTERNAL, "Target %s found in queue", osync_objformat_get_name(result->format));
+				tree->search = g_list_remove(tree->search, result);
+				break;
+			} else {
+				result = NULL;
+			}
+		}
+
 		/* If we dont have reached a target, we look at our neighbours */
 		osync_trace(TRACE_INTERNAL, "Looking at %s's neighbours.", osync_objformat_get_name(current->format));
 	        current->data = osync_data_clone(sourcedata, error);
@@ -455,6 +469,12 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			/* We found a neighbour and insert it sorted in our search queue */
 			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format));
 			tree->search = g_list_insert_sorted(tree->search, neighbour, _compare_vertice_distance);
+
+			/* Optimization:
+			 * We found a possible target. Save it. */
+			if (target_fn(fndata, neighbour->format)) {
+				result = neighbour;
+			}
 		}
 		if (osync_error_is_set(error))
 			goto error_free_tree;
