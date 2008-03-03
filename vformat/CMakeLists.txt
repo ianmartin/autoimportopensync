@@ -16,6 +16,7 @@ FIND_PACKAGE( Check )
 
 INCLUDE( OpenSyncInternal )
 INCLUDE( OpenSyncPlatforms )
+INCLUDE( Testing )
 ADD_SUBDIRECTORY( src )
 ADD_SUBDIRECTORY( tools )
 
