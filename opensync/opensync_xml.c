@@ -21,7 +21,7 @@
 #include "opensync_xml.h"
 #include "opensync_internals.h"
 #include <opensync/opensync-serializer.h>
-
+   
 xmlNode *osync_xml_node_add_root(xmlDoc *doc, const char *name)
 {
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)name, NULL);
