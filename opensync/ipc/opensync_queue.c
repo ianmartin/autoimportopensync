@@ -574,11 +574,34 @@ error:
 	return FALSE;
 }
 
+
+/*! @brief Flush all message of the Queue 
+ * 
+ * Flush all message inside the Queue and dereference the messages.
+ *
+ * @param queue The queue to flush 
+ * 
+ */
+
+static void _osync_queue_flush_messages(GAsyncQueue *queue)
+{
+	osync_assert(queue);
+
+	g_async_queue_lock(queue);
+
+	OSyncMessage *message;
+	while ((message = g_async_queue_try_pop_unlocked(queue)))
+		osync_message_unref(message);
+
+	g_async_queue_unlock(queue);
+}
+
 /*! @brief Creates a new asynchronous queue
  * 
  * This function return the pointer to a newly created OSyncQueue
  * 
  */
+
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, name, error);
@@ -697,14 +720,10 @@ void osync_queue_free(OSyncQueue *queue)
 
 	_osync_queue_stop_incoming(queue);
 
-	while ((message = g_async_queue_try_pop(queue->incoming))) {
-		osync_message_unref(message);
-	}
+	_osync_queue_flush_messages(queue->incoming);
 	g_async_queue_unref(queue->incoming);
 	
-	while ((message = g_async_queue_try_pop(queue->outgoing))) {
-		osync_message_unref(message);
-	}
+	_osync_queue_flush_messages(queue->outgoing);
 	g_async_queue_unref(queue->outgoing);
 
 	while (queue->pendingReplies) {
@@ -896,10 +915,7 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 	
 	/* We have to empty the incoming queue if we disconnect the queue. Otherwise, the
 	 * consumer threads might try to pick up messages even after we are done. */
-	OSyncMessage *message = NULL;
-	while ((message = g_async_queue_try_pop(queue->incoming))) {
-		osync_message_unref(message);
-	}
+	_osync_queue_flush_messages(queue->incoming);
 	
 	if (queue->fd != -1 && close(queue->fd) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to close queue");
@@ -1156,3 +1172,4 @@ int osync_queue_get_fd(OSyncQueue *queue)
 	osync_assert(queue);
 	return queue->fd;
 }
+
