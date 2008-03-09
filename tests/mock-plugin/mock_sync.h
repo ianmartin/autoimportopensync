@@ -59,6 +59,8 @@ typedef struct mock_env {
 	int main_get_changes;
 	int main_sync_done;
 
+	OSyncObjTypeSink *mainsink;
+
 	OSyncContext *ctx[10];
 } mock_env;
 
