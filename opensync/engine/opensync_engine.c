@@ -688,7 +688,7 @@ static osync_bool _osync_engine_generate_connected_event(OSyncEngine *engine)
 			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 			osync_error_unref(&locerror);
 		} else if (osync_bitcount(engine->proxy_errors) || osync_bitcount(engine->obj_errors)) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one objenit hat problems while connecting. Aborting");
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one object engine failed while connecting. Aborting");
 			osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
 			osync_engine_set_error(engine, locerror);
 			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
@@ -1240,6 +1240,20 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 				goto error;
 		
 			break;
+		case OSYNC_ENGINE_COMMAND_ABORT:
+			/* For nwo Command Aborting is just trigger ENGINE_EVENT_ERROR.
+			   Which is basically just calling the disconnect functions and not setting
+			   the synchrnoization as a successful one. */
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Synchronization got aborted by user!");
+
+			osync_engine_set_error(engine, locerror);
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
+
+			osync_error_unref(&locerror);
+
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+			break;
+
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1733,3 +1747,67 @@ void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (
 	engine->plgmsg_userdata = user_data;
 }
 #endif
+
+/*! @brief Aborts running synchronization
+ * 
+ * This is aborting the current synchronization while flushing the pending
+ * commands in the engine command queue and pushing the abort command on this
+ * queue. The abort command will send the disconnect command to the client/plugins.
+ * This could be also used within a conflict handler function which aborts the
+ * synchronization instead of resolving the conflicts.
+ *
+ * FIXME: Currently aborting of the current synchronization is not yet perfect! It
+ *        will not preempt already running commands. For example the batch_commit
+ *        will not be preempted and the engine will abort after the batch_commit is done.
+ *
+ * TODO: Review XMPM Benq patches for abort hander. Is sigaction really sane way
+ *       to abort? It's very important that the plugins get called with the disconnect
+ *       functions, since plugins/devices rely on clean termination of connections.
+ *
+ * TODO: Introduce plugin abort function for protocol specific abort implementations
+ *       (SyncML?, OBEX-based?, ...?)
+ * 
+ * @param engine A pointer to the engine with a running synchronization which gets aborted. 
+ * @param error A pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise.
+ * 
+ */
+osync_bool osync_engine_abort(OSyncEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	
+	OSyncEngineCommand *pending_command, *cmd;
+
+	if (engine->state != OSYNC_ENGINE_STATE_INITIALIZED) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not in state initialized: %i", engine->state);
+		goto error;
+	}
+
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	if (!cmd)
+		goto error;
+	
+	cmd->cmd = OSYNC_ENGINE_COMMAND_ABORT;
+	
+	/* Lock the engine command queue ... */
+	g_async_queue_lock(engine->command_queue);
+
+	/* ...and flush all pending commands.
+	   To make sure the abort command will be the next and last command. */
+	while ((pending_command = g_async_queue_try_pop_unlocked(engine->command_queue)))
+		g_free(pending_command);
+
+	/* Push the abort command on the empty queue. */
+	g_async_queue_push_unlocked(engine->command_queue, cmd);
+
+	/* Done. Unlock the command queue again. */
+	g_async_queue_unlock(engine->command_queue);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+

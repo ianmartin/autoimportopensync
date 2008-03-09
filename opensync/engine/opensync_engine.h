@@ -29,7 +29,8 @@ typedef enum {
 	OSYNC_ENGINE_COMMAND_SYNC_DONE = 4,
 	OSYNC_ENGINE_COMMAND_DISCONNECT = 5,
 	OSYNC_ENGINE_COMMAND_SOLVE = 6,
-	OSYNC_ENGINE_COMMAND_DISCOVER = 7
+	OSYNC_ENGINE_COMMAND_DISCOVER = 7,
+	OSYNC_ENGINE_COMMAND_ABORT = 8
 } OSyncEngineCmd;
 
 typedef enum {
@@ -151,7 +152,7 @@ OSYNC_EXPORT osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *
 OSYNC_EXPORT osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
 
 //OSYNC_EXPORT void osync_engine_pause(OSyncEngine *engine);
-//OSYNC_EXPORT void osync_engine_abort(OSyncEngine *engine);
+OSYNC_EXPORT osync_bool osync_engine_abort(OSyncEngine *engine, OSyncError **error);
 
 //OSYNC_EXPORT void osync_engine_one_iteration(OSyncEngine *engine);
 //OSYNC_EXPORT void osync_engine_flag_manual(OSyncEngine *engine);

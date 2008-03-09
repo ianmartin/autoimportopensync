@@ -765,6 +765,8 @@ void osync_obj_engine_finalize(OSyncObjEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
+	OSyncMappingEngine *mapping_engine;
+
 	engine->slowsync = FALSE;
 	engine->written = FALSE;
 
@@ -782,8 +784,15 @@ void osync_obj_engine_finalize(OSyncObjEngine *engine)
 		engine->sink_engines = g_list_remove(engine->sink_engines, sinkengine);
 	}
 	
+	while (engine->conflicts) {
+		mapping_engine = engine->conflicts->data;
+		/* No need to unref the mapping engine. They get unref while emptying
+		   the mapping_engines list. See next loop. */
+		engine->conflicts = g_list_remove(engine->conflicts, mapping_engine);
+	}
+
 	while (engine->mapping_engines) {
-		OSyncMappingEngine *mapping_engine = engine->mapping_engines->data;
+		mapping_engine = engine->mapping_engines->data;
 		osync_mapping_engine_unref(mapping_engine);
 		
 		engine->mapping_engines = g_list_remove(engine->mapping_engines, mapping_engine);

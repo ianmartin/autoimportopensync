@@ -707,6 +707,182 @@ START_TEST (sync_easy_conflict_duplicate)
 }
 END_TEST
 
+/* Aborting the entire synchronization while conflict resolution. Bug ticket: #700 */
+START_TEST (sync_easy_conflict_abort)
+{
+	char *testbed = setup_testbed("sync");
+	system("cp testdata data1/testdata");
+	system("cp new_data1 data2/testdata");
+	
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+
+	OSyncError *error = NULL;
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_unref(group);
+	
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+	
+	osync_engine_set_conflict_callback(engine, conflict_handler_abort, GINT_TO_POINTER(2));
+	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, GINT_TO_POINTER(1));
+	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
+	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
+	
+	
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(error != NULL, NULL);
+	osync_error_unref(&error);
+	
+	/* Client checks */
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_main_connected == 2, NULL);
+	fail_unless(num_client_read == 2, NULL);
+	fail_unless(num_client_main_read == 2, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	fail_unless(num_client_main_written == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	fail_unless(num_client_main_disconnected == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_sync_done == 0, NULL);
+	fail_unless(num_client_main_sync_done == 0, NULL);
+	
+	/* Client checks */
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_errors == 1, "errors: %i", num_engine_errors);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_written == 0, NULL);
+	fail_unless(num_engine_sync_done == 0, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
+	/* FIXME: END_CONFLICTS even when we aborted the entire sync while solving the conflicts?!i
+	   Review if this shouldn't be 0 .. very likely this signal got emitted in the wrong place within OSyncEngine. */
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+	fail_unless(num_engine_prev_unclean == 0, NULL);
+
+	/* Change checks */
+	fail_unless(num_change_read == 2, NULL);
+	fail_unless(num_change_written == 0, NULL);
+	fail_unless(num_change_error == 0, NULL);
+
+	/* Mapping checks */
+	fail_unless(num_mapping_solved == 0, NULL);
+	//fail_unless(num_mapping_written == 1, NULL);
+	fail_unless(num_mapping_errors == 0, NULL);
+	fail_unless(num_mapping_conflicts == 0, NULL);
+
+	/* Still conflicts! */
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 0);
+	g_free(path);
+    osync_mapping_table_close(maptable);
+    osync_mapping_table_unref(maptable);
+    
+	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+ //   check_hash(table, "testdata-dupe");
+	osync_hashtable_free(table);
+
+	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
+    table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+   // check_hash(table, "testdata-dupe");
+	osync_hashtable_free(table);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+//	system("rm -f data1/testdata-dupe");
+	
+	reset_counters();
+	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(error != NULL, NULL);
+	osync_error_unref(&error);
+	
+	fail_unless(osync_engine_finalize(engine, &error), NULL);
+	fail_unless(error == NULL, "error: %s", osync_error_print(&error));
+	
+	osync_engine_unref(engine);
+	
+	/* Client checks */
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_main_connected == 2, NULL);
+	fail_unless(num_client_read == 2, NULL);
+	fail_unless(num_client_main_read == 2, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	fail_unless(num_client_main_written == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	fail_unless(num_client_main_disconnected == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_sync_done == 0, NULL);
+	fail_unless(num_client_main_sync_done == 0, NULL);
+	
+	/* Client checks */
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_written == 0, NULL);
+	fail_unless(num_engine_sync_done == 0, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
+	/* FIXME: END_CONFLICTS even when we aborted the entire sync while solving the conflicts?!i
+	   Review if this shouldn't be 0 .. very likely this signal got emitted in the wrong place within OSyncEngine. */
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+	fail_unless(num_engine_prev_unclean == 0, NULL);
+
+	/* Change checks */
+	fail_unless(num_change_read == 2, NULL);
+	fail_unless(num_change_written == 0, NULL);
+	fail_unless(num_change_error == 0, NULL);
+
+	/* Mapping checks */
+	fail_unless(num_mapping_solved == 0, NULL);
+	//fail_unless(num_mapping_written == 1, NULL);
+	fail_unless(num_mapping_errors == 0, NULL);
+	fail_unless(num_mapping_conflicts == 0, NULL);
+
+	/* Still different */
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+
+	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
+	g_free(path);
+    osync_mapping_table_close(maptable);
+    osync_mapping_table_unref(maptable);
+    
+	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
+    table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+	osync_hashtable_free(table);
+
+	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
+    table = hashtable_load(path, "mockobjtype1", 1);
+	g_free(path);
+    check_hash(table, "testdata");
+	osync_hashtable_free(table);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+
 #if 0
 START_TEST (sync_conflict_duplicate)
 {
@@ -2849,6 +3025,7 @@ Suite *env_suite(void)
 	create_case(s, "sync_easy_conflict", sync_easy_conflict);
 	create_case(s, "sync_easy_new_mapping", sync_easy_new_mapping);
 	create_case(s, "sync_easy_conflict_duplicate", sync_easy_conflict_duplicate);
+	create_case(s, "sync_easy_conflict_abort", sync_easy_conflict_abort);
 	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2);
 	create_case(s, "sync_conflict_delay", sync_conflict_delay);
 	create_case(s, "sync_conflict_deldel", sync_conflict_deldel);
@@ -2871,6 +3048,8 @@ Suite *env_suite(void)
 int main(void)
 {
 	int nf;
+
+	check_env();
 
 	Suite *s = env_suite();
 	
