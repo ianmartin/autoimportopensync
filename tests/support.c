@@ -23,6 +23,18 @@ static void reset_env(void)
 	unsetenv("MAINSINK_CONNECT");
 }
 
+
+void check_env(void) {
+
+	if (g_getenv("OSYNC_TRACE"))
+		fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+				"WARNING! Environment variable OSYNC_TRACE is set.\n"
+				"This unit contains stress & performance tests which\n"
+				"will fail/timeout because of bad performance impact of\n"
+				"the i/o which will be produced by OSYNC_TRACE!\n"
+				"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n");
+}
+
 char *setup_testbed(char *fkt_name)
 {
 	
@@ -482,6 +494,19 @@ void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping
 	
 	OSyncError *error = NULL;
 	fail_unless(osync_engine_mapping_duplicate(engine, mapping, &error), NULL);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void conflict_handler_abort(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
+	
+	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
+	OSyncError *error = NULL;
+	fail_unless(osync_engine_abort(engine, &error), NULL);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

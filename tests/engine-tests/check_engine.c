@@ -1936,6 +1936,8 @@ int main(void)
 {
 	int nf;
 
+	check_env();
+
 	Suite *s = engine_suite();
 	
 	SRunner *sr;
