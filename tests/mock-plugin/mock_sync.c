@@ -65,6 +65,9 @@ static void free_env(mock_env *env)
 		free_dir(dir);
 		env->directories = g_list_remove(env->directories, dir);
 	}
+
+	if (env->mainsink)
+		osync_objtype_sink_unref(env->mainsink);
 	
 	g_free(env);
 }
@@ -179,9 +182,19 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncError *error = NULL;
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	mock_env *env = data;
 
-	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+
+	if (!dir) {
+		GList *o = env->directories;
+		for (; o; o = o->next) {
+			OSyncFileDir *sink_dir = o->data;
+			sink_dir->committed_all = TRUE;
+		}
+	} else {
+		dir->committed_all = TRUE;
+	}
 	
 	if (mock_get_error(info->memberid, "CONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering CONNECT_ERROR error");
@@ -230,6 +243,27 @@ error:
 static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	mock_env *env = data;
+
+	if (!dir) {
+		GList *o = env->directories;
+		for (; o; o = o->next) {
+			OSyncFileDir *sink_dir = o->data;
+			if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
+				fail_unless(sink_dir->committed_all == TRUE, NULL);
+
+			sink_dir->committed_all = FALSE;
+		}
+	} else {
+		if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
+			fail_unless(dir->committed_all == TRUE, NULL);
+
+		dir->committed_all = FALSE;
+	}
+
 
 	if (mock_get_error(info->memberid, "DISCONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering DISCONNECT_ERROR error");
@@ -722,7 +756,7 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		goto error_free_env;
 
 	if (mock_get_error(info->memberid, "MAINSINK_CONNECT")) {
-		OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(error);
+		env->mainsink = osync_objtype_main_sink_new(error);
 
 		OSyncObjTypeSinkFunctions functions;
 		memset(&functions, 0, sizeof(functions));
@@ -730,8 +764,8 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		functions.connect = mock_connect;
 		functions.disconnect = mock_disconnect;
 
-		osync_objtype_sink_set_functions(mainsink, functions, NULL);
-		osync_plugin_info_set_main_sink(info, mainsink);
+		osync_objtype_sink_set_functions(env->mainsink, functions, NULL);
+		osync_plugin_info_set_main_sink(info, env->mainsink);
 	}
 	
 	/* Now we register the objtypes that we can sync. This plugin is special. It can
@@ -747,9 +781,6 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		
 		dir->sink = sink;
 		
-		/* For sanity checks if each sink function get called only once. */
-		dir->committed_all = TRUE;
-
 		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
 		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
 		dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
@@ -851,12 +882,6 @@ static void mock_finalize(void *data)
 	GList *o = env->directories;
 	for (; o; o = o->next) {
 		OSyncFileDir *dir = o->data;
-
-		if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
-			fail_unless(dir->committed_all == TRUE, NULL);
-
-		dir->committed_all = FALSE;
-
 	
 		if (dir->hashtable) {
 			osync_hashtable_free(dir->hashtable);
