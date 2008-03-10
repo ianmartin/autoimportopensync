@@ -2,7 +2,9 @@ Notes:
 ------
 - Syncronisation of notes doesn't work with newer Sony Ericsson cell phones.
   If your phone is crashing or if you receive an error like "Request failed"
-  please try "--filter-objtype note".
+  please try "--filter-objtype note". (( FIXME: --filter-objtype was removed ))
+
+- Some cellphones like the SE K750i or K800i are not able to synchronize photos.
 
 - It seems that some phones (e.g. SE K750i) accept EXDATE attributes,
   but cannot delete them. You have to delete the whole event and create a new
