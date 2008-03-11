@@ -120,7 +120,7 @@ osync_bool gpe_parse_settings(gpe_environment *env, const char *data)
 	  if (!(env->use_local || env->use_ssh)) {
 	    osync_trace(TRACE_ERROR, "GPE-SYNC %s: <command> should only be specified in <local> or <ssh> sections", __func__);
 	  }
-	  g_free(env->username);
+	  g_free(env->command);
 	  xmlChar *str=xmlXPathCastToString(obj);
 	  env->command = g_strdup(str);
 	  xmlFree(str);

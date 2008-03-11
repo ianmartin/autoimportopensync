@@ -1,3 +1,8 @@
+2008-03-11  Graham Cobb  <g+770@cobb.uk.net>
+
+	* src/gpe_xml.c (gpe_parse_settings): fix bug which caused use of <command>
+	to blank value from <username>.  Ticket 703, debian bug 468284.
+
 2008-02-04  Graham Cobb  <g+770@cobb.uk.net>
 
 	* src/gpe_sync.c (free_sink): make free_sink tolerate being called twice
