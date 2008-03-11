@@ -5,15 +5,16 @@
 	1) You can use gpesyncd locally (if opensync is running
 	on the same system) by specifying the <local>...</local> option.
 
-	In this case you can specify <command>shell command</command>
+	In this case you can also specify <command>shell command</command>
 	to change the shell command which is invoked.  However, specifying 
-	the <command> tag is not recommended.
+	the <command> tag is not recommended: the default command is:
+	gpesyncd - -remote (note the two hyphens should be adjacent but cannot
+	be placed together in an XML comment).
 
 	2) You can use SSH to connect to the device by specifying the
 	<ssh>...</ssh> option.
 
-	In this case, the <handheld_ip>, <handheld_user> and <command> 
-	tags can be used.
+	In this case, the <handheld_ip> and <handheld_user> tags can be used.
 
 	Note that the handheld_ip can be a name or an address and may be
 	associated with a particular identify file in the ~/.ssh/config
@@ -22,7 +23,11 @@
 	Also note that for the Nokia Internet Tablet, the handheld_user
 	should be specified as "user".
 
-	Specifying the <command> tag is not recommended.
+	In this case you can also specify <command>shell command</command>
+	to change the shell command which is invoked.  However, specifying 
+	the <command> tag is not recommended: the default command is:
+	gpesyncd - -remote (note the two hyphens should be adjacent but cannot
+	be placed together in an XML comment).
 
 	3) You can connect to a running gpesyncd daemon by specifying the
 	<remote>...</remote> option.
@@ -36,11 +41,9 @@
   <ssh>
     <handheld_ip>127.0.0.1</handheld_ip>
     <handheld_user>gpeuser</handheld_user>
-    <command>gpesyncd --remote</command>
   </ssh>
   <!--
   <local>
-    <command>gpesyncd --remote</command>
   </local>
   -->
   <!--
@@ -60,8 +63,8 @@
   calendars, will be sent from GPE and new events will be created
   in the default calendar.
 
-  Note that an error occurs if the named calendar does not exist
-  and calendar names are case-sensitive.
+  Note that an error occurs if the named calendar does not exist.
+  Also note that calendar names are case-sensitive.
   -->
   <!-- <calendar>Some Calendar</calendar> -->
 </config>

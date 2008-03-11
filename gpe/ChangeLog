@@ -1,5 +1,7 @@
 2008-03-11  Graham Cobb  <g+770@cobb.uk.net>
 
+	* src/gpe-sync: Remove -- which break XML comments. Ticket 704, debian bug 468285.
+
 	* src/gpe_xml.c (gpe_parse_settings): fix bug which caused use of <command>
 	to blank value from <username>.  Ticket 703, debian bug 468284.
 
