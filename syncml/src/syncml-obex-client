@@ -14,7 +14,9 @@
   <bluetooth_address></bluetooth_address>
   
   <!-- (Only for bluetooth) The bluetooth channel to use.
-       `sdptool browse $MAC` to search for the correct channel -->
+       `sdptool browse $MAC` to search for the correct channel
+       Example:
+       sdptool browse xx:xx:xx:xx:xx:xx | grep "\(Service Name\|Channel\)" -->
   <bluetooth_channel></bluetooth_channel>
   
   <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (you will need access to the USB raw device) to find it. -->

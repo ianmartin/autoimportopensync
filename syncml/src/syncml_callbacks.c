@@ -225,7 +225,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * GOTCHANGES to _ds_event. If both events were
 					 * received then then the cleanup starts.
 					 */
-					_init_change_ctx_cleanup(database, &error);
+					if (!_init_change_ctx_cleanup(database, &error))
+						goto error;
 				}
 			}
 

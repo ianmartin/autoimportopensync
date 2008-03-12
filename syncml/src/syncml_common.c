@@ -458,9 +458,10 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	
 	env->gotFinal = FALSE;
 
-	if (env->gotDisconnect)
+	if (env->gotDisconnect || !env->session)
 	{
-		/* The disconnect already happened. */
+		/* The disconnect already happened or
+		 * the session never existed (connect error). */
 		report_success_on_context(&ctx);
 	} else {
 		/* It is necessary to place the context at the right position before
