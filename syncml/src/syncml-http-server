@@ -44,7 +44,7 @@
   <database>
      <name>Notes</name>
      <objtype>note</objtype>
-     <objformat>vnote10</objformat>
+     <objformat>vnote11</objformat>
   </database>
 
 </config>
