@@ -99,6 +99,10 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 				env->bluetoothChannel = g_strdup(str);
 			}
 			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"at_command")) {
+				env->atCommand = g_strdup(str);
+			}
+			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
 				env->port = g_strdup(str);
 			}
@@ -246,6 +250,9 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env->tsp)
 		goto error_free_env;
 	if (!smlTransportSetConnectionType(env->tsp, env->type, &serror))
+		goto error_free_env;
+	if (env->atCommand &&
+	    !smlTransportSetConfigOption(env->tsp, "AT_COMMAND", env->atCommand, &serror))
 		goto error_free_env;
 	switch(env->type) {
 		case SML_TRANSPORT_CONNECTION_TYPE_USB:

@@ -21,6 +21,15 @@
   
   <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (you will need access to the USB raw device) to find it. -->
   <interface>0</interface>
+
+  <!-- Some devices use a non-standard compliant AT command.
+       This special AT command contains for example the datastores
+       which should be synchronized. If you don't know what to
+       do then leave this empy or visit our wiki for examples.
+       Some devices are supported by default. If yours is not
+       supported then please open a ticket.
+    -->
+  <at_command></at_command>
   
   <!-- The string that the plugin will use to identify itself. Some devices need a special string here. -->
   <identifier></identifier>

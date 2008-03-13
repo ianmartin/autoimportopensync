@@ -8,6 +8,7 @@
         <xsd:sequence>
           <xsd:element name="bluetooth_address" type="os:String"/>
           <xsd:element name="bluetooth_channel" type="os:Numeric"/>
+          <xsd:element name="at_command" type="os:String"/>
           <xsd:element default="0" name="interface" type="os:Numeric"/>
           <xsd:element name="identifier" type="os:String"/>
           <xsd:element default="1" name="version" type="os:Numeric"/>

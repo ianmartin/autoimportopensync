@@ -579,6 +579,8 @@ void finalize(void *data)
 		safe_cfree(&(env->bluetoothAddress));
 	if (env->bluetoothChannel)
 		safe_cfree(&(env->bluetoothChannel));
+	if (env->atCommand)
+		safe_cfree(&(env->atCommand));
 	if (env->url)
 		safe_cfree(&(env->url));
 	if (env->port)
