@@ -167,8 +167,14 @@ SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error)
     }
 
     /* add fresh capabilities to plugin info */
-    osync_trace(TRACE_INTERNAL, "%s: set capabilities", __func__);
-    osync_plugin_info_set_capabilities(env->pluginInfo, caps);
+    if (capCount)
+    {
+        osync_trace(TRACE_INTERNAL, "%s: set capabilities", __func__);
+        osync_plugin_info_set_capabilities(env->pluginInfo, caps);
+    } else {
+        osync_trace(TRACE_INTERNAL, "%s: no capabilities were received from the remote peer", __func__);
+        osync_capabilities_unref(caps);
+    }
 
     osync_trace(TRACE_EXIT, "%s - success", __func__);
     return TRUE;

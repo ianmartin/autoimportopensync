@@ -171,7 +171,7 @@ void connect_http_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		 * "Unfortunately" such a message is handled automatically
 		 * by the devinf agent. Nevertheless the transport layer
 		 * sends a CONNECT_DONE event which will be managed by
-		 * _manage_event.
+		 * _manager_event.
 		 */
 	}
 	
@@ -499,12 +499,13 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
         
         SmlPluginEnv *env = (SmlPluginEnv *)data;
+	OSyncError *oserror = NULL;
 
 	// first check if the server is available
 	if (!env->session)
 	{
 		OSyncContext *ctx = osync_context_new(error);
-		osync_context_set_callback(ctx, &_publish_osync_error, error);
+		osync_context_set_callback(ctx, &_publish_osync_error, &oserror);
         	osync_trace(TRACE_INTERNAL, "%s- create a fresh connection with a new context (%p)", __func__, ctx);
 		connect_http_client(data, info, ctx);
 	}
@@ -534,22 +535,28 @@ osync_bool syncml_http_client_discover(void *data, OSyncPluginInfo *info, OSyncE
         osync_version_unref(version);
 
 	/* let's wait for the device info of the server */
-	while (!smlDevInfAgentGetDevInf(env->agent) && !*error)
+	while (env->connectCtx)
 	{
 		unsigned int sleeping = 5;
 		osync_trace(TRACE_INTERNAL,
 			"%s: SyncML HTTP client waiting for device info (%d seconds) ...",
 			__func__, sleeping);
 		sleep(sleeping);
+		smlManagerDispatch(env->manager);
 	}
 
 	/* check for error */
-	if (*error != NULL)
+	if (oserror)
 	{
-		osync_trace(TRACE_INTERNAL, "%s - connect failed in some way", __func__);
+		osync_trace(TRACE_ERROR, "%s - %s", __func__, osync_error_print(&oserror));
 	}
 
-	/* print the device information */
+	/* print the device information
+	 * 
+	 * Some servers like funambol does not really support devinf.
+	 * These servers don't send CTCap and so it is not possible to
+	 * automatically detect the datastores.
+	 */
 	SmlDevInf *devinf = smlDevInfAgentGetDevInf(env->agent);
 	unsigned int stores = smlDevInfNumDataStores(devinf);
 	unsigned int i;

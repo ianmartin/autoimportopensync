@@ -620,7 +620,7 @@ void finalize(void *data)
 	}
 	if (env->disconnectCtx) {
 		OSyncError *error = NULL;
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - detected forgotten disconnect context", __func__);
 		report_error_on_context(&(env->disconnectCtx), &error, TRUE);
 	}
 	osync_trace(TRACE_INTERNAL, "%s - contexts cleaned", __func__);
