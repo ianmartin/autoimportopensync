@@ -329,6 +329,18 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		/* And we also add the devinfo to the devinf agent */
 		if (!add_devinf_datastore(env->devinf, database, error))
 			goto error_free_env;
+
+		/* Add the datastore the transport layer.
+		 * This is necessary for devices which need a special
+		 * AT command like some Samsung devices.
+		 */
+		char *objtype = g_ascii_strup(osync_objformat_get_objtype(database->objformat), -1);
+		if (!smlTransportSetConfigOption(env->tsp, "DATASTORE", objtype, &serror))
+		{
+			smlSafeCFree(&objtype);
+			goto error_free_env;
+		}
+		smlSafeCFree(&objtype);
 	}
 
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
