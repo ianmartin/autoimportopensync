@@ -9,7 +9,7 @@ be just about any kind of database we have a plugin like:
  - An LDAP server having a huge list of contacts (ldap-sync) 
  - An application like Mozilla Sunbird or Google Calendar managing calendars 
  - A PIM (Personal Information Management) like Ximian Evolution or KDE PIM 
- - A mobile phone which hosts contacts/ calendars/ notes
+ - A mobile phone which hosts contacts/calendars/notes
 
 OpenSync is not only limited to sync PIM data.
 
