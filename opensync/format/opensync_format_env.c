@@ -616,7 +616,7 @@ void osync_format_env_free(OSyncFormatEnv *env)
 osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, OSyncError **error)
 {
 	osync_bool must_exist = TRUE;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, __NULLSTR(path), error);
 	
 	if (!path) {
 		path = OPENSYNC_FORMATSDIR;

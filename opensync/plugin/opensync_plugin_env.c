@@ -119,7 +119,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 	char *filename = NULL;
 	const gchar *de = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, __NULLSTR(path), error);
 	
 	if (!path) {
 		path = OPENSYNC_PLUGINDIR;

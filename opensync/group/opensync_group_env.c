@@ -162,7 +162,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	const gchar *de = NULL;
 	OSyncGroup *group = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, __NULLSTR(path), error);
 	
 	/* Create the correct path and test it */
 	if (!path) {

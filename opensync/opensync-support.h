@@ -45,6 +45,7 @@ typedef enum {
 OSYNC_EXPORT char *osync_rand_str(int maxlength);
 OSYNC_EXPORT char *osync_print_binary(const unsigned char *data, int len);
 
+#define __NULLSTR(x) x ? x : "(NULL)"
 OSYNC_EXPORT void osync_trace_reset_indent(void);
 OSYNC_EXPORT void osync_trace(OSyncTraceType type, const char *message, ...);
 OSYNC_EXPORT void osync_trace_disable(void);
