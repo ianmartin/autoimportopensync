@@ -104,7 +104,7 @@ guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
 
     /* register all the add-ons */
     if (cred)
-        smlSessionSetCred(env->session, cred);
+        smlSessionRegisterCred(env->session, cred);
     if (!smlManagerSessionAdd(env->manager, env->session, link, error))
         return 0;
     if (!smlDevInfAgentRegisterSession(env->agent, env->manager, env->session, error))
