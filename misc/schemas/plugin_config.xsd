@@ -1,61 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
 
-  <xsd:simpleType name="PluginNameType">
-    <xsd:restriction base="xsd:string">
-    </xsd:restriction>
-  </xsd:simpleType>
+  <xsd:element name="config">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element maxOccurs="1" minOccurs="0" name="AdvancedOptions" type="AdvancedOptions"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Authentication" type="Authentication"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Connection" type="Connection"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="Descripition"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Localization" type="Localization"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Ressources" type="Ressources"/>
+      </xsd:sequence>
+      <xsd:attribute name="version" type="xsd:integer"/>
+    </xsd:complexType>
+  </xsd:element>
 
-  <xsd:simpleType name="PluginVersionType">
-    <xsd:restriction base="xsd:string">
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <xsd:simpleType name="PluginDescriptionType">
-    <xsd:restriction base="xsd:string">
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <xsd:complexType name="PluginConfigurationType" />
-
-  <xsd:complexType name="DirectoryPath">
-     <xsd:restriction base="xsd:string">
-     </xsd:restriction>
-  </xsd:complexType>
-
-  <xsd:complexType name="FilePath">
-     <xsd:restriction base="xsd:string">
-     </xsd:restriction>
-  </xsd:complexType>
-
-  <xsd:complexType name="Boolean">
-    <xsd:restriction base="xsd:boolean">
-    </xsd:restriction>
-  </xsd:complexType>
-
-  <xsd:complexType name="String">
-    <xsd:restriction base="xsd:string">
-    </xsd:restriction>
-  </xsd:complexType>
-
-  <xsd:complexType name="Password">
-    <xsd:restriction base="xsd:string">
-    </xsd:restriction>
-  </xsd:complexType>
-
-  <xsd:complexType name="Numeric">
-     <xsd:restriction base="xsd:integer">
-     </xsd:restriction>
-  </xsd:complexType>
-
-  <xsd:complexType name="Enumeration">
-  </xsd:complexType>
-
-  <xsd:complexType name="PluginType">
+  <xsd:complexType name="AdvancedOptions">
     <xsd:sequence>
-      <xsd:element name="Name" type="PluginNameType" />
-      <xsd:element name="Version" type="PluginVersionType" />
-      <xsd:element name="Description" type="PluginDescriptionType" />
+    <!-- TODO: self declaring schema -->
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="Authentication">
+    <xsd:sequence>
+      <xsd:element name="Username" type="xsd:string" />
+      <xsd:element name="Password" type="xsd:string" />
+      <xsd:element name="Reference" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="Localization">
+    <xsd:sequence>
+      <xsd:element name="Encoding" type="xsd:string" />
+      <xsd:element name="Timezone" type="xsd:string" />
+      <xsd:element name="Language" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="Description">
+    <xsd:sequence>
+      <xsd:element name="Vendor" type="xsd:string" />
+      <xsd:element name="Product" type="xsd:string" />
+      <xsd:element name="Model" type="xsd:string" />
+      <xsd:element name="Revision" type="xsd:string" />
+      <xsd:element name="Version" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="Ressources">
+    <xsd:sequence>
+      <xsd:element name="Name" type="xsd:string" />
+      <xsd:element name="MIME" type="xsd:string" />
+      <xsd:element name="ObjFormat" type="xsd:string" />
+      <xsd:element name="Path" type="xsd:string" />
+      <xsd:element name="Url" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ConnectionBluetooth">
+    <xsd:sequence>
+      <xsd:element name="MAC" type="xsd:string" />
+      <xsd:element name="RFCommChannel" type="xsd:integer" />
+      <xsd:element name="SDPUUID" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ConnectionUSB">
+    <xsd:sequence>
+      <xsd:element name="VendorID" type="xsd:string" />
+      <xsd:element name="ProductID" type="xsd:string" />
+      <xsd:element name="Interface" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ConnectionNetwork">
+    <xsd:sequence>
+      <xsd:element name="Address" type="xsd:string" />
+      <xsd:element name="Port" type="xsd:integer" />
+      <xsd:element name="Protocol" type="xsd:string" />
+      <xsd:element name="DNSSD" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ConnectionSerial">
+    <xsd:sequence>
+      <xsd:element name="Speed" type="xsd:integer" />
+      <xsd:element name="DeviceNode" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="Connection">
+    <xsd:sequence>
+      <xsd:element name="Bluetooth" type="ConnectionBluetooth" />
+      <xsd:element name="USB" type="ConnectionUSB" />
+      <xsd:element name="IrDA" type="ConnectionIrDA" />
+      <xsd:element name="Network" type="ConnectionNetwork" />
+      <xsd:element name="Serial" type="ConnectionSerial" />
     </xsd:sequence>
   </xsd:complexType>
 
