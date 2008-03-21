@@ -91,11 +91,11 @@ static void _osync_trace_init()
 	if (!trace)
 		return;
 	
-	const char *sensitive = g_getenv("OSYNC_PRIVACY");
+	const char *noprivacy = g_getenv("OSYNC_NOPRIVACY");
 	if (!trace_sensitive)
 		trace_sensitive = g_private_new(NULL);
 
-	if (sensitive)
+	if (noprivacy)
 		g_private_set(trace_sensitive, GINT_TO_POINTER(1));
 	else
 		g_private_set(trace_sensitive, GINT_TO_POINTER(0));
@@ -192,7 +192,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			logmessage = g_strdup_printf("[%li.%li]\t%s%s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			break;
 		case TRACE_SENSITIVE:
-			if (!GPOINTER_TO_INT(g_private_get(trace_sensitive)))
+			if (GPOINTER_TO_INT(g_private_get(trace_sensitive)))
 				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE] %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			else
 				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE CONTENT HIDDEN]%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, endline);
