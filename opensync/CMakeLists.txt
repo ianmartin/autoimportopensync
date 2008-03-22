@@ -46,9 +46,13 @@ SET( libopensync_LIB_SRCS
    merger/opensync_xmlfieldlist.c
    merger/opensync_xmlformat.c
    module/opensync_module.c
+   plugin/opensync_plugin_authentication.c
    plugin/opensync_plugin.c
+   plugin/opensync_plugin_config.c
+   plugin/opensync_plugin_connection.c
    plugin/opensync_plugin_env.c
    plugin/opensync_plugin_info.c
+   plugin/opensync_plugin_localization.c
    plugin/opensync_sink.c
    version/opensync_version.c
 )

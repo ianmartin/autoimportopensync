@@ -25,13 +25,16 @@
  * 
  * @ingroup OSyncPluginAuthenticationPrivateAPI 
  **/
-struct OSyncPluginAuthenticationInternals {
+struct OSyncPluginAuthentication {
 	/** Username (or Login) to identifiy or authentifiy */
 	char *username;
 	/** Password to authenticate. DONT USE THIS! The password is NOT protect at all! */
 	char *password;
 	/** Reference or Key for Password Managers which store the password in a safe way. */
 	char *reference; 
+
+	/** Object reference counting */
+	int ref_count;
 };
 
 #endif /*_OPENSYNC_PLUGIN_AUTHENTICATON_INTERNALS_H_*/

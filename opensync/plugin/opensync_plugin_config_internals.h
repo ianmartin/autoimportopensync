@@ -18,24 +18,24 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_LOCALIZATION_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_LOCALIZATION_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
+#define _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
 
-/*! @brief Gives information about current localization settings 
+/*! @brief Gives information about the plugin configuration 
  * 
- * @ingroup OSyncPluginLocalizationPrivateAPI 
+ * @ingroup OSyncPluginConfigPrivateAPI 
  **/
-struct OSyncPluginLocalization {
-	/** Encoding of device/service/application (e.g. cp1925, ...) */
-	char *encoding;
-	/** Timezone of device/service/application (e.g. Europe/Berlin, ...) */
-	char *timezone;
-	/** Language of device/service/application (e.g. en_US, de_DE, ...) */
-	char *language;
+struct OSyncPluginConfig {
+	/** Connection configuration */
+	OSyncPluginConnection *connection;
+	/** Authentication configuration */
+	OSyncPluginAuthentication *authentication;
+	/** Localization configuration */
+	OSyncPluginLocalization *localization;
 
 	/** Object reference counting */
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_LOCALIZATION_INTERNALS_H_*/
+#endif /*_OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_*/
 

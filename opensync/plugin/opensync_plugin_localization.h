@@ -22,17 +22,17 @@
 #define _OPENSYNC_PLUGIN_LOCALIZATION_H_
 
 OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_localization_new(OSyncError **error);
-OSYNC_EXPORT void osync_plugin_localization_unref(OSyncPluginLocalization *auth);
-OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_localization_ref(OSyncPluginLocalization *auth);
+OSYNC_EXPORT void osync_plugin_localization_unref(OSyncPluginLocalization *local);
+OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_localization_ref(OSyncPluginLocalization *local);
 
-OSYNC_EXPORT const char *osync_plugin_localization_get_encoding(OSyncPluginLocalization *auth);
-OSYNC_EXPORT void osync_plugin_localization_set_encoding(OSyncPluginLocalization *auth, const char *encoding);
+OSYNC_EXPORT const char *osync_plugin_localization_get_encoding(OSyncPluginLocalization *local);
+OSYNC_EXPORT void osync_plugin_localization_set_encoding(OSyncPluginLocalization *local, const char *encoding);
 
-OSYNC_EXPORT const char *osync_plugin_localization_get_timezone(OSyncPluginLocalization *auth);
-OSYNC_EXPORT void osync_plugin_localization_set_language(OSyncPluginLocalization *auth, const char *timezone);
+OSYNC_EXPORT const char *osync_plugin_localization_get_timezone(OSyncPluginLocalization *local);
+OSYNC_EXPORT void osync_plugin_localization_set_timezone(OSyncPluginLocalization *local, const char *timezone);
 
-OSYNC_EXPORT const char *osync_plugin_localization_get_language(OSyncPluginLocalization *auth);
-OSYNC_EXPORT void osync_plugin_localization_set_language(OSyncPluginLocalization *auth, const char *language);
+OSYNC_EXPORT const char *osync_plugin_localization_get_language(OSyncPluginLocalization *local);
+OSYNC_EXPORT void osync_plugin_localization_set_language(OSyncPluginLocalization *local, const char *language);
 
 #endif /*_OPENSYNC_PLUGIN_LOCALIZATION_H_*/
 

@@ -48,25 +48,25 @@ OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_ref(OSyncPluginConne
 OSYNC_EXPORT const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_bt_set_addr(OSyncPluginConnection *connection, const char *address);
 
-OSYNC_EXPORT int osync_plugin_connection_bt_get_channel(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_bt_set_channel(OSyncPluginConnection *connection, int channel);
+OSYNC_EXPORT unsigned int osync_plugin_connection_bt_get_channel(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_bt_set_channel(OSyncPluginConnection *connection, unsigned int channel);
 
 OSYNC_EXPORT const char *osync_plugin_connection_bt_get_sdpuuid(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_bt_set_sdpuuid(OSyncPluginConnection *connection, const char *sdpuuid);
 
 /* USB */
-OSYNC_EXPORT uint16_t osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, uint16_t vendorid);
+OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, unsigned int vendorid);
 
-OSYNC_EXPORT uint16_t osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, uint16_t productid);
+OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, unsigned int productid);
 
 /* Network */
 OSYNC_EXPORT const char *osync_plugin_connection_net_get_address(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_net_set_address(OSyncPluginConnection *connection, const char *address);
 
-OSYNC_EXPORT int osync_plugin_connection_net_get_port(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_net_set_port(OSyncPluginConnection *connection, int port);
+OSYNC_EXPORT unsigned int osync_plugin_connection_net_get_port(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_net_set_port(OSyncPluginConnection *connection, unsigned int port);
 
 OSYNC_EXPORT const char *osync_plugin_connection_net_get_protocol(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_net_set_protocol(OSyncPluginConnection *connection, const char *protocol);
@@ -75,8 +75,8 @@ OSYNC_EXPORT const char *osync_plugin_connection_net_get_dnssd(OSyncPluginConnec
 OSYNC_EXPORT void osync_plugin_connection_net_set_dnssd(OSyncPluginConnection *connection, const char *dnssd);
 
 /* Serial */
-OSYNC_EXPORT int osync_plugin_connection_serial_get_speed(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_serial_set_speed(OSyncPluginConnection *connection, int speed);
+OSYNC_EXPORT unsigned int osync_plugin_connection_serial_get_speed(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_serial_set_speed(OSyncPluginConnection *connection, unsigned int speed);
 
 OSYNC_EXPORT const char *osync_plugin_connection_serial_get_devicenode(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_serial_set_devicenode(OSyncPluginConnection *connection, const char *devicenode);

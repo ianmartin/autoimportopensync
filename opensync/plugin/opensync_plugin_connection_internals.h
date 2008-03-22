@@ -25,35 +25,38 @@
  * 
  * @ingroup OSyncPluginConnectionPrivateAPI 
  **/
-struct OSyncPluginConnectionInternals {
+struct OSyncPluginConnection {
 	/** Bluetooth (MAC) Address */
 	char *bt_address;
 	/** Bluetooth SDP UUID */
 	char *bt_sdpuuid;
 	/** Bluetooth RFComm Channel */
-	int bt_channel;
+	unsigned int bt_channel;
 
 	/** USB Vendor ID */
-	uint16_t usb_vendorid;
+	unsigned int usb_vendorid;
 	/** USB Product ID */
-	uint16_t usb_productid;
+	unsigned int usb_productid;
 	
 	/** Network IP Address or Hostname */
 	char *net_address;
 	/** Network Port */
-	int net_port;
+	unsigned int net_port;
 	/** Network Protocol Suffix (e.g. http:// ssh://) */
 	char *net_protocol;
 	/** Network DNS-SD service type (e.g.: _syncml-http._tcp) */
 	char *net_dnssd;
 
 	/** Serial Port speed (e.g. 115200) */
-	int serial_speed;
+	unsigned int serial_speed;
 	/** Serial Device Node (e.g. /dev/ttyS0, /dev/ttyUSB0, ...) */
 	char *serial_devicenode;
 
 	/** IrDA Identifier (Service) String */
 	char *irda_service;
+
+	/** Object reference counting */
+	int ref_count;
 };
 
 #endif /*_OPENSYNC_PLUGIN_CONNECTION_INTERNALS_H_*/
