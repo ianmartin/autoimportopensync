@@ -425,7 +425,15 @@ const char *osync_get_version(void)
  */
 void *osync_try_malloc0(unsigned int size, OSyncError **error)
 {
-	void *result = g_try_malloc(size);
+	void *result = NULL;
+	
+#ifdef OPENSYNC_UNITTESTS 	
+	if (!g_getenv("OSYNC_NOMEMORY"))
+		result = g_try_malloc(size);
+#else		
+	result = g_try_malloc(size);
+#endif /*OPENSYNC_UNITTESTS*/
+
 	if (!result) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left");
 		return NULL;
