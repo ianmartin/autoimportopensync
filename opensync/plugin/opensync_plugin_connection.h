@@ -40,9 +40,11 @@ typedef enum {
 	OSYNC_PLUGIN_CONNECTION_IRDA
 } OSyncPluginConnectionType;
 
-OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error);
+OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_new(OSyncPluginConnectionType type, OSyncError **error);
 OSYNC_EXPORT void osync_plugin_connection_unref(OSyncPluginConnection *connection);
 OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_ref(OSyncPluginConnection *connection);
+
+OSYNC_EXPORT OSyncPluginConnectionType osync_plugin_connection_get_type(OSyncPluginConnection *connection);
 
 /* Bluetooth */
 OSYNC_EXPORT const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection);
@@ -60,6 +62,9 @@ OSYNC_EXPORT void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection
 
 OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, unsigned int productid);
+
+OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interface);
 
 /* Network */
 OSYNC_EXPORT const char *osync_plugin_connection_net_get_address(OSyncPluginConnection *connection);

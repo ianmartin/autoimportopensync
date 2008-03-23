@@ -25,6 +25,9 @@ OSYNC_EXPORT OSyncPluginConfig *osync_plugin_config_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_config_unref(OSyncPluginConfig *config);
 OSYNC_EXPORT OSyncPluginConfig *osync_plugin_config_ref(OSyncPluginConfig *config);
 
+OSYNC_EXPORT osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *path, OSyncError **error);
+
 /* Authentication */
 OSYNC_EXPORT OSyncPluginAuthentication *osync_plugin_config_get_authentication(OSyncPluginConfig *config);
 OSYNC_EXPORT void osync_plugin_config_set_authentication(OSyncPluginConfig *config, OSyncPluginAuthentication *authentication);

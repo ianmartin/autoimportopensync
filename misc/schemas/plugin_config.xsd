@@ -4,12 +4,11 @@
   <xsd:element name="config">
     <xsd:complexType>
       <xsd:sequence>
-        <xsd:element maxOccurs="1" minOccurs="0" name="AdvancedOptions" type="AdvancedOptions"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Authentication" type="Authentication"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Connection" type="Connection"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="Descripition"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Localization" type="Localization"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="Ressources" type="Ressources"/>
+<!--    <xsd:element maxOccurs="1" minOccurs="0" name="Ressources" type="Ressources"/> -->
+<!--    <xsd:element maxOccurs="1" minOccurs="0" name="AdvancedOptions" type="AdvancedOptions"/> -->
       </xsd:sequence>
       <xsd:attribute name="version" type="xsd:integer"/>
     </xsd:complexType>
@@ -37,16 +36,7 @@
     </xsd:sequence>
   </xsd:complexType>
 
-  <xsd:complexType name="Description">
-    <xsd:sequence>
-      <xsd:element name="Vendor" type="xsd:string" />
-      <xsd:element name="Product" type="xsd:string" />
-      <xsd:element name="Model" type="xsd:string" />
-      <xsd:element name="Revision" type="xsd:string" />
-      <xsd:element name="Version" type="xsd:string" />
-    </xsd:sequence>
-  </xsd:complexType>
-
+  <!--
   <xsd:complexType name="Ressources">
     <xsd:sequence>
       <xsd:element name="Name" type="xsd:string" />
@@ -56,6 +46,7 @@
       <xsd:element name="Url" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
+  -->
 
   <xsd:complexType name="ConnectionBluetooth">
     <xsd:sequence>
@@ -67,9 +58,9 @@
 
   <xsd:complexType name="ConnectionUSB">
     <xsd:sequence>
-      <xsd:element name="VendorID" type="xsd:string" />
-      <xsd:element name="ProductID" type="xsd:string" />
-      <xsd:element name="Interface" type="xsd:string" />
+      <xsd:element name="VendorID" type="xsd:integer" />
+      <xsd:element name="ProductID" type="xsd:integer" />
+      <xsd:element name="Interface" type="xsd:integer" />
     </xsd:sequence>
   </xsd:complexType>
 
@@ -86,6 +77,12 @@
     <xsd:sequence>
       <xsd:element name="Speed" type="xsd:integer" />
       <xsd:element name="DeviceNode" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ConnectionIrDA">
+    <xsd:sequence>
+      <xsd:element name="Service" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 

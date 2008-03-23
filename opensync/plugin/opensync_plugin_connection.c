@@ -24,13 +24,14 @@
 #include "opensync-plugin.h"
 #include "opensync_plugin_connection_internals.h"
 
-OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error)
+OSyncPluginConnection *osync_plugin_connection_new(OSyncPluginConnectionType type, OSyncError **error)
 {
 	OSyncPluginConnection *connection = osync_try_malloc0(sizeof(OSyncPluginConnection), error);
 	if (!connection)
 		return NULL;
 
 	connection->ref_count = 1;
+	connection->type = type;
 
 	return connection;
 }
@@ -74,6 +75,12 @@ void osync_plugin_connection_unref(OSyncPluginConnection *connection)
 	}
 }
 
+OSyncPluginConnectionType osync_plugin_connection_get_type(OSyncPluginConnection *connection)
+{
+	osync_assert(connection);
+
+	return connection->type;
+}
 
 const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection)
 {
@@ -139,7 +146,6 @@ void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection,
 	connection->usb_vendorid = vendorid;
 }
 
-
 unsigned int osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection)
 {
 	osync_assert(connection);
@@ -154,6 +160,19 @@ void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection
 	connection->usb_productid = productid;
 }
 
+unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *connection)
+{
+	osync_assert(connection);
+
+	return connection->usb_interface;
+}
+
+void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interface)
+{
+	osync_assert(connection);
+
+	connection->usb_interface = interface;
+}
 
 const char *osync_plugin_connection_net_get_address(OSyncPluginConnection *connection)
 {

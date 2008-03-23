@@ -26,6 +26,9 @@
  * @ingroup OSyncPluginConnectionPrivateAPI 
  **/
 struct OSyncPluginConnection {
+	/** Connection type */
+	OSyncPluginConnectionType type;
+
 	/** Bluetooth (MAC) Address */
 	char *bt_address;
 	/** Bluetooth SDP UUID */
@@ -37,6 +40,8 @@ struct OSyncPluginConnection {
 	unsigned int usb_vendorid;
 	/** USB Product ID */
 	unsigned int usb_productid;
+	/** USB Interface */
+	unsigned int usb_interface;
 	
 	/** Network IP Address or Hostname */
 	char *net_address;

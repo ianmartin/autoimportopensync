@@ -21,6 +21,8 @@
 #ifndef _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
 #define _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
 
+#define OSYNC_PLUGIN_CONFING_SCHEMA "plugin_config.xsd"
+
 /*! @brief Gives information about the plugin configuration 
  * 
  * @ingroup OSyncPluginConfigPrivateAPI 

@@ -54,7 +54,7 @@ START_TEST (plugin_config_subcomponents)
 
 	/* Adding Subcomponents: */
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 	osync_plugin_config_set_connection(config, conn);
@@ -86,7 +86,7 @@ START_TEST (plugin_config_subcomponents)
 
 	/* Overwrite Subcomponents */
 	/* Connection */
-	OSyncPluginConnection *conn2 = osync_plugin_connection_new(&error);
+	OSyncPluginConnection *conn2 = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn2 != NULL, NULL);
 	osync_plugin_config_set_connection(config, conn2);
@@ -128,7 +128,7 @@ START_TEST (plugin_config_subcomponents_nomemory)
 
 	/* Adding Subcomponents (without memory -> booooooom!): */
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
 	fail_unless(error != NULL, NULL);
 	fail_unless(conn == NULL, NULL);
 	osync_error_unref(&error);
@@ -206,7 +206,7 @@ START_TEST (plugin_config_connection)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
