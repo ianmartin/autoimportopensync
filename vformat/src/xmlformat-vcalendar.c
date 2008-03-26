@@ -464,7 +464,7 @@ void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
 }
 
