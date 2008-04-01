@@ -471,7 +471,7 @@ void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMappingEngine *m
 			return;
 		}
 	}
-	fail();
+	fail("");
 }
 
 void conflict_handler_ignore(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
