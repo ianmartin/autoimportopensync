@@ -76,6 +76,7 @@ typedef struct SmlPluginEnv {
 	SmlBool prepareMapFlushing;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
+	SmlBool doReconnect;
 	
 	OSyncPluginInfo *pluginInfo;
 	char *anchor_path;

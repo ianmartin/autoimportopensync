@@ -69,26 +69,35 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
 			osync_trace(TRACE_INTERNAL, "%s: connection with device has ended", __func__);
-			/* This is the real end of the sync process and
-			 * so it is a good idea to commit the changes here
-			 * and not earlier because now the remote peer
-			 * commits too. This happens in two situations:
-			 *     - this is an OMA DS client
-			 *     - this is an OMA DS server and the remote
-			 *       does not send a map
-			 */
-			o = env->databases;
-			for (; o; o = o->next) {
-				SmlDatabase *database = o->data;
-				if (database->commitCtx)
-					report_success_on_context(&(database->commitCtx));
-			}
+			if (env->doReconnect)
+			{
+				/* The disconnect is from a DS client which only
+				 * finished its first OMA DS session.
+				 */
+				env->doReconnect = FALSE;
+				env->connectFunction(env, NULL, NULL);
+			} else {
+				/* This is the real end of the sync process and
+				 * so it is a good idea to commit the changes here
+				 * and not earlier because now the remote peer
+				 * commits too. This happens in two situations:
+				 *     - this is an OMA DS client
+				 *     - this is an OMA DS server and the remote
+				 *       does not send a map
+				 */
+				o = env->databases;
+				for (; o; o = o->next) {
+					SmlDatabase *database = o->data;
+					if (database->commitCtx)
+						report_success_on_context(&(database->commitCtx));
+				}
 
-			/* a real disconnet happens */
-			env->gotDisconnect = TRUE;
-			if (env->disconnectCtx) { 
-				osync_trace(TRACE_INTERNAL, "%s: signal disconnect via context", __func__);
-				report_success_on_context(&(env->disconnectCtx));
+				/* a real disconnet happens */
+				env->gotDisconnect = TRUE;
+				if (env->disconnectCtx) { 
+					osync_trace(TRACE_INTERNAL, "%s: signal disconnect via context", __func__);
+					report_success_on_context(&(env->disconnectCtx));
+				}
 			}
 			break;
 		case SML_MANAGER_TRANSPORT_ERROR:
@@ -220,22 +229,21 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			}
 			if (firstClientSession)
 			{
-				/* This is the disconnect of the first session
+				/* This is the end of the first session
 				 * of an OMA DS client. It is necessary to
 				 * create a new session and after this report
 				 * success for the active change contexts.
 				 */
-				env->connectFunction(env, NULL, NULL);
 				o = env->databases;
 				for (; o; o = o->next) {
 					SmlDatabase *database = o->data;
 					if (database->getChangesCtx)
 						report_success_on_context(&(database->getChangesCtx));
 				}
-			} else {
-				if (!smlTransportDisconnect(env->tsp, NULL, &error))
-					goto error;
+				env->doReconnect = TRUE;
 			}
+			if (!smlTransportDisconnect(env->tsp, NULL, &error))
+				goto error;
 			break;
 		case SML_MANAGER_SESSION_ERROR:
 			osync_trace(TRACE_INTERNAL, "There was an error in the session %s: %s", smlSessionGetSessionID(session), smlErrorPrint(&error));
