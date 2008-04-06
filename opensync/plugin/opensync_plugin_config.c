@@ -102,6 +102,8 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
+	unsigned int usbid;
+
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
@@ -112,9 +114,11 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"VendorID")) {
-			osync_plugin_connection_usb_set_vendorid(conn, atoi(str));
+			sscanf(str, "0x%x", &usbid);
+			osync_plugin_connection_usb_set_vendorid(conn, usbid);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"ProductID")) {
-			osync_plugin_connection_usb_set_productid(conn, atoi(str));
+			sscanf(str, "0x%x", &usbid);
+			osync_plugin_connection_usb_set_productid(conn, usbid);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Interface")) {
 			osync_plugin_connection_usb_set_interface(conn, atoi(str));
 		} else {
@@ -513,7 +517,7 @@ static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPl
 
 			interface = osync_plugin_connection_usb_get_interface(conn);
 			if (interface) {
-				str = g_strdup_printf("0x%x", interface);
+				str = g_strdup_printf("%u", interface);
 				xmlNewChild(typenode, NULL, (xmlChar*)"Interface", (xmlChar*)str);
 				g_free(str);
 			}
