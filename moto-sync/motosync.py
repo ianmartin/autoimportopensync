@@ -557,7 +557,8 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
     ruleset.rrule(xml_rrule_to_dateutil(rulenode, eventdt))
 
     # if the rule ends, get its last occurrence
-    if getXMLField(rulenode, 'Until') or getXMLField(rulenode, 'Count'):
+    if (getXMLField(rulenode, 'Until') or
+        (getXMLField(rulenode, 'Count') and getXMLField(rulenode, 'Count') != '0')):
         ret['repeat_until'] = ruleset[-1]
 
     # what events would happen if there were no exceptions?
