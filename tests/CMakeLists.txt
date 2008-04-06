@@ -11,6 +11,7 @@ TARGET_LINK_LIBRARIES( support opensync-testing ${CHECK_LIBRARIES} )
 
 SET( TEST_TARGET_LIBRARIES support ) 
 
+ADD_TEST( symbols ${CMAKE_CURRENT_SOURCE_DIR}/abiapi-tests/check-symbols ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} )
 ADD_CHECK_TEST( archive archive-tests/check_archive.c ${TEST_TARGET_LIBRARIES} )
 ADD_CHECK_TEST( capabilities merger-tests/check_capabilities.c ${TEST_TARGET_LIBRARIES} )
 ADD_CHECK_TEST( client client-tests/check_client.c ${TEST_TARGET_LIBRARIES} )

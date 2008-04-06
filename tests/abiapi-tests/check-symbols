@@ -1,0 +1,20 @@
+#!/bin/bash
+# Copyright (c) 2008 Daniel Gollub <dgollub@suse.de>
+
+SYMBOLS=opensync.sym
+
+if ! [ $1 -a $2 ]; then
+	echo "usage: $0 <root source directory> <root build directory>";
+	exit 1
+fi
+
+TMPFILE=`mktemp /tmp/opensync.symbols.XXXXXXXXXX` || exit 1
+
+# FIXME: 'grep "osync_"' is just a HACK for non OpenSync specific symbols (gcov, ...)
+nm --defined-only -g $2/opensync/libopensync.so | awk '{print $3}' | grep "osync_" > $TMPFILE
+#nm --defined-only -g $2/opensync/libopensync.so | awk '{print $3}' > $TMPFILE
+
+diff $1/$SYMBOLS $TMPFILE || exit 1
+
+rm $TMPFILE
+exit 0
