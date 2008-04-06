@@ -10,7 +10,7 @@
 <!--    <xsd:element maxOccurs="1" minOccurs="0" name="Ressources" type="Ressources"/> -->
 <!--    <xsd:element maxOccurs="1" minOccurs="0" name="AdvancedOptions" type="AdvancedOptions"/> -->
       </xsd:sequence>
-      <xsd:attribute name="version" type="xsd:integer"/>
+      <xsd:attribute name="version" type="xsd:string"/>
     </xsd:complexType>
   </xsd:element>
 
@@ -22,17 +22,17 @@
 
   <xsd:complexType name="Authentication">
     <xsd:sequence>
-      <xsd:element name="Username" type="xsd:string" />
-      <xsd:element name="Password" type="xsd:string" />
-      <xsd:element name="Reference" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Username" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Password" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Reference" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="Localization">
     <xsd:sequence>
-      <xsd:element name="Encoding" type="xsd:string" />
-      <xsd:element name="Timezone" type="xsd:string" />
-      <xsd:element name="Language" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Encoding" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Timezone" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Language" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
@@ -50,49 +50,49 @@
 
   <xsd:complexType name="ConnectionBluetooth">
     <xsd:sequence>
-      <xsd:element name="MAC" type="xsd:string" />
-      <xsd:element name="RFCommChannel" type="xsd:integer" />
-      <xsd:element name="SDPUUID" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="MAC" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="RFCommChannel" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="SDPUUID" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="ConnectionUSB">
     <xsd:sequence>
-      <xsd:element name="VendorID" type="xsd:integer" />
-      <xsd:element name="ProductID" type="xsd:integer" />
-      <xsd:element name="Interface" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="VendorID" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="ProductID" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Interface" type="xsd:integer" />
     </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="ConnectionNetwork">
     <xsd:sequence>
-      <xsd:element name="Address" type="xsd:string" />
-      <xsd:element name="Port" type="xsd:integer" />
-      <xsd:element name="Protocol" type="xsd:string" />
-      <xsd:element name="DNSSD" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Address" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Port" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Protocol" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="DNSSD" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="ConnectionSerial">
     <xsd:sequence>
-      <xsd:element name="Speed" type="xsd:integer" />
-      <xsd:element name="DeviceNode" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Speed" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="DeviceNode" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="ConnectionIrDA">
     <xsd:sequence>
-      <xsd:element name="Service" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="Service" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="Connection">
     <xsd:sequence>
-      <xsd:element name="Bluetooth" type="ConnectionBluetooth" />
-      <xsd:element name="USB" type="ConnectionUSB" />
-      <xsd:element name="IrDA" type="ConnectionIrDA" />
-      <xsd:element name="Network" type="ConnectionNetwork" />
-      <xsd:element name="Serial" type="ConnectionSerial" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Bluetooth" type="ConnectionBluetooth" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="USB" type="ConnectionUSB" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="IrDA" type="ConnectionIrDA" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Network" type="ConnectionNetwork" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Serial" type="ConnectionSerial" />
     </xsd:sequence>
   </xsd:complexType>
 
