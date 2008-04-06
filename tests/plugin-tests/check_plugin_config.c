@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include <opensync/opensync-plugin.h>
+#include "opensync/plugin/opensync_plugin_config_internals.h"
 
 START_TEST (plugin_config_new)
 {
@@ -256,6 +257,10 @@ START_TEST (plugin_config_connection)
 	osync_plugin_connection_usb_set_productid(conn, 0xaffe);
 	fail_unless(osync_plugin_connection_usb_get_productid(conn) == 0xaffe, NULL);
 
+	/* USB Interface*/
+	osync_plugin_connection_usb_set_interface(conn, 2);
+	fail_unless(osync_plugin_connection_usb_get_interface(conn) == 2, NULL);
+
 	/* Network Address */
 	osync_plugin_connection_net_set_address(conn, "opensync.org");
 	fail_unless(!strcmp(osync_plugin_connection_net_get_address(conn), "opensync.org"), NULL);
@@ -364,6 +369,74 @@ START_TEST (plugin_config_localization)
 END_TEST
 
 
+START_TEST (plugin_config_save_and_load)
+{
+	char *testbed = setup_testbed(NULL);
+
+	OSyncError *error = NULL;
+	OSyncPluginConfig *config = osync_plugin_config_new(&error);
+	OSyncPluginConfig *reloaded_config = osync_plugin_config_new(&error); 
+	fail_unless(error == NULL, NULL);
+	fail_unless(config != NULL, NULL);
+
+	/* Localization */
+	OSyncPluginLocalization *local = osync_plugin_localization_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(local != NULL, NULL);
+
+	/* Encoding */
+	osync_plugin_localization_set_encoding(local, "cp1222");
+
+	/* Timezone */
+	osync_plugin_localization_set_timezone(local, "Europe/Berlin");
+
+	/* Language */
+	osync_plugin_localization_set_language(local, "de_DE");
+
+	/* Connection */
+	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_BLUETOOTH, &error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(conn != NULL, NULL);
+
+	/* Bluetooth Address */
+	osync_plugin_connection_bt_set_addr(conn, "FF:FF:FF:FF:FF:FF");
+
+	/* Bluetooth SDP UUID */
+	osync_plugin_connection_bt_set_sdpuuid(conn, "00000001-0000-1000-8000-0002EE000002");
+
+	/* Set subcomponents */
+	osync_plugin_config_set_connection(config, conn);
+	osync_plugin_connection_unref(conn);
+	osync_plugin_config_set_localization(config, local);
+	osync_plugin_localization_unref(local);
+
+	char *config_file = g_strdup_printf("%s/dummy_config.xml", testbed);
+	fail_unless(osync_plugin_config_file_save(config, config_file, &error), "%s", osync_error_print(&error));
+	fail_unless(_osync_plugin_config_file_load(reloaded_config, config_file, testbed, &error), NULL);
+	g_free(config_file);
+
+	/* Compare stored config with original config */
+
+	OSyncPluginConnection *reloaded_conn = osync_plugin_config_get_connection(reloaded_config);
+	OSyncPluginLocalization *reloaded_local = osync_plugin_config_get_localization(reloaded_config);
+
+	fail_unless(reloaded_conn != NULL, NULL);
+	fail_unless(reloaded_local != NULL, NULL);
+
+	fail_unless(!strcmp(osync_plugin_localization_get_language(reloaded_local), "de_DE"), NULL);
+	fail_unless(!strcmp(osync_plugin_localization_get_encoding(reloaded_local), "cp1222"), NULL);
+	fail_unless(!strcmp(osync_plugin_localization_get_timezone(reloaded_local), "Europe/Berlin"), NULL);
+
+	fail_unless(!strcmp(osync_plugin_connection_bt_get_sdpuuid(reloaded_conn), "00000001-0000-1000-8000-0002EE000002"), NULL);
+	fail_unless(!strcmp(osync_plugin_connection_bt_get_addr(reloaded_conn), "FF:FF:FF:FF:FF:FF"), NULL);
+
+	osync_plugin_config_unref(config);
+	osync_plugin_config_unref(reloaded_config);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *client_suite(void)
 {
 	Suite *s = suite_create("PluginConfig");
@@ -376,6 +449,7 @@ Suite *client_suite(void)
 	create_case(s, "plugin_config_authentication", plugin_config_authentication);
 	create_case(s, "plugin_config_connection", plugin_config_connection);
 	create_case(s, "plugin_config_localization", plugin_config_localization);
+	create_case(s, "plugin_config_save_and_load", plugin_config_save_and_load);
 	
 	return s;
 }

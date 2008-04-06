@@ -37,6 +37,9 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 
 	for (; cur != NULL; cur = cur->next) {
 
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
@@ -50,6 +53,8 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 
 		xmlFree(str);
 	}
+
+	osync_plugin_config_set_authentication(config, auth);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -64,6 +69,9 @@ static osync_bool _osync_plugin_config_parse_connection_bluetooth(OSyncPluginCon
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
 
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
@@ -96,6 +104,9 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 
 	for (; cur != NULL; cur = cur->next) {
 
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
@@ -126,6 +137,9 @@ static osync_bool _osync_plugin_config_parse_connection_irda(OSyncPluginConnecti
 
 	for (; cur != NULL; cur = cur->next) {
 
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
@@ -151,6 +165,9 @@ static osync_bool _osync_plugin_config_parse_connection_network(OSyncPluginConne
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
 
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
@@ -184,6 +201,9 @@ static osync_bool _osync_plugin_config_parse_connection_serial(OSyncPluginConnec
 
 	for (; cur != NULL; cur = cur->next) {
 
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
@@ -214,44 +234,50 @@ static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *confi
 	osync_bool ret = TRUE;
 
 	OSyncPluginConnection *conn = NULL;
-	
-	if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
-		if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_BLUETOOTH, error)))
+
+	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
+			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_BLUETOOTH, error)))
+				goto error;
+
+			ret = _osync_plugin_config_parse_connection_bluetooth(conn, cur->xmlChildrenNode, error);
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"USB")) {
+			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_USB, error)))
+				goto error;
+
+			ret = _osync_plugin_config_parse_connection_usb(conn, cur->xmlChildrenNode, error);
+
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"IrDA")) {
+			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_IRDA, error)))
+				goto error;
+
+			ret = _osync_plugin_config_parse_connection_irda(conn, cur->xmlChildrenNode, error);
+
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Network")) {
+			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_NETWORK, error)))
+				goto error;
+
+			ret = _osync_plugin_config_parse_connection_network(conn, cur->xmlChildrenNode, error);
+
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Serial")) {
+			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_SERIAL, error)))
+				goto error;
+
+			ret = _osync_plugin_config_parse_connection_serial(conn, cur->xmlChildrenNode, error);
+		} else {
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
 			goto error;
-
-		ret = _osync_plugin_config_parse_connection_bluetooth(conn, cur->xmlChildrenNode, error);
-	} else if (!xmlStrcmp(cur->name, (const xmlChar *)"USB")) {
-		if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_USB, error)))
-			goto error;
-
-		ret = _osync_plugin_config_parse_connection_usb(conn, cur->xmlChildrenNode, error);
-
-	} else if (!xmlStrcmp(cur->name, (const xmlChar *)"IrDA")) {
-		if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_IRDA, error)))
-			goto error;
-
-		ret = _osync_plugin_config_parse_connection_irda(conn, cur->xmlChildrenNode, error);
-
-	} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Network")) {
-		if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_NETWORK, error)))
-			goto error;
-
-		ret = _osync_plugin_config_parse_connection_network(conn, cur->xmlChildrenNode, error);
-
-	} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Serial")) {
-		if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_SERIAL, error)))
-			goto error;
-
-		ret = _osync_plugin_config_parse_connection_serial(conn, cur->xmlChildrenNode, error);
-	} else {
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
-		goto error;
+		}
 	}
-
 
 	if (!ret)
 		goto error_and_free;
 
+	osync_plugin_config_set_connection(config, conn);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -265,7 +291,6 @@ error:
 
 static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
-
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
 	OSyncPluginLocalization *local = osync_plugin_localization_new(error);
@@ -273,6 +298,9 @@ static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *con
 		goto error;
 
 	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
 
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (!str)
@@ -287,6 +315,8 @@ static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *con
 
 		xmlFree(str);
 	}
+
+	osync_plugin_config_set_localization(config, local);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -309,6 +339,9 @@ static osync_bool _osync_plugin_config_parse_ressources(OSyncPluginConfig *confi
 
 	for (; cur != NULL; cur = cur->next) {
 
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -323,11 +356,17 @@ error:
 
 static osync_bool _osync_plugin_config_parse(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
+	osync_assert(config);
+	osync_assert(cur);
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
 	osync_bool ret = TRUE;
 
 	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Authentication")) {
 			ret = _osync_plugin_config_parse_authentication(config, cur->xmlChildrenNode, error);
@@ -354,7 +393,7 @@ error:
 	return FALSE;
 }
 
-static osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error)
+osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, config, __NULLSTR(path), __NULLSTR(schemadir), error);
 	xmlDocPtr doc = NULL;
@@ -377,7 +416,7 @@ static osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, cons
 	}
 	g_free(schemafile);
 
-	if (!_osync_plugin_config_parse(config, cur->xmlChildrenNode, error))
+	if (!_osync_plugin_config_parse(config, cur, error))
 		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -655,17 +694,17 @@ osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *
 	/** Assemble... */
 	/* Authentication */
 	if ((auth = osync_plugin_config_get_authentication(config)))
-		if (_osync_plugin_config_assemble_authentication(doc->children, auth, error))
+		if (!_osync_plugin_config_assemble_authentication(doc->children, auth, error))
 			goto error_and_free;
 
 	/* Connection */
 	if ((conn = osync_plugin_config_get_connection(config)))
-		if (_osync_plugin_config_assemble_connection(doc->children, conn, error))
+		if (!_osync_plugin_config_assemble_connection(doc->children, conn, error))
 			goto error_and_free;
 
 	/* Localization */
 	if ((local = osync_plugin_config_get_localization(config)))
-		if (_osync_plugin_config_assemble_localization(doc->children, local, error))
+		if (!_osync_plugin_config_assemble_localization(doc->children, local, error))
 			goto error_and_free;
 
 	/* Ressources */
@@ -744,6 +783,8 @@ OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *con
 void osync_plugin_config_set_connection(OSyncPluginConfig *config, OSyncPluginConnection *connection)
 {
 	osync_assert(config);
+	osync_assert(connection);
+
 	if (config->connection)
 		osync_plugin_connection_unref(config->connection);
 
