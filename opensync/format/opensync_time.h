@@ -29,50 +29,50 @@
  */
 
 /* Timeformat helper */
-char *osync_time_timestamp(const char *vtime);
-char *osync_time_datestamp(const char *vtime); 
-osync_bool osync_time_isdate(const char *vformat);
-osync_bool osync_time_isutc(const char *vformat);
+OSYNC_EXPORT char *osync_time_timestamp(const char *vtime);
+OSYNC_EXPORT char *osync_time_datestamp(const char *vtime); 
+OSYNC_EXPORT osync_bool osync_time_isdate(const char *vformat);
+OSYNC_EXPORT osync_bool osync_time_isutc(const char *vformat);
 //char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc);
 
 /* String <-> struct converters, no smarts */
-struct tm *osync_time_vtime2tm(const char *vtime);
-char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc);
+OSYNC_EXPORT struct tm *osync_time_vtime2tm(const char *vtime);
+OSYNC_EXPORT char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc);
 
 /* Timetype helper */
-time_t osync_time_vtime2unix(const char *vtime, int offset);
-char *osync_time_unix2vtime(const time_t *timestamp);
+OSYNC_EXPORT time_t osync_time_vtime2unix(const char *vtime, int offset);
+OSYNC_EXPORT char *osync_time_unix2vtime(const time_t *timestamp);
 
 /* Unix time_t converters */
-time_t osync_time_localtm2unix(const struct tm *tmtime); // aka, mktime()
-time_t osync_time_utctm2unix(const struct tm *tmtime);     // actually useful!
-struct tm *osync_time_unix2localtm(const time_t *timestamp);// aka, localtime()
-struct tm *osync_time_unix2utctm(const time_t *timestamp);  // aka, gmtime()
+OSYNC_EXPORT time_t osync_time_localtm2unix(const struct tm *tmtime); // aka, mktime()
+OSYNC_EXPORT time_t osync_time_utctm2unix(const struct tm *tmtime);     // actually useful!
+OSYNC_EXPORT struct tm *osync_time_unix2localtm(const time_t *timestamp);// aka, localtime()
+OSYNC_EXPORT struct tm *osync_time_unix2utctm(const time_t *timestamp);  // aka, gmtime()
 
 /* Timezone helper */
 /* System Timezone-Reliable Helpers */
-int osync_time_timezone_diff(const struct tm *local);
-struct tm *osync_time_tm2utc(const struct tm *ltime, int offset);
-struct tm *osync_time_tm2localtime(const struct tm *utime, int offset);
-char *osync_time_vtime2utc(const char* localtime, int offset);
-char *osync_time_vtime2localtime(const char* utc, int offset);
+OSYNC_EXPORT int osync_time_timezone_diff(const struct tm *local);
+OSYNC_EXPORT struct tm *osync_time_tm2utc(const struct tm *ltime, int offset);
+OSYNC_EXPORT struct tm *osync_time_tm2localtime(const struct tm *utime, int offset);
+OSYNC_EXPORT char *osync_time_vtime2utc(const char* localtime, int offset);
+OSYNC_EXPORT char *osync_time_vtime2localtime(const char* utc, int offset);
 
 /* XXX This functions should only be used as workaround for plugins which
    only supports localtime without any timezone information. */
-char *osync_time_vcal2localtime(const char *vcal);
-char *osync_time_vcal2utc(const char *vcal);
+OSYNC_EXPORT char *osync_time_vcal2localtime(const char *vcal);
+OSYNC_EXPORT char *osync_time_vcal2utc(const char *vcal);
 
 /* Alarm Duration Timeformat helper  */
-char *osync_time_sec2alarmdu(int seconds);
-int osync_time_alarmdu2sec(const char *alarm);
+OSYNC_EXPORT char *osync_time_sec2alarmdu(int seconds);
+OSYNC_EXPORT int osync_time_alarmdu2sec(const char *alarm);
 
 /* Timezone ID helper */
 // FIXME: how do we handle iCal weekday strings with multiple days?
 // something like the following?
 //int osync_time_str2wday(const char *weekday, int *wdaymap);
-int osync_time_str2wday(const char *weekday);
-struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year);
-int osync_time_utcoffset2sec(const char *offset);
+OSYNC_EXPORT int osync_time_str2wday(const char *weekday);
+OSYNC_EXPORT struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year);
+OSYNC_EXPORT int osync_time_utcoffset2sec(const char *offset);
 
 /* Recurrence API */
 //struct OSyncRecur *osync_recur_parse_rules(OSyncXMLFormat *event);
@@ -100,6 +100,6 @@ char *osync_time_tzlocal2utc(xmlNode *root, const char *field);
 //xmlNode *osync_time_tzinfo(xmlNode *root, const char *tzid);
 //char *osync_time_tzlocal2utc(xmlNode *root, const char *field);
 
-time_t osync_time_xml2unix(OSyncXMLFormat *event, OSyncXMLField *dateTimeContent);
+OSYNC_EXPORT time_t osync_time_xml2unix(OSyncXMLFormat *event, OSyncXMLField *dateTimeContent);
 
 #endif /*_OPENSYNC_TIME_H_*/
