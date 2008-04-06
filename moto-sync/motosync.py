@@ -2286,7 +2286,7 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
     def get_changes(self, info, ctx):
         """Report all OSyncChange objects for entries on the phone."""
         if self.sink.slowsync:
-            self.hashtable.reset()
+            self.hashtable.reset_reports()
         for change in self.access.list_changes(self.objtype):
             self.hashtable.report(change.uid)
             change.changetype = self.hashtable.get_changetype(change.uid, change.hash)
