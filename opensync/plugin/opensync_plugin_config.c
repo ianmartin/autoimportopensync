@@ -536,7 +536,7 @@ static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPl
 			port = osync_plugin_connection_net_get_port(conn);
 			if (port) {
 				str = g_strdup_printf("%u", port);
-				xmlNewChild(typenode, NULL, (xmlChar*)"RFCommChannel", (xmlChar*)str);
+				xmlNewChild(typenode, NULL, (xmlChar*)"Port", (xmlChar*)str);
 				g_free(str);
 			}
 
