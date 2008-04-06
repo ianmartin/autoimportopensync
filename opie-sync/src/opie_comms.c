@@ -45,10 +45,10 @@
 #include "opie_xml.h"
 #include "opie_qcop.h"
 
-int opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
-int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream);
-int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream);
-int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream);
+size_t opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
+size_t opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream);
+size_t opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream);
+size_t opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream);
 gboolean local_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
 gboolean ftp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
 gboolean scp_fetch_file(OpiePluginEnv* env, const char *remotefile, GString **data);
@@ -1424,7 +1424,7 @@ error:
 /*
  * opie_curl_fwrite
  */
-int opie_curl_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
+size_t opie_curl_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 {
 	size_t written = fwrite(buffer, size, nmemb, (FILE *)stream);
 	return written; 
@@ -1433,7 +1433,7 @@ int opie_curl_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 /*
  * opie_curl_strwrite
  */
-int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream)
+size_t opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 {
 	g_string_append_len((GString *)stream, buffer, size * nmemb);
 	return size * nmemb;
@@ -1442,7 +1442,7 @@ int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 /*
  * opie_curl_nullwrite
  */
-int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream)
+size_t opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 {
 	return size * nmemb;
 }
@@ -1450,7 +1450,7 @@ int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 /*
  * opie_curl_strread
  */
-int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream)
+size_t opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream)
 {
 	char *str = ((char *)stream) + m_totalwritten;
 	if(str[0] == '\0')
