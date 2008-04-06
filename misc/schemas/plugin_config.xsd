@@ -58,8 +58,8 @@
 
   <xsd:complexType name="ConnectionUSB">
     <xsd:sequence>
-      <xsd:element maxOccurs="1" minOccurs="0" name="VendorID" type="xsd:integer" />
-      <xsd:element maxOccurs="1" minOccurs="0" name="ProductID" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="VendorID" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="ProductID" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Interface" type="xsd:integer" />
     </xsd:sequence>
   </xsd:complexType>
