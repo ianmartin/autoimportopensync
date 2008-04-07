@@ -185,32 +185,32 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	g_get_current_time(&curtime);
 	switch (type) {
 		case TRACE_ENTRY:
-			logmessage = g_strdup_printf("[%li.%li]\t%s>>>>>>>  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			logmessage = g_strdup_printf("[%li.%06li]\t%s>>>>>>>  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			tabs++;
 			break;
 		case TRACE_INTERNAL:
-			logmessage = g_strdup_printf("[%li.%li]\t%s%s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			logmessage = g_strdup_printf("[%li.%06li]\t%s%s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			break;
 		case TRACE_SENSITIVE:
 			if (GPOINTER_TO_INT(g_private_get(trace_sensitive)))
-				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE] %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+				logmessage = g_strdup_printf("[%li.%06li]\t%s[SENSITIVE] %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			else
-				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE CONTENT HIDDEN]%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, endline);
+				logmessage = g_strdup_printf("[%li.%06li]\t%s[SENSITIVE CONTENT HIDDEN]%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, endline);
 			break;
 		case TRACE_EXIT:
-			logmessage = g_strdup_printf("[%li.%li]%s<<<<<<<  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			logmessage = g_strdup_printf("[%li.%06li]%s<<<<<<<  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
 			break;
 		case TRACE_EXIT_ERROR:
-			logmessage = g_strdup_printf("[%li.%li]%s<--- ERROR --- %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			logmessage = g_strdup_printf("[%li.%06li]%s<--- ERROR --- %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
 			break;
 		case TRACE_ERROR:
-			logmessage = g_strdup_printf("[%li.%li]%sERROR: %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			logmessage = g_strdup_printf("[%li.%06li]%sERROR: %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			break;
 	}
 	g_free(buffer);
