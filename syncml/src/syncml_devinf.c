@@ -516,6 +516,16 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
         !osync_db_query(db, "CREATE TABLE datastores (device_id VARCHAR(64), datastore VARCHAR(64), rx_pref_content_type VARCHAR(64), rx_pref_version VARCHAR(64), rx_content_type VARCHAR(64), rx_version VARCHAR(64), tx_pref_content_type VARCHAR(64), tx_pref_version VARCHAR(64), tx_content_type VARCHAR(64), tx_version VARCHAR(64), sync_cap INTEGER, PRIMARY KEY (device_id, datastore))", oerror))
         goto error;
 
+    /* check for table datastore_rx */
+    if (osync_db_exists(db, "datastore_rx", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE datastore_rx (device_id VARCHAR(64), datastore VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, datastore, content_type, version))", oerror))
+        goto error;
+
+    /* check for table datastore_tx */
+    if (osync_db_exists(db, "datastore_tx", oerror) < 1 &&
+        !osync_db_query(db, "CREATE TABLE datastore_tx (device_id VARCHAR(64), datastore VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, datastore, content_type, version))", oerror))
+        goto error;
+
     /* check for table content type capabilities - CTCap */
     if (osync_db_exists(db, "content_type_capabilities", oerror) < 1 &&
         !osync_db_query(db, "CREATE TABLE content_type_capabilities (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, content_type, version))", oerror))
@@ -609,14 +619,6 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             esc_rx_pref_version = osync_db_sql_escape(version);
 	}
 	osync_trace(TRACE_INTERNAL, "%s: added RxPref", __func__);
-	char *esc_rx_ct = NULL;
-	char *esc_rx_version = NULL;
-	if (smlDevInfDataStoreGetRx(datastore, &ct, &version))
-	{
-            esc_rx_ct = osync_db_sql_escape(ct);
-            esc_rx_version = osync_db_sql_escape(version);
-	}
-	osync_trace(TRACE_INTERNAL, "%s: added Rx", __func__);
 	char *esc_tx_pref_ct = NULL;
 	char *esc_tx_pref_version = NULL;
 	if (smlDevInfDataStoreGetTxPref(datastore, &ct, &version))
@@ -625,14 +627,6 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             esc_tx_pref_version = osync_db_sql_escape(version);
 	}
 	osync_trace(TRACE_INTERNAL, "%s: added TxPref", __func__);
-	char *esc_tx_ct = NULL;
-	char *esc_tx_version = NULL;
-	if (smlDevInfDataStoreGetTx(datastore, &ct, &version))
-	{
-            esc_tx_ct = osync_db_sql_escape(ct);
-            esc_tx_version = osync_db_sql_escape(version);
-	}
-	osync_trace(TRACE_INTERNAL, "%s: added Tx", __func__);
 	unsigned int bit;
 	unsigned int sync_cap = 0;
 	for (bit = 0; bit < 8; bit++)
@@ -641,29 +635,69 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 sync_cap += 1 << bit;
         }
 	osync_trace(TRACE_INTERNAL, "%s: parameters ready", __func__);
-        const char*datastore_query = "REPLACE INTO datastores (\"device_id\", \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"rx_content_type\", \"rx_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"tx_content_type\", \"tx_version\", \"sync_cap\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d')";
+        const char*datastore_query = "REPLACE INTO datastores (\"device_id\", \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"sync_cap\") VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%d')";
         replace = g_strdup_printf(
                                   datastore_query, esc_devid, esc_datastore,
                                   esc_rx_pref_ct, esc_rx_pref_version,
-                                  esc_rx_ct, esc_rx_version,
                                   esc_tx_pref_ct, esc_tx_pref_version,
-                                  esc_tx_ct, esc_tx_version,
                                   sync_cap);
         success = osync_db_query(db, replace, oerror);
-        safe_cfree(&esc_datastore);
         safe_cfree(&esc_rx_pref_ct);
         safe_cfree(&esc_rx_pref_version);
-        if (esc_rx_ct)
-		safe_cfree(&esc_rx_ct);
-        if (esc_rx_version)
-		safe_cfree(&esc_rx_version);
         safe_cfree(&esc_tx_pref_ct);
         safe_cfree(&esc_tx_pref_version);
-        if (esc_tx_ct)
-		safe_cfree(&esc_tx_ct);
-	if (esc_tx_version)
-        	safe_cfree(&esc_tx_version);
 	safe_cfree(&replace);
+
+	/* create Rx of datastore */
+	unsigned int numRx = smlDevInfDataStoreNumRx(datastore);
+        unsigned int k;
+        for (k = 0; k < numRx; k++)
+        {
+            osync_trace(TRACE_INTERNAL, "%s: adding Rx %d for datastore %d", __func__, k, i);
+            const SmlDevInfContentType *ctype = smlDevInfDataStoreGetNthRx(datastore, k);
+	    char *rx_ct = smlDevInfContentTypeGetCTType(ctype);
+	    char *rx_version = smlDevInfContentTypeGetVerCT(ctype);
+            char *esc_rx_ct = osync_db_sql_escape(rx_ct);
+            char *esc_rx_version = osync_db_sql_escape(rx_version);
+            smlSafeCFree(&rx_ct);
+            smlSafeCFree(&rx_version);
+	    osync_trace(TRACE_INTERNAL, "%s: parameters ready", __func__);
+            const char *rx_query = "REPLACE INTO datastore_rx (\"device_id\", \"datastore\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s', '%s')";
+            replace = g_strdup_printf(
+                                      rx_query, esc_devid, esc_datastore,
+                                      esc_rx_ct, esc_rx_version);
+            success = osync_db_query(db, replace, oerror);
+            safe_cfree(&esc_rx_ct);
+            safe_cfree(&esc_rx_version);
+	    safe_cfree(&replace);
+	    osync_trace(TRACE_INTERNAL, "%s: added Rx", __func__);
+        }
+
+	/* create Tx of datastore */
+	unsigned int numTx = smlDevInfDataStoreNumTx(datastore);
+        for (k = 0; k < numTx; k++)
+        {
+            osync_trace(TRACE_INTERNAL, "%s: adding Rx %d for datastore %d", __func__, k, i);
+            const SmlDevInfContentType *ctype = smlDevInfDataStoreGetNthTx(datastore, k);
+	    char *tx_ct = smlDevInfContentTypeGetCTType(ctype);
+	    char *tx_version = smlDevInfContentTypeGetVerCT(ctype);
+            char *esc_tx_ct = osync_db_sql_escape(tx_ct);
+            char *esc_tx_version = osync_db_sql_escape(tx_version);
+            smlSafeCFree(&tx_ct);
+            smlSafeCFree(&tx_version);
+	    osync_trace(TRACE_INTERNAL, "%s: parameters ready", __func__);
+            const char *tx_query = "REPLACE INTO datastore_tx (\"device_id\", \"datastore\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s', '%s')";
+            replace = g_strdup_printf(
+                                      tx_query, esc_devid, esc_datastore,
+                                      esc_tx_ct, esc_tx_version);
+            success = osync_db_query(db, replace, oerror);
+            safe_cfree(&esc_tx_ct);
+            safe_cfree(&esc_tx_version);
+	    safe_cfree(&replace);
+	    osync_trace(TRACE_INTERNAL, "%s: added Tx", __func__);
+        }
+
+        safe_cfree(&esc_datastore);
         if (!success) goto oerror;
     }
 
@@ -901,18 +935,17 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     }
 
     /* read datastore info */
-    const char*datastore_query = "SELECT \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"rx_content_type\", \"rx_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"tx_content_type\", \"tx_version\", \"sync_cap\" FROM datastores WHERE \"device_id\"='%s'";
+    const char*datastore_query = "SELECT \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"sync_cap\" FROM datastores WHERE \"device_id\"='%s'";
     query = g_strdup_printf(datastore_query, esc_devid);
     // FIXME: unclean error handling
     result = osync_db_query_table(db, query, oerror);
     safe_cfree(&query);
-    count = 0;
     for (row = result; row; row = row->next)
     {
-        count++;
         GList *columns = row->data;
 
         // FIXME: unclean error handling
+        char *esc_datastore  = osync_db_sql_escape(g_list_nth_data(columns, 0));
         SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(g_list_nth_data(columns, 0), &error);
         if (g_list_nth_data(columns, 1))
             smlDevInfDataStoreSetRxPref(
@@ -920,34 +953,59 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                 g_list_nth_data(columns, 1),
                 g_list_nth_data(columns, 2));
         if (g_list_nth_data(columns, 3))
-        {
-            // FIXME: unclean error handling
-            SmlDevInfContentType *ctype = smlDevInfNewContentType(
-                                              g_list_nth_data(columns, 3),
-                                              g_list_nth_data(columns, 4),
-                                              &error);
-            smlDevInfDataStoreAddRx(datastore, ctype);
-        }
-        if (g_list_nth_data(columns, 5))
             smlDevInfDataStoreSetTxPref(
                 datastore,
-                g_list_nth_data(columns, 5),
-                g_list_nth_data(columns, 6));
-        if (g_list_nth_data(columns, 7))
-        {
-            // FIXME: unclean error handling
-            SmlDevInfContentType *ctype = smlDevInfNewContentType(
-                                              g_list_nth_data(columns, 7),
-                                              g_list_nth_data(columns, 8),
-                                              &error);
-            smlDevInfDataStoreAddTx(datastore, ctype);
-        }
-        unsigned int sync_cap = atoi(g_list_nth_data(columns, 9));
+                g_list_nth_data(columns, 3),
+                g_list_nth_data(columns, 4));
+        unsigned int sync_cap = atoi(g_list_nth_data(columns, 5));
         unsigned int bit;
         for (bit = 0; bit < 8; bit++)
         {
             smlDevInfDataStoreSetSyncCap(datastore, bit, (sync_cap & (1 << bit)));
         }
+
+	/* read Rx of datastore */
+        const char *rx_query = "SELECT \"content_type\", \"version\" FROM datastore_rx WHERE \"device_id\"='%s' AND \"datastore\"='%s'";
+        query = g_strdup_printf(rx_query, esc_devid, esc_datastore);
+        // FIXME: unclean error handling
+        GList *rx_result = osync_db_query_table(db, query, oerror);
+        safe_cfree(&query);
+	GList *rx_row;
+        for (rx_row = rx_result; rx_row; rx_row = rx_row->next)
+        {
+            GList *rx_columns = rx_row->data;
+
+            // FIXME: unclean error handling
+            SmlDevInfContentType *ctype = smlDevInfNewContentType(
+                                              g_list_nth_data(columns, 0),
+                                              g_list_nth_data(columns, 1),
+                                              &error);
+            smlDevInfDataStoreAddRx(datastore, ctype);
+        }
+        osync_db_free_list(rx_result);
+
+	/* read Tx of datastore */
+        const char *tx_query = "SELECT \"content_type\", \"version\" FROM datastore_tx WHERE \"device_id\"='%s' AND \"datastore\"='%s'";
+        query = g_strdup_printf(tx_query, esc_devid, esc_datastore);
+        // FIXME: unclean error handling
+        GList *tx_result = osync_db_query_table(db, query, oerror);
+        safe_cfree(&query);
+	GList *tx_row;
+        for (tx_row = tx_result; tx_row; tx_row = tx_row->next)
+        {
+            GList *tx_columns = tx_row->data;
+
+            // FIXME: unclean error handling
+            SmlDevInfContentType *ctype = smlDevInfNewContentType(
+                                              g_list_nth_data(columns, 0),
+                                              g_list_nth_data(columns, 1),
+                                              &error);
+            smlDevInfDataStoreAddTx(datastore, ctype);
+        }
+        osync_db_free_list(tx_result);
+
+        /* publish datastore */
+        smlSafeCFree(&esc_datastore);
         smlDevInfAddDataStore(devinf, datastore);
     }
     osync_db_free_list(result);
