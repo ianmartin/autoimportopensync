@@ -385,13 +385,20 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
     if (!datastore) goto error;
 
     const char *ct = get_database_pref_content_type(database, error);
+    SmlDevInfContentType *ctype;
 
     if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD))
     {
         // we prefer actually vCard 2.1
         // because the most cellphones support it
-        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
-        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "3.0", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddRx(datastore, ctype);
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "3.0", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddTx(datastore, ctype);
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
         if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1"))
@@ -401,8 +408,14 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD_30))
     {
-        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "2.1", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddRx(datastore, ctype);
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "2.1", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddTx(datastore, ctype);
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
         if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1"))
@@ -412,8 +425,14 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_VCAL))
     {
-        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
-        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "2.0", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddRx(datastore, ctype);
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "2.0", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddTx(datastore, ctype);
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
         if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0"))
@@ -423,8 +442,14 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
     }
     else if (!strcmp(ct, SML_ELEMENT_TEXT_ICAL))
     {
-        smlDevInfDataStoreSetRx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-        smlDevInfDataStoreSetTx(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "1.0", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddRx(datastore, ctype);
+        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "1.0", &serror);
+	if (!ctype)
+		goto error;
+        smlDevInfDataStoreAddTx(datastore, ctype);
         smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
         smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
         if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0"))
@@ -466,7 +491,10 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
     return datastore;
 error:
     if (serror)
+    {
         osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&serror));
+        smlErrorDeref(&serror);
+    }
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
     return NULL;
 }
@@ -892,20 +920,28 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                 g_list_nth_data(columns, 1),
                 g_list_nth_data(columns, 2));
         if (g_list_nth_data(columns, 3))
-            smlDevInfDataStoreSetRx(
-                datastore,
-                g_list_nth_data(columns, 3),
-                g_list_nth_data(columns, 4));
+        {
+            // FIXME: unclean error handling
+            SmlDevInfContentType *ctype = smlDevInfNewContentType(
+                                              g_list_nth_data(columns, 3),
+                                              g_list_nth_data(columns, 4),
+                                              &error);
+            smlDevInfDataStoreAddRx(datastore, ctype);
+        }
         if (g_list_nth_data(columns, 5))
             smlDevInfDataStoreSetTxPref(
                 datastore,
                 g_list_nth_data(columns, 5),
                 g_list_nth_data(columns, 6));
         if (g_list_nth_data(columns, 7))
-            smlDevInfDataStoreSetTx(
-                datastore,
-                g_list_nth_data(columns, 7),
-                g_list_nth_data(columns, 8));
+        {
+            // FIXME: unclean error handling
+            SmlDevInfContentType *ctype = smlDevInfNewContentType(
+                                              g_list_nth_data(columns, 7),
+                                              g_list_nth_data(columns, 8),
+                                              &error);
+            smlDevInfDataStoreAddTx(datastore, ctype);
+        }
         unsigned int sync_cap = atoi(g_list_nth_data(columns, 9));
         unsigned int bit;
         for (bit = 0; bit < 8; bit++)
