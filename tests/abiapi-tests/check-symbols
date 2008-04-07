@@ -11,8 +11,8 @@ fi
 TMPFILE=`mktemp /tmp/opensync.symbols.XXXXXXXXXX` || exit 1
 
 # FIXME: 'grep "osync_"' is just a HACK for non OpenSync specific symbols (gcov, ...)
-nm -g $2/opensync/libopensync.so | awk '{print $3}' | grep "osync_" > $TMPFILE
-#nm --defined-only -g $2/opensync/libopensync.so | awk '{print $3}' > $TMPFILE
+nm -g -P $2/opensync/libopensync.so | awk '{print $1}' | grep "osync_" > $TMPFILE
+#nm -g -P $2/opensync/libopensync.so | awk '{print $1}' > $TMPFILE
 
 diff $1/$SYMBOLS $TMPFILE || exit 1
 
