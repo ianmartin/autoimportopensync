@@ -505,55 +505,149 @@ error:
 
 SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
 {
+    osync_trace(TRACE_ENTRY, "%s", __func__);
+    unsigned int db_schema_version = 1;
+    SmlBool schema_update = FALSE;
 
-    /* check for table devices */
-    if (osync_db_exists(db, "devices", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE devices (device_id VARCHAR(64) PRIMARY KEY, device_type VARCHAR(64), manufacturer VARCHAR(64), model VARCHAR(64), oem VARCHAR(64), sw_version VARCHAR(64), hw_version VARCHAR(64), fw_version VARCHAR(64), utc BOOLEAN, large_objects BOOLEAN, number_of_changes BOOLEAN)", oerror))
-        goto error;
+    /* check if all necessary tables exist */
+    osync_trace(TRACE_INTERNAL, "%s - Does all tables exist?", __func__);
+    if (osync_db_exists(db, "versions", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "devices", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "datastores", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "datastore_rx", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "datastore_tx", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "content_type_capabilities", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "properties", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "property_values", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "property_params", oerror) < 1)
+	schema_update = TRUE;
+    if (osync_db_exists(db, "property_param_values", oerror) < 1)
+	schema_update = TRUE;
 
-    /* check for table datastores */
-    if (osync_db_exists(db, "datastores", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE datastores (device_id VARCHAR(64), datastore VARCHAR(64), rx_pref_content_type VARCHAR(64), rx_pref_version VARCHAR(64), rx_content_type VARCHAR(64), rx_version VARCHAR(64), tx_pref_content_type VARCHAR(64), tx_pref_version VARCHAR(64), tx_content_type VARCHAR(64), tx_version VARCHAR(64), sync_cap INTEGER, PRIMARY KEY (device_id, datastore))", oerror))
-        goto error;
+    /* check the version of the database schema */
+    if (!schema_update)
+    {
+        osync_trace(TRACE_INTERNAL, "%s - Has the database schema the correct version?", __func__);
+        const char *version_query = "SELECT \"version\" FROM versions WHERE \"name\"='devinf_schema'";
+        GList *result = osync_db_query_table(db, version_query, oerror);
+        if (!result && *oerror)
+        {
+            osync_trace(TRACE_INTERNAL, "%s - There is trouble with the table versions.", __func__);
+            schema_update = TRUE;
+            osync_error_unref(oerror);
+            *oerror = NULL;
+        }
+        else if (!result ||
+                 !((GList *) result)->data ||
+                 !((GList *) ((GList *) result)->data)->data)
+        {
+            /* no row returned or empty version */
+            osync_trace(TRACE_INTERNAL, "%s - No version found.", __func__);
+            schema_update = TRUE;
+        }
+        else
+        {
+            osync_trace(TRACE_INTERNAL, "%s - Evaluating version ...", __func__);
+            unsigned int db_version = atoi(((GList *) ((GList *) result)->data)->data);
+            if (db_version < db_schema_version)
+                schema_update = TRUE;
+            else if (db_version > db_schema_version)
+            {
+                osync_error_set(
+                     oerror, OSYNC_ERROR_GENERIC,
+                     "The database schema (%d) is newer than the schema version of the plugin (%d).",
+                     db_version, db_schema_version);
+                goto error;
+            }
+        }
+    }
 
-    /* check for table datastore_rx */
-    if (osync_db_exists(db, "datastore_rx", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE datastore_rx (device_id VARCHAR(64), datastore VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, datastore, content_type, version))", oerror))
-        goto error;
+    /* execute a necessary schema update */
+    if (schema_update)
+    {
+        osync_trace(TRACE_INTERNAL, "%s - Updating to schema %d ...", __func__, db_schema_version);
 
-    /* check for table datastore_tx */
-    if (osync_db_exists(db, "datastore_tx", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE datastore_tx (device_id VARCHAR(64), datastore VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, datastore, content_type, version))", oerror))
-        goto error;
+        /* drop all existing tables */
+        if (osync_db_exists(db, "versions", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE versions", oerror))
+            goto error;
+        if (osync_db_exists(db, "devices", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE devices", oerror))
+            goto error;
+        if (osync_db_exists(db, "datastores", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE datastores", oerror))
+            goto error;
+        if (osync_db_exists(db, "datastore_rx", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE datastore_rx", oerror))
+            goto error;
+        if (osync_db_exists(db, "datastore_tx", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE datastore_tx", oerror))
+            goto error;
+        if (osync_db_exists(db, "content_type_capabilities", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE content_type_capabilities", oerror))
+            goto error;
+        if (osync_db_exists(db, "properties", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE properties", oerror))
+            goto error;
+        if (osync_db_exists(db, "property_values", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE property_values", oerror))
+            goto error;
+        if (osync_db_exists(db, "property_params", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE property_params", oerror))
+            goto error;
+        if (osync_db_exists(db, "property_param_values", oerror) > 0 &&
+            !osync_db_query(db, "DROP TABLE property_param_values", oerror))
+            goto error;
+        osync_trace(TRACE_INTERNAL, "%s - All tables dropped.", __func__);
 
-    /* check for table content type capabilities - CTCap */
-    if (osync_db_exists(db, "content_type_capabilities", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE content_type_capabilities (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, content_type, version))", oerror))
-        goto error;
+        /* create all tables */
+        if (!osync_db_query(db, "CREATE TABLE versions (name VARCHAR(64) PRIMARY KEY, version VARCHAR(64))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE devices (device_id VARCHAR(64) PRIMARY KEY, device_type VARCHAR(64), manufacturer VARCHAR(64), model VARCHAR(64), oem VARCHAR(64), sw_version VARCHAR(64), hw_version VARCHAR(64), fw_version VARCHAR(64), utc BOOLEAN, large_objects BOOLEAN, number_of_changes BOOLEAN)", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE datastores (device_id VARCHAR(64), datastore VARCHAR(64), rx_pref_content_type VARCHAR(64), rx_pref_version VARCHAR(64), rx_content_type VARCHAR(64), rx_version VARCHAR(64), tx_pref_content_type VARCHAR(64), tx_pref_version VARCHAR(64), tx_content_type VARCHAR(64), tx_version VARCHAR(64), sync_cap INTEGER, PRIMARY KEY (device_id, datastore))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE datastore_rx (device_id VARCHAR(64), datastore VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, datastore, content_type, version))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE datastore_tx (device_id VARCHAR(64), datastore VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, datastore, content_type, version))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE content_type_capabilities (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), PRIMARY KEY (device_id, content_type, version))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE properties (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), datatype VARCHAR(64), max_occur INTEGER, max_size INTEGER, no_truncate BOOLEAN, display_name VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE property_values (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_value VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_value))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE property_params (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_param VARCHAR(64), datatype VARCHAR(64), display_name VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_param))", oerror))
+            goto error;
+        if (!osync_db_query(db, "CREATE TABLE property_param_values (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_param VARCHAR(64), property_param_value VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_param, property_param_value))", oerror))
+            goto error;
+        osync_trace(TRACE_INTERNAL, "%s - All tables created.", __func__);
 
-    /* check for table properties */
-    if (osync_db_exists(db, "properties", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE properties (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), datatype VARCHAR(64), max_occur INTEGER, max_size INTEGER, no_truncate BOOLEAN, display_name VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property))", oerror))
-        goto error;
+        /* insert the actual version */
+        const char *insert_version_query = "INSERT INTO versions (\"name\", \"version\") VALUES ('devinf_schema', '%d')";
+        char *replace = g_strdup_printf(insert_version_query, db_schema_version);
+        if (!osync_db_query(db, replace, oerror))
+        {
+            smlSafeCFree(&replace);
+            goto error;
+        }
+        smlSafeCFree(&replace);
+        osync_trace(TRACE_INTERNAL, "%s - Schema version inserted.", __func__);
+    }
 
-    /* check for table property_values */
-    if (osync_db_exists(db, "property_values", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE property_values (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_value VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_value))", oerror))
-        goto error;
-
-    /* check for table property_params */
-    if (osync_db_exists(db, "property_params", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE property_params (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_param VARCHAR(64), datatype VARCHAR(64), display_name VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_param))", oerror))
-        goto error;
-
-    /* check for table property_param_values */
-    if (osync_db_exists(db, "property_param_values", oerror) < 1 &&
-        !osync_db_query(db, "CREATE TABLE property_param_values (device_id VARCHAR(64), content_type VARCHAR(64), version VARCHAR(64), property VARCHAR(64), property_param VARCHAR(64), property_param_value VARCHAR(64), PRIMARY KEY (device_id, content_type, version, property, property_param, property_param_value))", oerror))
-        goto error;
-
+    osync_trace(TRACE_EXIT, "%s", __func__);
     return TRUE;
 
 error:
+    osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
     return FALSE;
 }
 
