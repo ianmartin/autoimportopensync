@@ -22,30 +22,29 @@
 #define _OPENSYNC_DB_H_
 
 
-OSyncDB *osync_db_new(OSyncError **error);
+OSYNC_EXPORT OSyncDB *osync_db_new(OSyncError **error);
 
-osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error);
-osync_bool osync_db_close(OSyncDB *db, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_close(OSyncDB *db, OSyncError **error);
 
-int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error);
+OSYNC_EXPORT int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error);
 
-osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error);
-osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error);
 
-int osync_db_count(OSyncDB *db, const char *query, OSyncError **error);
+OSYNC_EXPORT int osync_db_count(OSyncDB *db, const char *query, OSyncError **error);
 
-char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error);
-int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error);
-osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error);
-GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
-void osync_db_free_list(GList *list);
+OSYNC_EXPORT char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error);
+OSYNC_EXPORT int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error);
+OSYNC_EXPORT GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
+OSYNC_EXPORT void osync_db_free_list(GList *list);
 
-osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error);
-int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error);
+OSYNC_EXPORT int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
 
-long long int osync_db_last_rowid(OSyncDB *db);
-
-char *osync_db_sql_escape(const char *query);
+OSYNC_EXPORT long long int osync_db_last_rowid(OSyncDB *db);
+OSYNC_EXPORT char *osync_db_sql_escape(const char *query);
 
 #endif //_OPENSYNC_DB_H_
 
