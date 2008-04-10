@@ -9,6 +9,12 @@ ADD_EXECUTABLE( osyncdump ${osyncdump_SRCS} )
 TARGET_LINK_LIBRARIES( osyncdump opensync )
 
 
+SET( osyncplugin_SRCS
+osyncplugin.c
+)
+
+ADD_EXECUTABLE( osyncplugin ${osyncplugin_SRCS} )
+TARGET_LINK_LIBRARIES( osyncplugin opensync )
 
 SET( osyncbinary_SRCS
 osyncbinary.c		

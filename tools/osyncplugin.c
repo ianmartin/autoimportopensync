@@ -47,7 +47,12 @@ static void changes_sink(OSyncMember *member, OSyncChange *change, void *user_da
 {
 	if (!osync_change_has_data(change)) {
 		g_mutex_lock(working2);
-		osync_member_get_change_data(member, change, (OSyncEngCallback)stress_message_callback2, NULL);
+
+
+		/* TODO Porting - get_changes is method of OSyncObjTypeSink
+		osync_member_get_change_data(member, change, stress_message_callback2, NULL);
+		*/
+
 		g_mutex_lock(working2);
 		g_mutex_unlock(working2);
 	}
@@ -57,7 +62,11 @@ static void changes_sink(OSyncMember *member, OSyncChange *change, void *user_da
 static void connect(OSyncMember *member)
 {
 	//g_mutex_lock(working);
-	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
+
+	/* TODO Porting - connect is method of OSyncObjTypeSink
+	osync_member_connect(member, stress_message_callback, NULL);
+	*/
+
 	g_main_loop_run(loop);
 	//g_mutex_lock(working);
 	//g_mutex_unlock(working);
@@ -66,14 +75,17 @@ static void connect(OSyncMember *member)
 static void disconnect(OSyncMember *member)
 {
 	/*g_mutex_lock(working);
-	osync_member_sync_done(member, (OSyncEngCallback)stress_message_callback, NULL);
+	osync_member_sync_done(member, stress_message_callback, NULL);
 	g_mutex_lock(working);
 	g_mutex_unlock(working);*/
 	
 	//g_mutex_lock(working);
 	busy = TRUE;
 	
-	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
+
+	/* TODO Porting - sync_done is method of OSyncObjTypeSink
+	osync_member_disconnect(member, stress_message_callback, NULL);
+	*/
 	
 	if (busy)
 		g_main_loop_run(loop);
@@ -85,7 +97,11 @@ static void disconnect(OSyncMember *member)
 static void sync_done(OSyncMember *member)
 {
 	//g_mutex_lock(working);
-	osync_member_sync_done(member, (OSyncEngCallback)stress_message_callback, NULL);
+
+	/* TODO Porting - sync_done is method of OSyncObjTypeSink
+	osync_member_sync_done(member, stress_message_callback, NULL);
+	*/
+
 	g_main_loop_run(loop);
 	//g_mutex_lock(working);
 	//g_mutex_unlock(working);
@@ -93,7 +109,10 @@ static void sync_done(OSyncMember *member)
 
 static void committed_all(OSyncMember *member)
 {
-	osync_member_committed_all(member, (OSyncEngCallback)stress_message_callback, NULL);
+	/* TODO Porting - committed_all is method of OSyncObjTypeSink
+	osync_member_committed_all(member, stress_message_callback, NULL);
+	*/
+
 	g_main_loop_run(loop);
 }
 
@@ -101,7 +120,12 @@ static GList *get_changes(OSyncMember *member)
 {
 	changes = NULL;
 	//g_mutex_lock(working);
-	osync_member_get_changeinfo(member, (OSyncEngCallback)stress_message_callback, NULL);
+
+
+	/* TODO Porting - get_changes is method of OSyncObjTypeSink
+	osync_member_get_changeinfo(member, stress_message_callback, NULL);
+	*/
+
 	g_main_loop_run(loop);
 	//g_mutex_lock(working);
 	//g_mutex_unlock(working);
@@ -112,10 +136,12 @@ static GList *get_changes(OSyncMember *member)
 static OSyncChange *add_data(OSyncMember *member, const char *objtype)
 {
 	OSyncChange *change = NULL;
+	/* TODO Porting: This function doesn't exist anymore. Introduce this for testing only....
 	if (!(change = osync_member_add_random_data(member, objtype))) {
 		printf("unable to add data\n");
 		g_assert_not_reached();
 	}
+	*/
 	printf("Added change with uid %s\n", osync_change_get_uid(change));
 	return change;
 }
@@ -123,20 +149,25 @@ static OSyncChange *add_data(OSyncMember *member, const char *objtype)
 static void modify_data(OSyncMember *member, OSyncChange *change)
 {
 	sleep(2);
+
+	/* TODO Porting: This function doesn't exist anymore. Introduce this for testing only....
 	if (!osync_member_modify_random_data(member, change)) {
 		printf("unable to modify data\n");
 		g_assert_not_reached();
 	}
+	*/
 	printf("Modified change with uid %s\n", osync_change_get_uid(change));
 	return;
 }
 
 static void delete_data(OSyncMember *member, OSyncChange *change)
 {
+	/* TODO Porting: OSyncChagne/OSyncData is not an attribute of OSyncMember - DROP?
 	if (!osync_member_delete_data(member, change)) {
 		printf("unable to delete data\n");
 		g_assert_not_reached();
 	}
+	*/
 	
 	printf("Deleted change with uid %s\n", osync_change_get_uid(change));
 	return;
@@ -148,14 +179,19 @@ static void multi_init(OSyncMember *member, const char *objtype)
 	connect(member);
 	disconnect(member);
 	
+	/* TODO Porting - finalize is method of OSyncObjTypeSink
 	osync_member_finalize(member);
+	*/
 	
 	OSyncError *error = NULL;
+
+	/* TODO Porting - initiailze is method of OSyncObjTypeSink
 	if (!osync_member_initialize(member, &error)) {
 		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
 		printf("Unable to initialize\n");
 		exit(1);
 	}
+	*/
 	
 	if (objtype) {
 		osync_member_set_objtype_enabled(member, "data", FALSE);
@@ -165,13 +201,19 @@ static void multi_init(OSyncMember *member, const char *objtype)
 	connect(member);
 	disconnect(member);
 	
+
+	/* TODO Porting - finalize is method of OSyncObjTypeSink
 	osync_member_finalize(member);
+	*/
 	
+
+	/* TODO Porting - initiailze is method of OSyncObjTypeSink
 	if (!osync_member_initialize(member, &error)) {
 		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
 		printf("Unable to initialize\n");
 		exit(1);
 	}
+	*/
 	
 	if (objtype) {
 		osync_member_set_objtype_enabled(member, "data", FALSE);
@@ -193,8 +235,11 @@ static void add_test1(OSyncMember *member, const char *objtype)
 	disconnect(member);
 	printf("success\n");
 	
+
+	/* TODO Porting - set_slowsync is method of OSyncObjTypeSink
 	if (noaccess)
 		osync_member_set_slow_sync(member, "data", TRUE);
+	*/
 	
 	
 	printf("Reading data... \r");
@@ -203,7 +248,7 @@ static void add_test1(OSyncMember *member, const char *objtype)
 	
 	g_assert(g_list_length(chg) == 1);
 	OSyncChange *newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_compare(newchange, osync_change_copy(change, NULL)) == CONV_DATA_SAME);
+	g_assert(osync_change_compare(newchange, osync_change_clone(change, NULL)) == OSYNC_CONV_DATA_SAME);
 	committed_all(member);
 	sync_done(member);
 	disconnect(member);
@@ -218,8 +263,11 @@ static void add_test1(OSyncMember *member, const char *objtype)
 	disconnect(member);
 	printf("success\n");
 	
+
+	/* TODO Porting - set_slowsync is method of OSyncObjTypeSink
 	if (noaccess)
 		osync_member_set_slow_sync(member, "data", TRUE);
+	*/
 	
 	
 	printf("Reading remaining data... \r");
@@ -230,7 +278,7 @@ static void add_test1(OSyncMember *member, const char *objtype)
 	} else {
 		g_assert(g_list_length(chg) == 1);
 		newchange = g_list_nth_data(chg, 0);
-		g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+		g_assert(osync_change_get_changetype(newchange) == OSYNC_CHANGE_TYPE_DELETED);
 	}
 	disconnect(member);
 	printf("success\n");
@@ -251,19 +299,19 @@ static void add_test2(OSyncMember *member, const char *objtype)
 	GList *chg = get_changes(member);
 	g_assert(g_list_length(chg) == 3);
 	
-	OSyncChange *cpychange1 = osync_change_copy(change1, NULL);
-	OSyncChange *cpychange2 = osync_change_copy(change2, NULL);
-	OSyncChange *cpychange3 = osync_change_copy(change3, NULL);
+	OSyncChange *cpychange1 = osync_change_clone(change1, NULL);
+	OSyncChange *cpychange2 = osync_change_clone(change2, NULL);
+	OSyncChange *cpychange3 = osync_change_clone(change3, NULL);
 	
 	
 	OSyncChange *newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_compare(newchange, cpychange1) == CONV_DATA_SAME || osync_change_compare(newchange, cpychange2) == CONV_DATA_SAME || osync_change_compare(newchange, cpychange3) == CONV_DATA_SAME);
+	g_assert(osync_change_compare(newchange, cpychange1) == OSYNC_CONV_DATA_SAME || osync_change_compare(newchange, cpychange2) == OSYNC_CONV_DATA_SAME || osync_change_compare(newchange, cpychange3) == OSYNC_CONV_DATA_SAME);
 	
 	newchange = g_list_nth_data(chg, 1);
-	g_assert(osync_change_compare(newchange, cpychange1) == CONV_DATA_SAME || osync_change_compare(newchange, cpychange2) == CONV_DATA_SAME || osync_change_compare(newchange, cpychange3) == CONV_DATA_SAME);
+	g_assert(osync_change_compare(newchange, cpychange1) == OSYNC_CONV_DATA_SAME || osync_change_compare(newchange, cpychange2) == OSYNC_CONV_DATA_SAME || osync_change_compare(newchange, cpychange3) == OSYNC_CONV_DATA_SAME);
 	
 	newchange = g_list_nth_data(chg, 2);
-	g_assert(osync_change_compare(newchange, cpychange1) == CONV_DATA_SAME || osync_change_compare(newchange, cpychange2) == CONV_DATA_SAME || osync_change_compare(newchange, cpychange3) == CONV_DATA_SAME);
+	g_assert(osync_change_compare(newchange, cpychange1) == OSYNC_CONV_DATA_SAME || osync_change_compare(newchange, cpychange2) == OSYNC_CONV_DATA_SAME || osync_change_compare(newchange, cpychange3) == OSYNC_CONV_DATA_SAME);
 	sync_done(member);
 	disconnect(member);
 	
@@ -277,11 +325,11 @@ static void add_test2(OSyncMember *member, const char *objtype)
 	chg = get_changes(member);
 	g_assert(g_list_length(chg) == 3);
 	newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+	g_assert(osync_change_get_changetype(newchange) == OSYNC_CHANGE_TYPE_DELETED);
 	newchange = g_list_nth_data(chg, 1);
-	g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+	g_assert(osync_change_get_changetype(newchange) == OSYNC_CHANGE_TYPE_DELETED);
 	newchange = g_list_nth_data(chg, 2);
-	g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+	g_assert(osync_change_get_changetype(newchange) == OSYNC_CHANGE_TYPE_DELETED);
 	disconnect(member);
 	
 	connect(member);
@@ -303,7 +351,7 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 	GList *chg = get_changes(member);
 	g_assert(g_list_length(chg) == 1);
 	OSyncChange *newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_compare(newchange, osync_change_copy(change, NULL)) == CONV_DATA_SAME);
+	g_assert(osync_change_compare(newchange, osync_change_clone(change, NULL)) == OSYNC_CONV_DATA_SAME);
 	disconnect(member);
 	
 	connect(member);
@@ -314,7 +362,7 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 	chg = get_changes(member);
 	g_assert(g_list_length(chg) == 1);
 	newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_compare(newchange, osync_change_copy(change, NULL)) == CONV_DATA_SAME);
+	g_assert(osync_change_compare(newchange, osync_change_clone(change, NULL)) == OSYNC_CONV_DATA_SAME);
 	disconnect(member);
 	
 	connect(member);
@@ -325,7 +373,7 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 	chg = get_changes(member);
 	g_assert(g_list_length(chg) == 1);
 	newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+	g_assert(osync_change_get_changetype(newchange) == OSYNC_CHANGE_TYPE_DELETED);
 	disconnect(member);
 	
 	connect(member);
@@ -342,7 +390,11 @@ static void empty_all(OSyncMember *member)
 	//sync_done(member);
 	//disconnect(member);
 	
+
+	/* TODO Porting - set_slowsync is method of OSyncObjTypeSink
 	osync_member_set_slow_sync(member, "data", TRUE);
+	*/
+
 	connect(member);
 	GList *chg = get_changes(member);
 	GList *i = NULL;
@@ -413,6 +465,7 @@ int main (int argc, char *argv[])
 	int i;
 	char *pluginname = NULL;
 	char *plugindir = NULL;
+	char *formatdir = NULL;
 	char *plugin = NULL;
 	char *format = NULL;
 	char *configfile = NULL;
@@ -445,6 +498,12 @@ int main (int argc, char *argv[])
 			i++;
 			if (!plugindir)
 				usage (argv[0], 1);
+		} else if (!strcmp (arg, "--formatdir")) {
+			printf("formatdir %s\n", argv[i + 1]);
+			formatdir = argv[i + 1];
+			i++;
+			if (!formatdir)
+				usage (argv[0], 1);
 		} else if (!strcmp (arg, "--plugin")) {
 			plugin = argv[i + 1];
 			i++;
@@ -469,40 +528,57 @@ int main (int argc, char *argv[])
 			testname = argv[i + 1];
 		}
 	}
-	
-	OSyncEnv *env = osync_env_new(NULL);
-	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
-	
-	if (plugin) {
-		osync_env_set_option(env, "LOAD_PLUGINS", "FALSE");
-		if (!osync_module_load(env, plugin, &error)) {
-			printf("Unable to load plugin: %s\n", osync_error_print(&error));
-			osync_error_unref(&error);
-			return 1;
-		}
-	} else {
-		if (plugindir)
-			osync_env_set_option(env, "PLUGINS_DIRECTORY", plugindir);
+
+	OSyncPluginEnv *plugin_env = osync_plugin_env_new(&error);
+	if (!plugin_env) {
+		printf("Unable to allocate Plugin Environment: %s\n", osync_error_print(&error));
+		return 1;
 	}
-	
-	if (format) {
-		osync_env_set_option(env, "LOAD_FORMATS", "FALSE");
-		if (!osync_module_load(env, format, &error)) {
-			printf("Unable to load format: %s\n", osync_error_print(&error));
-			osync_error_unref(&error);
-			return 1;
-		}
-	}
-	
-	if (!osync_env_initialize(env, &error)) {
-		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
+
+	if (!osync_plugin_env_load(plugin_env, plugindir, &error)) {
+		printf("Unable to load plugins: %s\n", osync_error_print(&error));
 		osync_error_unref(&error);
 		return 1;
 	}
+
+	if (plugin) {
+		/* TODO get certain plugin */
+	}
 	
-	OSyncGroup *group = osync_group_new(env);
+	OSyncFormatEnv *format_env = osync_format_env_new(&error);
+	if (!format_env) {
+		printf("Unable to load formats: %s\n", osync_error_print(&error));
+		osync_error_unref(&error);
+	}
+
+	if (!osync_format_env_load_plugins(format_env, formatdir, &error)) {
+		printf("Unable to load format plugins: %s\n", osync_error_print(&error));
+		osync_error_unref(&error);
+		return 1;
+	}
+
+	if (format) {
+		/* TODO get certain format plugin */
+	}
+
+	
+	OSyncGroup *group = osync_group_new(&error);
+	if (!group) {
+		fprintf(stderr, "Unable to allocate a OSyncGroup: %s\n", osync_error_print(&error));
+		osync_error_unref(&error);
+		return 1;
+	}	
+
 	osync_group_set_name(group, osync_rand_str(8));
-	OSyncMember *member = osync_member_new(group);
+
+	OSyncMember *member = osync_member_new(&error);
+	if (!member) {
+		fprintf(stderr, "Unable to allocate a OSyncMember: %s\n", osync_error_print(&error));
+		osync_error_unref(&error);
+		return 1;
+	}	
+
+	osync_group_add_member(group, member);
 	
 	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
 	char *result = mkdtemp(testdir);
@@ -526,8 +602,13 @@ int main (int argc, char *argv[])
 	
 	osync_member_set_pluginname(member, pluginname);
 	osync_member_set_configdir(member, testdir);
+
+
+	/* TODO Porting: OSyncPluginInfo -> OSyncObjTypeSink -> Overwrite Sink Function
+
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);
 	functions->rf_change = changes_sink;
+	*/
 	
 	//started_mutex = g_mutex_new();
 	//started = g_cond_new();
@@ -543,10 +624,13 @@ int main (int argc, char *argv[])
 	
 	//osync_member_set_loop(member, context);
 	
+
+	/* TODO Porting - initiailze is method of OSyncObjTypeSink
 	if (!osync_member_initialize(member, &error)) {
 		printf("unable to initialize: %s\n", osync_error_print(&error));
 		return 1;
 	}
+	*/
 	
 	if (objtype) {
 		osync_member_set_objtype_enabled(member, "data", FALSE);
@@ -568,7 +652,10 @@ int main (int argc, char *argv[])
 			run_all_tests(member, objtype);
 	}
 	
+
+	/* TODO Porting - finalize is method of OSyncObjTypeSink
 	osync_member_finalize(member);
+	*/
 	
 	return 0;
 }
