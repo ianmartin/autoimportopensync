@@ -208,6 +208,15 @@ osync_bool osync_hashtable_slowsync(OSyncHashTable *table, OSyncError **error)
 	return TRUE;
 }
 
+#if !GLIB_CHECK_VERSION(2,12,0)
+/*! \brief g_hash_table_foreach_remove foreach function
+ */
+static gboolean remove_entry(gpointer key, gpointer val, gpointer data)
+{
+   return TRUE;
+}
+#endif
+
 /*! @brief Makes a hashtable forget
  * 
  * You can ask the hashtable to detect the changes. In the end you can
@@ -227,7 +236,11 @@ void osync_hashtable_reset_reports(OSyncHashTable *table)
 
 	/* Only free the internal hashtable of reported entries.
 	   Don't flush the real database. */
+#if GLIB_CHECK_VERSION(2,12,0)
 	g_hash_table_remove_all(table->used_entries);
+#else
+	g_hash_table_foreach_remove(table->used_entries, remove_entry, NULL);
+#endif
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

@@ -1,4 +1,7 @@
 2008-04-10  Graham Cobb  <g+770@cobb.uk.net>
 
+	* opensync/helper/opensync_hashtable.c (osync_hashtable_reset_reports): conditionalise g_hash_table_remove_all
+	on GLIB version 2.12 or later.  Use g_hash_table_foreach_remove for earlier versions.
+
 	* ChangeLog: create a ChangeLog
 
