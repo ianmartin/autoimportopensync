@@ -60,7 +60,7 @@ osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error)
 	osync_assert(dbfile);
 
 	if (sqlite3_open(dbfile, &(db->sqlite3db)) != SQLITE_OK) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(db->sqlite3db));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database \"%s\": %s", dbfile, sqlite3_errmsg(db->sqlite3db));
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db));
 		return FALSE;
 	}
