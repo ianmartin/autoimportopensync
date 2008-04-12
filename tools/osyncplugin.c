@@ -353,17 +353,9 @@ OSyncObjTypeSink *find_sink(const char *objtype, OSyncError **error)
 	return sink;
 }
 
-OSyncObjTypeSink *find_main_sink(const char *objtype, OSyncError **error)
+OSyncObjTypeSink *get_main_sink()
 {
-	assert(objtype);
-
-	OSyncObjTypeSink *sink = osync_plugin_info_get_main_sink(plugin_info);
-	if (!sink) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find main sink.");
-		return NULL;
-	}
-
-	return sink;
+	return osync_plugin_info_get_main_sink(plugin_info);
 }
 
 const char *_osyncplugin_changetype_str(OSyncChange *change)
@@ -476,6 +468,11 @@ osync_bool get_changes(const char *objtype, int slowsync, void *plugin_data, OSy
 			if (!get_changes_sink(sink, slowsync, plugin_data, error))
 				goto error;
 		}
+
+		/* last but not least - the main sink */
+		if (get_main_sink())
+			if (!get_changes_sink(get_main_sink(), slowsync, plugin_data, error))
+				goto error;
 	}
 
 error:
@@ -529,6 +526,11 @@ osync_bool synchronization(const char *objtype, void *plugin_data, osync_bool fo
 			if (!synchronization_sink(sink, plugin_data, force, slowsync, error))
 				goto error;
 		}
+
+		/* last but not least - the main sink */
+		if (get_main_sink())
+			if (!synchronization_sink(get_main_sink(), plugin_data, force, slowsync, error))
+				goto error;
 	}
 
 	return TRUE;
@@ -608,13 +610,17 @@ osync_bool connect(const char *objtype, void *plugin_data, OSyncError **error)
 			if (!connect_sink(sink, plugin_data, error))
 				goto error;
 		}
+
+		/* last but not least - the main sink */
+		if (get_main_sink())
+			if (!connect_sink(get_main_sink(), plugin_data, error))
+				goto error;
 	}
 
 	return TRUE;
 error:
 	return FALSE;
 }
-
 
 void _osyncplugin_ctx_callback_disconnect(void *user_data, OSyncError *error)
 {
@@ -688,6 +694,11 @@ osync_bool disconnect(const char *objtype, void *plugin_data, OSyncError **error
 			if (!disconnect_sink(sink, plugin_data, error))
 				goto error;
 		}
+
+		/* last but not least - the main sink */
+		if (get_main_sink())
+			if (!disconnect_sink(get_main_sink(), plugin_data, error))
+				goto error;
 	}
 
 	return TRUE;
@@ -772,6 +783,11 @@ osync_bool syncdone(const char *objtype, void *plugin_data, OSyncError **error)
 			if (!syncdone_sink(sink, plugin_data, error))
 				goto error;
 		}
+
+		/* last but not least - the main sink */
+		if (get_main_sink())
+			if (!syncdone_sink(get_main_sink(), plugin_data, error))
+				goto error;
 	}
 
 	return TRUE;
@@ -842,13 +858,17 @@ osync_bool committedall(const char *objtype, void *plugin_data, OSyncError **err
 			if (!committedall_sink(sink, plugin_data, error))
 				goto error;
 		}
+
+		/* last but not least - the main sink */
+		if (get_main_sink())
+			if (!committedall_sink(get_main_sink(), plugin_data, error))
+				goto error;
 	}
 
 	return TRUE;
 error:
 	return FALSE;
 }
-
 
 /*
  * Sync Flow
