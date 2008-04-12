@@ -1,8 +1,9 @@
 2008-04-12  Daniel Gollub <dgollub@suse.de>
 	
-	* tests/mock-plugin/mock_sync.c: 
-	  Stripped entire error handling of mock-sync for best code coverage.
-	  Instead of error handling in testing code use osync_assert().
+	* tests/mock-plugin/mock_sync.c, tests/mock-plugin/mock_format.c: 
+	  Stripped entire error handling of mock-sync and mock-format for best
+	  code coverage. Instead of error handling in testing code use
+	  osync_assert().
 
 2008-04-10  Graham Cobb  <g+770@cobb.uk.net>
 

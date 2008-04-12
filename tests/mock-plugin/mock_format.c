@@ -80,8 +80,8 @@ static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **o
 	
 	*free_input = FALSE;
 	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
-	if (!file)
-		return FALSE;
+	osync_assert(file);
+
 	file->path = osync_rand_str(g_random_int_range(1, 100));
 	
 	file->data = input;
@@ -122,8 +122,7 @@ static osync_bool copy_file(const char *input, unsigned int inpsize, char **outp
 	OSyncFileFormat *inpfile = (OSyncFileFormat *)input;
 	
 	OSyncFileFormat *outfile = osync_try_malloc0(sizeof(OSyncFileFormat), error);
-	if (!outfile)
-		return FALSE;
+	osync_assert(outfile);
 	
 	if (inpfile->data) {
 		outfile->data = g_malloc0(inpfile->size);
@@ -188,8 +187,7 @@ static osync_bool demarshal_file(OSyncMessage *message, char **output, unsigned 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, message, output, outpsize, error);
 	
 	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
-	if (!file)
-		goto error;
+	osync_assert(file);
 	
 	osync_message_read_string(message, &(file->path));
 	osync_message_read_buffer(message, (void *)&(file->data), (int *)&(file->size));
@@ -199,11 +197,6 @@ static osync_bool demarshal_file(OSyncMessage *message, char **output, unsigned 
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
-
-error:
-	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
 }
 
 static void _format_set_functions(OSyncObjFormat *format)
@@ -226,8 +219,7 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 
 	/* mockformat1 */
 	format = osync_objformat_new("mockformat1", "mockobjtype1", error);
-	if (!format)
-		return FALSE;
+	osync_assert(format);
 
 	_format_set_functions(format);
 
@@ -236,8 +228,7 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 
 	/* mockformat2 */
 	format = osync_objformat_new("mockformat2", "mockobjtype2", error);
-	if (!format)
-		return FALSE;
+	osync_assert(format);
 
 	_format_set_functions(format);
 
@@ -246,8 +237,7 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 
 	/* mockformat3 */
 	format = osync_objformat_new("mockformat3", "mockobjtype3", error);
-	if (!format)
-		return FALSE;
+	osync_assert(format);
 
 	_format_set_functions(format);
 
@@ -263,27 +253,19 @@ osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 
 	/* mock converter */
 	OSyncObjFormat *mockformat1 = osync_format_env_find_objformat(env, "mockformat1");
-	if (!mockformat1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find mockformat1");
-		return FALSE;
-	}
+	osync_assert(mockformat1);
 	
 	OSyncObjFormat *mockformat2 = osync_format_env_find_objformat(env, "mockformat2");
-	if (!mockformat2) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find mockformat2");
-		return FALSE;
-	}
+	osync_assert(mockformat2);
 	
 	conv = osync_converter_new(OSYNC_CONVERTER_DECAP, mockformat1, mockformat2, conv_file_to_plain, error);
-	if (!conv)
-		return FALSE;
+	osync_assert(conv);
 	
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 	
 	conv = osync_converter_new(OSYNC_CONVERTER_ENCAP, mockformat2, mockformat1, conv_plain_to_file, error);
-	if (!conv)
-		return FALSE;
+	osync_assert(conv);
 	
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
