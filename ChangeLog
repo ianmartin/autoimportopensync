@@ -1,4 +1,7 @@
 2008-04-12  Daniel Gollub <dgollub@suse.de>
+
+	* tools/osyncplugin.c:
+	  Full rewrite of osyncplugin to work with OpenSync 0.30 API
 	
 	* tests/mock-plugin/mock_sync.c, tests/mock-plugin/mock_format.c: 
 	  Stripped entire error handling of mock-sync and mock-format for best
