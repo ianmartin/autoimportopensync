@@ -262,7 +262,7 @@ void parse_args(int argc, char **argv) {
  * Plugin Commands
  */
 
-void *init_plugin(OSyncError **error) {
+osync_bool init(OSyncError **error) {
 	assert(!plugin);
 	assert(!plugin_env);
 
@@ -311,11 +311,8 @@ void *init_plugin(OSyncError **error) {
 	osync_plugin_info_set_configdir(plugin_info, configdir);
 	osync_plugin_info_set_loop(plugin_info, loop);
 	osync_plugin_info_set_format_env(plugin_info, format_env);
-
-	if (!(plugin_data = osync_plugin_initialize(plugin, plugin_info, error)))
-		goto error_free_loop;
-
-	return plugin_data;
+	
+	return TRUE;
 
 error_free_loop:
 	g_main_loop_unref(loop);
@@ -323,16 +320,28 @@ error_free_plugininfo:
 	osync_plugin_info_unref(plugin_info);
 error_free_formatenv:
 	osync_format_env_free(format_env);
+	format_env = NULL;
 error_free_pluginenv:
 	osync_plugin_env_free(plugin_env);
+	plugin_env = NULL;
 error:	
-	return NULL;
+	return FALSE;
+}
+
+void *plugin_initialize(OSyncError **error)
+{
+	void *plugin_data = osync_plugin_initialize(plugin, plugin_info, error);
+	
+	if (!plugin_data)
+		return NULL;
+
+	return plugin_data;
 }
 
 void finalize_plugin(void **plugin_data)
 {
 
-	if (*plugin_data)
+	if (!*plugin_data)
 		return;
 
 	osync_plugin_finalize(plugin, *plugin_data);
@@ -414,8 +423,7 @@ void _osyncplugin_ctx_callback_getchanges(void *user_data, OSyncError *error)
 osync_bool get_changes_sink(OSyncObjTypeSink *sink, int slowsync, void *plugin_data, OSyncError **error)
 {
 	assert(sink);
-	assert(plugin_data);
-
+	
 	if (slowsync)
 		osync_objtype_sink_set_slowsync(sink, TRUE);
 	else
@@ -482,8 +490,7 @@ error:
 osync_bool synchronization_sink(OSyncObjTypeSink *sink, void *plugin_data, osync_bool forcesync, osync_bool forcedstatus, OSyncError **error)
 {
 	assert(sink);
-	assert(plugin_data);
-
+	
 	osync_bool slowsync = forcedstatus;
 
 	if (!forcesync) {
@@ -501,8 +508,7 @@ osync_bool synchronization_sink(OSyncObjTypeSink *sink, void *plugin_data, osync
 osync_bool synchronization(const char *objtype, void *plugin_data, osync_bool force, osync_bool slowsync, OSyncError **error)
 {
 	/* objtype can be NULL - this means sync ALL objtypes */
-	assert(plugin_data);
-	
+		
 	OSyncObjTypeSink *sink = NULL;
 	int num, i;
 
@@ -588,10 +594,9 @@ error:
 	return FALSE;
 }
 
-osync_bool connect(const char *objtype, void *plugin_data, OSyncError **error)
+static osync_bool connect(const char *objtype, void *plugin_data, OSyncError **error)
 {
-	assert(plugin_data);
-
+	
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
 
@@ -674,8 +679,7 @@ error:
 
 osync_bool disconnect(const char *objtype, void *plugin_data, OSyncError **error)
 {
-	assert(plugin_data);
-
+	
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
 
@@ -708,8 +712,7 @@ error:
 
 osync_bool empty(const char *objtype, void *plugin_data, OSyncError **error) {
 
-	assert(plugin_data);
-
+	
 	/* Perform slowync */
 	if (!get_changes(objtype, TRUE, plugin_data, error))
 		goto error;
@@ -763,8 +766,7 @@ error:
 
 osync_bool syncdone(const char *objtype, void *plugin_data, OSyncError **error)
 {
-	assert(plugin_data);
-
+	
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
 
@@ -838,8 +840,6 @@ error:
 
 osync_bool committedall(const char *objtype, void *plugin_data, OSyncError **error)
 {
-	assert(plugin_data);
-
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
 
@@ -877,13 +877,16 @@ osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 
 	assert(cmd);
 
+	if (cmd->cmd != INITIALIZE && *plugin_data == NULL)
+		fprintf(stderr, "WARNING: Got Plugin initialized? plugin_data is NULL.\n");
+
 	switch (cmd->cmd) {
 		case EMPTY:
 			if (!empty(cmd->arg, *plugin_data, error))
 				goto error;
 			break;
 		case INITIALIZE:
-			if (!(*plugin_data = init_plugin(error)))
+			if (!(*plugin_data = plugin_initialize(error)))
 				goto error;
 			break;
 		case FINALIZE:
@@ -948,6 +951,9 @@ int main(int argc, char **argv) {
 
 	parse_args(argc, argv);
 
+	if (!init(&error))
+		goto error;
+
 	for (o=cmdlist; o; o = o->next)
 		if (!run_command((Command *) o->data, &plugin_data, &error))
 			goto error_disconnect_and_finalize;
@@ -955,17 +961,20 @@ int main(int argc, char **argv) {
 
 	/* TODO: free command list - for easier memory leak checking */
 
-	osync_plugin_env_free(plugin_env);
+	if (plugin_env)
+		osync_plugin_env_free(plugin_env);
 
 	return TRUE;
 
 error_disconnect_and_finalize:
-	disconnect(NULL, plugin_data, NULL);
+	if (plugin_data)
+		disconnect(NULL, plugin_data, NULL);
 //error_finalize:
 	finalize_plugin(&plugin_data);
 //error_free_plugin_env:
-	osync_plugin_env_free(plugin_env);
-//error:	
+	if (plugin_env)
+		osync_plugin_env_free(plugin_env);
+error:	
 	fprintf(stderr, "%s\n", osync_error_print(&error));
 	osync_error_unref(&error);
 	return FALSE;
