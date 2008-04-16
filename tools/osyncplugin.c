@@ -42,6 +42,7 @@ char *configdir = NULL;
 GList *sinks = NULL;
 GList *cmdlist = NULL;
 GList *changesList = NULL;
+GMainContext *ctx = NULL;
 OSyncPlugin *plugin = NULL;
 OSyncPluginEnv *plugin_env = NULL;
 OSyncFormatEnv *format_env = NULL;
@@ -309,20 +310,18 @@ osync_bool init(OSyncError **error) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Plugin \"%s\" requires configuration!", pluginname); 
 		goto error_free_plugininfo;
 	}
-	GMainLoop *loop = g_main_loop_new(NULL, TRUE);
-	if (!loop) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't allocate loop object.");
-		goto error_free_plugininfo;
-	}
+
+	assert(!ctx);
+	ctx = g_main_context_new();
 
 	osync_plugin_info_set_configdir(plugin_info, configdir);
-	osync_plugin_info_set_loop(plugin_info, loop);
+	osync_plugin_info_set_loop(plugin_info, ctx);
 	osync_plugin_info_set_format_env(plugin_info, format_env);
-	
+
 	return TRUE;
 
 error_free_loop:
-	g_main_loop_unref(loop);
+	g_main_context_unref(ctx);
 error_free_plugininfo:
 	osync_plugin_info_unref(plugin_info);
 error_free_formatenv:
