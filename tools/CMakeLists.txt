@@ -25,5 +25,5 @@ TARGET_LINK_LIBRARIES( osyncbinary opensync )
 
 ###### INSTALL ################### 
 
-INSTALL( TARGETS osyncdump osyncbinary DESTINATION ${BIN_INSTALL_DIR} ) 
+INSTALL( TARGETS osyncdump osyncbinary osyncplugin DESTINATION ${BIN_INSTALL_DIR} ) 
 
