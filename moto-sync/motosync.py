@@ -387,10 +387,10 @@ def moto_repeat_day_to_weekdays(repeat_day,  eventday):
         else:
             return rest
 
-def moto_weekdays_to_repeat_day(weekdays, eventday):
+def moto_weekdays_to_repeat_day(weekdays, eventweekday):
     """Returns the repeat_day value given a set of days on which a weekly event repeats."""
 
-    return sum([2 ** (6 - (day - eventday) % 7) for day in weekdays])
+    return sum([2 ** (6 - (day - eventweekday) % 7) for day in weekdays])
 
 def moto_repeat_day_to_monthday(repeat_day):
     """For a monthly or yearly by day repeat, return the day the event repeats on.
@@ -519,7 +519,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
             # so we can ignore them
             byday_nums = [daynum for (_, daynum) in byday_pairs]
             if byday_nums != [eventdt.day]:
-                ret['repeat_day'] = moto_weekdays_to_repeat_day(byday_nums, eventdt.day)
+                ret['repeat_day'] = moto_weekdays_to_repeat_day(byday_nums, eventdt.weekday())
     elif (freq == 'MONTHLY' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
             and not byyearday and (not bymonth or bymonth == byallmonths)):
         if extended_format:
