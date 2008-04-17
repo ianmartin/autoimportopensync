@@ -564,6 +564,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
     # what events would happen if there were no exceptions?
     now = datetime.now(dateutil.tz.tzutc())
     all_occurrences = ruleset.between(now, now + RRULE_FUTURE)
+    past_events = len(ruleset.between(eventdt, now, True))
 
     # add in the exception dates and rules (if any)
     for node in exdates:
@@ -583,7 +584,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
     # work out which events don't happen
     for num in range(len(all_occurrences)):
         if all_occurrences[num] not in excepted_occurrences:
-            ret['exceptions'].append(num)
+            ret['exceptions'].append(num + past_events)
 
     return ret
 
