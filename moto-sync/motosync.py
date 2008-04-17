@@ -567,7 +567,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
 
     # add in the exception dates and rules (if any)
     for node in exdates:
-        for e in getElementsByTagNames(node, 'Content'):
+        for e in getElementsByTagNames(node, 'Content', []):
             ruleset.exdate(dateutil.parser.parse(getXMLText(e)))
 
     for node in exrules:
@@ -1413,7 +1413,9 @@ class PhoneEventSimpleXML(PhoneEventSimple):
         exrules = node.getElementsByTagName('ExceptionRule')
 
         rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt, False)
-        if (rule['repeat_every'] not in [0, 1] or rule['repeat_day'] != 0 or rule['repeat_end']):
+        if (rule['repeat_every'] not in [0, 1] or 
+            rule['repeat_day'] not in [0, 64] or
+            rule['repeat_end']):
             raise UnsupportedDataError("Recursion rule not supported by simple event format")
 
         self.repeat_type = rule['repeat_type']
