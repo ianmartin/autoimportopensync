@@ -86,4 +86,8 @@ void conflict_handler_abort(OSyncEngine *engine, OSyncMappingEngine *mapping, vo
 void solve_conflict(OSyncMappingEngine *mapping);
 void conflict_handler_delay(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data);
 
+/* File testing helper */
+osync_bool osync_testing_file_exists(const char *file);
+osync_bool osync_testing_file_remove(const char *file);
+osync_bool osync_testing_file_chmod(const char *file, int mode);
 

@@ -591,3 +591,40 @@ void discover_all_once(OSyncEngine *engine, OSyncError **error)
 	}
 }
 
+/*! @brief Check if file or directory exists. No check for regular file! 
+ * 
+ * @param file filename or fullpath of file/directory 
+ * @returns TRUE if exists, FALSE otherwise
+ * 
+ */
+osync_bool osync_testing_file_exists(const char *file)
+{
+	return g_file_test(file, G_FILE_TEST_EXISTS);
+}
+
+/*! @brief Removes files and directories 
+ * 
+ * @param file filename or fullpath of file/directory 
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_testing_file_remove(const char *file)
+{
+	return g_remove(file);
+}
+
+/*! @brief Modifies permission of file - like chmod() 
+ * 
+ * @param file filename or fullpath of file 
+ * @param mode the permission mode like chmod()
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_testing_file_chmod(const char *file, int mode)
+{
+	/* GLib 2.16.3 Note: 
+	   "[...] Software that needs to manage file 
+	   permissions on Windows exactly should use the Win32 API."
+	TODO: Do we have to care about this on Windows?! */
+	return g_chmod(file, mode);
+}
