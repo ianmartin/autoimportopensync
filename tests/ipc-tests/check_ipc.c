@@ -3,17 +3,10 @@
 
 #include <opensync/opensync-ipc.h>
 
-void _remove_pipe(const char *name)
-{
-	char *cmd = g_strdup_printf("rm %s &> /dev/null", name);
-	system(cmd);
-	g_free(cmd);
-}
-
 START_TEST (ipc_new)
 {
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
@@ -29,7 +22,7 @@ END_TEST
 START_TEST (ipc_create)
 {
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
@@ -39,12 +32,12 @@ START_TEST (ipc_create)
 	fail_unless(osync_queue_create(queue1, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(queue1, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == FALSE, NULL);
 	
 	osync_queue_free(queue1);
 	
@@ -55,7 +48,7 @@ END_TEST
 START_TEST (ipc_connect)
 {
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", &error);
@@ -88,12 +81,12 @@ START_TEST (ipc_connect)
 		
 	}
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == TRUE, NULL);
 		
 	fail_unless(osync_queue_remove(queue, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == FALSE, NULL);
 
 	osync_queue_free(queue);
 	
@@ -104,8 +97,8 @@ END_TEST
 START_TEST (ipc_payload)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -224,13 +217,13 @@ START_TEST (ipc_payload)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -242,8 +235,8 @@ END_TEST
 START_TEST (ipc_payload_wait)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -372,13 +365,13 @@ START_TEST (ipc_payload_wait)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -390,8 +383,8 @@ END_TEST
 START_TEST (ipc_payload_stress)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	int num_mess = 1000;
 	int size = 100;
@@ -516,13 +509,13 @@ START_TEST (ipc_payload_stress)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -535,8 +528,8 @@ END_TEST
 START_TEST (ipc_payload_stress2)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	int i = 0;
 	
 	int num_mess = 1000;
@@ -659,13 +652,13 @@ START_TEST (ipc_payload_stress2)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -678,8 +671,8 @@ END_TEST
 START_TEST (ipc_large_payload)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	int i = 0;
 	
 	int num_mess = 10;
@@ -795,13 +788,13 @@ START_TEST (ipc_large_payload)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -814,7 +807,7 @@ END_TEST
 START_TEST (ipc_error_no_pipe)
 {
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
@@ -834,7 +827,7 @@ END_TEST
 START_TEST (ipc_error_perm)
 {
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", &error);
@@ -849,12 +842,12 @@ START_TEST (ipc_error_perm)
 	fail_unless(error != NULL, NULL);
 	osync_error_unref(&error);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == TRUE, NULL);
 		
 	fail_unless(osync_queue_remove(queue, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == FALSE, NULL);
 
 	osync_queue_free(queue);
 	
@@ -865,7 +858,7 @@ END_TEST
 START_TEST (ipc_error_rem)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe", &error);
@@ -897,12 +890,12 @@ START_TEST (ipc_error_rem)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == FALSE, NULL);
 
 	osync_queue_free(server_queue);
 	
@@ -913,7 +906,7 @@ END_TEST
 START_TEST (ipc_error_rem2)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe");
+	osync_testing_file_remove("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe", &error);
@@ -974,12 +967,12 @@ START_TEST (ipc_error_rem2)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe") == FALSE, NULL);
 
 	osync_queue_free(server_queue);
 	
@@ -1040,8 +1033,8 @@ void client_handler1(OSyncMessage *message, void *user_data)
 START_TEST (ipc_loop_payload)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -1139,13 +1132,13 @@ START_TEST (ipc_loop_payload)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -1225,8 +1218,8 @@ void client_handler2(OSyncMessage *message, void *user_data)
 START_TEST (ipc_loop_stress)
 {	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -1328,13 +1321,13 @@ START_TEST (ipc_loop_stress)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -1403,8 +1396,8 @@ START_TEST (ipc_loop_callback)
 	num_msgs = 0;
 	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -1511,13 +1504,13 @@ START_TEST (ipc_loop_callback)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -1597,8 +1590,8 @@ START_TEST (ipc_callback_break)
 	num_msgs = 0;
 	
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -1700,13 +1693,13 @@ START_TEST (ipc_callback_break)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
@@ -2085,8 +2078,8 @@ START_TEST (ipc_timeout)
 	   */
 
 	char *testbed = setup_testbed(NULL);
-	_remove_pipe("/tmp/testpipe-server");
-	_remove_pipe("/tmp/testpipe-client");
+	osync_testing_file_remove("/tmp/testpipe-server");
+	osync_testing_file_remove("/tmp/testpipe-client");
 
 	num_callback_timeout = 0;
 	num_callback = 0;
@@ -2224,7 +2217,7 @@ START_TEST (ipc_timeout)
 		fail_unless(WEXITSTATUS(status) == 0, NULL);
 	}
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") == 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == TRUE, NULL);
 	
 	fail_unless(osync_queue_remove(client_queue, &error), NULL);
 	fail_unless(osync_queue_remove(server_queue, &error), NULL);
@@ -2234,7 +2227,7 @@ START_TEST (ipc_timeout)
 	fail_unless(num_callback_timeout == 1, NULL);
 	fail_unless(num_callback == 0, NULL);
 	
-	fail_unless(system("ls /tmp/testpipe-client &> /dev/null") != 0, NULL);
+	fail_unless(osync_testing_file_exists("/tmp/testpipe-client") == FALSE, NULL);
 
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
