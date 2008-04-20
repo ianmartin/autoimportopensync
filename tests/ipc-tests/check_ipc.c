@@ -835,7 +835,7 @@ START_TEST (ipc_error_perm)
 	osync_queue_create(queue, &error);
 	fail_unless(error == NULL, NULL);
 	
-	if (system("chmod 000 /tmp/testpipe"))
+	if (osync_testing_file_chmod("/tmp/testpipe", 000))
 		abort();
 	
 	fail_unless(!osync_queue_connect(queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
