@@ -876,7 +876,7 @@ osync_bool committedall_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncErr
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
-	osync_objtype_sink_sync_done(sink, plugin_data, plugin_info, context);
+	osync_objtype_sink_committed_all(sink, plugin_data, plugin_info, context);
 
 	osync_context_unref(context);
 
