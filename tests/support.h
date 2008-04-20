@@ -48,7 +48,7 @@ int num_mapping_conflicts;
 
 void check_env(void);
 
-char *setup_testbed(char *fkt_name);
+char *setup_testbed(const char *fkt_name);
 void destroy_testbed(char *path);
 // create_case() with timeout of 30seconds (default)
 void create_case(Suite *s, const char *name, TFun function);

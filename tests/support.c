@@ -37,7 +37,7 @@ void check_env(void) {
 				"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n");
 }
 
-char *setup_testbed(char *fkt_name)
+char *setup_testbed(const char *fkt_name)
 {
 	
 	setuid(65534);
