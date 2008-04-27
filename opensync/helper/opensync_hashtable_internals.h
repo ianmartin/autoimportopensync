@@ -22,11 +22,21 @@
 #ifndef _OPENSYNC_HASHTABLE_INTERNALS_H_
 #define _OPENSYNC_HASHTABLE_INTERNALS_H_
 
+#define OSYNC_HASHTABLE_DB_PREFIX "tbl_hash_"
+
 /*! @brief Represent a hashtable which can be used to check if changes have been modifed or deleted */
 struct OSyncHashTable {
+	int ref_count;
 	OSyncDB *dbhandle;
-	GHashTable *used_entries;
-	char *tablename;
+
+	GHashTable *reported_entries;
+
+	GHashTable *db_entries;
+
+	char *name;
+
+	/* Only to build transaction queries */
+	GString *query;
 };
 
 #endif /*_OPENSYNC_HASHTABLE_INTERNALS_H_*/
