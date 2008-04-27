@@ -102,6 +102,11 @@ static void dump_map(OSyncGroupEnv *env, const char *groupname)
 
 }
 
+static void print_hashtable(const char *uid, const char *hash, void *user_data)
+{
+	printf("UID: %s\tHASH:%s\n", uid, hash);
+}
+
 static void dump_hash(OSyncGroupEnv *env, const char *objtype, const char *groupname, char *memberid)
 {
 	OSyncError *error = NULL;
@@ -125,17 +130,9 @@ static void dump_hash(OSyncGroupEnv *env, const char *objtype, const char *group
 		goto error;
 	g_free(path);
 	
-	int i;
-	char *uid;
-	char *hash;
-	for (i = 0; i < osync_hashtable_num_entries(table); i++) {
-		osync_hashtable_nth_entry(table, i, &uid, &hash);
-	    	printf("UID: %s HASH: %s\n", uid, hash);
-		g_free(hash);
-		g_free(uid);
-	}
-	
-	osync_hashtable_free(table);
+	osync_hashtable_foreach(table, print_hashtable, NULL);
+
+	osync_hashtable_unref(table);
 	
 	return;
 
