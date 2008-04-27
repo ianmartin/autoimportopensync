@@ -397,9 +397,6 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 	osync_trace(TRACE_INTERNAL, "sinkenv: %p", sinkenv);
 
-	// reset reports internal hashtable list, to discover deleted entries
-	osync_hashtable_reset_reports(sinkenv->hashtable);
-
 	// check for slowsync and prepare the "contact" hashtable if needed
 	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
@@ -458,39 +455,39 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 			if (contact == NULL)
 				continue;
 
-			// prepare UID with gnokii-contact-<memory type>-<memory location>
-			uid = gnokii_contact_uid(contact);
-			osync_hashtable_report(sinkenv->hashtable, uid);
+			OSyncChange *change = osync_change_new(&error);
 
+			/* prepare UID with gnokii-contact-<memory type>-<memory location> */
+			uid = gnokii_contact_uid(contact);
+			osync_change_set_uid(change, uid);
+			g_free(uid);
+
+			/* set hash */
 			hash = gnokii_contact_hash(contact);
-			OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
+			osync_change_set_hash(change, hash);	
+			g_free(hash);
+
+			/* Once UID and HASH got set - report it! */
+			//osync_hashtable_report(sinkenv->hashtable, change);
+
+			OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, change);
+			osync_change_set_changetype(change, type);
+
+			osync_hashtable_update_change(sinkenv->hashtable, change);
 
 			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
-				g_free(hash);
-				g_free(uid);
+				/* Nothing to do. */
 				g_free(contact);
 				continue;
 			}
 
-			osync_hashtable_update_hash(sinkenv->hashtable, type, uid, hash);
-
-			OSyncChange *change = osync_change_new(&error);
-
-
-			osync_change_set_uid(change, uid);
-			osync_change_set_hash(change, hash);	
-			osync_change_set_changetype(change, type);
-
-			// set data
+			/* set data */
 			osync_trace(TRACE_INTERNAL, "objformat: %p", sinkenv->objformat);
 			OSyncData *odata = osync_data_new((char *) contact, sizeof(gn_phonebook_entry), sinkenv->objformat, &error);
 			if (!odata) {
 				osync_change_unref(change);
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
-				g_free(hash);
-				g_free(uid);
-				g_free(contact);
 				continue;
 			}
 
@@ -504,31 +501,28 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 			osync_trace(TRACE_INTERNAL, "Change: %p", change);
 
 			osync_change_unref(change);
-
-			g_free(hash);
-			g_free(uid);
 		}
 	}
 
 	g_free(data);
 
 	int i;
-        char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
-        for (i = 0; uids[i]; i++) {
+        OSyncList *u, *uids = osync_hashtable_get_deleted(sinkenv->hashtable);
+        for (u = uids; u; u = u->next) {
                 OSyncChange *change = osync_change_new(&error);
                 if (!change) {
-                        g_free(uids[i]);
                         osync_context_report_osyncwarning(ctx, error);
                         osync_error_unref(&error);
                         continue;
                 }
 
-                osync_change_set_uid(change, uids[i]);
+		const char *uid = u->data;
+
+                osync_change_set_uid(change, uid);
                 osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 
                 OSyncData *odata = osync_data_new(NULL, 0, sinkenv->objformat, &error);
                 if (!odata) {
-                        g_free(uids[i]);
                         osync_change_unref(change);
                         osync_context_report_osyncwarning(ctx, error);
                         osync_error_unref(&error);
@@ -541,12 +535,10 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
                 osync_context_report_change(ctx, change);
 
-                osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+                osync_hashtable_update_change(sinkenv->hashtable, change);
 
                 osync_change_unref(change);
-                g_free(uids[i]);
         }
-        g_free(uids);
 
 	osync_context_report_success(ctx);
 
@@ -627,7 +619,7 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 	osync_context_report_success(ctx);
 
 	// update hashtable
-	osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), osync_change_get_hash(change));
+	osync_hashtable_update_change(sinkenv->hashtable, change);
 
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

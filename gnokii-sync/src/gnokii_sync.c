@@ -28,7 +28,7 @@ static void free_gnokiienv(gnokii_environment *env) {
 
 		// close the hashtable
 		if (sinkenv->hashtable) {
-			osync_hashtable_free(sinkenv->hashtable);
+			osync_hashtable_unref(sinkenv->hashtable);
 		}
 
 		osync_objtype_sink_unref(sinkenv->sink);
@@ -81,15 +81,26 @@ static void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
-//	gnokii_environment *env = (gnokii_environment *) data;
-	
-	// forget reported changes
-	// osync_hashtable_forget(env->hashtable);
+	OSyncError *error = NULL;
+
+	//gnokii_environment *env = (gnokii_environment *) data;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+
+	// commit changes to persistent hahstable 
+	if (!osync_hashtable_save(sinkenv->hashtable, &error))
+		goto error;
 	
 	// answer the call
 	osync_context_report_success(ctx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
 static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -104,7 +115,6 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	// disconnect the connection with phone
 	if (!gnokii_comm_disconnect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "disconnect failed");
-		free_gnokiienv(env);
                 return;
 	}
 	
@@ -122,7 +132,6 @@ static void finalize(void *data)
 
 	// free everything
 	free_gnokiienv(env);
-
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -221,10 +230,11 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
 	contact_sinkenv->hashtable = osync_hashtable_new(tablepath, "contact", error);
 	
-	//TODO: throw error.
-	//if (!contact_sinkenv->hashtable)
-	//	goto error;
+	if (!contact_sinkenv->hashtable)
+		goto error;
 
+	if (!osync_hashtable_load(contact_sinkenv->hashtable, error))
+		goto error;
 
 	// init the event sink
 	gnokii_sinkenv *event_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
@@ -245,6 +255,12 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
         event_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-event");
 	event_sinkenv->hashtable = osync_hashtable_new(tablepath, "event", error);
 
+	if (!event_sinkenv->hashtable)
+		goto error;
+
+	if (!osync_hashtable_load(event_sinkenv->hashtable, error))
+		goto error;
+
 	env->sinks = g_list_append(env->sinks, event_sinkenv);
 	
 	g_free(tablepath);
@@ -256,6 +272,10 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 
 	return (void *)env;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 
