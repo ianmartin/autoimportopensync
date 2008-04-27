@@ -37,8 +37,8 @@ OSYNC_EXPORT int osync_db_count(OSyncDB *db, const char *query, OSyncError **err
 OSYNC_EXPORT char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error);
 OSYNC_EXPORT int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error);
-OSYNC_EXPORT GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
-OSYNC_EXPORT void osync_db_free_list(GList *list);
+OSYNC_EXPORT OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
+OSYNC_EXPORT void osync_db_free_list(OSyncList *list);
 
 OSYNC_EXPORT osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error);
 OSYNC_EXPORT int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);

@@ -154,22 +154,22 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 }
 
 /**
- * @brief Exectues a SQL query and fill all requested data in a GList. 
+ * @brief Exectues a SQL query and fill all requested data in a OSyncList. 
  *        Check error with osync_error_is_set().
  * 
  * @param db Pointer to database struct
  * @param query SQL database query 
  * @param error Pointer to a error struct 
- * @return Returns pointer to GList which contains the each result as another GList ptr. Freeing is recommend with osync_db_free_list() 
+ * @return Returns pointer to OSyncList which contains the each result as another OSyncList ptr. Freeing is recommend with osync_db_free_list() 
  */
-GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
+OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
 	
 	osync_assert(db);
 	osync_assert(query);
 
-	GList *table = NULL;
+	OSyncList *table = NULL;
 	int i, j, column_count = 0;
 	int numrows = 0, numcolumns = 0;
 	char **result = NULL;
@@ -187,20 +187,20 @@ GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 	column_count = numcolumns;
 
 	for (j=0; j < numrows; j++) {
-		GList *row = NULL;
+		OSyncList *row = NULL;
 		for (i=0; i < numcolumns; i++)
 			/* speed up - prepend instead of append */
-			row = g_list_prepend(row, g_strdup(result[column_count++]));
+			row = osync_list_prepend(row, g_strdup(result[column_count++]));
 
 		/* items got prepended, reverse the list again */
-		row = g_list_reverse(row);
+		row = osync_list_reverse(row);
 
 		/* speed up - prepend instead of append. */
-		table = g_list_prepend(table, row);
+		table = osync_list_prepend(table, row);
 	}
 
 	/* items got prepended, reverse the list again */
-	table = g_list_reverse(table);
+	table = osync_list_reverse(table);
 
 	sqlite3_free_table(result);
 
@@ -211,18 +211,18 @@ GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 /**
  * @brief Frees the full result of osync_db_query_table().
  *
- * @param list Result GList pointer of osync_db_query_table()
+ * @param list Result OSyncList pointer of osync_db_query_table()
  */
-void osync_db_free_list(GList *list) {
+void osync_db_free_list(OSyncList *list) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, list);
 
-	GList *row;
+	OSyncList *row;
 	for (row = list; row; row = row->next) {
-		g_list_foreach((GList *) row->data, (GFunc) g_free, NULL);
-		g_list_free((GList *) row->data);
+		osync_list_foreach((OSyncList *) row->data, (GFunc) g_free, NULL);
+		osync_list_free((OSyncList *) row->data);
 	}
 
-	g_list_free(list);
+	osync_list_free(list);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
