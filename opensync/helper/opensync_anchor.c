@@ -69,7 +69,7 @@ static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 		goto error_free_db;
 	}
 	
-	int ret = osync_db_exists(db, "tbl_anchor", error);
+	int ret = osync_db_table_exists(db, "tbl_anchor", error);
 	if (ret > 0) {
 		osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
 		return db;
