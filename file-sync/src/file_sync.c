@@ -38,7 +38,7 @@ static void free_dir(OSyncFileDir *dir)
 		osync_objtype_sink_unref(dir->sink);
 
 	if (dir->hashtable)
-		osync_hashtable_free(dir->hashtable);
+		osync_hashtable_unref(dir->hashtable);
 
 	g_free(dir);
 }
@@ -451,7 +451,6 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, OSyncPluginInfo *
 		else
 			relative_filename = g_build_filename(subdir, de, NULL);
 			
-		osync_hashtable_report(directory->hashtable, relative_filename);
 		osync_trace(TRACE_INTERNAL, "path2 %s %s", filename, relative_filename);
 		
 		if (g_file_test(filename, G_FILE_TEST_IS_DIR)) {
@@ -462,35 +461,33 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, OSyncPluginInfo *
 			
 			struct stat buf;
 			stat(filename, &buf);
-			char *hash = osync_filesync_generate_hash(&buf);
-			
-
-			OSyncChangeType type = osync_hashtable_get_changetype(directory->hashtable, relative_filename, hash);
-			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
-				g_free(hash);
-				g_free(filename);
-				g_free(relative_filename);
-				continue;
-			}
-			osync_hashtable_update_hash(directory->hashtable, type, relative_filename, hash);
 
 			/* Report normal files */
 			OSyncChange *change = osync_change_new(&error);
 			if (!change) {
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
-				g_free(hash);
-				g_free(filename);
 				g_free(relative_filename);
 				continue;
 			}
-			
+
 			osync_change_set_uid(change, relative_filename);
+
+			char *hash = osync_filesync_generate_hash(&buf);
 			osync_change_set_hash(change, hash);
+			g_free(hash);
+
+			OSyncChangeType type = osync_hashtable_get_changetype(directory->hashtable, change);
 			osync_change_set_changetype(change, type);
 
-			g_free(hash);
-			
+			osync_hashtable_update_change(directory->hashtable, change);
+
+			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
+				g_free(filename);
+				g_free(relative_filename);
+				osync_change_unref(change);
+				continue;
+			}
 
 			char *data;
 			unsigned int size;
@@ -500,6 +497,7 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, OSyncPluginInfo *
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
 				g_free(filename);
+				g_free(relative_filename);
 				continue;
 			}
 
@@ -515,6 +513,9 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, OSyncPluginInfo *
 					osync_context_report_osyncwarning(ctx, error);
 					osync_error_unref(&error);
 					g_free(data);
+					g_free(filename);
+					g_free(relative_filename);
+
 					continue;
 				}
 
@@ -540,6 +541,9 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, OSyncPluginInfo *
 					osync_context_report_osyncwarning(ctx, error);
 					osync_error_unref(&error);
 					g_free(data);
+					g_free(filename);
+					g_free(relative_filename);
+					g_free(file->path);
 					continue;
 				}
 			}
@@ -574,7 +578,6 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 	OSyncError *error = NULL;
 
 	
-	osync_hashtable_reset_reports(dir->hashtable);
 	if (osync_objtype_sink_get_slowsync(dir->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
 		if (!osync_hashtable_slowsync(dir->hashtable, &error))
@@ -590,22 +593,21 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 
 	osync_filesync_report_dir(dir, info, NULL, ctx);
 	
-	char **uids = osync_hashtable_get_deleted(dir->hashtable);
-	for (i = 0; uids[i]; i++) {
+	OSyncList *u, *uids = osync_hashtable_get_deleted(dir->hashtable);
+	for (u = uids; uids; u = u->next) {
 		OSyncChange *change = osync_change_new(&error);
 		if (!change) {
-			g_free(uids[i]);
 			osync_context_report_osyncwarning(ctx, error);
 			osync_error_unref(&error);
 			continue;
 		}
 		
-		osync_change_set_uid(change, uids[i]);
+		const char *uid = u->data;
+		osync_change_set_uid(change, uid);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 		
 		OSyncData *odata = osync_data_new(NULL, 0, dir->objformat_output, &error);
 		if (!odata) {
-			g_free(uids[i]);
 			osync_change_unref(change);
 			osync_context_report_osyncwarning(ctx, error);
 			osync_error_unref(&error);
@@ -618,12 +620,11 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 		
 		osync_context_report_change(ctx, change);
 		
-		osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+		osync_hashtable_update_change(dir->hashtable, change);
 	
 		osync_change_unref(change);
-		g_free(uids[i]);
 	}
-	g_free(uids);
+	osync_list_free(uids);
 	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -652,7 +653,7 @@ static void osync_filesync_commit_change(void *data, OSyncPluginInfo *info, OSyn
 	}
 	g_free(filename);
 
-	osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), hash);
+	osync_hashtable_update_change(dir->hashtable, change);
 	g_free(hash);
 	
 	osync_context_report_success(ctx);
@@ -663,6 +664,9 @@ static void osync_filesync_commit_change(void *data, OSyncPluginInfo *info, OSyn
 static void osync_filesync_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+
+	OSyncError *error = NULL;
+
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 
@@ -671,10 +675,20 @@ static void osync_filesync_sync_done(void *data, OSyncPluginInfo *info, OSyncCon
 	osync_anchor_update(anchorpath, path_field, dir->path);
 	g_free(anchorpath);
 	g_free(path_field);
+
+	if (!osync_hashtable_save(dir->hashtable, &error))
+		goto error;
 	
 	osync_context_report_success(ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+	return;
 }
 
 /* In initialize, we get the config for the plugin. Here we also must register
@@ -743,6 +757,9 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		g_free(tablepath);
 	
 		if (!dir->hashtable)
+			goto error_free_env;
+
+		if (!osync_hashtable_load(dir->hashtable, error))
 			goto error_free_env;
 
 		char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
