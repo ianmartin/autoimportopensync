@@ -57,7 +57,7 @@ static osync_bool osync_archive_create_changes(OSyncDB *db, const char *objtype,
 	osync_assert(objtype);
 
 	char *tbl_changes = g_strdup_printf("tbl_changes_%s", objtype);
-	int ret = osync_db_exists(db, tbl_changes, error);
+	int ret = osync_db_table_exists(db, tbl_changes, error);
 	g_free(tbl_changes);
 
 	/* error if ret -1 */
@@ -94,7 +94,7 @@ static osync_bool osync_archive_create_changelog(OSyncDB *db, const char *objtyp
 	osync_assert(objtype);
 
 	char *tbl_changelog = g_strdup_printf("tbl_changelog_%s", objtype);
-	int ret = osync_db_exists(db, tbl_changelog, error);
+	int ret = osync_db_table_exists(db, tbl_changelog, error);
 	g_free(tbl_changelog);
 
 	/* error if ret -1 */
@@ -130,7 +130,7 @@ static osync_bool osync_archive_create(OSyncDB *db, const char *objtype, OSyncEr
 	osync_assert(objtype);
 
 	char *tbl_archive = g_strdup_printf("tbl_archive_%s", objtype);
-	int ret = osync_db_exists(db, tbl_archive, error);
+	int ret = osync_db_table_exists(db, tbl_archive, error);
 	g_free(tbl_archive);
 
 	/* error if ret -1 */
@@ -425,7 +425,7 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	osync_assert(mappingids);
 	osync_assert(memberids);
 
-	GList *result = NULL, *row = NULL;
+	OSyncList *result = NULL, *row = NULL;
 
 	if (!osync_archive_create_changes(archive->db, objtype, error))
 		goto error;
@@ -440,12 +440,12 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 		goto error;
 
 	for (row = result; row; row = row->next) { 
-		GList *column = row->data;
+		OSyncList *column = row->data;
 
-		long long int id = g_ascii_strtoull(g_list_nth_data(column, 0), NULL, 0);
-		const char *uid = g_list_nth_data(column, 1); 
-		long long int mappingid = g_ascii_strtoull(g_list_nth_data(column, 2), NULL, 0);
-		long long int memberid = g_ascii_strtoull(g_list_nth_data(column, 3), NULL, 0);
+		long long int id = g_ascii_strtoull(osync_list_nth_data(column, 0), NULL, 0);
+		const char *uid = osync_list_nth_data(column, 1); 
+		long long int mappingid = g_ascii_strtoull(osync_list_nth_data(column, 2), NULL, 0);
+		long long int memberid = g_ascii_strtoull(osync_list_nth_data(column, 3), NULL, 0);
 		
 		*ids = osync_list_append((*ids), GINT_TO_POINTER((int)id));
 		*uids = osync_list_append((*uids), g_strdup(uid));
@@ -518,8 +518,8 @@ osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const cha
 	osync_assert(ids);
 	osync_assert(changetypes);
 
-	GList *result = NULL;
-	GList *row = NULL;
+	OSyncList *result = NULL;
+	OSyncList *row = NULL;
 
 	if (!osync_archive_create_changelog(archive->db, objtype, error))
 		goto error;
@@ -534,10 +534,10 @@ osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const cha
 		goto error;
 
 	for (row = result; row; row = row->next) { 
-		GList *column = row->data;
+		OSyncList *column = row->data;
 
-		long long int id = g_ascii_strtoull(g_list_nth_data(column, 0), NULL, 0);
-		int changetype = atoi(g_list_nth_data(column, 1));
+		long long int id = g_ascii_strtoull(osync_list_nth_data(column, 0), NULL, 0);
+		int changetype = atoi(osync_list_nth_data(column, 1));
 		
 		*ids = osync_list_append((*ids), GINT_TO_POINTER((int)id));
 		*changetypes = osync_list_append((*changetypes), GINT_TO_POINTER((int)changetype));
