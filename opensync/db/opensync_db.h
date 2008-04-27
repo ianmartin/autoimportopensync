@@ -27,9 +27,9 @@ OSYNC_EXPORT OSyncDB *osync_db_new(OSyncError **error);
 OSYNC_EXPORT osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_db_close(OSyncDB *db, OSyncError **error);
 
-OSYNC_EXPORT int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error);
+OSYNC_EXPORT int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error);
 
-OSYNC_EXPORT osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_db_reset_table(OSyncDB *db, const char *tablename, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error);
 
 OSYNC_EXPORT int osync_db_count(OSyncDB *db, const char *query, OSyncError **error);

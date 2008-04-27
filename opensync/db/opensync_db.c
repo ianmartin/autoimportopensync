@@ -334,7 +334,7 @@ error:
  * @param error Pointer to a error struct 
  * @return TRUE on success otherwise FALSE
  */
-osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error)
+osync_bool osync_db_reset_table(OSyncDB *db, const char *tablename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
 
@@ -372,7 +372,7 @@ osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error)
 
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		const char *table = (const char *) sqlite3_column_text(ppStmt, 0);
-		if (!osync_db_reset(db, table, error))
+		if (!osync_db_reset_table(db, table, error))
 			goto error;
 	}
 
@@ -417,7 +417,7 @@ error:
  * @param error Pointer to a error struct 
  * @return If the table exist 1 else 0. On error -1.
  */
-int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error)
+int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
 
