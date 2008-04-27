@@ -25,12 +25,28 @@ typedef struct {} HashTable;
 	}
 
 	~HashTable() {
-		osync_hashtable_free(self);
+		osync_hashtable_unref(self);
 	}
 
-	void reset_reports() {
-		osync_hashtable_reset_reports(self);
-	}
+        bool load() {
+                Error *err = NULL;
+                osync_hashtable_load(self, &err);
+
+                if (raise_exception_on_error(err))
+                        return FALSE;
+
+                return TRUE;
+        }
+
+        bool save() {
+                Error *err = NULL;
+                osync_hashtable_save(self, &err);
+
+                if (raise_exception_on_error(err))
+                        return FALSE;
+
+                return TRUE;
+        }
 
         bool slowsync() {
                 Error *err = NULL;
@@ -46,37 +62,13 @@ typedef struct {} HashTable;
 		return osync_hashtable_num_entries(self);
 	}
 
-	/* returns a tuple of (uid, hash) strings */
-	PyObject *nth_entry(int nth) {
-		char *uid, *hash;
-
-		if (!osync_hashtable_nth_entry(self, nth, &uid, &hash)) {
-			wrapper_exception("osync_hashtable_nth_entry failed");
-			return NULL;
-		}
-
-		return Py_BuildValue("(ss)", uid, hash);
-	}
-
-	void write(const char *uid, const char *hash) {
-		osync_hashtable_write(self, uid, hash);
-	}
-
-	void delete(const char *uid) {
-		osync_hashtable_delete(self, uid);
-	}
-
-	void update_hash(ChangeType type, const char *uid, const char *hash) {
-		osync_hashtable_update_hash(self, type, uid, hash);
-	}
-
-	void report(const char *uid) {
-		osync_hashtable_report(self, uid);
+	void update_change(Change *change) {
+		osync_hashtable_update_change(self, change);
 	}
 
 	/* returns a list of deleted UIDs as strings */
 	PyObject *get_deleted() {
-		char **uids = osync_hashtable_get_deleted(self);
+		OSyncList *uids = osync_hashtable_get_deleted(self);
 		if (uids == NULL) {
 			wrapper_exception("osync_hashtable_get_deleted failed");
 			return NULL;
@@ -85,8 +77,10 @@ typedef struct {} HashTable;
 		PyObject *ret = PyList_New(0);
 		if (ret != NULL) {
 			int i;
-			for (i = 0; uids[i] != NULL; i++) {
-				PyObject *item = PyString_FromString(uids[i]);
+                        OSyncList *u;
+			for (u = uids; u; u = u->next) {
+                                char *uid = u->data;
+				PyObject *item = PyString_FromString(uid);
 				if (item == NULL || PyList_Append(ret, item) != 0) {
 					Py_XDECREF(item);
 					ret = NULL;
@@ -96,12 +90,11 @@ typedef struct {} HashTable;
 			}
 		}
 
-		free(uids);
 		return ret;
 	}
 
-	ChangeType get_changetype(const char *uid, const char *hash) {
-		return osync_hashtable_get_changetype(self, uid, hash);
+	ChangeType get_changetype(Change *change) {
+		return osync_hashtable_get_changetype(self, change);
 	}
 
 %pythoncode %{
