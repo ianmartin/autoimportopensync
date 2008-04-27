@@ -223,26 +223,17 @@ OSyncHashTable *hashtable_load(const char *path, const char *objtype, int entrie
 	OSyncHashTable *table = osync_hashtable_new(path, objtype, &error);
 	fail_unless(table != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_hashtable_load(table, &error), NULL);
 	
-    fail_unless(osync_hashtable_num_entries(table) == entries, NULL);
+	fail_unless(osync_hashtable_num_entries(table) == entries, NULL);
     
     return table;
 }
 
 void check_hash(OSyncHashTable *table, const char *cmpuid)
 {
-	char *uid = NULL;
-	char *hash = NULL;
-	int i;
-	osync_bool found = FALSE;
-	for (i = 0; i < osync_hashtable_num_entries(table); i++) {
-		osync_hashtable_nth_entry(table, i, &uid, &hash);
-		if (!strcmp(cmpuid, uid))
-			found = TRUE;
-		g_free(hash);
-		g_free(uid);
-	}
-	fail_unless(found == TRUE, NULL);
+	fail_unless(!!osync_hashtable_get_hash(table, cmpuid), "Couldn't find hash!");
 }
 
 
