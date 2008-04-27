@@ -189,10 +189,18 @@ GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 	for (j=0; j < numrows; j++) {
 		GList *row = NULL;
 		for (i=0; i < numcolumns; i++)
-			row = g_list_append(row, g_strdup(result[column_count++]));
+			/* speed up - prepend instead of append */
+			row = g_list_prepend(row, g_strdup(result[column_count++]));
 
-		table = g_list_append(table, row);
+		/* items got prepended, reverse the list again */
+		row = g_list_reverse(row);
+
+		/* speed up - prepend instead of append. */
+		table = g_list_prepend(table, row);
 	}
+
+	/* items got prepended, reverse the list again */
+	table = g_list_reverse(table);
 
 	sqlite3_free_table(result);
 
