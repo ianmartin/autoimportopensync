@@ -106,6 +106,8 @@ while committing. This function get not called if Batch Commit function is
 registered for this Sink.
 \subsection{Synchronization Done}
 This function got called only after a successful synchronization.
+When using Hashtable \verb|osync_hashtable_save()| should get called, to
+do persistent store of the Hashtable.
 \subsection{Disconnect}
 This function MUST only handle the disconnect of the sink. Don't do further
 cleanup here, the finalize function is intended for releasing memory and
