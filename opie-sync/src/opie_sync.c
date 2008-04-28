@@ -294,6 +294,8 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	g_free(tablepath);
 	if (!env->hashtable)
 		goto error;
+	if(!osync_hashtable_load(env->hashtable, &error))
+		goto error;
 
 	if(env->objtype == OPIE_OBJECT_TYPE_NOTE) {
 		/* Check if the notestype config option has changed since the last sync */
@@ -323,10 +325,6 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 	OSyncError *error = NULL;
 
-	/* Reset internal list of hashtable report, so we can detect
-	   deleted entries */
-	osync_hashtable_reset_reports(env->hashtable);
-
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
 
@@ -340,93 +338,88 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	xmlNode *item_node = opie_xml_get_first(env->doc, env->listelement, env->itemelement);
 	while(item_node)
 	{
-		char *uid = opie_xml_get_tagged_uid(item_node);
-		unsigned char *hash = hash_xml_node(env->doc, item_node);
-		
-		/* Convert category IDs to names that other systems can use */
-		g_mutex_lock(env->plugin_env->plugin_mutex);
-		char *categories_bkup = opie_xml_get_categories(item_node);
-		if(env->plugin_env->categories_doc && categories_bkup)
-			opie_xml_category_ids_to_names(env->plugin_env->categories_doc, item_node);
-		g_mutex_unlock(env->plugin_env->plugin_mutex);
-		
-		char *data = xml_node_to_text(env->doc, item_node);
-
-		/* Restore old categories value as we don't want to save this back to our XML file */
-		if(categories_bkup) {
-			opie_xml_set_categories(item_node, categories_bkup);
-			g_free(categories_bkup);
+		/* Create the new change to report */
+		OSyncChange *change = osync_change_new(&error);
+		if (!change) {
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
 		}
-		
-		// Report every entry .. every unreported entry got deleted.
-		osync_hashtable_report(env->hashtable, uid);
+		else {
 
-		OSyncChangeType changetype = osync_hashtable_get_changetype(env->hashtable, uid, hash);
-
-		if (changetype != OSYNC_CHANGE_TYPE_UNMODIFIED) {
-			//Set the hash of the object (optional, only required if you use hashtabled)
-			osync_hashtable_update_hash(env->hashtable, changetype, uid, hash);
+			/* Retrieve and set the uid of the object */
+			char *uid = opie_xml_get_tagged_uid(item_node);
+			osync_change_set_uid(change, uid);
+			g_free(uid);
+			
+			/* Calculate and set the hash of the object */
+			unsigned char *hash = hash_xml_node(env->doc, item_node);
+			osync_change_set_hash(change, hash);
+			g_free(hash);
+			
+			/* Detect and set the type of change */
+			OSyncChangeType changetype = osync_hashtable_get_changetype(env->hashtable, change);
+			osync_change_set_changetype(change, changetype);
+			
+			/* Update the hashtable with the hash of the object */
+			osync_hashtable_update_change(env->hashtable, change);
 	
-			//Make the new change to report
-			OSyncChange *change = osync_change_new(&error);
-			if (!change) {
-				osync_context_report_osyncwarning(ctx, error);
-				osync_error_unref(&error);
-			}
-			else {
-	
-				//Now set the uid of the object
-				osync_change_set_uid(change, uid);
-				osync_change_set_hash(change, hash);
-				osync_change_set_changetype(change, changetype);
+			if (changetype != OSYNC_CHANGE_TYPE_UNMODIFIED) {
+				/* Convert category IDs to names that other systems can use */
+				g_mutex_lock(env->plugin_env->plugin_mutex);
+				char *categories_bkup = opie_xml_get_categories(item_node);
+				if(env->plugin_env->categories_doc && categories_bkup)
+					opie_xml_category_ids_to_names(env->plugin_env->categories_doc, item_node);
+				g_mutex_unlock(env->plugin_env->plugin_mutex);
+				
+				char *data = xml_node_to_text(env->doc, item_node);
 		
+				/* Restore old categories value as we don't want to save this back to our XML file */
+				if(categories_bkup) {
+					opie_xml_set_categories(item_node, categories_bkup);
+					g_free(categories_bkup);
+				}
+				
 				OSyncData *odata = osync_data_new(data, strlen(data) + 1, env->objformat, &error);
 				if (!odata) {
-					osync_change_unref(change);
 					osync_context_report_osyncwarning(ctx, error);
 					osync_error_unref(&error);
 				}
 				else {
 					osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
 			
-					//Now you can set the data for the object
+					/* Set the data for the object */
 					osync_change_set_data(change, odata);
 					osync_data_unref(odata);
 			
-					// just report the change via
+					/* Report the change */
 					osync_context_report_change(ctx, change);
-			
-					osync_change_unref(change);
 				}
+				g_free(data);
 			}
+			
+			osync_change_unref(change);
 		}
-
-		g_free(data);
-		g_free(hash);
-		g_free(uid);
 		
 		item_node = opie_xml_get_next(item_node);
 	}
 
-	//When you are done looping and if you are using hashtables
-	//check for deleted entries ... via hashtable
-	int i;
-	char **uids = osync_hashtable_get_deleted(env->hashtable);
-	for (i=0; uids[i]; i++) {
+	/* Check for deleted entries using the hashtable */
+	OSyncList *u, *uids = osync_hashtable_get_deleted(env->hashtable);
+	for (u = uids; u; u = u->next) {
+		const char *uid = u->data;
+		
 		OSyncChange *change = osync_change_new(&error);
 		if (!change) {
-			g_free(uids[i]);
 			osync_context_report_osyncwarning(ctx, error);
 			osync_error_unref(&error);
 			continue;
 		}
 
-		osync_change_set_uid(change, uids[i]);
+		osync_change_set_uid(change, uid);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 
 		OSyncData *odata = osync_data_new(NULL, 0, env->objformat, &error);
 		if (!odata) {
-			g_free(uids[i]);
 			osync_change_unref(change);
 			osync_context_report_osyncwarning(ctx, error);
 			osync_error_unref(&error);
@@ -439,12 +432,11 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 		osync_context_report_change(ctx, change);
 
-		osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+		osync_hashtable_update_change(env->hashtable, change);
 
 		osync_change_unref(change);
-		g_free(uids[i]);
 	}
-	g_free(uids);
+	osync_list_free(uids);
 
 	//Now we need to answer the call
 	osync_context_report_success(ctx);
@@ -542,7 +534,7 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 	if(change_doc)
 		xmlFreeDoc(change_doc);
 
-	osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), hash);
+	osync_hashtable_update_change(env->hashtable, change);
 
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -579,6 +571,9 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 		g_free(anchorpath);
 	}
 	
+	if (!osync_hashtable_save(env->hashtable, &error))
+		goto error;
+	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -595,7 +590,7 @@ static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	OpieSinkEnv *env = osync_objtype_sink_get_userdata(sink);
 	
 	/* Close the hashtable */
-	osync_hashtable_free(env->hashtable);
+	osync_hashtable_unref(env->hashtable);
 	env->hashtable = NULL;
 
 	//Answer the call
