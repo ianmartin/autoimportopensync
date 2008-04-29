@@ -89,11 +89,11 @@ void _recv_map_reply(SmlSession *session, SmlStatus *status, void *userdata);
 /* *****     Authentication Callback     ***** */
 /* ******************************************* */
 
-void _verify_user(
-		SmlAuthenticator *auth,
-		const char *username,
-		const char *password,
-		void *userdata,
-		SmlErrorType *reply);
+SmlBool _verify_user(
+                SmlChal *chal,
+                SmlCred *cred,
+                const char *username,
+                void *userdata,
+                SmlError **error);
 
 #endif //_SYNCML_CALLBACKS_H

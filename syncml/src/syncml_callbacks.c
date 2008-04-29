@@ -677,17 +677,18 @@ void _recv_map_reply(SmlSession *session, SmlStatus *status, void *userdata)
 /* *****     Authentication Callback     ***** */
 /* ******************************************* */
 
-void _verify_user(SmlAuthenticator *auth, const char *username, const char *password, void *userdata, SmlErrorType *reply)
+SmlBool _verify_user(
+		SmlChal *chal,
+		SmlCred *cred,
+		const char *username,
+		void *userdata,
+		SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p)", __func__, auth, username, password, userdata, reply);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, chal, cred, username, userdata);
 	SmlPluginEnv *env = userdata;
-	
-	osync_trace(TRACE_SENSITIVE, "configured is %s, %s", env->username, env->password);
-	if (env->username && (!env->password || !username || !password || strcmp(env->username, username) || strcmp(env->password, password))) {
-		*reply = SML_ERROR_AUTH_REJECTED;
-	} else {
-		*reply = SML_AUTH_ACCEPTED;
-	}
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, *reply);
+
+	/* We have only one user and not a whole user database. */
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return smlAuthVerify(chal, cred, env->username, env->password, error);
 }
 
