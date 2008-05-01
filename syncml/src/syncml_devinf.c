@@ -511,25 +511,25 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
 
     /* check if all necessary tables exist */
     osync_trace(TRACE_INTERNAL, "%s - Does all tables exist?", __func__);
-    if (osync_db_exists(db, "versions", oerror) < 1)
+    if (osync_db_table_exists(db, "versions", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "devices", oerror) < 1)
+    if (osync_db_table_exists(db, "devices", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "datastores", oerror) < 1)
+    if (osync_db_table_exists(db, "datastores", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "datastore_rx", oerror) < 1)
+    if (osync_db_table_exists(db, "datastore_rx", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "datastore_tx", oerror) < 1)
+    if (osync_db_table_exists(db, "datastore_tx", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "content_type_capabilities", oerror) < 1)
+    if (osync_db_table_exists(db, "content_type_capabilities", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "properties", oerror) < 1)
+    if (osync_db_table_exists(db, "properties", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "property_values", oerror) < 1)
+    if (osync_db_table_exists(db, "property_values", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "property_params", oerror) < 1)
+    if (osync_db_table_exists(db, "property_params", oerror) < 1)
 	schema_update = TRUE;
-    if (osync_db_exists(db, "property_param_values", oerror) < 1)
+    if (osync_db_table_exists(db, "property_param_values", oerror) < 1)
 	schema_update = TRUE;
 
     /* check the version of the database schema */
@@ -537,7 +537,7 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
     {
         osync_trace(TRACE_INTERNAL, "%s - Has the database schema the correct version?", __func__);
         const char *version_query = "SELECT \"version\" FROM versions WHERE \"name\"='devinf_schema'";
-        GList *result = osync_db_query_table(db, version_query, oerror);
+        OSyncList *result = osync_db_query_table(db, version_query, oerror);
         if (!result && *oerror)
         {
             osync_trace(TRACE_INTERNAL, "%s - There is trouble with the table versions.", __func__);
@@ -546,8 +546,8 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
             *oerror = NULL;
         }
         else if (!result ||
-                 !((GList *) result)->data ||
-                 !((GList *) ((GList *) result)->data)->data)
+                 !((OSyncList *) result)->data ||
+                 !((OSyncList *) ((OSyncList *) result)->data)->data)
         {
             /* no row returned or empty version */
             osync_trace(TRACE_INTERNAL, "%s - No version found.", __func__);
@@ -556,7 +556,7 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
         else
         {
             osync_trace(TRACE_INTERNAL, "%s - Evaluating version ...", __func__);
-            unsigned int db_version = atoi(((GList *) ((GList *) result)->data)->data);
+            unsigned int db_version = atoi(((OSyncList *) ((OSyncList *) result)->data)->data);
             if (db_version < db_schema_version)
                 schema_update = TRUE;
             else if (db_version > db_schema_version)
@@ -576,34 +576,34 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
         osync_trace(TRACE_INTERNAL, "%s - Updating to schema %d ...", __func__, db_schema_version);
 
         /* drop all existing tables */
-        if (osync_db_exists(db, "versions", oerror) > 0 &&
+        if (osync_db_table_exists(db, "versions", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE versions", oerror))
             goto error;
-        if (osync_db_exists(db, "devices", oerror) > 0 &&
+        if (osync_db_table_exists(db, "devices", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE devices", oerror))
             goto error;
-        if (osync_db_exists(db, "datastores", oerror) > 0 &&
+        if (osync_db_table_exists(db, "datastores", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE datastores", oerror))
             goto error;
-        if (osync_db_exists(db, "datastore_rx", oerror) > 0 &&
+        if (osync_db_table_exists(db, "datastore_rx", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE datastore_rx", oerror))
             goto error;
-        if (osync_db_exists(db, "datastore_tx", oerror) > 0 &&
+        if (osync_db_table_exists(db, "datastore_tx", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE datastore_tx", oerror))
             goto error;
-        if (osync_db_exists(db, "content_type_capabilities", oerror) > 0 &&
+        if (osync_db_table_exists(db, "content_type_capabilities", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE content_type_capabilities", oerror))
             goto error;
-        if (osync_db_exists(db, "properties", oerror) > 0 &&
+        if (osync_db_table_exists(db, "properties", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE properties", oerror))
             goto error;
-        if (osync_db_exists(db, "property_values", oerror) > 0 &&
+        if (osync_db_table_exists(db, "property_values", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE property_values", oerror))
             goto error;
-        if (osync_db_exists(db, "property_params", oerror) > 0 &&
+        if (osync_db_table_exists(db, "property_params", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE property_params", oerror))
             goto error;
-        if (osync_db_exists(db, "property_param_values", oerror) > 0 &&
+        if (osync_db_table_exists(db, "property_param_values", oerror) > 0 &&
             !osync_db_query(db, "DROP TABLE property_param_values", oerror))
             goto error;
         osync_trace(TRACE_INTERNAL, "%s - All tables dropped.", __func__);
@@ -997,26 +997,26 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     const char *device_query = "SELECT \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\" FROM devices WHERE \"device_id\"='%s'";
     char *query = g_strdup_printf(device_query, esc_devid);
     // FIXME: unclean error handling
-    GList *result = osync_db_query_table(db, query, oerror);
+    OSyncList *result = osync_db_query_table(db, query, oerror);
     safe_cfree(&query);
     unsigned int count = 0;
-    GList *row;
+    OSyncList *row;
     for (row = result; row; row = row->next)
     {
         count++;
         g_assert(count == 1);
-        GList *columns = row->data;
+        OSyncList *columns = row->data;
 
-        devinf = smlDevInfNew(devid, atoi(g_list_nth_data(columns, 0)), &error);
-        smlDevInfSetManufacturer(devinf, g_list_nth_data(columns, 1));
-        smlDevInfSetModel(devinf, g_list_nth_data(columns, 2));
-        smlDevInfSetOEM(devinf, g_list_nth_data(columns, 3));
-        smlDevInfSetSoftwareVersion(devinf, g_list_nth_data(columns, 4));
-        smlDevInfSetHardwareVersion(devinf, g_list_nth_data(columns, 5));
-        smlDevInfSetFirmwareVersion(devinf, g_list_nth_data(columns, 6));
-        smlDevInfSetSupportsUTC(devinf, atoi(g_list_nth_data(columns, 7)));
-        smlDevInfSetSupportsLargeObjs(devinf, atoi(g_list_nth_data(columns, 8)));
-        smlDevInfSetSupportsNumberOfChanges(devinf, atoi(g_list_nth_data(columns, 9)));
+        devinf = smlDevInfNew(devid, atoi(osync_list_nth_data(columns, 0)), &error);
+        smlDevInfSetManufacturer(devinf, osync_list_nth_data(columns, 1));
+        smlDevInfSetModel(devinf, osync_list_nth_data(columns, 2));
+        smlDevInfSetOEM(devinf, osync_list_nth_data(columns, 3));
+        smlDevInfSetSoftwareVersion(devinf, osync_list_nth_data(columns, 4));
+        smlDevInfSetHardwareVersion(devinf, osync_list_nth_data(columns, 5));
+        smlDevInfSetFirmwareVersion(devinf, osync_list_nth_data(columns, 6));
+        smlDevInfSetSupportsUTC(devinf, atoi(osync_list_nth_data(columns, 7)));
+        smlDevInfSetSupportsLargeObjs(devinf, atoi(osync_list_nth_data(columns, 8)));
+        smlDevInfSetSupportsNumberOfChanges(devinf, atoi(osync_list_nth_data(columns, 9)));
     }
     osync_db_free_list(result);
     if (count == 0)
@@ -1036,22 +1036,22 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     safe_cfree(&query);
     for (row = result; row; row = row->next)
     {
-        GList *columns = row->data;
+        OSyncList *columns = row->data;
 
         // FIXME: unclean error handling
-        char *esc_datastore  = osync_db_sql_escape(g_list_nth_data(columns, 0));
-        SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(g_list_nth_data(columns, 0), &error);
-        if (g_list_nth_data(columns, 1))
+        char *esc_datastore  = osync_db_sql_escape(osync_list_nth_data(columns, 0));
+        SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(osync_list_nth_data(columns, 0), &error);
+        if (osync_list_nth_data(columns, 1))
             smlDevInfDataStoreSetRxPref(
                 datastore,
-                g_list_nth_data(columns, 1),
-                g_list_nth_data(columns, 2));
-        if (g_list_nth_data(columns, 3))
+                osync_list_nth_data(columns, 1),
+                osync_list_nth_data(columns, 2));
+        if (osync_list_nth_data(columns, 3))
             smlDevInfDataStoreSetTxPref(
                 datastore,
-                g_list_nth_data(columns, 3),
-                g_list_nth_data(columns, 4));
-        unsigned int sync_cap = atoi(g_list_nth_data(columns, 5));
+                osync_list_nth_data(columns, 3),
+                osync_list_nth_data(columns, 4));
+        unsigned int sync_cap = atoi(osync_list_nth_data(columns, 5));
         unsigned int bit;
         for (bit = 0; bit < 8; bit++)
         {
@@ -1062,17 +1062,17 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         const char *rx_query = "SELECT \"content_type\", \"version\" FROM datastore_rx WHERE \"device_id\"='%s' AND \"datastore\"='%s'";
         query = g_strdup_printf(rx_query, esc_devid, esc_datastore);
         // FIXME: unclean error handling
-        GList *rx_result = osync_db_query_table(db, query, oerror);
+        OSyncList *rx_result = osync_db_query_table(db, query, oerror);
         safe_cfree(&query);
-	GList *rx_row;
+	OSyncList *rx_row;
         for (rx_row = rx_result; rx_row; rx_row = rx_row->next)
         {
-            GList *rx_columns = rx_row->data;
+            OSyncList *rx_columns = rx_row->data;
 
             // FIXME: unclean error handling
             SmlDevInfContentType *ctype = smlDevInfNewContentType(
-                                              g_list_nth_data(columns, 0),
-                                              g_list_nth_data(columns, 1),
+                                              osync_list_nth_data(columns, 0),
+                                              osync_list_nth_data(columns, 1),
                                               &error);
             smlDevInfDataStoreAddRx(datastore, ctype);
         }
@@ -1082,17 +1082,17 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         const char *tx_query = "SELECT \"content_type\", \"version\" FROM datastore_tx WHERE \"device_id\"='%s' AND \"datastore\"='%s'";
         query = g_strdup_printf(tx_query, esc_devid, esc_datastore);
         // FIXME: unclean error handling
-        GList *tx_result = osync_db_query_table(db, query, oerror);
+        OSyncList *tx_result = osync_db_query_table(db, query, oerror);
         safe_cfree(&query);
-	GList *tx_row;
+	OSyncList *tx_row;
         for (tx_row = tx_result; tx_row; tx_row = tx_row->next)
         {
-            GList *tx_columns = tx_row->data;
+            OSyncList *tx_columns = tx_row->data;
 
             // FIXME: unclean error handling
             SmlDevInfContentType *ctype = smlDevInfNewContentType(
-                                              g_list_nth_data(columns, 0),
-                                              g_list_nth_data(columns, 1),
+                                              osync_list_nth_data(columns, 0),
+                                              osync_list_nth_data(columns, 1),
                                               &error);
             smlDevInfDataStoreAddTx(datastore, ctype);
         }
@@ -1114,17 +1114,17 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     for (row = result; row; row = row->next)
     {
         count++;
-        GList *columns = row->data;
+        OSyncList *columns = row->data;
 
         SmlDevInfCTCap *ctcap = smlDevInfNewCTCap(&error);
 	if (!ctcap)
 		goto error;
 
-        smlDevInfCTCapSetCTType(ctcap, g_list_nth_data(columns, 0));
-        smlDevInfCTCapSetVerCT(ctcap, g_list_nth_data(columns, 1));
+        smlDevInfCTCapSetCTType(ctcap, osync_list_nth_data(columns, 0));
+        smlDevInfCTCapSetVerCT(ctcap, osync_list_nth_data(columns, 1));
         smlDevInfAppendCTCap(devinf, ctcap);
-        char *esc_ct = osync_db_sql_escape(g_list_nth_data(columns, 0));
-        char *esc_version = osync_db_sql_escape(g_list_nth_data(columns, 1));
+        char *esc_ct = osync_db_sql_escape(osync_list_nth_data(columns, 0));
+        char *esc_version = osync_db_sql_escape(osync_list_nth_data(columns, 1));
 
         /* reading property */
 
@@ -1132,28 +1132,28 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         const char *property_query = "SELECT \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\" FROM properties WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s'";
         query = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version);
         // FIXME: unclean error handling
-        GList *prop_result = osync_db_query_table(db, query, oerror);
+        OSyncList *prop_result = osync_db_query_table(db, query, oerror);
         safe_cfree(&query);
         unsigned int prop_count = 0;
-        GList *prop_row;
+        OSyncList *prop_row;
         for (prop_row = prop_result; prop_row; prop_row = prop_row->next)
         {
             prop_count++;
-            GList *prop_columns = prop_row->data;
+            OSyncList *prop_columns = prop_row->data;
 
             SmlDevInfProperty *property = smlDevInfNewProperty(&error);
 	    if (!property)
 		    goto error;
 
-            smlDevInfPropertySetPropName(property, g_list_nth_data(prop_columns, 0));
-            smlDevInfPropertySetDataType(property, g_list_nth_data(prop_columns, 1));
-            smlDevInfPropertySetMaxOccur(property, g_ascii_strtoull(g_list_nth_data(prop_columns, 2), NULL, 0));
-            smlDevInfPropertySetMaxSize(property, g_ascii_strtoull(g_list_nth_data(prop_columns, 3), NULL, 0));
-            if (atoi(g_list_nth_data(prop_columns, 4)))
+            smlDevInfPropertySetPropName(property, osync_list_nth_data(prop_columns, 0));
+            smlDevInfPropertySetDataType(property, osync_list_nth_data(prop_columns, 1));
+            smlDevInfPropertySetMaxOccur(property, g_ascii_strtoull(osync_list_nth_data(prop_columns, 2), NULL, 0));
+            smlDevInfPropertySetMaxSize(property, g_ascii_strtoull(osync_list_nth_data(prop_columns, 3), NULL, 0));
+            if (atoi(osync_list_nth_data(prop_columns, 4)))
                 smlDevInfPropertySetNoTruncate(property);
-            smlDevInfPropertySetDisplayName(property, g_list_nth_data(prop_columns, 5));
+            smlDevInfPropertySetDisplayName(property, osync_list_nth_data(prop_columns, 5));
             smlDevInfCTCapAddProperty(ctcap, property);
-            char *esc_prop_name = osync_db_sql_escape(g_list_nth_data(prop_columns, 0));
+            char *esc_prop_name = osync_db_sql_escape(osync_list_nth_data(prop_columns, 0));
 
             /* reading property values */
             const char *prop_value_query = "SELECT \"property_value\" FROM property_values WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s' AND \"property\"='%s'";
@@ -1161,16 +1161,16 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                          prop_value_query, esc_devid,
                          esc_ct, esc_version, esc_prop_name);
             // FIXME: unclean error handling
-            GList *prop_value_result = osync_db_query_table(db, query, oerror);
+            OSyncList *prop_value_result = osync_db_query_table(db, query, oerror);
             safe_cfree(&query);
             unsigned int prop_value_count = 0;
-            GList *prop_value_row;
+            OSyncList *prop_value_row;
             for (prop_value_row = prop_value_result; prop_value_row; prop_value_row = prop_value_row->next)
             {
                 prop_value_count++;
-                GList *prop_value_columns = prop_value_row->data;
+                OSyncList *prop_value_columns = prop_value_row->data;
 
-                smlDevInfPropertyAddValEnum(property, g_list_nth_data(prop_value_columns, 0));
+                smlDevInfPropertyAddValEnum(property, osync_list_nth_data(prop_value_columns, 0));
             }
             osync_db_free_list(prop_value_result);
 
@@ -1182,24 +1182,24 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                          prop_param_query, esc_devid,
                          esc_ct, esc_version, esc_prop_name);
             // FIXME: unclean error handling
-            GList *prop_param_result = osync_db_query_table(db, query, oerror);
+            OSyncList *prop_param_result = osync_db_query_table(db, query, oerror);
             safe_cfree(&query);
             unsigned int prop_param_count = 0;
-            GList *prop_param_row;
+            OSyncList *prop_param_row;
             for (prop_param_row = prop_param_result; prop_param_row; prop_param_row = prop_param_row->next)
             {
                 prop_param_count++;
-                GList *prop_param_columns = prop_param_row->data;
+                OSyncList *prop_param_columns = prop_param_row->data;
 
                 SmlDevInfPropParam *prop_param = smlDevInfNewPropParam(&error);
 		if (!prop_param)
 			goto error;
 
-                smlDevInfPropParamSetParamName(prop_param, g_list_nth_data(prop_param_columns, 0));
-                smlDevInfPropParamSetDataType(prop_param, g_list_nth_data(prop_param_columns, 1));
-                smlDevInfPropParamSetDisplayName(prop_param, g_list_nth_data(prop_param_columns, 2));
+                smlDevInfPropParamSetParamName(prop_param, osync_list_nth_data(prop_param_columns, 0));
+                smlDevInfPropParamSetDataType(prop_param, osync_list_nth_data(prop_param_columns, 1));
+                smlDevInfPropParamSetDisplayName(prop_param, osync_list_nth_data(prop_param_columns, 2));
                 smlDevInfPropertyAddPropParam(property, prop_param);
-                char *esc_param_name = osync_db_sql_escape(g_list_nth_data(prop_param_columns, 0));
+                char *esc_param_name = osync_db_sql_escape(osync_list_nth_data(prop_param_columns, 0));
 
                 /* reading property parameter values */
                 const char *param_value_query = "SELECT \"property_param_value\" FROM property_param_values WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s' AND \"property\"='%s' AND \"property_param\"='%s'";
@@ -1208,16 +1208,16 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                              esc_ct, esc_version, esc_prop_name,
                              esc_param_name);
                 // FIXME: unclean error handling
-                GList *param_value_result = osync_db_query_table(db, query, oerror);
+                OSyncList *param_value_result = osync_db_query_table(db, query, oerror);
                 safe_cfree(&query);
                 unsigned int param_value_count = 0;
-                GList *param_value_row;
+                OSyncList *param_value_row;
                 for (param_value_row = param_value_result; param_value_row; param_value_row = param_value_row->next)
                 {
                     param_value_count++;
-                    GList *param_value_columns = param_value_row->data;
+                    OSyncList *param_value_columns = param_value_row->data;
 
-                    smlDevInfPropParamAddValEnum(prop_param, g_list_nth_data(param_value_columns, 0));
+                    smlDevInfPropParamAddValEnum(prop_param, osync_list_nth_data(param_value_columns, 0));
                 }
                 osync_db_free_list(param_value_result);
                 safe_cfree(&esc_param_name);
