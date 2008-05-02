@@ -594,7 +594,7 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 	osync_filesync_report_dir(dir, info, NULL, ctx);
 	
 	OSyncList *u, *uids = osync_hashtable_get_deleted(dir->hashtable);
-	for (u = uids; uids; u = u->next) {
+	for (u = uids; u; u = u->next) {
 		OSyncChange *change = osync_change_new(&error);
 		if (!change) {
 			osync_context_report_osyncwarning(ctx, error);
