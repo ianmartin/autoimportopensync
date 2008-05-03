@@ -286,12 +286,6 @@ static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsi
         osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
         g_free(str);
 
-        if (osync_xmlformat_validate(xmlformat) == FALSE)
-                osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
-        else
-                osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
-
-
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 	return TRUE;
 }

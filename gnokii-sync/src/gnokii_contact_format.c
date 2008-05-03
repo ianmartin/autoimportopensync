@@ -208,12 +208,6 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
         osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
         g_free(str);
 
-        if (osync_xmlformat_validate(xmlformat) == FALSE)
-                osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: Not valid!");
-        else
-                osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: VAILD");
-
-
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 	return TRUE;
 }
