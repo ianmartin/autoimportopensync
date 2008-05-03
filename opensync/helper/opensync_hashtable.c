@@ -350,6 +350,7 @@ osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncError **error)
 
 		g_hash_table_insert(table->db_entries, uid, hash);
 	}
+	osync_list_free(result);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -449,6 +450,8 @@ void osync_hashtable_update_change(OSyncHashTable *table, OSyncChange *change)
 	const char *uid = osync_change_get_uid(change);
 	const char *hash = osync_change_get_hash(change);
 
+	osync_assert_msg(uid, "Some plugin forgot to set the UID for the change. Please report this bug.");
+
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_DELETED:
 			g_hash_table_remove(table->db_entries, uid);
@@ -469,10 +472,12 @@ void osync_hashtable_update_change(OSyncHashTable *table, OSyncChange *change)
 			osync_assert_msg(FALSE, "Got called with unknown changetype. This looks like a plugin makes wrong use of a hashtable. Please, contact the plugin author!");
 			break;
 		case OSYNC_CHANGE_TYPE_MODIFIED:
+			osync_assert_msg(hash, "Some plugin forgot to set the HASH for the change for the changetype MODIFIED. Please report this bug.");
 			/* This works even if the UID/key is new to the hashtable */
 			g_hash_table_replace(table->db_entries, g_strdup(uid), g_strdup(hash));
 			break;
 		case OSYNC_CHANGE_TYPE_ADDED:
+			osync_assert_msg(hash, "Some plugin forgot to set the HASH for the change for the changetype ADDED. Please report this bug.");
 			g_hash_table_insert(table->db_entries, g_strdup(uid), g_strdup(hash));
 			break;
 	}
