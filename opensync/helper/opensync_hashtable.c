@@ -496,19 +496,15 @@ OSyncList *osync_hashtable_get_deleted(OSyncHashTable *table)
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 
-	GList *e, *db_entries;
 	OSyncList *deleted_entries = NULL;
 
-	db_entries = g_hash_table_get_keys(table->db_entries);
+	void callback_check_deleted(gpointer key, gpointer value, gpointer user_data)
+	  {
+	    if (!g_hash_table_lookup(table->reported_entries, key))
+	      deleted_entries = osync_list_prepend(deleted_entries, key);
+	  }
 
-	for (e = db_entries; e; e = e->next) {
-		const char *uid = e->data;
-
-		if (!g_hash_table_lookup(table->reported_entries, uid))
-			deleted_entries = osync_list_prepend(deleted_entries, (char *) uid);
-	}
-
-	g_list_free(db_entries);
+	g_hash_table_foreach(table->db_entries, callback_check_deleted, NULL);
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, deleted_entries);
 	return deleted_entries;

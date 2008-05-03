@@ -1,3 +1,9 @@
+2008-05-03  Graham Cobb  <g+770@cobb.uk.net>
+
+	* opensync/helper/opensync_hashtable.c (osync_hashtable_get_deleted): 
+	Avoid use of g_hash_table_get_keys so code can be built using glib 2.12.
+	Uses g_hash_table_foreach with a callback routine instead.
+
 2008-04-12  Daniel Gollub <dgollub@suse.de>
 
 	* tools/osyncplugin.c:
