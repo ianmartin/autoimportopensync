@@ -650,6 +650,7 @@ static void osync_filesync_commit_change(void *data, OSyncPluginInfo *info, OSyn
 		struct stat buf;
 		stat(filename, &buf);
 		hash = osync_filesync_generate_hash(&buf);
+		osync_change_set_hash(change, hash);
 	}
 	g_free(filename);
 
