@@ -37,10 +37,8 @@ OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_config_get_localization(OSync
 OSYNC_EXPORT void osync_plugin_config_set_localization(OSyncPluginConfig *config, OSyncPluginLocalization *localization);
 
 /* Ressources */
-/* TODO: Implement OSyncRessource
-OSYNC_EXPORT OSyncRessource *osync_plugin_config_get_ressource(OSyncPluginConfig *plugin);
-OSYNC_EXPORT void osync_plugin_config_set_ressource(OSyncPluginConfig *plugin, OSyncRessource *ressource);
-*/
+OSYNC_EXPORT OSyncList *osync_plugin_config_get_ressources(OSyncPluginConfig *plugin);
+OSYNC_EXPORT void osync_plugin_config_set_ressources(OSyncPluginConfig *plugin, OSyncList *ressources);
 
 /* Connection */
 OSYNC_EXPORT OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *config);

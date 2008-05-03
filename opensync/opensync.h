@@ -150,6 +150,7 @@ typedef struct OSyncPluginConfig OSyncPluginConfig;
 typedef struct OSyncPluginAuthentication OSyncPluginAuthentication;
 typedef struct OSyncPluginConnection OSyncPluginConnection;
 typedef struct OSyncPluginLocalization OSyncPluginLocalization;
+typedef struct OSyncPluginRessource OSyncPluginRessource;
 
 /* Engine component */
 typedef struct OSyncEngine OSyncEngine;

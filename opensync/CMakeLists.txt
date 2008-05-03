@@ -53,6 +53,7 @@ SET( libopensync_LIB_SRCS
    plugin/opensync_plugin_env.c
    plugin/opensync_plugin_info.c
    plugin/opensync_plugin_localization.c
+   plugin/opensync_plugin_ressource.c
    plugin/opensync_sink.c
    version/opensync_version.c
 )

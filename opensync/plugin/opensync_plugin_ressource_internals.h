@@ -18,30 +18,29 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_RESSOURCE_INTERNALS_H_
+#define _OPENSYNC_PLUGIN_RESSOURCE_INTERNALS_H_
 
-#define OSYNC_PLUGIN_CONFING_SCHEMA "plugin_config.xsd"
-
-/*! @brief Gives information about the plugin configuration 
+/*! @brief Gives information about ressource
  * 
- * @ingroup OSyncPluginConfigPrivateAPI 
+ * @ingroup OSyncPluginRessourcePrivateAPI 
  **/
-struct OSyncPluginConfig {
-	/** Connection configuration */
-	OSyncPluginConnection *connection;
-	/** Authentication configuration */
-	OSyncPluginAuthentication *authentication;
-	/** Localization configuration */
-	OSyncPluginLocalization *localization;
-	/** List of ressource configurations */
-	OSyncList *ressources;
+struct OSyncPluginRessource {
+	/** Human readable identifier/name of ressource */
+	char *name;
+	/** MIME type of this ressource */
+	char *mime;
+	/** ObjFormat of this ressource */
+	//OSyncObjFormat *objformat;
+	char *objformat;
+	/** Filesystem path */
+	char *path;
+	/** URL */
+	char *url;
 
 	/** Object reference counting */
 	int ref_count;
 };
 
-osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error);
-
-#endif /*_OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_*/
+#endif /*_OPENSYNC_PLUGIN_RESSOURCE_INTERNALS_H_*/
 

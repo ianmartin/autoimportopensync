@@ -146,6 +146,12 @@ START_TEST (plugin_config_subcomponents_nomemory)
 	fail_unless(auth == NULL, NULL);
 	osync_error_unref(&error);
 
+	/* Ressource(s) */
+	OSyncPluginRessource *res = osync_plugin_ressource_new(&error);
+	fail_unless(error != NULL, NULL);
+	fail_unless(res == NULL, NULL);
+	osync_error_unref(&error);
+
 	osync_plugin_config_unref(config);
 
 	destroy_testbed(testbed);
@@ -368,6 +374,81 @@ START_TEST (plugin_config_localization)
 }
 END_TEST
 
+START_TEST (plugin_config_ressources)
+{
+	char *testbed = setup_testbed(NULL);
+
+	OSyncError *error = NULL;
+	OSyncPluginConfig *config = osync_plugin_config_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(config != NULL, NULL);
+
+	/* Ressources */
+	OSyncList *ressources = NULL;
+
+	/* Ressource */
+	OSyncPluginRessource *ressource = osync_plugin_ressource_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(ressource != NULL, NULL);
+
+	/* Name */
+	osync_plugin_ressource_set_name(ressource, "foobar");
+	fail_unless(!strcmp(osync_plugin_ressource_get_name(ressource), "foobar"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_ressource_set_name(ressource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_ressource_get_name(ressource), "barfoo"), NULL);
+
+	/* MIME */
+	osync_plugin_ressource_set_mime(ressource, "foobar");
+	fail_unless(!strcmp(osync_plugin_ressource_get_mime(ressource), "foobar"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_ressource_set_mime(ressource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_ressource_get_mime(ressource), "barfoo"), NULL);
+
+	/* ObjFormat */
+	osync_plugin_ressource_set_objformat(ressource, "foobar");
+	fail_unless(!strcmp(osync_plugin_ressource_get_objformat(ressource), "foobar"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_ressource_set_objformat(ressource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_ressource_get_objformat(ressource), "barfoo"), NULL);
+
+	/* Path */
+	osync_plugin_ressource_set_path(ressource, "foobar");
+	fail_unless(!strcmp(osync_plugin_ressource_get_path(ressource), "foobar"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_ressource_set_path(ressource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_ressource_get_path(ressource), "barfoo"), NULL);
+
+	/* URL */
+	osync_plugin_ressource_set_url(ressource, "foobar");
+	fail_unless(!strcmp(osync_plugin_ressource_get_url(ressource), "foobar"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_ressource_set_url(ressource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_ressource_get_url(ressource), "barfoo"), NULL);
+
+	/* Invoke OSyncPluginConfig */
+	ressources = osync_list_prepend(ressources, ressource);
+	osync_plugin_config_set_ressources(config, ressources);
+	/* Twice to check for correct order of ref/unref calls in set_ressources() */
+	osync_plugin_config_set_ressources(config, ressources);
+	ressources = osync_plugin_config_get_ressources(config);
+	fail_unless(!strcmp(osync_plugin_ressource_get_url(ressources->data), "barfoo"), NULL);
+	osync_plugin_ressource_unref(ressources->data);
+
+	fail_unless(osync_plugin_ressource_ref(ressource) != NULL, NULL);
+	osync_plugin_ressource_unref(ressource);
+	osync_plugin_ressource_unref(ressource);
+
+	osync_plugin_config_unref(config);
+
+	destroy_testbed(testbed);
+}
+END_TEST
 
 START_TEST (plugin_config_save_and_load)
 {
@@ -402,11 +483,44 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_authentication_set_password(auth, "bar");
 	osync_plugin_authentication_set_reference(auth, "ref");
 
+	/* Ressources */
+	OSyncList *ressources = NULL;
+
+	/* Ressource #1 */
+	OSyncPluginRessource *ressource1 = osync_plugin_ressource_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(ressource1 != NULL, NULL);
+
+	/* Name */
+	osync_plugin_ressource_set_name(ressource1, "foobar1");
+	osync_plugin_ressource_set_mime(ressource1, "foobar1");
+	osync_plugin_ressource_set_objformat(ressource1, "foobar1");
+	osync_plugin_ressource_set_path(ressource1, "foobar1");
+	osync_plugin_ressource_set_url(ressource1, "foobar1");
+
+	ressources = osync_list_prepend(ressources, ressource1);
+
+	/* Ressource #2 */
+	OSyncPluginRessource *ressource2 = osync_plugin_ressource_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(ressource2 != NULL, NULL);
+
+	osync_plugin_ressource_set_name(ressource2, "foobar2");
+	osync_plugin_ressource_set_mime(ressource2, "foobar2");
+	osync_plugin_ressource_set_objformat(ressource2, "foobar2");
+	osync_plugin_ressource_set_path(ressource2, "foobar2");
+	osync_plugin_ressource_set_url(ressource2, "foobar2");
+
+	ressources = osync_list_prepend(ressources, ressource2);
+
 	/* Set subcomponents */
 	osync_plugin_config_set_authentication(config, auth);
 	osync_plugin_authentication_unref(auth);
 	osync_plugin_config_set_localization(config, local);
 	osync_plugin_localization_unref(local);
+	osync_plugin_config_set_ressources(config, ressources);
+	osync_plugin_ressource_unref(ressource1);
+	osync_plugin_ressource_unref(ressource2);
 
 	char *config_file = g_strdup_printf("%s/dummy_config.xml", testbed);
 	fail_unless(osync_plugin_config_file_save(config, config_file, &error), "%s", osync_error_print(&error));
@@ -417,8 +531,11 @@ START_TEST (plugin_config_save_and_load)
 
 	OSyncPluginLocalization *reloaded_local = osync_plugin_config_get_localization(reloaded_config);
 	OSyncPluginAuthentication *reloaded_auth = osync_plugin_config_get_authentication(reloaded_config);
+	OSyncList *reloaded_ressources = osync_plugin_config_get_ressources(reloaded_config);
 
 	fail_unless(reloaded_local != NULL, NULL);
+	fail_unless(reloaded_auth != NULL, NULL);
+	fail_unless(reloaded_ressources != NULL, NULL);
 
 	fail_unless(!strcmp(osync_plugin_localization_get_language(reloaded_local), "de_DE"), NULL);
 	fail_unless(!strcmp(osync_plugin_localization_get_encoding(reloaded_local), "cp1222"), NULL);
@@ -428,6 +545,17 @@ START_TEST (plugin_config_save_and_load)
 	fail_unless(!strcmp(osync_plugin_authentication_get_password(reloaded_auth), "bar"), NULL);
 	fail_unless(!strcmp(osync_plugin_authentication_get_reference(reloaded_auth), "ref"), NULL);
 
+	OSyncList *r;
+	int i;
+	for (i = 1, r = reloaded_ressources; r; r = r->next, i++) {
+		char *value = g_strdup_printf("foobar%i", i);
+		fail_unless(!strcmp(osync_plugin_ressource_get_name(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_ressource_get_mime(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_ressource_get_objformat(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_ressource_get_path(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_ressource_get_url(r->data), value), NULL);
+		g_free(value);
+	}
 
 	osync_plugin_config_unref(config);
 	osync_plugin_config_unref(reloaded_config);
@@ -688,6 +816,7 @@ Suite *client_suite(void)
 	create_case(s, "plugin_config_authentication", plugin_config_authentication);
 	create_case(s, "plugin_config_connection", plugin_config_connection);
 	create_case(s, "plugin_config_localization", plugin_config_localization);
+	create_case(s, "plugin_config_ressources", plugin_config_ressources);
 	create_case(s, "plugin_config_save_and_load", plugin_config_save_and_load);
 	create_case(s, "plugin_config_save_and_load_connection_bluetooth", plugin_config_save_and_load_connection_bluetooth);
 	create_case(s, "plugin_config_save_and_load_connection_usb", plugin_config_save_and_load_connection_usb);
