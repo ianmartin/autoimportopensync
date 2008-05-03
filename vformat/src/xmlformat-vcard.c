@@ -1057,11 +1057,6 @@ osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **out
 	osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
-	if (osync_xmlformat_validate(xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: VAILD");
-
 	vformat_free(vcard);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);

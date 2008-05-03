@@ -695,12 +695,6 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 	osync_trace(TRACE_SENSITIVE, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
-	if (osync_xmlformat_validate(xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
-
-
 	vformat_free(vcalendar);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);

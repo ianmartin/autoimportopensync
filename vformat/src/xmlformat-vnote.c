@@ -79,11 +79,6 @@ osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, char **out
 	osync_trace(TRACE_SENSITIVE, "... Output XMLFormat is: \n%s", str);
 	g_free(str);
 	
-	if (osync_xmlformat_validate(xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT NOTE: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT NOTE: Valid!");
-
 	vformat_free(vnote);
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
