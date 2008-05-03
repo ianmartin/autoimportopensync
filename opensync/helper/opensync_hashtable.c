@@ -412,8 +412,6 @@ osync_bool osync_hashtable_slowsync(OSyncHashTable *table, OSyncError **error)
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
-	osync_bool ret = FALSE;
-
 	/* Reset persistent hashtable in database */
 	if (!osync_db_reset_table(table->dbhandle, table->name, error))
 		goto error;

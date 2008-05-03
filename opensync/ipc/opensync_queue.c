@@ -709,7 +709,6 @@ error:
 void osync_queue_free(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
-	OSyncMessage *message = NULL;
 	OSyncPendingMessage *pending = NULL;
 	
 	g_mutex_free(queue->pendingLock);

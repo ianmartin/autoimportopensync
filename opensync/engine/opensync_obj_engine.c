@@ -1110,6 +1110,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 			break;
 		case OSYNC_ENGINE_COMMAND_SOLVE:
 		case OSYNC_ENGINE_COMMAND_DISCOVER:
+		case OSYNC_ENGINE_COMMAND_ABORT:
 			break;
 	}
 	

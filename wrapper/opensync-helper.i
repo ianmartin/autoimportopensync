@@ -76,7 +76,6 @@ typedef struct {} HashTable;
 
 		PyObject *ret = PyList_New(0);
 		if (ret != NULL) {
-			int i;
                         OSyncList *u;
 			for (u = uids; u; u = u->next) {
                                 char *uid = u->data;

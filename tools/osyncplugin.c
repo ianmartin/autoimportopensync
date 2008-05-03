@@ -276,8 +276,6 @@ osync_bool init(OSyncError **error) {
 
 	char *config;
 	unsigned int size;
-	void *plugin_data;
-	
 	if (!(plugin_env = osync_plugin_env_new(error)))
 		goto error;
 
@@ -320,8 +318,10 @@ osync_bool init(OSyncError **error) {
 
 	return TRUE;
 
+/*
 error_free_loop:
 	g_main_context_unref(ctx);
+*/
 error_free_plugininfo:
 	osync_plugin_info_unref(plugin_info);
 error_free_formatenv:
@@ -380,9 +380,6 @@ const char *_osyncplugin_changetype_str(OSyncChange *change)
 	const char *type;
 
 	switch (osync_change_get_changetype(change)) {
-		case OSYNC_CHANGE_TYPE_UNKNOWN:
-			type = "UNKNOWN";
-			break;
 		case OSYNC_CHANGE_TYPE_ADDED:
 			type = "ADDED";
 			break;
@@ -394,6 +391,10 @@ const char *_osyncplugin_changetype_str(OSyncChange *change)
 			break;
 		case OSYNC_CHANGE_TYPE_MODIFIED:
 			type = "MODIFIED";
+			break;
+		case OSYNC_CHANGE_TYPE_UNKNOWN:
+		default:
+			type = "UNKNOWN";
 			break;
 	}
 
@@ -757,7 +758,6 @@ osync_bool empty(const char *objtype, void *plugin_data, OSyncError **error)
 
 	for (i=0, c = changesList; c; c = c->next, i++) {
 		OSyncChange *change = c->data;
-		OSyncData *data = osync_change_get_data(change);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 
 		if (!commit(objtype, change, plugin_data, error))

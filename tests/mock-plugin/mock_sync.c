@@ -443,7 +443,6 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	int i = 0;
 	OSyncError *error = NULL;
 
 	fail_unless(dir->committed_all == TRUE, NULL);
