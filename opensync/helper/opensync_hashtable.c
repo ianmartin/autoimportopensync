@@ -494,6 +494,16 @@ void osync_hashtable_update_change(OSyncHashTable *table, OSyncChange *change)
  *          not the content, with osync_list_free() .
  * 
  */
+struct callback_data {
+  OSyncList *deleted_entries;
+  OSyncHashTable *table;
+};
+static void callback_check_deleted(gpointer key, gpointer value, gpointer user_data)
+{
+  	struct callback_data *cbdata = user_data;
+	if (!g_hash_table_lookup(cbdata->table->reported_entries, key))
+	  cbdata->deleted_entries = osync_list_prepend(cbdata->deleted_entries, key);
+}
 OSyncList *osync_hashtable_get_deleted(OSyncHashTable *table)
 {
 	osync_assert(table);
@@ -501,18 +511,12 @@ OSyncList *osync_hashtable_get_deleted(OSyncHashTable *table)
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 
-	OSyncList *deleted_entries = NULL;
+  	struct callback_data cbdata = {NULL, table};
 
-	void callback_check_deleted(gpointer key, gpointer value, gpointer user_data)
-	  {
-	    if (!g_hash_table_lookup(table->reported_entries, key))
-	      deleted_entries = osync_list_prepend(deleted_entries, key);
-	  }
+	g_hash_table_foreach(table->db_entries, callback_check_deleted, &cbdata);
 
-	g_hash_table_foreach(table->db_entries, callback_check_deleted, NULL);
-
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, deleted_entries);
-	return deleted_entries;
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, cbdata.deleted_entries);
+	return cbdata.deleted_entries;
 }
 
 /*! @brief Gets the changetype for the given OSyncChange object, by comparing the hashs

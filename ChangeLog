@@ -1,3 +1,9 @@
+2008-05-04  Graham Cobb  <g+770@cobb.uk.net>
+
+	* opensync/helper/opensync_hashtable.c (osync_hashtable_get_deleted): 
+	Reimplement change below to avoid local function declaration, which does not
+	work on suncc.  Use user_data parameter on callback_check_deleted instead.
+
 2008-05-03  Graham Cobb  <g+770@cobb.uk.net>
 
 	* opensync/helper/opensync_hashtable.c (osync_hashtable_get_deleted): 
