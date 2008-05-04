@@ -25,6 +25,7 @@ SET( libopensync_LIB_SRCS
    format/opensync_filter.c
    format/opensync_format_env.c
    format/opensync_objformat.c
+   format/opensync_objformat_sink.c
    format/opensync_time.c
    group/opensync_group.c
    group/opensync_group_env.c
