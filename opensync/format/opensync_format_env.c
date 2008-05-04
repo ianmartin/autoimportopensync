@@ -162,16 +162,18 @@ static int _compare_vertice_distance(const void *a, const void *b)
 		return 0;
 }
 
-/** Function used on a path search for a format name array
+/** Function used on a path search for a OSyncList of OSyncObjFormatSinks 
  *
  * @see osync_conv_find_path_fn(), osync_change_convert_fmtnames()
  */
-static osync_bool _target_fn_formats(const void *data, OSyncObjFormat *fmt)
+static osync_bool _target_fn_format_sinks(const void *data, OSyncObjFormat *fmt)
 {
-	OSyncObjFormat **list = (OSyncObjFormat **)data;
-	OSyncObjFormat **i;
-	for (i = list; *i; i++) {
-		if (osync_objformat_is_equal(fmt, *i))
+	OSyncList *f, *formats = (OSyncList *) data;
+	for (f = formats; f; f = f->next) {
+		OSyncObjFormatSink *format_sink = f->data;
+		const char *format = osync_objformat_sink_get_objformat(format_sink);
+		/*if (osync_objformat_is_equal(fmt, format))*/
+		if (!strcmp(format, osync_objformat_get_name(fmt)))
 			/* Found */
 			return TRUE;
 	}
@@ -1069,12 +1071,12 @@ OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatE
  * 
  * @param env The conversion environment to use
  * @param sourceformat The source format to be converted from
- * @param targets NULL-Terminated array of possible formats to convert to
+ * @param targets List of possible Object Format Sinks
  * @param error The error-return location
  * @returns The appropriate conversion path, or NULL if an error occurred.
  * 
  */
-OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat **targets, OSyncError **error)
+OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncList *targets, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, sourceformat, targets, error);
@@ -1083,7 +1085,7 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env
 	if (!sourcedata)
 		goto error;
 
-	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_formats, targets, error);
+	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, targets, error);
 
 	osync_data_unref(sourcedata);
 
@@ -1102,17 +1104,17 @@ error:
  * 
  * @param env The format environment to use
  * @param sourcedata The OSyncData object which should be converted and the detectors will run on
- * @param targets NULL-Terminated array of possible formats to convert to
+ * @param targets List of possible Object Format Sinks
  * @param error The error-return location
  * @returns The appropriate conversion path, or NULL if an error occurred.
  * 
  */
-OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat **targets, OSyncError **error)
+OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncList *targets, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, sourcedata, targets, error);
 	
-	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_formats, targets, error);
+	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, targets, error);
 	if (!path) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
