@@ -51,12 +51,12 @@ OSYNC_EXPORT void osync_objtype_sink_unref(OSyncObjTypeSink *sink);
 OSYNC_EXPORT const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_set_name(OSyncObjTypeSink *sink, const char *name);
 
-OSYNC_EXPORT int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink);
-OSYNC_EXPORT const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth);
-OSYNC_EXPORT const char *osync_objtype_sink_nth_objformat_config(OSyncObjTypeSink *sink, int nth);
-OSYNC_EXPORT void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format);
-OSYNC_EXPORT void osync_objtype_sink_add_objformat_with_config(OSyncObjTypeSink *sink, const char *format, const char *format_config);
-OSYNC_EXPORT void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format);
+OSYNC_EXPORT unsigned int osync_objtype_sink_num_objformat_sinks(OSyncObjTypeSink *sink);
+OSYNC_EXPORT OSyncObjFormatSink *osync_objtype_sink_nth_objformat_sink(OSyncObjTypeSink *sink, unsigned int nth);
+OSYNC_EXPORT OSyncObjFormatSink *osync_objtype_sink_find_objformat_sink(OSyncObjTypeSink *sink, OSyncObjFormat *objformat);
+OSYNC_EXPORT OSyncList *osync_objtype_sink_get_objformat_sinks(OSyncObjTypeSink *sink);
+OSYNC_EXPORT void osync_objtype_sink_add_objformat_sink(OSyncObjTypeSink *sink, OSyncObjFormatSink *objformatsink);
+OSYNC_EXPORT void osync_objtype_sink_remove_objformat_sink(OSyncObjTypeSink *sink, OSyncObjFormatSink *objformatsink);
 
 OSYNC_EXPORT void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions, void *userdata);
 OSYNC_EXPORT void *osync_objtype_sink_get_userdata(OSyncObjTypeSink *sink);
@@ -132,7 +132,5 @@ OSYNC_EXPORT unsigned int osync_objtype_sink_get_write_timeout(OSyncObjTypeSink 
 OSYNC_EXPORT void osync_objtype_sink_set_read_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
 OSYNC_EXPORT unsigned int osync_objtype_sink_get_read_timeout_or_default(OSyncObjTypeSink *sink);
 OSYNC_EXPORT unsigned int osync_objtype_sink_get_read_timeout(OSyncObjTypeSink *sink);
-
-OSYNC_EXPORT const OSyncList *osync_objtype_sink_get_objformats(OSyncObjTypeSink *sink);
 
 #endif //_OPENSYNC_SINK_H_

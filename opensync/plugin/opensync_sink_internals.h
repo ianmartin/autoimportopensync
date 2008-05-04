@@ -67,7 +67,7 @@ typedef struct OSyncObjTypeSinkFunctionTimeouts {
 
 struct OSyncObjTypeSink {
 	/** The format which can be synchronized by this sink */
-	OSyncList *objformats;
+	OSyncList *objformatsinks;
 	/** The functions to be called */
 	OSyncObjTypeSinkFunctions functions;
 	void *userdata;
