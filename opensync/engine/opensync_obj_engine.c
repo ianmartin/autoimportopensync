@@ -822,53 +822,6 @@ osync_bool osync_obj_engine_get_slowsync(OSyncObjEngine *engine)
 	return engine->slowsync;
 }
 
-static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProxy *proxy, const char *objtype, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, env, proxy, objtype, error);
-	OSyncMember *member = osync_client_proxy_get_member(proxy);
-	
-	const OSyncList *formats = osync_member_get_objformats(member, objtype, error);
-	if (!formats) {
-		if (!osync_error_is_set(error))
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a valid target format");
-		goto error;
-	}
-
-	osync_trace(TRACE_INTERNAL, "Found %i possible sink formats", osync_list_length(formats));
-						
-	int num = osync_list_length(formats);
-	
-	OSyncObjFormat **formatArray = osync_try_malloc0(sizeof(OSyncObjFormat *) * (num + 1), error);
-	if (!formatArray)
-		goto error;
-	
-	const OSyncList *f = NULL;
-	int i = 0;
-	for (f = formats; f; f = f->next) {
-		const char **format_vertice = f->data;
-		const char *formatstr = format_vertice[0];
-		const char *format_configstr = format_vertice[1];
-		OSyncObjFormat *format = osync_format_env_find_objformat(env, formatstr);
-		osync_objformat_set_config(format, format_configstr);
-		if (!format) {
-			g_free(formatArray);
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a valid object format for \"%s\"", formatstr);
-			goto error;
-		}
-		
-		formatArray[i] = format;
-		i++;
-	}
-	formatArray[i] = NULL;
-	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, formatArray);
-	return formatArray;
-
-error:	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
-}
-
 osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error)
 {
 	GList *p = NULL;
@@ -1018,25 +971,24 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							
 							/* Now we have to convert to one of the formats
 							 * that the client can understand */
-							OSyncObjFormat **formats = _get_member_formats(engine->formatenv, sinkengine->proxy, osync_change_get_objtype(entry_engine->change), error);
-							if (!formats)
-								goto error;
-							
-							OSyncFormatConverterPath *path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), formats, error);
-							if (!path) {
-								g_free(formats);
+							OSyncList *format_sinks = osync_objtype_sink_get_objformat_sinks(objtype_sink);
+							if (!format_sinks) {
+								osync_error_set(error, OSYNC_ERROR_GENERIC, "There are no available format sinks.");
 								goto error;
 							}
+							
+							OSyncFormatConverterPath *path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), format_sinks, error);
+							if (!path)
+								goto error;
 
-							int length = osync_converter_path_num_edges(path);
+							unsigned int length = osync_converter_path_num_edges(path);
 							OSyncFormatConverter *converter = osync_converter_path_nth_edge(path, length - 1);
 							if (converter) {
 								OSyncObjFormat *format = osync_converter_get_targetformat(converter);
-								osync_converter_path_set_config( path, osync_objformat_get_config(format));
+								OSyncObjFormatSink *formatsink = osync_objtype_sink_find_objformat_sink(objtype_sink, format);
+								osync_converter_path_set_config(path, osync_objformat_sink_get_config(formatsink));
 							}
 
-							g_free(formats);
-							
 							if (!osync_format_env_convert(engine->formatenv, path, osync_change_get_data(entry_engine->change), error)) {
 								osync_converter_path_unref(path);
 								goto error;
@@ -1049,7 +1001,12 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							g_free(objtype);
 						}
 						
-						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , format conversion config %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_objformat_get_config(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
+						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , objtype %s from member %lli", 
+								osync_change_get_uid(change), 
+								osync_change_get_changetype(change), 
+								osync_objformat_get_name(osync_change_get_objformat(change)), 
+								osync_change_get_objtype(change), 
+								osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
 	
 						if (!osync_client_proxy_commit_change(sinkengine->proxy, _osync_obj_engine_commit_change_callback, entry_engine, osync_entry_engine_get_change(entry_engine), error))
 							goto error;

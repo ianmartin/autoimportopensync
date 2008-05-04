@@ -135,14 +135,16 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 
-	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
+	OSyncMember *member = osync_client_proxy_get_member(proxy);
+	long long int memberid = osync_member_get_id(member);
 	const char *uid = osync_change_get_uid(change);		
-	int changetype = osync_change_get_changetype(change);
+	OSyncChangeType changetype = osync_change_get_changetype(change);
 	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
-	const char *format_config = osync_objformat_get_config(osync_change_get_objformat(change));
 	const char *objtype = osync_change_get_objtype(change);
 
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, format conversion config %s, objtype %s from member %lli", uid, changetype, format, format_config, objtype, memberid);
+	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype);
+
+	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
 	
 	OSyncData *data = osync_change_get_data(change);
 
@@ -155,13 +157,15 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	   Do not convert anything if the chagetype is DELETED. */
 	if (internalFormat && osync_group_get_converter_enabled(engine->group) && (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED)) {
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
-	
+
 		OSyncFormatConverterPath *path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, &error);
 
 		if (!path)
 			goto error;
 	
-		osync_converter_path_set_config(path, osync_objformat_get_config(osync_change_get_objformat(change)));
+		OSyncObjFormatSink *formatsink = osync_objtype_sink_find_objformat_sink(objtype_sink, internalFormat);
+		const char *config = osync_objformat_sink_get_config(formatsink); 
+		osync_converter_path_set_config(path, config);
 
 		if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
 			osync_converter_path_unref(path);
