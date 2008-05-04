@@ -42,8 +42,7 @@ struct OSyncObjFormat {
 	 * Example: A VCard normally represents a contact. so, objtype_name
 	 * would be "contact" */
 	char *objtype_name;
-	/** the config for the conversion path */
-	char *config;
+
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatDuplicateFunc duplicate_func;
 	OSyncFormatCopyFunc copy_func;

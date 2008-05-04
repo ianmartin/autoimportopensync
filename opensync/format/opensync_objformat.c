@@ -49,7 +49,6 @@ OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, 
 	
 	format->name = g_strdup(name);
 	format->objtype_name = g_strdup(objtype_name);
-	format->config = NULL;
 	format->ref_count = 1;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, format);
@@ -86,9 +85,6 @@ void osync_objformat_unref(OSyncObjFormat *format)
 		if (format->objtype_name)
 			g_free(format->objtype_name);
 
-		if (format->config)
-			g_free(format->config);
-		
 		g_free(format);
 	}
 }
@@ -113,33 +109,6 @@ const char *osync_objformat_get_objtype(OSyncObjFormat *format)
 {
 	osync_assert(format);
 	return format->objtype_name;
-}
-
-/**
- * @brief Returns the conversion path config of an object format
- * @param format Pointer to the object format
- * @return The conversion config of the specified object format's object type
- */
-const char *osync_objformat_get_config(OSyncObjFormat *format)
-{
-	osync_assert(format);
-	return format->config;
-}
-
-/**
- * @brief Set the conversion path config of an object format
- * @param format Pointer to the object format
- * @param format_config Format specific configuration 
- * @return The conversion config of the specified object format's object type
- */
-void osync_objformat_set_config(OSyncObjFormat *format, const char *format_config)
-{
-	osync_assert(format);
-
-	if (format->config)
-		g_free(format->config);
-
-	format->config = g_strdup(format_config);
 }
 
 /**
