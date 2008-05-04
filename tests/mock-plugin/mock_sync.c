@@ -685,7 +685,12 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 
 		osync_assert(osync_hashtable_load(dir->hashtable, error));
 
-		osync_objtype_sink_add_objformat(sink, osync_objformat_get_name(dir->objformat));
+		const char *objformat = osync_objformat_get_name(dir->objformat); 
+		OSyncObjFormatSink *format_sink = osync_objformat_sink_new(objformat, error);
+		if (!format_sink)
+			return NULL;
+
+		osync_objtype_sink_add_objformat_sink(sink, format_sink);
 		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
