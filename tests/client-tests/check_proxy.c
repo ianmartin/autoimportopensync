@@ -163,8 +163,10 @@ START_TEST (proxy_discover)
 	fail_unless(sink != NULL, NULL);
 	fail_unless(!strcmp(osync_objtype_sink_get_name(sink), "file"), NULL);
 	
-	fail_unless(osync_objtype_sink_num_objformats(sink) == 1, NULL);
-	fail_unless(!strcmp(osync_objtype_sink_nth_objformat(sink, 0), "mockformat1"), NULL);
+	fail_unless(osync_objtype_sink_num_objformat_sinks(sink) == 1, NULL);
+	OSyncObjFormatSink *format_sink = osync_objtype_sink_nth_objformat_sink(sink, 0);
+	const char *objformat = osync_objformat_sink_get_objformat(format_sink);
+	fail_unless(!strcmp(objformat, "mockformat1"), NULL);
 	
 	fail_unless(osync_client_proxy_finalize(proxy, finalize_callback, GINT_TO_POINTER(1), &error), NULL);
 	fail_unless(error == NULL, NULL);

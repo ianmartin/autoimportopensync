@@ -94,7 +94,8 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	if (!sink)
 		goto error;
 	
-	osync_objtype_sink_add_objformat(sink, "mockobjtype1");
+	OSyncObjFormatSink *formatsink = osync_objformat_sink_new("mockobjtype1", error);
+	osync_objtype_sink_add_objformat_sink(sink, formatsink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -126,7 +127,8 @@ static void *initialize_connect_error(OSyncPlugin *plugin, OSyncPluginInfo *info
 	if (!sink)
 		goto error;
 	
-	osync_objtype_sink_add_objformat(sink, "mockobjtype1");
+	OSyncObjFormatSink *formatsink = osync_objformat_sink_new("mockobjtype1", error);
+	osync_objtype_sink_add_objformat_sink(sink, formatsink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -174,7 +176,6 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	debug->member2 = osync_member_new(&error);
@@ -187,7 +188,6 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member2, "mockobjtype1");
-	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	
@@ -260,7 +260,6 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	debug->member2 = osync_member_new(&error);
@@ -273,7 +272,6 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member2, "mockobjtype1");
-	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	
@@ -346,7 +344,6 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	
 	debug->member2 = osync_member_new(&error);
 	fail_unless(debug->member2 != NULL, NULL);
@@ -358,7 +355,6 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member2, "mockobjtype1");
-	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	
 	
 	
@@ -430,7 +426,6 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	debug->member2 = osync_member_new(&error);
@@ -499,7 +494,6 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	osync_member_add_objformat(debug->member1, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member1, "<config><directory><path>data1</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	debug->member2 = osync_member_new(&error);
@@ -511,7 +505,6 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
 	_member_add_objtype(debug->member2, "mockobjtype1");
-	osync_member_add_objformat(debug->member2, "mockobjtype1", "mockformat1");
 	osync_member_set_config(debug->member2, "<config><directory><path>data2</path><objtype>mockobjtype1</objtype></directory></config>");
 	
 	

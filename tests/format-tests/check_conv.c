@@ -852,10 +852,9 @@ START_TEST (conv_find_multi_target)
 	osync_format_env_register_converter(env, converter2);
 	osync_converter_unref(converter2);
 
-	OSyncObjFormat *targets[3];
-	targets[0] = format2;
-	targets[1] = format3;
-	targets[2] = NULL;
+	OSyncList *targets = NULL; 
+	targets = osync_list_prepend(targets, format2);
+	targets = osync_list_prepend(targets, format3);
 
 	OSyncData *data1 = osync_data_new("data", 5, format1, &error);
 	fail_unless(data1 != NULL, NULL);
@@ -928,10 +927,9 @@ START_TEST (conv_find_multi_target2)
 	osync_format_env_register_converter(env, converter3);
 	osync_converter_unref(converter3);
 
-	OSyncObjFormat *targets[3];
-	targets[0] = format4;
-	targets[1] = format3;
-	targets[2] = NULL;
+	OSyncList *targets = NULL; 
+	targets = osync_list_prepend(targets, format4);
+	targets = osync_list_prepend(targets, format3);
 
 	OSyncData *data1 = osync_data_new("data", 5, format1, &error);
 	fail_unless(data1 != NULL, NULL);
@@ -1679,10 +1677,9 @@ START_TEST(conv_prefer_same_objtype)
 
 	mark_point();
 
-	OSyncObjFormat **fmtlist = osync_try_malloc0(sizeof(OSyncObjFormat*) * 3, &error);
-	fmtlist[0] = format_g1; 
-	fmtlist[1] = format6; 
-	fmtlist[2] = NULL;
+	OSyncList* fmtlist = NULL;
+	fmtlist = osync_list_prepend(fmtlist, format_g1);
+	fmtlist = osync_list_prepend(fmtlist, format6);
 
 	OSyncFormatConverterPath *path = NULL;
 	path = osync_format_env_find_path_formats_with_detectors(env, data, fmtlist, &error);
@@ -1782,10 +1779,9 @@ START_TEST(conv_prefer_not_lossy_objtype_change)
 
 	mark_point();
 
-	OSyncObjFormat **fmtlist = osync_try_malloc0(sizeof(OSyncObjFormat*) * 3, &error);
-	fmtlist[0] = format_g1; 
-	fmtlist[1] = format6; 
-	fmtlist[2] = NULL;
+	OSyncList* fmtlist = NULL;
+	fmtlist = osync_list_prepend(fmtlist, format_g1);
+	fmtlist = osync_list_prepend(fmtlist, format6);
 
 	OSyncFormatConverterPath *path = NULL;
 	path = osync_format_env_find_path_formats_with_detectors(env, data, fmtlist, &error);
