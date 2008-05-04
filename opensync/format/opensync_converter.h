@@ -53,7 +53,7 @@ OSYNC_EXPORT OSyncFormatConverterPath *osync_converter_path_ref(OSyncFormatConve
 OSYNC_EXPORT void osync_converter_path_unref(OSyncFormatConverterPath *path);
 
 OSYNC_EXPORT void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatConverter *edge);
-OSYNC_EXPORT int osync_converter_path_num_edges(OSyncFormatConverterPath *path);
+OSYNC_EXPORT unsigned int osync_converter_path_num_edges(OSyncFormatConverterPath *path);
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConverterPath *path, unsigned int nth);
 OSYNC_EXPORT const char *osync_converter_path_get_config(OSyncFormatConverterPath *path);
 OSYNC_EXPORT void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config);

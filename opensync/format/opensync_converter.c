@@ -352,7 +352,7 @@ void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatCo
  * @param path Pointer to the converter path
  * @returns the number of converters in the specified path
  */
-int osync_converter_path_num_edges(OSyncFormatConverterPath *path)
+unsigned int osync_converter_path_num_edges(OSyncFormatConverterPath *path)
 {
 	osync_assert(path);
 	return g_list_length(path->converters);
