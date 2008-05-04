@@ -23,6 +23,7 @@
 
 #include "opensync-plugin.h"
 #include "opensync-group.h"
+#include "opensync-format.h"
 #include "opensync-merger.h"
 #include "opensync_member_internals.h"
 
@@ -123,7 +124,14 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
 				char *str_name = osync_xml_find_node(cur, "name");
 				char *str_config = osync_xml_find_node(cur, "config");
-				osync_objtype_sink_add_objformat_with_config(sink, str_name, str_config);
+				OSyncObjFormatSink *format_sink = osync_objformat_sink_new(str_name, error);
+				if (!format_sink)
+					return NULL;
+
+				osync_objformat_sink_set_config(format_sink, str_config);
+				osync_objtype_sink_add_objformat_sink(sink, format_sink);
+				osync_objformat_sink_unref(format_sink);
+
 				xmlFree(str_name);
 				xmlFree(str_config);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
@@ -590,9 +598,10 @@ static osync_bool _osync_member_save_sink(xmlDoc *doc, OSyncObjTypeSink *sink, O
 	/* Objtype specific settings */
 	xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
 
-	for (i = 0; i < osync_objtype_sink_num_objformats(sink); i++) {
-		const char *format = osync_objtype_sink_nth_objformat(sink, i);
-		const char *format_config = osync_objtype_sink_nth_objformat_config(sink, i);
+	for (i = 0; i < osync_objtype_sink_num_objformat_sinks(sink); i++) {
+		OSyncObjFormatSink *format_sink = osync_objtype_sink_nth_objformat_sink(sink, i);
+		const char *format = osync_objformat_sink_get_objformat(format_sink);
+		const char *format_config = osync_objformat_sink_get_config(format_sink);
 		xmlNode *objformat_node = xmlNewChild(node, NULL, (xmlChar*)"objformat", NULL);
 		xmlNewChild(objformat_node, NULL, (xmlChar*)"name", (xmlChar*)format);
 		xmlNewChild(objformat_node, NULL, (xmlChar*)"config", (xmlChar*)format_config);
@@ -762,7 +771,10 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
 	if (!sink)
 		return;
 	
-	osync_objtype_sink_add_objformat(sink, format);
+	/* TODO: handle error */
+	OSyncObjFormatSink *format_sink = osync_objformat_sink_new(format, NULL);
+	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 }
 
 /** @brief Add a specifc Object Format with a conversion path config to member 
@@ -779,7 +791,10 @@ void osync_member_add_objformat_with_config(OSyncMember *member, const char *obj
 	if (!sink)
 		return;
 	
-	osync_objtype_sink_add_objformat_with_config(sink, format, format_config);
+	OSyncObjFormatSink *format_sink = osync_objformat_sink_new(format, NULL);
+	osync_objformat_sink_set_config(format_sink, format_config);
+	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 }
 
 /** @brief List of all available object formats for a specifc object type of this member 
@@ -794,14 +809,18 @@ const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *ob
 {
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
 	if (!sink) {
+		/* FIXME: Nonsnse?!
 		sink = osync_member_find_objtype_sink(member, "data");
 		if (!sink) {
+		*/
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
 			return NULL;
+		/*
 		}
+		*/
 	}
 	
-	return osync_objtype_sink_get_objformats(sink);
+	return osync_objtype_sink_get_objformat_sinks(sink);
 }
 
 /** @brief Add an OSyncObjTypeSink object to the member list of supported object types of this member
