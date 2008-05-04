@@ -30,6 +30,9 @@
 
 osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError **error)
 {
+	osync_assert(message);
+	osync_assert(data);
+
 	/* Order:
 	 * 
 	 * format
@@ -45,7 +48,6 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 	
 	/* Write the format and objtype first */
 	osync_message_write_string(message, osync_objformat_get_name(objformat));
-	osync_message_write_string(message, osync_objformat_get_config(objformat));
 	osync_message_write_string(message, osync_data_get_objtype(data));
 
 	/* Now we get the pointer to the data */
@@ -81,6 +83,9 @@ error:
 
 osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFormatEnv *env, OSyncError **error)
 {
+	osync_assert(message);
+	osync_assert(env);
+
 	/* Order:
 	 * 
 	 * format
@@ -90,10 +95,8 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 	
 	/* Get the objtype and format */
 	char *objformat = NULL;
-	char *objformat_config = NULL;
 	char *objtype = NULL;
 	osync_message_read_string(message, &objformat);
-	osync_message_read_string(message, &objformat_config);
 	osync_message_read_string(message, &objtype);
 	
 	/* Search for the format */
@@ -102,8 +105,6 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objformat %s", objformat);
 		goto error;
 	}
-	osync_objformat_set_config(format, objformat_config);
-	g_free(objformat_config);
 
 	unsigned int input_size = 0;
 	char *input_data = NULL;
@@ -146,6 +147,9 @@ error:
 
 osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyncError **error)
 {
+	osync_assert(message);
+	osync_assert(change);
+
 	/* Order:
 	 * 
 	 * uid
@@ -169,6 +173,9 @@ error:
 
 osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, OSyncFormatEnv *env, OSyncError **error)
 {
+	osync_assert(message);
+	osync_assert(env);
+
 	/* Order:
 	 * 
 	 * uid
@@ -212,16 +219,66 @@ error:
 	return FALSE;
 }
 
+osync_bool osync_marshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink *sink, OSyncError **error)
+{
+	/* Order:
+	 * 
+	 * objformat name
+	 * objformat sink config
+	 */
+
+	const char *objformat_name = osync_objformat_sink_get_objformat(sink);
+	const char *objformat_sink_config = osync_objformat_sink_get_config(sink);
+
+	osync_message_write_string(message, objformat_name); 
+	osync_message_write_string(message, objformat_sink_config); 
+	
+	return TRUE;
+}
+
+osync_bool osync_demarshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink **sink, OSyncError **error)
+{
+	osync_assert(message);
+
+	/* Order:
+	 * 
+	 * objformat name
+	 * objformat sink config
+	 */
+	
+	/* Get the objtype and format */
+	char *objformat_name = NULL;
+	char *objformat_sink_config = NULL;
+	osync_message_read_string(message, &objformat_name);
+	
+	*sink = osync_objformat_sink_new(objformat_name, error);
+	if (!*sink)
+		goto error;
+
+	osync_message_read_string(message, &objformat_sink_config);
+	osync_objformat_sink_set_config(*sink, objformat_sink_config);
+	g_free(objformat_sink_config);
+
+	return TRUE;
+
+error:
+	osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
 osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *sink, OSyncError **error)
 {
+	osync_assert(message);
+	osync_assert(sink);
+
 	/* Order:
 	 * 
 	 * name
 	 * read function (bool)
 	 * get_changes function (bool)
 	 * write function (bool)
-	 * number of formats
-	 * format list (string)
+	 * number of format sinks 
+	 * format sink list (format sinks)
 	 * enabled (int)
 	 * timeout connect (int)
 	 * timeout disconnect (int)
@@ -236,7 +293,7 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	 */
 	
 	int i = 0;
-	int num = osync_objtype_sink_num_objformats(sink);
+	unsigned int num = osync_objtype_sink_num_objformat_sinks(sink);
 	osync_message_write_string(message, osync_objtype_sink_get_name(sink));
 
 	osync_message_write_int(message, osync_objtype_sink_get_function_read(sink));
@@ -245,10 +302,9 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 
 	osync_message_write_int(message, num);
 	for (i = 0; i < num; i++) {
-		const char *format = osync_objtype_sink_nth_objformat(sink, i);
-		const char *format_config = osync_objtype_sink_nth_objformat_config(sink, i);
-		osync_message_write_string(message, format);
-		osync_message_write_string(message, format_config);
+		OSyncObjFormatSink *formatsink = osync_objtype_sink_nth_objformat_sink(sink, i);
+		if (!osync_marshal_objformat_sink(message, formatsink, error)) 
+			goto error;
 	}
 	
 	/* enabled */
@@ -269,18 +325,23 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 
 	
 	return TRUE;
+
+error:
+	return FALSE;
 }
 
 osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink **sink, OSyncError **error)
 {
+	osync_assert(message);
+
 	/* Order:
 	 * 
 	 * name
 	 * read function (bool)
 	 * get_changes function (bool)
 	 * write function (bool)
-	 * number of formats
-	 * format list (string)
+	 * number of format sinks 
+	 * format sink list (format sinks)
 	 * enabled (int)
 	 * timeout connect (int)
 	 * timeout disconnect (int)
@@ -302,8 +363,6 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	int num_formats = 0;
 	int enabled = 0, timeout = 0;
 	int read = 0, get_changes = 0, write = 0;
-	char *format = NULL;
-	char *format_config = NULL;
 	
  	osync_message_read_string(message, &name);
  	osync_objtype_sink_set_name(*sink, name);
@@ -321,11 +380,12 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	osync_message_read_int(message, &num_formats);
 	int i = 0;
 	for (i = 0; i < num_formats; i++) {
- 		osync_message_read_string(message, &format);
- 		osync_message_read_string(message, &format_config);
-		osync_objtype_sink_add_objformat_with_config(*sink, format, format_config);
- 		g_free(format);
- 		g_free(format_config);
+		OSyncObjFormatSink *formatsink;
+		if (!osync_demarshal_objformat_sink(message, &formatsink, error)) 
+			goto error;
+
+		osync_objtype_sink_add_objformat_sink(*sink, formatsink);
+		osync_objformat_sink_unref(formatsink);
 	}
 
 	/* enabled */
@@ -368,6 +428,8 @@ error:
 
 void osync_marshal_error(OSyncMessage *message, OSyncError *error)
 {
+	osync_assert(message);
+
 	if (error) {
 		osync_message_write_int(message, 1);
 		osync_message_write_int(message, osync_error_get_type(&error));
@@ -380,6 +442,8 @@ void osync_marshal_error(OSyncMessage *message, OSyncError *error)
 
 void osync_demarshal_error(OSyncMessage *message, OSyncError **error)
 {
+	osync_assert(message);
+
 	int hasError = 0;
 
 	osync_message_read_int(message, &hasError);
