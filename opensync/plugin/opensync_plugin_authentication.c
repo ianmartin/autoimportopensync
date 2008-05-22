@@ -54,6 +54,9 @@ void osync_plugin_authentication_unref(OSyncPluginAuthentication *auth)
 			
 		if (auth->password)
 			g_free(auth->password);
+
+		if (auth->reference)
+			g_free(auth->reference);
 			
 		g_free(auth);
 	}
