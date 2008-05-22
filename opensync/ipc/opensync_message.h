@@ -94,12 +94,14 @@ OSYNC_EXPORT osync_bool osync_message_is_answered(OSyncMessage *message);
 OSYNC_EXPORT void osync_message_set_answered(OSyncMessage *message);
 
 OSYNC_EXPORT void osync_message_write_int(OSyncMessage *message, int value);
+OSYNC_EXPORT void osync_message_write_uint(OSyncMessage *message, unsigned int value);
 OSYNC_EXPORT void osync_message_write_long_long_int(OSyncMessage *message, long long int value);
 OSYNC_EXPORT void osync_message_write_string(OSyncMessage *message, const char *value);
 OSYNC_EXPORT void osync_message_write_data(OSyncMessage *message, const void *value, int size);
 OSYNC_EXPORT void osync_message_write_buffer(OSyncMessage *message, const void *value, int size);
 
 OSYNC_EXPORT void osync_message_read_int(OSyncMessage *message, int *value);
+OSYNC_EXPORT void osync_message_read_uint(OSyncMessage *message, unsigned int *value);
 OSYNC_EXPORT void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
 OSYNC_EXPORT void osync_message_read_string(OSyncMessage *message, char **value);
 OSYNC_EXPORT void osync_message_read_data(OSyncMessage *message, void *value, int size);

@@ -341,6 +341,16 @@ void osync_message_write_int(OSyncMessage *message, int value)
 	g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( int ) );
 }
 
+/*! @brief Appends an unsigned integer value to serialized message buffer
+ * 
+ * @param message The message
+ * @param value The integer value to append
+ */
+void osync_message_write_uint(OSyncMessage *message, unsigned int value)
+{
+	g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( unsigned int ) );
+}
+
 /*! @brief Appends a long long integer value to serialized message buffer
  * 
  * @param message The message
@@ -412,6 +422,20 @@ void osync_message_read_int(OSyncMessage *message, int *value)
 	
 	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
 	message->buffer_read_pos += sizeof(int);
+}
+
+/*! @brief Read serialized unsigned integer from message buffer. This increments the read
+ * position of the message buffer.
+ *
+ * @param message The message
+ * @param value Reference to store the integer value 
+ */
+void osync_message_read_uint(OSyncMessage *message, unsigned int *value)
+{
+	osync_assert(message->buffer->len >= message->buffer_read_pos + sizeof(unsigned int));
+	
+	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(unsigned int));
+	message->buffer_read_pos += sizeof(unsigned int);
 }
 
 /*! @brief Read serialized long long integer from message buffer. This increments the read
