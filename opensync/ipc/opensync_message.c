@@ -42,7 +42,7 @@
  * @returns Pointer to a newly allocated message
  * 
  */
-OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error)
+OSyncMessage *osync_message_new(OSyncMessageCommand cmd, unsigned int size, OSyncError **error)
 {
 	OSyncMessage *message = osync_try_malloc0(sizeof(OSyncMessage), error);
 	if (!message)

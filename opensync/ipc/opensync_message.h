@@ -67,7 +67,7 @@ typedef void (*OSyncMessageHandler)(OSyncMessage *message, void *user_data);
 
 /*@}*/
 
-OSYNC_EXPORT OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
+OSYNC_EXPORT OSyncMessage *osync_message_new(OSyncMessageCommand cmd, unsigned int size, OSyncError **error);
 OSYNC_EXPORT OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
 OSYNC_EXPORT OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError *error, OSyncError **loc_error);
 OSYNC_EXPORT OSyncMessage *osync_message_new_error(OSyncError *error, OSyncError **loc_error);
