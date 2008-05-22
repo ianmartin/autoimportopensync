@@ -22,6 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
+#include "opensync-format.h"
 #include "opensync_plugin_config_internals.h"
 
 #include "opensync_xml.h"
@@ -55,6 +56,7 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 	}
 
 	osync_plugin_config_set_authentication(config, auth);
+	osync_plugin_authentication_unref(auth);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -85,8 +87,11 @@ static osync_bool _osync_plugin_config_parse_connection_bluetooth(OSyncPluginCon
 			osync_plugin_connection_bt_set_sdpuuid(conn, str);
 		} else {
 //			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", __NULLSTR(cur->name));
+			xmlFree(str);
 			goto error;
 		}
+
+		xmlFree(str);
 	}
 
 
@@ -123,8 +128,12 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 			osync_plugin_connection_usb_set_interface(conn, atoi(str));
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
+
+			xmlFree(str);
 			goto error;
 		}
+
+		xmlFree(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -152,8 +161,11 @@ static osync_bool _osync_plugin_config_parse_connection_irda(OSyncPluginConnecti
 			osync_plugin_connection_irda_set_service(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
+			xmlFree(str);
 			goto error;
 		}
+
+		xmlFree(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -187,8 +199,11 @@ static osync_bool _osync_plugin_config_parse_connection_network(OSyncPluginConne
 			osync_plugin_connection_net_set_dnssd(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
+			xmlFree(str);
 			goto error;
 		}
+
+		xmlFree(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -218,8 +233,11 @@ static osync_bool _osync_plugin_config_parse_connection_serial(OSyncPluginConnec
 			osync_plugin_connection_serial_set_devicenode(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
+			xmlFree(str);
 			goto error;
 		}
+
+		xmlFree(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -282,6 +300,7 @@ static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *confi
 		goto error_and_free;
 
 	osync_plugin_config_set_connection(config, conn);
+	osync_plugin_connection_unref(conn);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -321,6 +340,7 @@ static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *con
 	}
 
 	osync_plugin_config_set_localization(config, local);
+	osync_plugin_localization_unref(local);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -330,15 +350,16 @@ error:
 	return FALSE;
 }
 
-
-static OSyncPluginRessource *_osync_plugin_config_parse_ressource(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
+static osync_bool _osync_plugin_config_parse_ressource_format(OSyncPluginRessource *res, xmlNode *cur, OSyncError **error)
 {
+	osync_assert(res);
+	osync_assert(cur);
 
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, res, cur, error);
 
-	OSyncPluginRessource *res = osync_plugin_ressource_new(error);
-	if (!res)
-		goto error;
+	OSyncObjFormatSink *format_sink = NULL; 
+
+	const char *objformat = NULL, *config = NULL;
 
 	for (; cur != NULL; cur = cur->next) {
 
@@ -350,15 +371,97 @@ static OSyncPluginRessource *_osync_plugin_config_parse_ressource(OSyncPluginCon
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Name"))
+			objformat = str;
+		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Config"))
+			config = str;
+		else
+			xmlFree(str);
+	}
+
+	osync_assert(objformat);
+
+	format_sink = osync_objformat_sink_new(objformat, error);
+	xmlFree((xmlChar *) objformat);
+
+	if (!format_sink)
+		goto error_free_config;
+
+	if (config) {
+		osync_objformat_sink_set_config(format_sink, config);
+		xmlFree((xmlChar *) config);
+	}
+
+	osync_plugin_ressource_add_objformat_sink(res, format_sink);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_config:
+	xmlFree((xmlChar *) config);
+/*error:*/
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_plugin_config_parse_ressource_formats(OSyncPluginRessource *res, xmlNode *cur, OSyncError **error)
+{
+	osync_assert(res);
+	osync_assert(cur);
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, res, cur, error);
+
+	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
+		if (!_osync_plugin_config_parse_ressource_format(res, cur->xmlChildrenNode, error))
+			goto error;
+
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static OSyncPluginRessource *_osync_plugin_config_parse_ressource(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
+{
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
+
+	char *str = NULL;
+
+	OSyncPluginRessource *res = osync_plugin_ressource_new(error);
+	if (!res)
+		goto error;
+
+	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
+		str = (char*)xmlNodeGetContent(cur);
+		if (!str)
+			continue;
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"Enabled")) {
+			osync_plugin_ressource_enable(res, atoi(str));
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Name")) {
 			osync_plugin_ressource_set_name(res, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"MIME"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"MIME")) {
 			osync_plugin_ressource_set_mime(res, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"ObjFormat"))
-			osync_plugin_ressource_set_objformat(res, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Path"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Formats")) {
+			if (!_osync_plugin_config_parse_ressource_formats(res, cur->xmlChildrenNode, error))
+				goto error_free_str;
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Path")) {
 			osync_plugin_ressource_set_path(res, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Url"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Url")) {
 			osync_plugin_ressource_set_url(res, str);
+		}
 
 		xmlFree(str);
 	}
@@ -366,6 +469,8 @@ static OSyncPluginRessource *_osync_plugin_config_parse_ressource(OSyncPluginCon
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return res;
 
+error_free_str:
+	xmlFree(str);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
@@ -377,8 +482,6 @@ static osync_bool _osync_plugin_config_parse_ressources(OSyncPluginConfig *confi
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
 	OSyncPluginRessource *res; 
-	OSyncList *ressources = osync_plugin_config_get_ressources(config);
-
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
@@ -388,11 +491,11 @@ static osync_bool _osync_plugin_config_parse_ressources(OSyncPluginConfig *confi
 			if (!(res = _osync_plugin_config_parse_ressource(config, cur->xmlChildrenNode, error)))
 				goto error;
 
-			ressources = osync_list_prepend(ressources, res);
+			config->ressources = osync_list_prepend(config->ressources, res);
 		}
 	}
 
-	osync_plugin_config_set_ressources(config, ressources);
+	config->ressources = osync_list_reverse(config->ressources);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -466,6 +569,8 @@ osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, const char 
 
 	if (!_osync_plugin_config_parse(config, cur, error))
 		goto error;
+
+	xmlFreeDoc(doc);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -668,17 +773,46 @@ error:
 
 }
 
-static osync_bool _osync_plugin_config_assemble_ressource(xmlNode *cur, OSyncPluginRessource *res, OSyncError **error)
+static osync_bool _osync_plugin_config_assemble_ressource_format(xmlNode *cur, OSyncObjFormatSink *format_sink, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, res, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, format_sink, error);
 
-	const char *name, *mime, *objformat, *path, *url;
-
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Ressource", NULL);
+	const char *name, *config;
+	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Format", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
 	}
+
+	if ((config = osync_objformat_sink_get_config(format_sink)))
+		xmlNewChild(node, NULL, (xmlChar*)"Config", (xmlChar*)config);
+
+	if ((name = osync_objformat_sink_get_objformat(format_sink)))
+		xmlNewChild(node, NULL, (xmlChar*)"Name", (xmlChar*)name);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_plugin_config_assemble_ressource(xmlNode *cur, OSyncPluginRessource *res, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, res, error);
+
+	OSyncList *o;
+	const char *name, *mime, *path, *url;
+
+	xmlNode *next, *node = xmlNewChild(cur, NULL, (xmlChar*)"Ressource", NULL);
+	if (!node) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
+		goto error;
+	}
+
+	osync_bool res_enabled = osync_plugin_ressource_is_enabled(res);
+	xmlNewChild(node, NULL, (xmlChar*)"Enabled", res_enabled ? (xmlChar*) "1" : (xmlChar*) "0");
 
 	if ((name = osync_plugin_ressource_get_name(res)))
 		xmlNewChild(node, NULL, (xmlChar*)"Name", (xmlChar*)name);
@@ -686,8 +820,12 @@ static osync_bool _osync_plugin_config_assemble_ressource(xmlNode *cur, OSyncPlu
 	if ((mime = osync_plugin_ressource_get_mime(res)))
 		xmlNewChild(node, NULL, (xmlChar*)"MIME", (xmlChar*)mime);
 
-	if ((objformat = osync_plugin_ressource_get_objformat(res)))
-		xmlNewChild(node, NULL, (xmlChar*)"ObjFormat", (xmlChar*)objformat);
+	next = xmlNewChild(node, NULL, (xmlChar*)"Formats", NULL);
+	for (o = osync_plugin_ressource_get_objformat_sinks(res); o; o = o->next) {
+		OSyncObjFormatSink *format_sink = o->data;
+		if (!_osync_plugin_config_assemble_ressource_format(next, format_sink, error))
+			goto error;
+	}
 
 	if ((path = osync_plugin_ressource_get_path(res)))
 		xmlNewChild(node, NULL, (xmlChar*)"Path", (xmlChar*)path);
@@ -873,21 +1011,25 @@ OSyncList *osync_plugin_config_get_ressources(OSyncPluginConfig *config)
 
 }
 
-void osync_plugin_config_set_ressources(OSyncPluginConfig *config, OSyncList *ressources)
+void osync_plugin_config_add_ressource(OSyncPluginConfig *config, OSyncPluginRessource *ressource)
 {
 	osync_assert(config);
-	OSyncList *r;
+	osync_assert(ressource);
 
-	/* First increase refcount - in case one ressource ise used in different
-	   ressource lists. */
-	for (r = ressources; r; r = r->next)
-		osync_plugin_ressource_ref(r->data);
+	if (osync_list_find(config->ressources, ressource))
+			return;
 
-	if (config->ressources)
-		for (r = config->ressources; r; r = r->next)
-			osync_plugin_ressource_unref(r->data);
+	osync_plugin_ressource_ref(ressource);
+	config->ressources = osync_list_append(config->ressources, ressource);
+}
 
-	config->ressources = ressources;
+void osync_plugin_config_remove_ressource(OSyncPluginConfig *config, OSyncPluginRessource *ressource)
+{
+	osync_assert(config);
+	osync_assert(ressource);
+
+	config->ressources = osync_list_remove(config->ressources, ressource);
+	osync_plugin_ressource_unref(ressource);
 }
 
 OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *config)

@@ -21,6 +21,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include "opensync-format.h"
 #include "opensync-plugin.h"
 #include "opensync_plugin_ressource_internals.h"
 
@@ -55,9 +56,10 @@ void osync_plugin_ressource_unref(OSyncPluginRessource *ressource)
 		if (ressource->mime)
 			g_free(ressource->mime);
 
-		if (ressource->objformat)
-			g_free(ressource->objformat);
-		/* osync_objformat_unref(ressource->objformat); */
+		while (ressource->objformatsinks) {
+			osync_objformat_sink_unref(ressource->objformatsinks->data);
+			ressource->objformatsinks = osync_list_remove(ressource->objformatsinks, ressource->objformatsinks->data);
+		}
 			
 		if (ressource->path)
 			g_free(ressource->path);
@@ -67,6 +69,18 @@ void osync_plugin_ressource_unref(OSyncPluginRessource *ressource)
 			
 		g_free(ressource);
 	}
+}
+
+osync_bool osync_plugin_ressource_is_enabled(OSyncPluginRessource *ressource)
+{
+	osync_assert(ressource);
+	return ressource->enabled;
+}
+
+void osync_plugin_ressource_enable(OSyncPluginRessource *ressource, osync_bool enable)
+{
+	osync_assert(ressource);
+	ressource->enabled = enable;
 }
 
 const char *osync_plugin_ressource_get_name(OSyncPluginRessource *ressource)
@@ -99,37 +113,49 @@ void osync_plugin_ressource_set_mime(OSyncPluginRessource *ressource, const char
 	ressource->mime = g_strdup(mime);
 }
 
-const char *osync_plugin_ressource_get_objformat(OSyncPluginRessource *ressource)
+OSyncList *osync_plugin_ressource_get_objformat_sinks(OSyncPluginRessource *ressource)
 {
 	osync_assert(ressource);
-	return ressource->objformat;
+	return ressource->objformatsinks;
 }
 
-void osync_plugin_ressource_set_objformat(OSyncPluginRessource *ressource, const char *objformat)
+void osync_plugin_ressource_add_objformat_sink(OSyncPluginRessource *ressource, OSyncObjFormatSink *formatsink)
 {
 	osync_assert(ressource);
-	if (ressource->objformat)
-		g_free(ressource->objformat);
+	osync_assert(formatsink);
 
-	ressource->objformat = g_strdup(objformat);
+	if (osync_list_find(ressource->objformatsinks, formatsink))
+		return;
+
+	osync_objformat_sink_ref(formatsink);
+	ressource->objformatsinks = osync_list_prepend(ressource->objformatsinks, formatsink);
 }
 
-/*
-OSyncObjFormat *osync_plugin_ressource_get_objformat(OSyncPluginRessource *ressource)
+void osync_plugin_ressource_remove_objformat_sink(OSyncPluginRessource *ressource, OSyncObjFormatSink *formatsink)
 {
 	osync_assert(ressource);
-	return ressource->objformat;
+	osync_assert(formatsink);
+
+	ressource->objformatsinks = osync_list_remove(ressource->objformatsinks, formatsink);
+	osync_objformat_sink_unref(formatsink);
 }
 
-void osync_plugin_ressource_set_objformat(OSyncPluginRessource *ressource, OSyncObjFormat *objformat)
+#if 0 /* KILL? */
+const char *osync_plugin_ressource_get_objtype(OSyncPluginRessource *ressource)
 {
 	osync_assert(ressource);
-	if (ressource->objformat)
-		osync_objformat_unref(ressource->objformat);
-
-	ressource->objformat = osync_objformat_unref(objformat);
+	return ressource->objtype;
 }
-*/
+
+void osync_plugin_ressource_set_objtype(OSyncPluginRessource *ressource, const char *objtype)
+{
+	osync_assert(ressource);
+	if (ressource->objtype)
+		g_free(ressource->objtype);
+
+	ressource->objtype = g_strdup(objtype);
+}
+#endif
 
 const char *osync_plugin_ressource_get_path(OSyncPluginRessource *ressource)
 {

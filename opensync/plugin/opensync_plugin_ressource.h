@@ -25,6 +25,9 @@ OSYNC_EXPORT OSyncPluginRessource *osync_plugin_ressource_new(OSyncError **error
 OSYNC_EXPORT void osync_plugin_ressource_unref(OSyncPluginRessource *ressource);
 OSYNC_EXPORT OSyncPluginRessource *osync_plugin_ressource_ref(OSyncPluginRessource *ressource);
 
+OSYNC_EXPORT osync_bool osync_plugin_ressource_is_enabled(OSyncPluginRessource *ressource);
+OSYNC_EXPORT void osync_plugin_ressource_enable(OSyncPluginRessource *ressource, osync_bool enable);
+
 OSYNC_EXPORT const char *osync_plugin_ressource_get_name(OSyncPluginRessource *ressource);
 OSYNC_EXPORT void osync_plugin_ressource_set_name(OSyncPluginRessource *ressource, const char *name);
 
@@ -36,8 +39,14 @@ OSYNC_EXPORT OSyncObjFormat *osync_plugin_ressource_get_objformat(OSyncPluginRes
 OSYNC_EXPORT void osync_plugin_ressource_set_objformat(OSyncPluginRessource *ressource, OSyncObjFormat *objformat);
 */
 
-OSYNC_EXPORT const char *osync_plugin_ressource_get_objformat(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_objformat(OSyncPluginRessource *ressource, const char *objformat);
+OSYNC_EXPORT OSyncList *osync_plugin_ressource_get_objformat_sinks(OSyncPluginRessource *ressource);
+OSYNC_EXPORT void osync_plugin_ressource_add_objformat_sink(OSyncPluginRessource *ressource, OSyncObjFormatSink *formatsink);
+OSYNC_EXPORT void osync_plugin_ressource_remove_objformat_sink(OSyncPluginRessource *ressource, OSyncObjFormatSink *formatsink);
+
+/* TODO: Kill
+OSYNC_EXPORT const char *osync_plugin_ressource_get_objtype(OSyncPluginRessource *ressource);
+OSYNC_EXPORT void osync_plugin_ressource_set_objtype(OSyncPluginRessource *ressource, const char *objtype);
+*/
 
 OSYNC_EXPORT const char *osync_plugin_ressource_get_path(OSyncPluginRessource *ressource);
 OSYNC_EXPORT void osync_plugin_ressource_set_path(OSyncPluginRessource *ressource, const char *path);

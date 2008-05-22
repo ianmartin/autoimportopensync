@@ -26,13 +26,17 @@
  * @ingroup OSyncPluginRessourcePrivateAPI 
  **/
 struct OSyncPluginRessource {
+	/** If ressource is enabled */
+	osync_bool enabled;
 	/** Human readable identifier/name of ressource */
 	char *name;
 	/** MIME type of this ressource */
 	char *mime;
-	/** ObjFormat of this ressource */
-	//OSyncObjFormat *objformat;
-	char *objformat;
+	/** Objtype of the ressource */
+	// KILL?! TODO
+	//char *objtype;
+	/** ObjFormatSink List of this ressource */
+	OSyncList *objformatsinks;
 	/** Filesystem path */
 	char *path;
 	/** URL */
