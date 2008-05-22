@@ -459,3 +459,230 @@ void osync_demarshal_error(OSyncMessage *message, OSyncError **error)
 		g_free(msg);
 	}
 }
+
+osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConnection *conn, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(conn);
+
+	/* Order:
+	 * 
+	 * type (int)
+	 *
+	 * (following are depending on type)
+	 *
+	 * bt_address (char*)
+	 * bt_sdpuuid (char*)
+	 * bt_channel (uint)
+	 *
+	 * usb_vendorid (uint)
+	 * usb_productid (uint)
+	 * usb_interface (uint)
+	 *
+	 * net_address (char*)
+	 * net_port (uint)
+	 * net_protocol (char*)
+	 * net_dnssd (char*)
+	 *
+	 * serial_speed (uint)
+	 * serial_devicenode (char*)
+	 * 
+	 * irda_service (char *)
+	 */
+
+	OSyncPluginConnectionType type = osync_plugin_connection_get_type(conn);
+	osync_message_write_int(message, type);
+	switch(type) {
+		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
+			osync_message_write_string(message, osync_plugin_connection_bt_get_addr(conn));
+			osync_message_write_string(message, osync_plugin_connection_bt_get_sdpuuid(conn));
+			osync_message_write_uint(message, osync_plugin_connection_bt_get_channel(conn));
+			break;
+		case OSYNC_PLUGIN_CONNECTION_USB:
+			osync_message_write_uint(message, osync_plugin_connection_usb_get_vendorid(conn));
+			osync_message_write_uint(message, osync_plugin_connection_usb_get_productid(conn));
+			osync_message_write_uint(message, osync_plugin_connection_usb_get_interface(conn));
+			break;
+		case OSYNC_PLUGIN_CONNECTION_NETWORK:
+			osync_message_write_string(message, osync_plugin_connection_net_get_address(conn));
+			osync_message_write_uint(message, osync_plugin_connection_net_get_port(conn));
+			osync_message_write_string(message, osync_plugin_connection_net_get_protocol(conn));
+			osync_message_write_string(message, osync_plugin_connection_net_get_dnssd(conn));
+			break;
+		case OSYNC_PLUGIN_CONNECTION_SERIAL:
+			osync_message_write_uint(message, osync_plugin_connection_serial_get_speed(conn));
+			osync_message_write_string(message, osync_plugin_connection_serial_get_devicenode(conn));
+			break;
+		case OSYNC_PLUGIN_CONNECTION_IRDA:
+			osync_message_write_string(message, osync_plugin_connection_irda_get_service(conn));
+			break;
+		case OSYNC_PLUGIN_CONNECTION_UNKNOWN:
+			break;
+	}
+
+	
+	return TRUE;
+}
+
+osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginConnection **conn, OSyncError **error)
+{
+	/* Order:
+	 * 
+	 * (following are depending on type)
+	 *
+	 * bt_address (char*)
+	 * bt_sdpuuid (char*)
+	 * bt_channel (uint)
+	 *
+	 * usb_vendorid (uint)
+	 * usb_productid (uint)
+	 * usb_interface (uint)
+	 *
+	 * net_address (char*)
+	 * net_port (uint)
+	 * net_protocol (char*)
+	 * net_dnssd (char*)
+	 *
+	 * serial_speed (uint)
+	 * serial_devicenode (char*)
+	 * 
+	 * irda_service (char *)
+	 */
+	
+	int type; 
+
+	char *bt_address, *bt_sdpuuid;
+	unsigned int bt_channel;
+
+	unsigned int usb_vendorid, usb_productid, usb_interface; 
+
+	char *net_address, *net_protocol, *net_dnssd;
+
+	unsigned int serial_speed;
+	char *serial_devicenode;
+
+	char *irda_service;
+
+	osync_message_read_int(message, &type);
+
+	*conn = osync_plugin_connection_new(type, error);
+	if (!*conn)
+		goto error;
+
+	switch(type) {
+		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
+			osync_message_read_string(message, &bt_address);
+			osync_plugin_connection_bt_set_addr(*conn, bt_address);
+
+			osync_message_read_string(message, &bt_sdpuuid);
+			osync_plugin_connection_bt_set_sdpuuid(*conn, bt_sdpuuid);
+
+			osync_message_read_uint(message, &bt_channel);
+			osync_plugin_connection_bt_set_channel(*conn, bt_channel);
+
+			g_free(bt_address);
+			g_free(bt_sdpuuid);
+			break;
+		case OSYNC_PLUGIN_CONNECTION_USB:
+			osync_message_read_uint(message, &usb_vendorid);
+			osync_plugin_connection_usb_set_vendorid(*conn, usb_vendorid);
+
+			osync_message_read_uint(message, &usb_productid);
+			osync_plugin_connection_usb_set_productid(*conn, usb_productid);
+
+			osync_message_read_uint(message, &usb_interface);
+			osync_plugin_connection_usb_set_productid(*conn, usb_interface);
+			break;
+		case OSYNC_PLUGIN_CONNECTION_NETWORK:
+			osync_message_read_string(message, &net_address);
+			osync_plugin_connection_net_set_address(*conn, net_address);
+
+			osync_message_read_string(message, &net_protocol);
+			osync_plugin_connection_net_set_address(*conn, net_protocol);
+
+			osync_message_read_string(message, &net_dnssd);
+			osync_plugin_connection_net_set_address(*conn, net_dnssd);
+			
+			g_free(net_address);
+			g_free(net_protocol);
+			g_free(net_dnssd);
+			break;
+		case OSYNC_PLUGIN_CONNECTION_SERIAL:
+			osync_message_read_uint(message, &serial_speed);
+			osync_plugin_connection_serial_set_speed(*conn, serial_speed);
+
+			osync_message_read_string(message, &serial_devicenode);
+			osync_plugin_connection_serial_set_devicenode(*conn, serial_devicenode);
+
+			g_free(serial_devicenode);
+			break;
+		case OSYNC_PLUGIN_CONNECTION_IRDA:
+			osync_message_read_string(message, &irda_service);
+			osync_plugin_connection_serial_set_devicenode(*conn, irda_service);
+
+			g_free(irda_service);
+			break;
+		case OSYNC_PLUGIN_CONNECTION_UNKNOWN:
+			break;
+	}
+
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(config);
+
+	/* Order:
+	 * 
+	 * $connection
+	 * $authenticatoin
+	 * $localization
+	 */
+
+	OSyncPluginConnection *conn = osync_plugin_config_get_connection(config);
+
+	if (conn && !osync_marshal_pluginconnection(message, conn, error))
+		goto error;
+	
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig **config, OSyncError **error)
+{
+	/* Order:
+	 * 
+	 * $connection
+	 * $authenticatoin
+	 * $localization
+
+	 */
+
+	OSyncPluginConnection *conn;
+	
+	*config = osync_plugin_config_new(error);
+	if (!*config)
+		goto error;
+
+	/* Connection */
+	if (!osync_demarshal_pluginconnection(message, &conn, error))
+		goto error_free_config;
+
+	osync_plugin_config_set_connection(*config, conn);
+
+
+	return TRUE;
+
+error_free_config:
+	osync_plugin_config_unref(*config);
+error:
+	return FALSE;
+}
+
