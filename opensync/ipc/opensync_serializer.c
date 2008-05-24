@@ -527,6 +527,8 @@ osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConn
 osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginConnection **conn, OSyncError **error)
 {
 	/* Order:
+	 *
+	 * type (int)
 	 * 
 	 * (following are depending on type)
 	 *
@@ -632,6 +634,10 @@ error:
 	return FALSE;
 }
 
+#define MARSHAL_PLUGINCONFIG_CONNECTION (0x1 << 1)
+#define MARSHAL_PLUGINCONFIG_AUTHENTICATON (0x1 << 2)
+#define MARSHAL_PLUGINCONFIG_LOCALIZATION (0x1 << 3)
+
 osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error)
 {
 	osync_assert(message);
@@ -639,12 +645,22 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 
 	/* Order:
 	 * 
+	 * $available subconfigs
+	 *
 	 * $connection
 	 * $authenticatoin
 	 * $localization
 	 */
 
+	unsigned int available_subconfigs = 0;
+
 	OSyncPluginConnection *conn = osync_plugin_config_get_connection(config);
+
+	if (conn)
+		available_subconfigs |= MARSHAL_PLUGINCONFIG_CONNECTION;
+		
+
+	osync_message_write_uint(message, available_subconfigs);
 
 	if (conn && !osync_marshal_pluginconnection(message, conn, error))
 		goto error;
@@ -659,23 +675,31 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 {
 	/* Order:
 	 * 
+	 * $available subconfigs
+	 *
 	 * $connection
 	 * $authenticatoin
 	 * $localization
 
 	 */
 
-	OSyncPluginConnection *conn;
+	OSyncPluginConnection *conn = NULL;
+	unsigned int available_subconfigs = 0;
 	
 	*config = osync_plugin_config_new(error);
 	if (!*config)
 		goto error;
 
-	/* Connection */
-	if (!osync_demarshal_pluginconnection(message, &conn, error))
-		goto error_free_config;
+	/* available subconfigs */
+	osync_message_read_uint(message, &available_subconfigs);
 
-	osync_plugin_config_set_connection(*config, conn);
+	/* Connection */
+	if (available_subconfigs & MARSHAL_PLUGINCONFIG_CONNECTION) {
+		if (!osync_demarshal_pluginconnection(message, &conn, error))
+			goto error_free_config;
+
+		osync_plugin_config_set_connection(*config, conn);
+	}
 
 
 	return TRUE;

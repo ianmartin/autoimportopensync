@@ -21,22 +21,22 @@
 #ifndef _OPENSYNC_SERIALIZER_H_
 #define _OPENSYNC_SERIALIZER_H_
 
-osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError **error);
-osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFormatEnv *env, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFormatEnv *env, OSyncError **error);
 
-osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyncError **error);
-osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, OSyncFormatEnv *env, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, OSyncFormatEnv *env, OSyncError **error);
 
-void osync_marshal_error(OSyncMessage *message, OSyncError *error);
-void osync_demarshal_error(OSyncMessage *message, OSyncError **error);
+OSYNC_EXPORT void osync_marshal_error(OSyncMessage *message, OSyncError *error);
+OSYNC_EXPORT void osync_demarshal_error(OSyncMessage *message, OSyncError **error);
 
-osync_bool osync_marshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink *sink, OSyncError **error);
-osync_bool osync_demarshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink **sink, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_marshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink *sink, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_demarshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink **sink, OSyncError **error);
 
-osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *sink, OSyncError **error);
-osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink **sink, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *sink, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink **sink, OSyncError **error);
 
-osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error);
-osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig **config, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig **config, OSyncError **error);
 
 #endif
