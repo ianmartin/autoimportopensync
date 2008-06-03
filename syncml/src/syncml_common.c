@@ -581,6 +581,10 @@ void finalize(void *data)
 		safe_cfree(&(env->bluetoothChannel));
 	if (env->atCommand)
 		safe_cfree(&(env->atCommand));
+	if (env->atManufacturer)
+		safe_cfree(&(env->atManufacturer));
+	if (env->atModel)
+		safe_cfree(&(env->atModel));
 	if (env->url)
 		safe_cfree(&(env->url));
 	if (env->port)

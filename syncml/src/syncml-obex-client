@@ -35,7 +35,23 @@
            Samsung: http://www.traud.de/gsm/samsung.htm
     -->
   <at_command></at_command>
-  
+
+  <!-- If your phone needs a special AT command but you don't
+       know it and it is not supported but you know a similar
+       phone which is supported then you can try to use this
+       potentially working profile by adding this phone's
+       identity here.
+
+       at_manufacturer is the answer to AT+CGMI.
+       at_model        is the answer to AT+CGMM.
+
+       Example: mobile          Samsung SGH-Z400
+                at_manufacturer Samsung
+                at_model        SGH-Z400
+    --> 
+  <at_manufacturer></at_manufacturer>
+  <at_model></at_model>
+
   <!-- The string that the plugin will use to identify itself. Some devices need a special string here. -->
   <identifier></identifier>
   

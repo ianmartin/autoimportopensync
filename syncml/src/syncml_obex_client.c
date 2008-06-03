@@ -103,6 +103,14 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 				env->atCommand = g_strdup(str);
 			}
 			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"at_manufacturer")) {
+				env->atManufacturer = g_strdup(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"at_model")) {
+				env->atModel = g_strdup(str);
+			}
+			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
 				env->port = g_strdup(str);
 			}
@@ -253,6 +261,12 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		goto error_free_env;
 	if (env->atCommand &&
 	    !smlTransportSetConfigOption(env->tsp, "AT_COMMAND", env->atCommand, &serror))
+		goto error_free_env;
+	if (env->atManufacturer &&
+	    !smlTransportSetConfigOption(env->tsp, "AT_MANUFACTURER", env->atManufacturer, &serror))
+		goto error_free_env;
+	if (env->atModel &&
+	    !smlTransportSetConfigOption(env->tsp, "AT_MODEL", env->atModel, &serror))
 		goto error_free_env;
 	switch(env->type) {
 		case SML_TRANSPORT_CONNECTION_TYPE_USB:

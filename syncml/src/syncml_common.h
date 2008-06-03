@@ -55,6 +55,8 @@ typedef struct SmlPluginEnv {
 	char *bluetoothAddress;
 	char *bluetoothChannel;
 	char *atCommand;
+	char *atManufacturer;
+	char *atModel;
 	char *identifier;
 	SmlNotificationVersion version;
 	osync_bool useWbxml;
