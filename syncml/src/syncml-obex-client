@@ -25,11 +25,14 @@
   <!-- Some devices use a non-standard compliant AT command.
        This special AT command contains for example the datastores
        which should be synchronized. If you don't know what to
-       do then leave this empy or visit our wiki for examples.
+       do then leave this empy or contact us via the user mailing
+       list.
+
        Some devices are supported by default. If yours is not
        supported then please open a ticket.
 
-       Samsung: http://www.traud.de/gsm/samsung.htm
+       Examples for AT commands:
+           Samsung: http://www.traud.de/gsm/samsung.htm
     -->
   <at_command></at_command>
   
