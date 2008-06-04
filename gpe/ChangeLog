@@ -1,3 +1,8 @@
+2008-06-04  Graham Cobb  <g+770@cobb.uk.net>
+
+	* src/utils.c (report_deleted): new result from osync_hashtable_get_deleted
+	(report_change): new parameter list for osync_hashtable_get_changetype
+
 2008-03-11  Graham Cobb  <g+770@cobb.uk.net>
 
 	* src/gpe-sync: Remove -- which break XML comments. Ticket 704, debian bug 468285.

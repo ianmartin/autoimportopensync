@@ -109,7 +109,7 @@ osync_bool report_change (sink_environment *sinkenv, OSyncContext *ctx, gchar *t
 	osync_change_set_hash (change, hash);
 	osync_change_set_data (change, data);
 	
-	OSyncChangeType changetype = osync_hashtable_get_changetype(sinkenv->hashtable, osync_change_get_uid(change), hash);
+	OSyncChangeType changetype = osync_hashtable_get_changetype(sinkenv->hashtable, change);
 	if (changetype != OSYNC_CHANGE_TYPE_UNMODIFIED) {
 	  osync_change_set_changetype(change, changetype);
 	  osync_context_report_change (ctx, change);
@@ -138,23 +138,22 @@ void report_deleted (sink_environment *sinkenv, OSyncContext *ctx)
 
 	//check for deleted entries ... via hashtable
 	int i;
-	char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
-	for (i=0; uids[i]; i++) {
+	OSyncList *u, *uids = osync_hashtable_get_deleted(sinkenv->hashtable);
+	for (u = uids; uids; u = u->next) {
 	  OSyncChange *change = osync_change_new(&error);
 	  if (!change) {
-	    g_free(uids[i]);
 	    osync_context_report_osyncwarning(ctx, error);
 	    osync_error_unref(&error);
 	    continue;
 	  }
 	  
-	  osync_trace(TRACE_INTERNAL, "%s: deleting uid %s", __func__, uids[i]);
-	  osync_change_set_uid(change, uids[i]);
+	  const char *uid = u->data;
+	  osync_trace(TRACE_INTERNAL, "%s: deleting uid %s", __func__, uid);
+	  osync_change_set_uid(change, uid);
 	  osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
  	
 	  OSyncData *odata = osync_data_new(NULL, 0, sinkenv->objformat, &error);
 	  if (!odata) {
-	    g_free(uids[i]);
 	    osync_change_unref(change);
 	    osync_context_report_osyncwarning(ctx, error);
 	    osync_error_unref(&error);
@@ -167,12 +166,11 @@ void report_deleted (sink_environment *sinkenv, OSyncContext *ctx)
 	  
 	  osync_context_report_change(ctx, change);
 	  
-	  osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+	  osync_hashtable_update_change(sinkenv->hashtable, change);
 	  
 	  osync_change_unref(change);
-	  g_free(uids[i]);
 	}
-	g_free(uids);
+	osync_list_free(uids);
 
 	osync_trace(TRACE_EXIT, "GPE-SYNC %s", __func__);
 }
