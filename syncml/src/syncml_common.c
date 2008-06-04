@@ -120,10 +120,6 @@ SmlBool flush_session_for_all_databases(
 	/* reset the flush database counter */
         env->num = 0;
 
-	/* reset the map flushing of OMA DS clients */
-	if (env->prepareMapFlushing)
-		env->prepareMapFlushing = FALSE;
-
 	/* perform the flush */
         if (!smlSessionFlush(env->session, TRUE, error))
         {
@@ -219,100 +215,6 @@ void syncml_free_database(SmlDatabase *database)
 	// free the database struct itself
 
 	safe_free((gpointer *)&database);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-SmlBool _init_change_ctx_cleanup(SmlDatabase *database, SmlError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(gotChanges: %i, gotFinal %i)", __func__,
-		 database->gotChanges, database->env->gotFinal);
-
-	g_assert(database->getChangesCtx);
-	
-	// we should try to cleanup getChangesCtx if
-	//     SML_MANAGER_SESSION_FINAL
-	//     SML_DS_EVENT_GOTCHANGES
-	// both events are required for a complete cleanup
-	// gotFinal must be resetted at every new message
-	if (database->gotChanges && database->env->gotFinal) {
-		/* Cleanup of contexts / Reporting to OpenSync:
-		 * 
-		 * SERVER: The next step after receiving the
-		 *         package with the changes from the
-		 *         client is to send the package with
-		 *         the calculated changes. This is
-		 *         done by batch_commit. Therefore it
-		 *         is required to report the success
-		 *         on the change context.
-		 *
-		 * CLIENT: If the client received the changes
-		 *         from the server then the client must
-		 *         send the map and have to wait for
-		 *         the acknowledgement from the server
-		 *         for the map. After this the client
-		 *         can disconnect and re-connect to
-		 *         send the calculated changes of
-		 *         OpenSync. If the client wants to
-		 *         avoid to early calls of OpenSync to
-		 *         the function batch_commit then the
-		 *         client should report success only
-		 *         after disconnect.
-		 */
-		if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
-		{
-			osync_trace(TRACE_INTERNAL, "%s: reported success on server change context.", __func__);
-			report_success_on_context(&(database->getChangesCtx));
-		} else {
-			osync_trace(TRACE_INTERNAL, "%s: flushing the map of a client.", __func__);
-
-			/* Flush handling:
-			 *
-			 * SERVER: An explicit flush is not necessary
-			 *         because the server replies
-			 *         automatically with its own changes if
-			 *         the success is reported via the
-			 *         change context.
-			 *
-			 * CLIENT: An explicit flush is necessary
-			 *         because the client prepares the map
-			 *         which must be send to the server.
-			 *         This is required to complete the DS
-			 *         session correctly.
-			 *
-			 * The maps are only flushed if this is a client and all
-			 * changes were received (because FINAL is set).
-			 */
-			if (database->env->prepareMapFlushing &&
-			    !flush_session_for_all_databases(database->env, TRUE, error))
-			{
-				osync_trace(TRACE_EXIT_ERROR, "%s: Flushing the map failed.", __func__);
-				return FALSE;
-			}
-		}
-	}
-
-	osync_trace(TRACE_EXIT, "%s - success", __func__);
-	return TRUE;
-}
-
-void _init_commit_ctx_cleanup(SmlDatabase *database)
-{
-	osync_trace(TRACE_ENTRY, "%s(commitWrite: %i, gotFinal %i)", __func__,
-		 database->commitWrite, database->env->gotFinal);
-
-	g_assert(database->commitCtx);
-
-	// we should try to cleanup commitCtx if
-	//     SML_MANAGER_SESSION_FINAL
-	//     SML_DS_EVENT_COMMITEDCHANGES
-	// both events are required for a complete cleanup
-	// gotFinal must be resetted at every new message
-	// until we received a sync command (not alert)
-	if (database->env->gotFinal && database->commitWrite && !database->pendingCommits) {
-		osync_trace(TRACE_INTERNAL, "%s: reported success on server commit context.", __func__);
-		report_success_on_context(&(database->commitCtx));
-	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -456,8 +358,6 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
 	
-	env->gotFinal = FALSE;
-
 	if (env->gotDisconnect || !env->session)
 	{
 		/* The disconnect already happened or

@@ -35,8 +35,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 
 	switch (type) {
 		case SML_MANAGER_SESSION_FLUSH:
-			env->gotFinal = FALSE;
-			osync_trace(TRACE_INTERNAL, "resetted gotFinal on session flush");
+			osync_trace(TRACE_INTERNAL, "session flush so nothing to do");
 			break;
 		case SML_MANAGER_CONNECT_DONE:
 			g_mutex_lock(env->connectMutex);
@@ -159,15 +158,6 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final", smlSessionGetSessionID(session));
 
-			/* The final element must be signalled first
-			 * because other events like sync commands can
-			 * happen several times and in a non-deterministic
-			 * order. So first the final is made persistent
-			 * and then the other events like sync are handled.
-			 */
-			env->gotFinal = TRUE;
-
-			SmlBool flushMap = FALSE;
 			o = env->databases;
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
@@ -183,7 +173,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * not work properly for example if a
 					 * client sends a map.
 					 */
-					_init_commit_ctx_cleanup(database);
+					report_success_on_context(&(database->commitCtx));
 				}
 				if (database->syncReceived && database->getChangesCtx) {
 					/* If there is a change context then a package
@@ -192,15 +182,51 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 * datastores sent their complete data. So if
 					 * one change context is finished then we
 					 * can be sure that all others are finished too.
-					 *
-					 * Please note that the final event is sometimes
-					 * faster than the handling of the change
-					 * events. Therefore there is a separate signal
-					 * GOTCHANGES to _ds_event. If both events were
-					 * received then then the cleanup starts.
 					 */
-					if (!_init_change_ctx_cleanup(database, &error))
-						goto error;
+					if (smlDsServerGetServerType(database->server) == SML_DS_SERVER)
+					{
+						/* The next step after receiving the
+						 * package with the changes from the
+						 * client is to send the package with
+						 * the calculated changes. This is
+						 * done by batch_commit. Therefore it
+						 * is required to report the success
+						 * on the change context.
+						 *
+						 * An explicit flush is not necessary
+						 * because the server replies
+						 * automatically with its own changes if
+						 * the success is reported via the
+						 * change context.
+						 */
+						osync_trace(TRACE_INTERNAL, "%s: reported success on server change context.", __func__);
+						report_success_on_context(&(database->getChangesCtx));
+					} else {
+						/* If the client received the changes
+						 * from the server then the client must
+						 * send the map and have to wait for
+						 * the acknowledgement from the server
+						 * for the map. After this the client
+						 * can disconnect and re-connect to
+						 * send the calculated changes of
+						 * OpenSync. If the client wants to
+						 * avoid to early calls of OpenSync to
+						 * the function batch_commit then the
+						 * client should report success only
+						 * after disconnect.
+						 *
+						 * An explicit flush is necessary
+						 * because the client prepares the map
+						 * which must be send to the server.
+						 * This is required to complete the DS
+						 * session correctly.
+						 *
+						 */
+						osync_trace(TRACE_INTERNAL, "%s: flushing the map of a client.", __func__);
+						SmlError *error = NULL;
+						flush_session_for_all_databases(database->env, TRUE, &error);
+					}
+					database->syncReceived = FALSE;
 				}
 			}
 
@@ -297,27 +323,8 @@ error:;
 void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, dsession, event, userdata);
-
 	SmlDatabase *database = (SmlDatabase *)userdata;
-
 	osync_trace(TRACE_INTERNAL, "database: %s", database->objtype);
-	SmlError *error = NULL;
-	switch (event) {
-		case SML_DS_EVENT_GOTCHANGES:
-			database->gotChanges = TRUE;
-			if (database->getChangesCtx)
-				_init_change_ctx_cleanup(database, &error);
-			break;
-		case SML_DS_EVENT_COMMITEDCHANGES:
-			/* This event only happens if a sync reply was
-			 * received and completely handled.
-			 */
-			database->commitWrite = TRUE;
-			if (database->commitCtx)
-				_init_commit_ctx_cleanup(database);
-			break;
-	}
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -414,27 +421,6 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 	osync_trace(TRACE_INTERNAL,"Going to receive %i changes - objtype: %s", numchanges, database->objtype);
 	// printf("Going to receive %i changes\n", numchanges);
 	database->pendingChanges = numchanges;
-
-	/* If this is an OMA DS client then it is necessary to send a map after
-	 * all changes were received. It is a good idea to do this if a FINAL
-	 * was received together with a SYNC.
-	 */
-	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
-	{
-		osync_trace(TRACE_INTERNAL,"%s: enable map flushing for OMA DS client", __func__);
-		database->env->prepareMapFlushing = TRUE;
-	}
-
-    	//if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
-	//    numchanges == 0)
-	//{
-	//	// The session must be flushed
-	//	// otherwise the DsSession would not complete correctly
-	//	// FIXME: an error handling is not possible here
-	//	osync_trace(TRACE_INTERNAL, "%s: no changes present - flushing directly", __func__);
-	//	database->env->ignoredDatabases = g_list_add(database->env->ignoredDatabases, database);
-	//	flush_session_for_all_databases(database->env, FALSE, NULL);
-	//}
 
 	/* If the client does not send the DevInf and the server does not
 	 * cache the DevInf of the client then it can happen that we
@@ -656,7 +642,6 @@ void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *n
 	// cleanup
 	osync_change_unref(ctx->change);
 	ctx->database->pendingCommits--;
-	_init_commit_ctx_cleanup(ctx->database);
 	ctx->database = NULL;
 	safe_free((gpointer *)&ctx);
 

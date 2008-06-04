@@ -74,8 +74,6 @@ typedef struct SmlPluginEnv {
 	unsigned int recvLimit;
 	unsigned int maxObjSize;
 
-	SmlBool gotFinal;
-	SmlBool prepareMapFlushing;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
 	SmlBool doReconnect;
@@ -142,7 +140,6 @@ typedef struct SmlDatabase {
 	osync_bool syncReceived;
 	osync_bool gotChanges;
 	unsigned int pendingChanges;
-	osync_bool commitWrite;
 	unsigned int pendingCommits;
 
 	OSyncContext *syncModeCtx;
