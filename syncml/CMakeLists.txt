@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 2.4)
+
 PROJECT( libopensync-plugin-syncml C )
 
 SET( VERSION "0.36" )
