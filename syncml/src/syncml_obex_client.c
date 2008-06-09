@@ -204,7 +204,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
 	
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), error);
 	if (!env)
 		goto error;
@@ -351,10 +350,10 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		char *objtype = g_ascii_strup(osync_objformat_get_objtype(database->objformat), -1);
 		if (!smlTransportSetConfigOption(env->tsp, "DATASTORE", objtype, &serror))
 		{
-			smlSafeCFree(&objtype);
+			safe_cfree(&objtype);
 			goto error_free_env;
 		}
-		smlSafeCFree(&objtype);
+		safe_cfree(&objtype);
 	}
 
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));

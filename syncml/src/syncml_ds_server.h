@@ -29,4 +29,9 @@ SmlBool _ds_server_recv_alert(
             const char *next,
             void *userdata);
 
+SmlBool ds_server_init_databases(
+            SmlPluginEnv *env,
+            OSyncPluginInfo *info,
+            OSyncError **error);
+
 #endif //_SYNCML_PLUGIN_DS_SERVER_H

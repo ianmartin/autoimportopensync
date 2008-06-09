@@ -21,6 +21,9 @@
 #include "syncml_common.h"
 #include "syncml_callbacks.h"
 #include "syncml_vformat.h"
+#include "syncml_devinf.h"
+#include "syncml_ds_client.h"
+#include "syncml_ds_server.h"
 
 /* **************************************** */
 /* *****     Management Callbacks     ***** */

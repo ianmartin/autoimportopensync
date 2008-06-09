@@ -60,7 +60,7 @@ void ds_server_init_sync_mode(SmlDatabase *database)
 	g_assert(database->session);
 
 	/* This function should only be called if the DsSession is available.
-	/* Only the alert callback is registered here because the changes should
+	 * Only the alert callback is registered here because the changes should
 	 * be managed after the function ds_server_get_changeinfo was called.
 	 */
 	smlDsSessionGetAlert(database->session, _ds_server_recv_alert, database);
@@ -72,7 +72,6 @@ void ds_server_init_sync_mode(SmlDatabase *database)
 void ds_server_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-        SmlPluginEnv *env = (SmlPluginEnv *)data;
 
         SmlDatabase *database = get_database_from_plugin_info(info);
 	g_assert(database->session);
@@ -95,7 +94,7 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     osync_trace(TRACE_ENTRY, "%s", __func__);
     g_assert(ctx);
 
-    SmlError  *error = NULL;
+//    SmlError  *error = NULL;
     OSyncError  *oserror = NULL;
     SmlDatabase *database = get_database_from_plugin_info(info);
     set_session_user(database->env, __func__);
@@ -139,9 +138,9 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     osync_trace(TRACE_EXIT, "%s", __func__);
     return;
 
-error:
-    osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-    smlErrorDeref(&error);
+//error:
+//    osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+//    smlErrorDeref(&error);
 oserror:
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
     report_error_on_context(&(database->commitCtx), &oserror, TRUE);
@@ -217,7 +216,7 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
-oserror:
+// oserror:
 	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(&oserror));
 	if (database->syncModeCtx)
 		report_error_on_context(&(database->syncModeCtx), &oserror, TRUE);

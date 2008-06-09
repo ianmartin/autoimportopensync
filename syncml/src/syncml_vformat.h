@@ -7,6 +7,6 @@
 GHashTable* get_vcard_hash();
 GHashTable* get_ical_hash();
 
-SmlBool set_capabilties(SmlPluginEnv *env, SmlError **error);
+SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error);
 
 #endif // SYNCML_VFORMAT_H

@@ -3,6 +3,8 @@
 #include "syncml_devinf.h"
 #include "syncml_ds_client.h"
 
+#include <opensync/plugin/opensync_sink.h>
+
 /* Some informations about the SyncML protocol
  * 
  * A synchronization with SyncML which is initiated by the client
@@ -75,8 +77,8 @@ guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
     }
 
     /* create random session ID - glib only supports 32 bit random numbers */
-    guint64 sessionID = ((guint64) g_random_int ()) << 32 + g_random_int ();
-    char *sessionString = g_strdup_printf("%llu", sessionID);
+    guint64 sessionID = (((guint64) g_random_int ()) << 32) + g_random_int ();
+    char *sessionString = g_strdup_printf("%lu", sessionID);
     osync_trace(TRACE_INTERNAL, "%s: new session ID is %llu (%s)",
                 __func__, sessionID, sessionString);
 

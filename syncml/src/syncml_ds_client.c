@@ -116,7 +116,6 @@ error:
 void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-        SmlPluginEnv *env = (SmlPluginEnv *)data;
 
         SmlDatabase *database = get_database_from_plugin_info(info);
 

@@ -22,6 +22,8 @@
 #include "syncml_callbacks.h"
 #include "syncml_devinf.h"
 
+#include <opensync/plugin/opensync_sink.h>
+
 void set_session_user(SmlPluginEnv *env, const char* user)
 {
     g_assert(user);

@@ -203,4 +203,10 @@ void safe_free(gpointer *address);
 void report_success_on_context(OSyncContext **ctx);
 void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool cleanupError);
 
+// FIXME: This is only a fast fix for SuSE.
+// FIXME: Perhaps the functions should be renamed.
+OSyncChangeType _to_osync_changetype(SmlChangeType type);
+void set_session_user(SmlPluginEnv *env, const char* user);
+unsigned int get_num_changes(OSyncChange **changes);
+
 #endif //_SYNCML_COMMON_H

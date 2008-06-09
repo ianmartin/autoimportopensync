@@ -1,6 +1,8 @@
 #include "syncml_common.h"
 #include<opensync/db/opensync_db.h>
 
+SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filename, OSyncError **oerror);
+
 const char *get_database_pref_content_type(
 				SmlDatabase *database,
 				OSyncError **error)
@@ -119,7 +121,7 @@ osync_bool add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *v
     {
         smlDevInfFreeContentType(ct);
         osync_trace(TRACE_EXIT, "%s - content type already present in devinf", __func__);
-        return;
+        return TRUE;
     } else {
         smlDevInfFreeContentType(ct);
         osync_trace(TRACE_INTERNAL, "new content type detected");
@@ -636,10 +638,10 @@ SmlBool init_devinf_database_schema(OSyncDB *db, OSyncError **oerror)
         char *replace = g_strdup_printf(insert_version_query, db_schema_version);
         if (!osync_db_query(db, replace, oerror))
         {
-            smlSafeCFree(&replace);
+            safe_cfree(&replace);
             goto error;
         }
-        smlSafeCFree(&replace);
+        safe_cfree(&replace);
         osync_trace(TRACE_INTERNAL, "%s - Schema version inserted.", __func__);
     }
 
@@ -753,8 +755,8 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 	    char *rx_version = smlDevInfContentTypeGetVerCT(ctype);
             char *esc_rx_ct = osync_db_sql_escape(rx_ct);
             char *esc_rx_version = osync_db_sql_escape(rx_version);
-            smlSafeCFree(&rx_ct);
-            smlSafeCFree(&rx_version);
+            safe_cfree(&rx_ct);
+            safe_cfree(&rx_version);
 	    osync_trace(TRACE_INTERNAL, "%s: parameters ready", __func__);
             const char *rx_query = "REPLACE INTO datastore_rx (\"device_id\", \"datastore\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s', '%s')";
             replace = g_strdup_printf(
@@ -777,8 +779,8 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 	    char *tx_version = smlDevInfContentTypeGetVerCT(ctype);
             char *esc_tx_ct = osync_db_sql_escape(tx_ct);
             char *esc_tx_version = osync_db_sql_escape(tx_version);
-            smlSafeCFree(&tx_ct);
-            smlSafeCFree(&tx_version);
+            safe_cfree(&tx_ct);
+            safe_cfree(&tx_version);
 	    osync_trace(TRACE_INTERNAL, "%s: parameters ready", __func__);
             const char *tx_query = "REPLACE INTO datastore_tx (\"device_id\", \"datastore\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s', '%s')";
             replace = g_strdup_printf(
@@ -973,7 +975,7 @@ SmlBool load_remote_devinf(SmlPluginEnv *env, OSyncError **error)
 		if (!load_devinf(
 				env->agent,
 				smlLocationGetURI(smlSessionGetTarget(env->session)),
-				env->devinf_path, &error))
+				env->devinf_path, error))
 		{
 			SmlError *serror = NULL;
        			smlDevInfAgentRequestDevInf(
@@ -995,7 +997,6 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     g_assert(devid);
     g_assert(filename);
     g_assert(oerror);
-    SmlBool success = TRUE;
     SmlError *error = NULL;
     SmlDevInf *devinf = NULL;
 
@@ -1080,8 +1081,6 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
 	OSyncList *rx_row;
         for (rx_row = rx_result; rx_row; rx_row = rx_row->next)
         {
-            OSyncList *rx_columns = rx_row->data;
-
             // FIXME: unclean error handling
             SmlDevInfContentType *ctype = smlDevInfNewContentType(
                                               osync_list_nth_data(columns, 0),
@@ -1100,8 +1099,6 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
 	OSyncList *tx_row;
         for (tx_row = tx_result; tx_row; tx_row = tx_row->next)
         {
-            OSyncList *tx_columns = tx_row->data;
-
             // FIXME: unclean error handling
             SmlDevInfContentType *ctype = smlDevInfNewContentType(
                                               osync_list_nth_data(columns, 0),
@@ -1112,7 +1109,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         osync_db_free_list(tx_result);
 
         /* publish datastore */
-        smlSafeCFree(&esc_datastore);
+        safe_cfree(&esc_datastore);
         smlDevInfAddDataStore(devinf, datastore);
     }
     osync_db_free_list(result);
@@ -1217,7 +1214,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                 /* reading property parameter values */
                 const char *param_value_query = "SELECT \"property_param_value\" FROM property_param_values WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s' AND \"property\"='%s' AND \"property_param\"='%s'";
                 query = g_strdup_printf(
-                             prop_param_query, esc_devid,
+                             param_value_query, esc_devid,
                              esc_ct, esc_version, esc_prop_name,
                              esc_param_name);
                 // FIXME: unclean error handling
