@@ -947,12 +947,25 @@ oerror:
     return FALSE;
 }
 
+void _update_session_config_from_devinf(SmlPluginEnv *env)
+{
+	osync_trace(TRACE_ENTRY, "%s called", __func__); 
+	SmlDevInf *devinf = env->remote_devinf;
+	SmlSession *session = env->session;
+
+	smlSessionUseNumberOfChanges(session, smlDevInfSupportsNumberOfChanges(devinf));
+	smlSessionUseLargeObjects(session, smlDevInfSupportsLargeObjs(devinf));
+
+	osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
+}
+
 SmlBool load_remote_devinf(SmlPluginEnv *env, OSyncError **error)
 {
 	env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
 	if (env->remote_devinf)
 	{
 		osync_trace(TRACE_INTERNAL, "%s: DevInf was sent.", __func__);
+		_update_session_config_from_devinf(env);
 		return store_devinf(env->remote_devinf,
 			env->devinf_path, error);
 	} else {
@@ -968,9 +981,9 @@ SmlBool load_remote_devinf(SmlPluginEnv *env, OSyncError **error)
 				env->session,
 				&serror);
 			return FALSE;
-		} else {
-			env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
 		}
+		env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
+		_update_session_config_from_devinf(env);
 	}
 	return TRUE;
 }
