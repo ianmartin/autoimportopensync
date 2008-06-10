@@ -6,7 +6,6 @@ SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
 	GList *o = env->databases;
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
-		database->gotChanges = FALSE;
 
                 OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
                 if (!sink)
@@ -201,11 +200,7 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 			goto error;
 	}
 
-	// This is a server function only - so we are in server mode.
-	// If a server replies on an alert and sends back an alert
-	// then we must flush after all alerts are ready to send.
-	if (!flush_session_for_all_databases(database->env, TRUE, &error))
-		goto error;
+	database->command = OSYNC_PLUGIN_SYNCML_COMMAND_SEND_ALERT;
 
 	/* signal the success to the sync mode context */
 	if (database->syncModeCtx)

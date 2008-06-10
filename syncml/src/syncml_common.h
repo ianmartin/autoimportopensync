@@ -51,6 +51,13 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
+typedef enum {
+	OSYNC_PLUGIN_SYNCML_COMMAND_UNKNOWN,
+	OSYNC_PLUGIN_SYNCML_COMMAND_SEND_ALERT,
+	OSYNC_PLUGIN_SYNCML_COMMAND_SEND_SYNC,
+	OSYNC_PLUGIN_SYNCML_COMMAND_RECV_SYNC,
+} OSyncPluginSyncmlDatastoreCommand;
+
 typedef struct SmlPluginEnv {
 	char *bluetoothAddress;
 	char *bluetoothChannel;
@@ -137,10 +144,10 @@ typedef struct SmlDatabase {
 
 	OSyncChange **syncChanges;
 	OSyncContext **syncContexts;
-	osync_bool syncReceived;
-	osync_bool gotChanges;
 	unsigned int pendingChanges;
 	unsigned int pendingCommits;
+
+	OSyncPluginSyncmlDatastoreCommand command;
 
 	OSyncContext *syncModeCtx;
 	OSyncContext *getChangesCtx;

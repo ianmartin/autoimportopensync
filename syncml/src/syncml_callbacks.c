@@ -160,14 +160,15 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			break;
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final", smlSessionGetSessionID(session));
+			SmlBool flushSession = FALSE;
 
 			o = env->databases;
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
 
-				osync_trace(TRACE_INTERNAL, "%s: gotChanges: %i getChangesCtx: %p objtype: %s",
+				osync_trace(TRACE_INTERNAL, "%s: getChangesCtx: %p objtype: %s",
 					__func__,
-					database->gotChanges, database->getChangesCtx, database->objtype);
+					database->getChangesCtx, database->objtype);
 
 				if (database->commitCtx) {
 					/* If a sync command was sent then it is
@@ -178,7 +179,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					 */
 					report_success_on_context(&(database->commitCtx));
 				}
-				if (database->syncReceived && database->getChangesCtx) {
+				if (database->command == OSYNC_PLUGIN_SYNCML_COMMAND_RECV_SYNC &&
+				    database->getChangesCtx) {
 					/* If there is a change context then a package
 					 * with data was received actually. If such a
 					 * package is closed by a final element then all
@@ -226,11 +228,23 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 						 *
 						 */
 						osync_trace(TRACE_INTERNAL, "%s: flushing the map of a client.", __func__);
-						SmlError *error = NULL;
-						flush_session_for_all_databases(database->env, TRUE, &error);
+						flushSession = TRUE;
 					}
-					database->syncReceived = FALSE;
+					database->command = OSYNC_PLUGIN_SYNCML_COMMAND_UNKNOWN;
 				}
+				if (database->command == OSYNC_PLUGIN_SYNCML_COMMAND_SEND_ALERT)
+				{
+					osync_trace(TRACE_INTERNAL, "%s: flushing an alert.", __func__);
+					flushSession = TRUE;
+				}
+			} // for-loop over databases
+			if (flushSession)
+			{
+				// FIXME: there is still no error handling for this case
+				osync_trace(TRACE_INTERNAL, "%s: flushing session", __func__);
+				SmlError *error = NULL;
+        			if (!smlSessionFlush(env->session, TRUE, &error))
+            				osync_trace(TRACE_ERROR, "%s - session flush failed", __func__);
 			}
 
 			break;
@@ -419,7 +433,7 @@ void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 	/* Only if this event was received then it makes sense to check for the
 	 * FINAL element because otherwise it is a FINAL from the wrong package.
 	 */
-	database->syncReceived = TRUE;
+	database->command = OSYNC_PLUGIN_SYNCML_COMMAND_RECV_SYNC;
 
 	osync_trace(TRACE_INTERNAL,"Going to receive %i changes - objtype: %s", numchanges, database->objtype);
 	// printf("Going to receive %i changes\n", numchanges);
