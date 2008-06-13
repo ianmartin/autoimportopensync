@@ -262,6 +262,16 @@ void parse_args(int argc, char **argv) {
 		}
 	}
 
+
+	if (!cmdlist)
+		fprintf(stderr, "No command set.\n");
+
+	if (!pluginname)
+		fprintf(stderr, "No plugin set.\n");
+
+	if (!configdir)
+		fprintf(stderr, "No working/configuraiton directory set.\n");
+
 	if (!pluginname || !cmdlist || !configdir)
 		usage(argv[0]);
 }
@@ -274,8 +284,8 @@ osync_bool init(OSyncError **error) {
 	assert(!plugin);
 	assert(!plugin_env);
 
-	char *config;
-	unsigned int size;
+	OSyncPluginConfig *config;
+
 	if (!(plugin_env = osync_plugin_env_new(error)))
 		goto error;
 
@@ -296,17 +306,52 @@ osync_bool init(OSyncError **error) {
 	if (!(plugin_info = osync_plugin_info_new(error)))
 		goto error_free_pluginenv;
 
+	config = osync_plugin_config_new(error);
+	if (!config)
+		goto error_free_plugininfo;
+
         if (osync_plugin_get_config_type(plugin) != OSYNC_PLUGIN_NO_CONFIGURATION && configfile) {
-                if (!osync_file_read(configfile, &config, &size, error))
-			goto error_free_plugininfo;
+		if (!osync_plugin_config_file_load(config, configfile, error))
+			goto error_free_pluginconfig;
 
 		osync_plugin_info_set_config(plugin_info, config);
-		g_free(config);
+
+#if 0 /* Not ready for prime-time (dgollub, 20080613) */
+		/** Redudant(aka. stolen) code from opensync/client/opensync_client.c */
+		/* Enable active sinks */
+		OSyncList *r = osync_plugin_config_get_ressources(config);
+		for (; r; r = r->next) {
+			OSyncPluginRessource *res = r->data;
+			OSyncObjTypeSink *sink;
+
+			OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
+			for (; o; o = o->next) {
+				OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
+				const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
+				OSyncObjFormat *objformat = osync_format_env_find_objformat(format_env, objformat_str);
+				const char *objtype = osync_objformat_get_objtype(objformat);; 
+
+				/* Check for ObjType sink */
+				if (!(sink = osync_plugin_info_find_objtype(plugin_info, objtype))) {
+					sink = osync_objtype_sink_new(objtype, error);
+					if (!sink)
+						goto error_free_pluginconfig;
+
+					osync_plugin_info_add_objtype(plugin_info, sink);
+				}
+
+				osync_objtype_sink_add_objformat_sink(sink, format_sink);
+			}
+		}
+
+		osync_plugin_config_unref(config);
+#endif /* Not ready. */		
+
 	}
 
 	if (!configfile && osync_plugin_get_config_type(plugin) == OSYNC_PLUGIN_NEEDS_CONFIGURATION) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Plugin \"%s\" requires configuration!", pluginname); 
-		goto error_free_plugininfo;
+		goto error_free_pluginconfig;
 	}
 
 	assert(!ctx);
@@ -322,6 +367,8 @@ osync_bool init(OSyncError **error) {
 error_free_loop:
 	g_main_context_unref(ctx);
 */
+error_free_pluginconfig:
+	osync_plugin_config_unref(config);
 error_free_plugininfo:
 	osync_plugin_info_unref(plugin_info);
 error_free_formatenv:
