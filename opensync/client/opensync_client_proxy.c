@@ -998,7 +998,7 @@ error:
 	return FALSE;
 }
 
-osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, const char *config, OSyncError **error)
+osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, OSyncPluginConfig *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
 	osync_assert(proxy);
@@ -1021,7 +1021,9 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	osync_message_write_string(message, plugin);
 	osync_message_write_string(message, groupname);
 	osync_message_write_string(message, configdir);
-	osync_message_write_string(message, config);
+
+	if (!osync_marshal_pluginconfig(message, config, error))
+		goto error;
 
 #ifdef OPENSYNC_UNITTESTS
 	// Introduced (only) for testing/debugging purpose (mock-sync)

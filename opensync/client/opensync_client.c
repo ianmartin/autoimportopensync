@@ -463,7 +463,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	char *groupname = NULL;
 	char *configdir = NULL;
 	char *formatdir = NULL;
-	char *config = NULL;
+	OSyncPluginConfig *config = NULL;
 	OSyncQueue *outgoing = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
@@ -474,7 +474,9 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_string(message, &pluginname);
 	osync_message_read_string(message, &groupname);
 	osync_message_read_string(message, &configdir);
-	osync_message_read_string(message, &config);
+
+	if (!osync_demarshal_pluginconfig(message, &config, error))
+		goto error;
 	
 	osync_trace(TRACE_INTERNAL, "enginepipe %s, formatdir %s, plugindir %s, pluginname %s", enginepipe, formatdir, plugindir, pluginname);
 		
@@ -533,6 +535,34 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_long_long_int(message, &memberid); // Introduced (only) for testing/debugging purpose (mock-sync)
 	client->plugin_info->memberid = memberid;
 #endif	
+
+#if 0 /* Not ready for prime-time (dgollub, 20080613) */
+	/* Enable active sinks */
+	OSyncList *r = osync_plugin_config_get_ressources(config);
+	for (; r; r = r->next) {
+		OSyncPluginRessource *res = r->data;
+		OSyncObjTypeSink *sink;
+
+		OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
+		for (; o; o = o->next) {
+			OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
+			const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
+			OSyncObjFormat *objformat = osync_format_env_find_objformat(client->format_env, objformat_str);
+			const char *objtype = osync_objformat_get_objtype(objformat);; 
+
+			/* Check for ObjType sink */
+			if (!(sink = osync_plugin_info_find_objtype(client->plugin_info, objtype))) {
+				sink = osync_objtype_sink_new(objtype, error);
+				if (!sink)
+					goto error_finalize;
+
+				osync_plugin_info_add_objtype(client->plugin_info, sink);
+			}
+
+			osync_objtype_sink_add_objformat_sink(sink, format_sink);
+		}
+	}
+#endif /* Not ready */	
 	
 	client->plugin_data = osync_plugin_initialize(client->plugin, client->plugin_info, error);
 	if (!client->plugin_data)
@@ -553,7 +583,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	g_free(plugindir);
 	g_free(groupname);
 	g_free(formatdir);
-	g_free(config);
+	osync_plugin_config_unref(config);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -569,7 +599,7 @@ error:
 	g_free(plugindir);
 	g_free(groupname);
 	g_free(formatdir);
-	g_free(config);
+	osync_plugin_config_unref(config);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
