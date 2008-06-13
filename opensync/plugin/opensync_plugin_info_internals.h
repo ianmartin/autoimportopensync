@@ -23,7 +23,7 @@
 
 struct OSyncPluginInfo {
 	void *loop;
-	char *config;
+	OSyncPluginConfig *config;
 	GList *objtypes;
 	char *configdir;
 

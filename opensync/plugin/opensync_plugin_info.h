@@ -28,8 +28,8 @@ OSYNC_EXPORT void osync_plugin_info_unref(OSyncPluginInfo *info);
 OSYNC_EXPORT void osync_plugin_info_set_loop(OSyncPluginInfo *info, void *loop);
 OSYNC_EXPORT void *osync_plugin_info_get_loop(OSyncPluginInfo *info);
 
-OSYNC_EXPORT void osync_plugin_info_set_config(OSyncPluginInfo *info, const char *config);
-OSYNC_EXPORT const char *osync_plugin_info_get_config(OSyncPluginInfo *info);
+OSYNC_EXPORT void osync_plugin_info_set_config(OSyncPluginInfo *info, OSyncPluginConfig *config);
+OSYNC_EXPORT OSyncPluginConfig *osync_plugin_info_get_config(OSyncPluginInfo *info);
 
 OSYNC_EXPORT void osync_plugin_info_set_configdir(OSyncPluginInfo *info, const char *configdir);
 OSYNC_EXPORT const char *osync_plugin_info_get_configdir(OSyncPluginInfo *info);

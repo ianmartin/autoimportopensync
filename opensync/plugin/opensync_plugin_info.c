@@ -128,17 +128,21 @@ void *osync_plugin_info_get_loop(OSyncPluginInfo *info)
 	return info->loop;
 }
 
-/*! @brief Set  the plugin configuration data
+/*! @brief Set the plugin configuration data
  *
  * @param info Pointer to the plugin info object
- * @param config Plugin configuration data
+ * @param config Plugin configuration
  */
-void osync_plugin_info_set_config(OSyncPluginInfo *info, const char *config)
+void osync_plugin_info_set_config(OSyncPluginInfo *info, OSyncPluginConfig *config)
 {
 	osync_assert(info);
+	osync_assert(config);
+
 	if (info->config)
-		g_free(info->config);
-	info->config = g_strdup(config);
+		osync_plugin_config_unref(config);
+
+	osync_plugin_config_ref(config);
+	info->config = config;
 }
 
 /*! @brief Returns the plugin configuration data
@@ -147,7 +151,7 @@ void osync_plugin_info_set_config(OSyncPluginInfo *info, const char *config)
  * @returns the plugin configuration data (null-terminated string)
  * 
  */
-const char *osync_plugin_info_get_config(OSyncPluginInfo *info)
+OSyncPluginConfig *osync_plugin_info_get_config(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return info->config;
