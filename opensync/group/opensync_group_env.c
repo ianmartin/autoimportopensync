@@ -166,7 +166,16 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	
 	/* Create the correct path and test it */
 	if (!path) {
-		env->groupsdir = g_strdup_printf("%s/.opensync", g_get_home_dir());
+
+		/* Use $HOME instead of passwd home, in case someone runs with OpenSync
+		 * with sudo. The behavoir of sudo might differ on different systems,
+		 * depending on the sudoers configuration. For more details see ticket #751
+		 */
+		const char *homedir = g_getenv("HOME");
+		if (!homedir)
+			homedir = g_get_home_dir();
+
+		env->groupsdir = g_strdup_printf("%s/.opensync", homedir);
 		osync_trace(TRACE_INTERNAL, "Default home dir: %s", env->groupsdir);
 		
 		if (!g_file_test(env->groupsdir, G_FILE_TEST_EXISTS)) {
