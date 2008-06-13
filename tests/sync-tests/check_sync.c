@@ -2253,9 +2253,18 @@ START_TEST (sync_detect_obj)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncMember *member1 = osync_group_nth_member(group, 0);
-	osync_member_set_config(member1, "<config><directory><path>file-1</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory><directory><path>file2-1</path><objtype>mockobjtype2</objtype><objformat>mockformat2</objformat></directory><directory><path>file3-1</path><objtype>mockobjtype3</objtype><objformat>mockformat3</objformat></directory></config>");
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "file-1", "mockformat1", NULL);
+	simple_plugin_config(config1, "file2-1", "mockformat2", NULL);
+	simple_plugin_config(config1, "file3-1", "mockformat3", NULL);
+	osync_member_set_config(member1, config1);
+	osync_plugin_config_unref(config1);
+
 	OSyncMember *member2 = osync_group_nth_member(group, 1);
-	osync_member_set_config(member2, "<config><directory><path>file-2</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory><directory><path>file2-2</path><objtype>mockobjtype2</objtype><objformat>mockformat2</objformat></directory><directory><path>file3-2</path><objtype>mockobjtype3</objtype><objformat>mockformat3</objformat></directory></config>");
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "file-2", "mockformat1", NULL);
+	simple_plugin_config(config2, "file2-2", "mockformat2", NULL);
+	simple_plugin_config(config2, "file3-2", "mockformat3", NULL);
+	osync_member_set_config(member2, config2);
+	osync_plugin_config_unref(config2);
 	
 	/* Check that we dont have any discovered objtypes */
 	fail_unless(osync_member_num_objtypes(member1) == 0, NULL);
@@ -2451,9 +2460,16 @@ START_TEST (sync_detect_obj2)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncMember *member1 = osync_group_nth_member(group, 0);
-	osync_member_set_config(member1, "<config><directory><path>file-1</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory><directory><path>file2-1</path><objtype>mockobjtype2</objtype><objformat>mockformat2</objformat></directory><directory><path>file3-1</path><objtype>mockobjtype3</objtype><objformat>mockformat3</objformat></directory></config>");
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "file-1", "mockformat1", NULL);
+	simple_plugin_config(config1, "file2-1", "mockformat2", NULL);
+	simple_plugin_config(config1, "file3-1", "mockformat3", NULL);
+	osync_member_set_config(member1, config1);
+	osync_plugin_config_unref(config1);
+
 	OSyncMember *member2 = osync_group_nth_member(group, 1);
-	osync_member_set_config(member2, "<config><directory><path>file-2</path><objtype>mockobjtype1</objtype><objformat>mockformat1</objformat></directory></config>");
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "file-2", "mockformat1", NULL);
+	osync_member_set_config(member2, config2);
+	osync_plugin_config_unref(config2);
 	
 	/* Check that we dont have any discovered objtypes */
 	fail_unless(osync_member_num_objtypes(member1) == 0, NULL);
