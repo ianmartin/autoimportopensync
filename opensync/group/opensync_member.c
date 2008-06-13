@@ -214,8 +214,8 @@ void osync_member_unref(OSyncMember *member)
 		if (member->configdir)
 			g_free(member->configdir);
 		
-		if (member->configdata)
-			g_free(member->configdata);
+		if (member->config)
+			osync_plugin_config_unref(member->config);
 			
 		if (osync_member_get_capabilities(member))
 			osync_capabilities_unref(osync_member_get_capabilities(member));
@@ -322,53 +322,45 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
  * @returns The member configuration of the plugin default configuration if the member isn't configuered already 
  * 
  */
-const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error)
+OSyncPluginConfig *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
-	char *data = NULL;
-	const char *config = NULL;
+	OSyncPluginConfig *config = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	g_assert(member);
 
-	if (member->configdata) {
+	if (member->config) {
 		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
-		return member->configdata;
+		return member->config;
 	}
-	
+
 	filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
-	osync_trace(TRACE_INTERNAL, "Reading %s", filename);
-	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		if (!osync_file_read(filename, &data, NULL, error))
-			goto error_free_filename;
-		g_free(filename);
-		
-		osync_member_set_config(member, data);
-		
-		/* Free the data and return the const pointer */
-		g_free(data);
-		const char *config = osync_member_get_config(member, error);
-		
-		osync_trace(TRACE_EXIT, "%s: Read from member directory", __func__);
-		return config;
-	}
-	g_free(filename);
 
-	filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
-	osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
-	if (!osync_file_read(filename, &data, NULL, error))
-		goto error_free_filename;
-	g_free(filename);
+	config = osync_plugin_config_new(error);
+	if (!config)
+		goto error;
 	
-	osync_member_set_config(member, data);
-	g_free(data);
-		
-	config = osync_member_get_config(member, error);
-		
-	osync_trace(TRACE_EXIT, "%s: Read default config", __func__);
-	return osync_member_get_config(member, NULL);
+	osync_trace(TRACE_INTERNAL, "Reading %s", filename);
+	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+		g_free(filename);
+		filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
+		osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
+	}
 
-error_free_filename:
+	if (!osync_plugin_config_file_load(config, filename, error))
+		goto error_free_config;
+		
+	osync_member_set_config(member, config);
+
+	g_free(filename);
+
+	osync_trace(TRACE_EXIT, "%s: Read default config", __func__);
+	return config;
+
+error_free_config:
+	osync_plugin_config_unref(config);
+error:
 	g_free(filename);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
@@ -382,7 +374,7 @@ error_free_filename:
 osync_bool osync_member_has_config(OSyncMember *member)
 {
 	osync_assert(member);
-	return member->configdata ? TRUE : FALSE;
+	return member->config ? TRUE : FALSE;
 }
 
 /** @brief Gets the configuration data of this member
@@ -401,39 +393,43 @@ osync_bool osync_member_has_config(OSyncMember *member)
  * @returns Member configuration 
  * 
  */
-const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
+OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
-	char *data = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	osync_assert(member);
 
-	if (member->configdata) {
+	if (member->config) {
 		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
-		return member->configdata;
+		return member->config;
 	}
 	
 	filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
 	osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename);
 	
-	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		if (!osync_file_read(filename, &data, NULL, error)) {
-			g_free(filename);
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-			return NULL;
-		}
-		g_free(filename);
-		
-		osync_member_set_config(member, data);
-		g_free(data);
-		
-		osync_trace(TRACE_EXIT, "%s: Read set config from member", __func__);
-		return osync_member_get_config(member, NULL);
+	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin is not configured");
+		goto error;
 	}
+
+	OSyncPluginConfig *config = osync_plugin_config_new(error);
+	if (!config)
+		goto error;
+
+	if (!osync_plugin_config_file_load(config, filename, error))
+		goto error_free_config;
+
 	g_free(filename);
-	
-	osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin is not configured");
+
+	osync_member_set_config(member, config);
+
+	return config;
+
+error_free_config:
+	osync_plugin_config_unref(config);
+error:
+	g_free(filename);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
@@ -446,15 +442,15 @@ const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
  * @param data The new config data
  * 
  */
-void osync_member_set_config(OSyncMember *member, const char *data)
+void osync_member_set_config(OSyncMember *member, OSyncPluginConfig *config)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, config);
 	g_assert(member);
 	
-	if (member->configdata)
-		g_free(member->configdata);
+	if (member->config)
+		osync_plugin_config_unref(member->config);
 
-	member->configdata = g_strdup(data);
+	member->config = osync_plugin_config_ref(config);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -671,17 +667,14 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	xmlFreeDoc(doc);
 	
 	//Saving the config if it exists
-	if (member->configdata) {
+	if (member->config) {
 		filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
-		if (!osync_file_write(filename, member->configdata, strlen(member->configdata), 0600, error)) {
+		if (!osync_plugin_config_file_save(member->config, filename, error)) {
 			g_free(filename);
 			goto error;
 		}
 		
 		g_free(filename);
-		
-		g_free(member->configdata);
-		member->configdata = NULL;
 	}
 	
 	OSyncCapabilities* capabilities = osync_member_get_capabilities(member);

@@ -35,9 +35,9 @@ OSYNC_EXPORT const char *osync_member_get_configdir(OSyncMember *member);
 OSYNC_EXPORT void osync_member_set_configdir(OSyncMember *member, const char *configdir);
 
 OSYNC_EXPORT osync_bool osync_member_has_config(OSyncMember *member);
-OSYNC_EXPORT const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error);
-OSYNC_EXPORT const char *osync_member_get_config(OSyncMember *member, OSyncError **error);
-OSYNC_EXPORT void osync_member_set_config(OSyncMember *member, const char *data);
+OSYNC_EXPORT OSyncPluginConfig *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT void osync_member_set_config(OSyncMember *member, OSyncPluginConfig *config);
 
 OSYNC_EXPORT osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_member_save(OSyncMember *member, OSyncError **error);

@@ -26,7 +26,7 @@ struct OSyncMember {
 	long long int id;
 	char *configdir;
 	
-	char *configdata;
+	OSyncPluginConfig *config;
 	
 	//OSyncGroup *group;
 
