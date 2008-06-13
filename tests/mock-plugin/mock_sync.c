@@ -46,7 +46,7 @@ static osync_bool mock_get_error(long long int memberid, const char *domain)
 static void free_env(mock_env *env)
 {
 	while (env->directories) {
-		OSyncFileDir *dir = env->directories->data;
+		MockDir *dir = env->directories->data;
 		
 		if (dir->sink)
 			osync_objtype_sink_unref(dir->sink);
@@ -68,7 +68,7 @@ static char *mock_generate_hash(struct stat *buf)
 static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	mock_env *env = data;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
@@ -76,7 +76,7 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	if (!dir) {
 		GList *o = env->directories;
 		for (; o; o = o->next) {
-			OSyncFileDir *sink_dir = o->data;
+			MockDir *sink_dir = o->data;
 			sink_dir->committed_all = TRUE;
 		}
 	} else {
@@ -124,13 +124,13 @@ static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	mock_env *env = data;
 
 	if (!dir) {
 		GList *o = env->directories;
 		for (; o; o = o->next) {
-			OSyncFileDir *sink_dir = o->data;
+			MockDir *sink_dir = o->data;
 			if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
 				fail_unless(sink_dir->committed_all == TRUE, NULL);
 
@@ -165,7 +165,7 @@ static osync_bool mock_read(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
 	
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
@@ -203,7 +203,7 @@ static osync_bool mock_write(void *data, OSyncPluginInfo *info, OSyncContext *ct
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
 	OSyncData *odata = NULL;
 	char *buffer = NULL;
@@ -255,7 +255,7 @@ static osync_bool mock_write(void *data, OSyncPluginInfo *info, OSyncContext *ct
  *            start with a slash. See note above.
  *
  */
-static void mock_report_dir(OSyncFileDir *directory, const char *subdir, OSyncContext *ctx, OSyncPluginInfo *info)
+static void mock_report_dir(MockDir *directory, const char *subdir, OSyncContext *ctx, OSyncPluginInfo *info)
 {
 	GError *gerror = NULL;
 	const char *de = NULL;
@@ -355,7 +355,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
 
 	fail_unless(dir->committed_all == TRUE, NULL);
@@ -416,7 +416,7 @@ static void mock_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	
 	char *filename = NULL;
 
@@ -460,7 +460,7 @@ static void mock_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *c
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, context, contexts, changes);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 
         fail_unless(dir->committed_all == FALSE, NULL);
         dir->committed_all = TRUE;
@@ -503,7 +503,7 @@ static void mock_committed_all(void *data, OSyncPluginInfo *info, OSyncContext *
 {
         osync_trace(TRACE_ENTRY, "%s(%p)", __func__, context);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 
         fail_unless(dir->committed_all == FALSE, NULL);
         dir->committed_all = TRUE;
@@ -523,7 +523,7 @@ static void mock_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 
 	if (mock_get_error(info->memberid, "SYNC_DONE_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering SYNC_DONE_ERROR error");
@@ -580,7 +580,7 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	 * path to the file format can be found */
 	GList *o = env->directories;
 	for (; o; o = o->next) {
-		OSyncFileDir *dir = o->data;
+		MockDir *dir = o->data;
 		/* We register the given objtype here */
 		OSyncObjTypeSink *sink = osync_objtype_sink_new(dir->objtype, error);
 		osync_assert(sink);
@@ -626,7 +626,7 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		functions.write = mock_write;
 		functions.sync_done = mock_sync_done;
 		
-		/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
+		/* We pass the MockDir object to the sink, so we dont have to look it up
 		 * again once the functions are called */
 		osync_objtype_sink_set_functions(sink, functions, dir);
 		osync_plugin_info_add_objtype(info, sink);
@@ -687,7 +687,7 @@ static void mock_finalize(void *data)
 
 	GList *o = env->directories;
 	for (; o; o = o->next) {
-		OSyncFileDir *dir = o->data;
+		MockDir *dir = o->data;
 	
 		if (dir->hashtable) {
 			osync_hashtable_unref(dir->hashtable);
@@ -709,7 +709,7 @@ static osync_bool mock_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	mock_env *env = (mock_env *)data;
 	GList *o = env->directories;
 	for (; o; o = o->next) {
-		OSyncFileDir *dir = o->data;
+		MockDir *dir = o->data;
 		osync_objtype_sink_set_available(dir->sink, TRUE);
 	}
 	
@@ -736,7 +736,7 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	osync_assert(plugin);
 	
 	osync_plugin_set_name(plugin, "mock-sync");
-	osync_plugin_set_longname(plugin, "File Synchronization Plugin");
+	osync_plugin_set_longname(plugin, "Mock Synchronization Plugin");
 	osync_plugin_set_description(plugin, "Plugin to synchronize files on the local filesystem");
 	
 	osync_plugin_set_initialize(plugin, mock_initialize);

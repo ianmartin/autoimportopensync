@@ -64,7 +64,7 @@ typedef struct mock_env {
 	OSyncContext *ctx[10];
 } mock_env;
 
-typedef struct OSyncFileDir {
+typedef struct MockDir {
 	char *objtype;
 	char *path;
 	OSyncObjFormat *objformat;
@@ -74,6 +74,6 @@ typedef struct OSyncFileDir {
 	osync_bool recursive;
 	mock_env *env;
 	osync_bool committed_all;
-} OSyncFileDir;
+} MockDir;
 
 #endif //_FILE_PLUGIN_H
