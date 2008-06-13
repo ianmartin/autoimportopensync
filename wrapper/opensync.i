@@ -44,6 +44,7 @@ typedef OSyncMerger Merger;
 typedef OSyncObjFormat ObjFormat;
 typedef OSyncObjTypeSinkFunctions ObjTypeSinkFunctions;
 typedef OSyncObjTypeSink ObjTypeSink;
+typedef OSyncPluginConfig PluginConfig;
 typedef OSyncPluginEnv PluginEnv;
 typedef OSyncPluginInfo PluginInfo;
 typedef OSyncPlugin Plugin;

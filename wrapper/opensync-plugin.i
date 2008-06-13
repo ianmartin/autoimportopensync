@@ -192,11 +192,11 @@ typedef struct {} PluginInfo;
 		return osync_plugin_info_get_loop(self);
 	}
 
-	void set_config(const char *config) {
+	void set_config(PluginConfig *config) {
 		osync_plugin_info_set_config(self, config);
 	}
 
-	const char *get_config() {
+	PluginConfig *get_config() {
 		return osync_plugin_info_get_config(self);
 	}
 
@@ -304,6 +304,29 @@ typedef struct {} PluginInfo;
 		self.__oldinit(*args)
 		self.objtypes = _ListWrapper(self.num_objtypes, self.nth_objtype)
 %}
+}
+
+typedef struct {} PluginConfig;
+%extend PluginConfig {
+	/* called by python-module plugin */
+	PluginConfig(PyObject *obj) {
+		PluginConfig *config = PyCObject_AsVoidPtr(obj);
+		osync_plugin_config_ref(config);
+		return config;
+	}
+
+	PluginConfig() {
+		Error *err = NULL;
+		PluginConfig *config = osync_plugin_config_new(&err);
+		if (raise_exception_on_error(err))
+			return NULL;
+		else
+			return config;
+	}
+
+	~PluginConfig() {
+		osync_plugin_config_unref(self);
+	}
 }
 
 

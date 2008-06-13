@@ -297,9 +297,9 @@ typedef struct {} Member;
 		osync_member_set_configdir(self, configdir);
 	}
 
-	const char *get_config_or_default() {
+	PluginConfig *get_config_or_default() {
 		Error *err = NULL;
-		const char *ret = osync_member_get_config_or_default(self, &err);
+		PluginConfig *ret = osync_member_get_config_or_default(self, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
@@ -310,16 +310,16 @@ typedef struct {} Member;
 		return osync_member_has_config(self);
 	}
 
-	const char *get_config() {
+	PluginConfig *get_config() {
 		Error *err = NULL;
-		const char *ret = osync_member_get_config(self, &err);
+		PluginConfig *ret = osync_member_get_config(self, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return ret;
 	}
 
-	void set_config(const char *data) {
+	void set_config(PluginConfig *data) {
 		osync_member_set_config(self, data);
 	}
 
