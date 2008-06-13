@@ -9,6 +9,7 @@
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-group.h>
+#include <opensync/opensync-plugin.h>
 
 #include "config.h"
 
@@ -90,4 +91,7 @@ void conflict_handler_delay(OSyncEngine *engine, OSyncMappingEngine *mapping, vo
 osync_bool osync_testing_file_exists(const char *file);
 osync_bool osync_testing_file_remove(const char *file);
 osync_bool osync_testing_file_chmod(const char *file, int mode);
+
+/* Plugin config helper */
+OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objformat, const char *format_config);
 

@@ -619,3 +619,37 @@ osync_bool osync_testing_file_chmod(const char *file, int mode)
 	TODO: Do we have to care about this on Windows?! */
 	return g_chmod(file, mode);
 }
+
+/*! @brief Creates a simple OSyncPluginConfig with a single resource.
+ *         If config is not null the ressource information gets added.
+ * 
+ * @param config OSyncPluginConfig pointer to add ressource info
+ * @param path relative path of resource
+ * @param objformat the objformat of the ressource
+ * @param format_config the format converter config paramter
+ * @returns OSyncPluginConfig pointer or asserts on error
+ * 
+ */
+OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objformat, const char *format_config) {
+
+	OSyncError *error = NULL;
+
+	if (!config)
+		config = osync_plugin_config_new(&error);
+
+	fail_unless(config != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	OSyncObjFormatSink *format_sink = osync_objformat_sink_new(objformat, &error);
+	if (format_config)
+		osync_objformat_sink_set_config(format_sink, format_config);
+
+	OSyncPluginRessource *res = osync_plugin_ressource_new(&error);
+	osync_plugin_ressource_set_path(res, path); 
+
+
+	osync_plugin_config_add_ressource(config, res);
+
+	return config;
+}
+
