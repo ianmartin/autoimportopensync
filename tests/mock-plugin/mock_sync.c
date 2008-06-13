@@ -281,11 +281,7 @@ static void mock_report_dir(MockDir *directory, const char *subdir, OSyncContext
 			
 		osync_trace(TRACE_INTERNAL, "path2 %s %s", filename, relative_filename);
 		
-		if (g_file_test(filename, G_FILE_TEST_IS_DIR)) {
-			/* Recurse into subdirectories */
-			if (directory->recursive)
-				mock_report_dir(directory, relative_filename, ctx, info);
-		} else if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+		if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 			
 			struct stat buf;
 			stat(filename, &buf);

@@ -71,7 +71,6 @@ typedef struct MockDir {
 	GDir *dir;
 	OSyncHashTable *hashtable;
 	OSyncObjTypeSink *sink;
-	osync_bool recursive;
 	mock_env *env;
 	osync_bool committed_all;
 } MockDir;
