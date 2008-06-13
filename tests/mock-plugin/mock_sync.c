@@ -43,17 +43,6 @@ static osync_bool mock_get_error(long long int memberid, const char *domain)
         return FALSE;
 }
 
-static void free_dir(OSyncFileDir *dir)
-{
-	if (dir->path)
-		g_free(dir->path);
-		
-	if (dir->objtype)
-		g_free(dir->objtype);
-	
-	g_free(dir);
-}
-
 static void free_env(mock_env *env)
 {
 	while (env->directories) {
@@ -62,7 +51,6 @@ static void free_env(mock_env *env)
 		if (dir->sink)
 			osync_objtype_sink_unref(dir->sink);
 		
-		free_dir(dir);
 		env->directories = g_list_remove(env->directories, dir);
 	}
 
@@ -70,81 +58,6 @@ static void free_env(mock_env *env)
 		osync_objtype_sink_unref(env->mainsink);
 	
 	g_free(env);
-}
-
-static osync_bool mock_parse_directory(mock_env *env, OSyncPluginInfo *info, xmlNode *cur, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, info, cur, error);
-
-	OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
-	osync_assert(dir);
-
-	dir->env = env;
-
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
-				dir->path = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
-				dir->objtype = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				dir->objformat = osync_format_env_find_objformat(formatenv, str);
-				osync_assert(dir->objformat);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"recursive")) {
-				dir->recursive = (g_ascii_strcasecmp(str, "TRUE") == 0);
-			}
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-
-	osync_assert(dir->path);
-
-	osync_trace(TRACE_INTERNAL, "Got directory %s with objtype %s", dir->path, dir->objtype);
-
-	env->directories = g_list_append(env->directories, dir);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
-
-/*Load the state from a xml file and return it in the conn struct*/
-static osync_bool mock_parse_settings(mock_env *env, OSyncPluginInfo *info, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, error);
-	const char *data = osync_plugin_info_get_config(info);
-	xmlDoc *doc = NULL;
-	xmlNode *cur = NULL;
-
-	doc = xmlParseMemory(data, strlen(data) + 1);
-	osync_assert(doc);
-
-	cur = xmlDocGetRootElement(doc);
-	osync_assert(cur);
-
-	osync_assert(!xmlStrcmp(cur->name, (xmlChar*)"config"));
-
-	cur = cur->xmlChildrenNode;
-
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"directory")) {
-				osync_assert(mock_parse_directory(env, info, cur->xmlChildrenNode, error));
-			}
-
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-
-	xmlFreeDoc(doc);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
 }
 
 static char *mock_generate_hash(struct stat *buf)
@@ -649,8 +562,6 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	
 	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
 	
-	osync_assert(mock_parse_settings(env, info, error));
-
 	if (mock_get_error(info->memberid, "MAINSINK_CONNECT")) {
 		env->mainsink = osync_objtype_main_sink_new(error);
 
