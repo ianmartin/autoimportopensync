@@ -602,7 +602,7 @@ error:
 
 static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OSyncMember *member, OSyncError **error)
 {
-	const char *config = NULL;
+	OSyncPluginConfig *config = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 
