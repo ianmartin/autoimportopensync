@@ -132,13 +132,13 @@ static void mock_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 		for (; o; o = o->next) {
 			MockDir *sink_dir = o->data;
 			if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
-				fail_unless(sink_dir->committed_all == TRUE, NULL);
+				osync_assert(sink_dir->committed_all == TRUE);
 
 			sink_dir->committed_all = FALSE;
 		}
 	} else {
 		if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
-			fail_unless(dir->committed_all == TRUE, NULL);
+			osync_assert(dir->committed_all == TRUE);
 
 		dir->committed_all = FALSE;
 	}
@@ -354,7 +354,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
 
-	fail_unless(dir->committed_all == TRUE, NULL);
+	osync_assert(dir->committed_all == TRUE);
 	dir->committed_all = FALSE;
 
 	if (mock_get_error(info->memberid, "GET_CHANGES_ERROR")) {
@@ -373,7 +373,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 		
 	if (osync_objtype_sink_get_slowsync(dir->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
-		fail_unless(osync_hashtable_slowsync(dir->hashtable, &error), NULL);
+		osync_assert(osync_hashtable_slowsync(dir->hashtable, &error));
 	}
 	
 	osync_trace(TRACE_INTERNAL, "get_changes for %s", osync_objtype_sink_get_name(sink));
@@ -416,7 +416,7 @@ static void mock_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *
 	
 	char *filename = NULL;
 
-	fail_unless(dir->committed_all == FALSE, NULL);
+	osync_assert(dir->committed_all == FALSE);
 
 	if (mock_get_error(info->memberid, "COMMIT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering COMMIT_ERROR error");
@@ -458,7 +458,7 @@ static void mock_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *c
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 
-        fail_unless(dir->committed_all == FALSE, NULL);
+        osync_assert(dir->committed_all == FALSE);
         dir->committed_all = TRUE;
 
         int i; 
@@ -482,7 +482,7 @@ static void mock_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *c
 
         if (g_getenv("NUM_BATCH_COMMITS")) {
                 int req = atoi(g_getenv("NUM_BATCH_COMMITS"));
-                fail_unless(req == i, NULL);
+                osync_assert(req == i);
         }
                 
         if (mock_get_error(info->memberid, "COMMITTED_ALL_ERROR")) {
@@ -501,7 +501,7 @@ static void mock_committed_all(void *data, OSyncPluginInfo *info, OSyncContext *
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 
-        fail_unless(dir->committed_all == FALSE, NULL);
+        osync_assert(dir->committed_all == FALSE);
         dir->committed_all = TRUE;
 
         if (mock_get_error(info->memberid, "COMMITTED_ALL_ERROR")) {
