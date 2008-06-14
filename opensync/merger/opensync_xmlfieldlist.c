@@ -23,8 +23,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync-xmlformat.h"
-#include "opensync-xmlformat_internals.h"
+#include "opensync-merger.h"
+#include "opensync-merger_internals.h"
 
 /**
  * @defgroup OSyncXMLFieldListPrivateAPI OpenSync XMLFieldList Internals

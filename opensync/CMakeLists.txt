@@ -43,9 +43,9 @@ SET( libopensync_LIB_SRCS
    merger/opensync_capabilities.c
    merger/opensync_capability.c
    merger/opensync_merger.c
-   xmlformat/opensync_xmlfield.c
-   xmlformat/opensync_xmlfieldlist.c
-   xmlformat/opensync_xmlformat.c
+   merger/opensync_xmlfield.c
+   merger/opensync_xmlfieldlist.c
+   merger/opensync_xmlformat.c
    module/opensync_module.c
    plugin/opensync_plugin_authentication.c
    plugin/opensync_plugin.c
@@ -85,7 +85,6 @@ INSTALL( DIRECTORY
   ipc
   mapping
   merger
-  xmlformat
   module
   plugin
   version
@@ -110,7 +109,6 @@ INSTALL( FILES
    opensync_list.h
    opensync-mapping.h
    opensync-merger.h
-   opensync-xmlformat.h
    opensync-module.h
    opensync-plugin.h
    opensync-serializer.h

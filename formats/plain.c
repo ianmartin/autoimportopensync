@@ -23,7 +23,7 @@
 #include <opensync/opensync-support.h>
 #include <opensync/opensync-serializer.h>
 #include <opensync/opensync-format.h>
-#include <opensync/opensync-xmlformat.h>
+#include <opensync/opensync-merger.h>
 #include <glib.h>
 
 static OSyncConvCmpResult compare_plain(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
