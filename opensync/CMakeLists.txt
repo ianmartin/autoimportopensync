@@ -43,9 +43,6 @@ SET( libopensync_LIB_SRCS
    merger/opensync_capabilities.c
    merger/opensync_capability.c
    merger/opensync_merger.c
-   merger/opensync_xmlfield.c
-   merger/opensync_xmlfieldlist.c
-   merger/opensync_xmlformat.c
    module/opensync_module.c
    plugin/opensync_plugin_authentication.c
    plugin/opensync_plugin.c
@@ -57,6 +54,9 @@ SET( libopensync_LIB_SRCS
    plugin/opensync_plugin_ressource.c
    plugin/opensync_sink.c
    version/opensync_version.c
+   xmlformat/opensync_xmlfield.c
+   xmlformat/opensync_xmlfieldlist.c
+   xmlformat/opensync_xmlformat.c
 )
 
 ADD_LIBRARY( opensync SHARED ${libopensync_LIB_SRCS} )
@@ -88,6 +88,7 @@ INSTALL( DIRECTORY
   module
   plugin
   version
+  xmlforrmat
 DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync 
 PATTERN "*/*_internals.h" EXCLUDE 
 PATTERN ".*" EXCLUDE 
@@ -115,6 +116,7 @@ INSTALL( FILES
    opensync-support.h
    opensync-time.h
    opensync-version.h
+   opensync-xmlformat.h
 DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync )
 
 

@@ -23,8 +23,13 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include "opensync-xmlformat.h"
+/* FIXME: osync_merge_merge() requires direct xmlNode access -> dirty! */ 
+#include "../xmlformat/opensync-xmlformat_internals.h"
+
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"
+
 
 /**
  * @defgroup OSyncMergerPrivateAPI OpenSync Merger Internals
@@ -125,7 +130,7 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	 {		 	
 	 	ret = strcmp(osync_xmlfield_get_name(new_cur), osync_xmlfield_get_name(old_cur));
 	 	if(ret < 0) {
-	 		if(new_cur->next != NULL) {
+	 		if(osync_xmlfield_get_next(new_cur) != NULL) {
 				new_cur = osync_xmlfield_get_next(new_cur);
 				continue;
 	 		}

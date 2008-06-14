@@ -30,6 +30,7 @@
 #include "opensync-format.h"
 #include "opensync-merger.h"
 #include "opensync-plugin.h"
+#include "opensync-xmlformat.h"
 
 #include "opensync_sink_engine_internals.h"
 #include "opensync_mapping_entry_engine_internals.h"
