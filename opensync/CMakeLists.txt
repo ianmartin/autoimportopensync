@@ -88,7 +88,7 @@ INSTALL( DIRECTORY
   module
   plugin
   version
-  xmlforrmat
+  xmlformat
 DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync 
 PATTERN "*/*_internals.h" EXCLUDE 
 PATTERN ".*" EXCLUDE 
