@@ -15,6 +15,7 @@
 #include <opensync/opensync-plugin.h>
 #include <opensync/opensync-support.h>
 #include <opensync/opensync-version.h>
+#include <opensync/opensync-xmlformat.h>
 
 typedef OSyncCapabilities Capabilities;
 typedef OSyncCapability Capability;
