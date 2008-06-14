@@ -18,15 +18,15 @@
  * 
  */
 
-#ifndef OPENSYNCMERGER_H_
-#define OPENSYNCMERGER_H_
+#ifndef OPENSYNCXMLFORMAT_H_
+#define OPENSYNCXMLFORMAT_H
 
 OPENSYNC_BEGIN_DECLS
 
-#include "merger/opensync_capabilities.h"
-#include "merger/opensync_capability.h"
-#include "merger/opensync_merger.h"
+#include "xmlformat/opensync_xmlformat.h"
+#include "xmlformat/opensync_xmlfield.h"
+#include "xmlformat/opensync_xmlfieldlist.h"
 
 OPENSYNC_END_DECLS
 
-#endif /*OPENSYNCMERGER_H_*/
+#endif /*OPENSYNCXMLFORMAT_H*/

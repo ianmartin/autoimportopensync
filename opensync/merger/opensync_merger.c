@@ -26,6 +26,9 @@
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"
 
+#include "opensync-xmlformat.h"
+#include "../xmlformat/opensync-xmlformat_internals.h"
+
 /**
  * @defgroup OSyncMergerPrivateAPI OpenSync Merger Internals
  * @ingroup OSyncPrivate

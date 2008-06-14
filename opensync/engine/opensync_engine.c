@@ -30,6 +30,7 @@
 #include "opensync-plugin.h"
 #include "opensync-archive.h"
 #include "opensync-merger.h"
+#include "opensync-xmlformat.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_engine.h"
