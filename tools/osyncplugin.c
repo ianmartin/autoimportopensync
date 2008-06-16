@@ -998,7 +998,7 @@ osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 		case CMD_SLOWSYNC:
 			if (!get_changes(cmd->arg, SYNCTYPE_FORCE_SLOWSYNC, *plugin_data, error))
 				goto error;
-
+			break;
 		case CMD_FASTSYNC:
 			if (!get_changes(cmd->arg, SYNCTYPE_FORCE_FASTSYNC, *plugin_data, error))
 				goto error;
