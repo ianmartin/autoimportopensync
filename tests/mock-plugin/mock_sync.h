@@ -18,17 +18,14 @@
  * 
  */
 
-#ifndef _FILE_PLUGIN_H
-#define _FILE_PLUGIN_H
+#ifndef _MOCK_PLUGIN_H
+#define _MOCK_PLUGIN_H
 
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <glib.h>
 #include <string.h>
-
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
 
 #include <opensync/opensync.h>
 #include <opensync/opensync-format.h>
@@ -65,14 +62,13 @@ typedef struct mock_env {
 } mock_env;
 
 typedef struct MockDir {
-	char *objtype;
-	char *path;
 	OSyncObjFormat *objformat;
+	OSyncPluginRessource *res;
 	GDir *dir;
+	char *path;
 	OSyncHashTable *hashtable;
-	OSyncObjTypeSink *sink;
 	mock_env *env;
 	osync_bool committed_all;
 } MockDir;
 
-#endif //_FILE_PLUGIN_H
+#endif //_MOCK_PLUGIN_H

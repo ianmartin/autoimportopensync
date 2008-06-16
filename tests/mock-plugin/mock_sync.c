@@ -43,23 +43,6 @@ static osync_bool mock_get_error(long long int memberid, const char *domain)
         return FALSE;
 }
 
-static void free_env(mock_env *env)
-{
-	while (env->directories) {
-		MockDir *dir = env->directories->data;
-		
-		if (dir->sink)
-			osync_objtype_sink_unref(dir->sink);
-		
-		env->directories = g_list_remove(env->directories, dir);
-	}
-
-	if (env->mainsink)
-		osync_objtype_sink_unref(env->mainsink);
-	
-	g_free(env);
-}
-
 static char *mock_generate_hash(struct stat *buf)
 {
 	return g_strdup_printf("%i-%i", (int)buf->st_mtime, (int)buf->st_ctime);
@@ -105,7 +88,7 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
 	if (!osync_anchor_compare(anchorpath, path_field, dir->path))
-		osync_objtype_sink_set_slowsync(dir->sink, TRUE);
+		osync_objtype_sink_set_slowsync(sink, TRUE);
 
 	g_free(anchorpath);
 	g_free(path_field);
@@ -167,7 +150,7 @@ static osync_bool mock_read(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	MockDir *dir = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
-	
+
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
 	
 	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
@@ -182,6 +165,7 @@ static osync_bool mock_read(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	file->last_mod = filestats.st_mtime;
 			
 	osync_assert(osync_file_read(filename, &(file->data), &(file->size), &error));
+
 	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), dir->objformat, &error);
 	osync_assert(odata);
 
@@ -265,6 +249,12 @@ static void mock_report_dir(MockDir *directory, const char *subdir, OSyncContext
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, directory, subdir, ctx);
 	
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	osync_assert(sink);
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	osync_assert(formatenv);
+
 	path = g_build_filename(directory->path, subdir, NULL);
 	osync_trace(TRACE_INTERNAL, "path %s", path);
 	
@@ -304,6 +294,7 @@ static void mock_report_dir(MockDir *directory, const char *subdir, OSyncContext
 			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
 				g_free(filename);
 				g_free(relative_filename);
+				osync_change_unref(change);
 				continue;
 			}
 
@@ -314,9 +305,7 @@ static void mock_report_dir(MockDir *directory, const char *subdir, OSyncContext
 			
 			OSyncData *odata = NULL;
 
-			if (mock_get_error(info->memberid, "ONLY_INFO")) {
-				odata = osync_data_new(NULL, 0, directory->objformat, &error);
-			} else {
+			if (!mock_get_error(info->memberid, "ONLY_INFO")) {
 				osync_assert(osync_file_read(filename, &(file->data), &(file->size), &error));
 
 				if (mock_get_error(info->memberid, "SLOW_REPORT"))
@@ -325,10 +314,12 @@ static void mock_report_dir(MockDir *directory, const char *subdir, OSyncContext
 				odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->objformat, &error);
 				osync_assert(odata);
 
+
+				osync_change_set_data(change, odata);
+
 			}
 			
-			osync_data_set_objtype(odata, osync_objtype_sink_get_name(directory->sink));
-			osync_change_set_data(change, odata);
+			osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
 			osync_data_unref(odata);
 	
 			osync_context_report_change(ctx, change);
@@ -371,7 +362,7 @@ static void mock_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	if (mock_get_error(info->memberid, "GET_CHANGES_TIMEOUT2"))
 		sleep(8);
 		
-	if (osync_objtype_sink_get_slowsync(dir->sink)) {
+	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
 		osync_assert(osync_hashtable_slowsync(dir->hashtable, &error));
 	}
@@ -555,8 +546,12 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 
 	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
 	osync_assert(env);
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	osync_assert(formatenv);
 	
-	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	osync_assert(config);
 	
 	if (mock_get_error(info->memberid, "MAINSINK_CONNECT")) {
 		env->mainsink = osync_objtype_main_sink_new(error);
@@ -574,15 +569,42 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	/* Now we register the objtypes that we can sync. This plugin is special. It can
 	 * synchronize any objtype we configure it to sync and where a conversion
 	 * path to the file format can be found */
-	GList *o = env->directories;
-	for (; o; o = o->next) {
-		MockDir *dir = o->data;
-		/* We register the given objtype here */
-		OSyncObjTypeSink *sink = osync_objtype_sink_new(dir->objtype, error);
+	int i, numobjs = osync_plugin_info_num_objtypes(info);
+	for (i = 0; i < numobjs; i++) {
+		MockDir *dir = osync_try_malloc0(sizeof(MockDir), error);
+		osync_assert(dir);
+
+		dir->committed_all = TRUE;
+
+		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
 		osync_assert(sink);
-		
-		dir->sink = sink;
-		
+
+		OSyncList *r = osync_plugin_config_get_ressources(config);
+		for (; r; r = r->next) {
+			OSyncPluginRessource *res = r->data;
+
+			OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
+			for (; o; o = o->next) {
+				OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
+				const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
+				osync_assert(objformat_str);
+				OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, objformat_str);
+				osync_assert(objformat);
+				const char *objtype = osync_objformat_get_objtype(objformat);
+				osync_assert(objtype);
+				if (!strcmp(objtype, osync_objtype_sink_get_name(sink))) {
+					dir->res = osync_plugin_ressource_ref(res);
+					dir->path = g_strdup(osync_plugin_ressource_get_path(res));
+					dir->objformat = osync_objformat_ref(objformat);
+					break;
+				}
+						 
+			}
+
+			if (dir->res)
+				break;
+		}
+
 		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
 		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
 		dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
@@ -592,12 +614,15 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 
 		osync_assert(osync_hashtable_load(dir->hashtable, error));
 
+
+		/*
 		const char *objformat = osync_objformat_get_name(dir->objformat); 
 		OSyncObjFormatSink *format_sink = osync_objformat_sink_new(objformat, error);
 		if (!format_sink)
 			return NULL;
 
 		osync_objtype_sink_add_objformat_sink(sink, format_sink);
+		*/
 		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
@@ -625,7 +650,6 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		/* We pass the MockDir object to the sink, so we dont have to look it up
 		 * again once the functions are called */
 		osync_objtype_sink_set_functions(sink, functions, dir);
-		osync_plugin_info_add_objtype(info, sink);
 
 		//Lets reduce the timeouts a bit so the checks work faster
 		osync_objtype_sink_set_connect_timeout(sink, 5);
@@ -670,7 +694,8 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 			info->functions.is_available = mock_is_available;
 		*/
 
-#endif	
+#endif
+		env->directories = g_list_append(env->directories, dir);
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
@@ -681,19 +706,21 @@ static void mock_finalize(void *data)
 {
 	mock_env *env = data;
 
-	GList *o = env->directories;
-	for (; o; o = o->next) {
-		MockDir *dir = o->data;
-	
-		if (dir->hashtable) {
-			osync_hashtable_unref(dir->hashtable);
-			dir->hashtable = NULL;
-		}
+	while (env->directories) {
+		MockDir *dir = env->directories->data;
 
+		osync_plugin_ressource_unref(dir->res);
+		osync_objformat_unref(dir->objformat);
+		osync_hashtable_unref(dir->hashtable);
 
+		env->directories = g_list_remove(env->directories, dir);
 	}
 
-	free_env(env);
+	if (env->mainsink)
+		osync_objtype_sink_unref(env->mainsink);
+
+
+	g_free(env);
 }
 
 /* Here we actually tell opensync which sinks are available. For this plugin, we
@@ -702,12 +729,32 @@ static osync_bool mock_discover(void *data, OSyncPluginInfo *info, OSyncError **
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
-	mock_env *env = (mock_env *)data;
-	GList *o = env->directories;
-	for (; o; o = o->next) {
-		MockDir *dir = o->data;
-		osync_objtype_sink_set_available(dir->sink, TRUE);
-	}
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	osync_assert_msg(config, "No OSyncPluginConfig set for mock_discover!");
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	osync_assert_msg(config, "No OSyncFormatEnv set for mock_discover!");
+
+	OSyncList *r = osync_plugin_config_get_ressources(config);
+	for (; r; r = r->next) {
+		OSyncPluginRessource *res = r->data;
+		OSyncObjTypeSink *sink;
+
+		OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
+		for (; o; o = o->next) {
+			OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
+			const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
+			OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, objformat_str);
+			const char *objtype = osync_objformat_get_objtype(objformat);
+
+			osync_trace(TRACE_INTERNAL, "objtype: %s\n", objtype);
+
+			/* Check for ObjType sink */
+			if ((sink = osync_plugin_info_find_objtype(info, objtype)))
+				osync_objtype_sink_set_available(sink, TRUE);
+		}
+ 	}
+
 	
 	OSyncVersion *version = osync_version_new(error);
 	osync_version_set_plugin(version, "mock-sync");
