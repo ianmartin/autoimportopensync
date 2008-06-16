@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include <opensync/opensync-merger.h>
+#include <opensync/opensync-xmlformat.h>
 
 START_TEST (merger_new)
 {

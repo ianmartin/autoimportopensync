@@ -1,8 +1,8 @@
 #include "support.h"
 
-#include <opensync/opensync-merger.h>
+#include <opensync/opensync-xmlformat.h>
 
-#include "opensync/merger/opensync_xmlformat_internals.h"
+#include "opensync/xmlformat/opensync_xmlformat_internals.h"
 
 START_TEST (xmlformat_new)
 {
