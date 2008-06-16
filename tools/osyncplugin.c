@@ -316,7 +316,6 @@ osync_bool init(OSyncError **error) {
 
 		osync_plugin_info_set_config(plugin_info, config);
 
-#if 0 /* Not ready for prime-time (dgollub, 20080613) */
 		/** Redudant(aka. stolen) code from opensync/client/opensync_client.c */
 		/* Enable active sinks */
 		OSyncList *r = osync_plugin_config_get_ressources(config);
@@ -329,7 +328,13 @@ osync_bool init(OSyncError **error) {
 				OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
 				const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
 				OSyncObjFormat *objformat = osync_format_env_find_objformat(format_env, objformat_str);
-				const char *objtype = osync_objformat_get_objtype(objformat);; 
+
+				if (!objformat) {
+					osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Couldn't find object format \"%s\"!", objformat_str); 
+					goto error_free_pluginconfig;
+				}
+
+				const char *objtype = osync_objformat_get_objtype(objformat);
 
 				/* Check for ObjType sink */
 				if (!(sink = osync_plugin_info_find_objtype(plugin_info, objtype))) {
@@ -345,7 +350,6 @@ osync_bool init(OSyncError **error) {
 		}
 
 		osync_plugin_config_unref(config);
-#endif /* Not ready. */		
 
 	}
 
