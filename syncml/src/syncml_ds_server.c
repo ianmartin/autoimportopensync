@@ -153,6 +153,20 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	SmlBool ret = TRUE;
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
+
+	/* libsyncml only supports SML_ALERT_TWO_WAY and SML_ALERT_SLOW_SYNC
+	 * but some old phones reply on a SAN alert 206 with a slow sync 201
+	 * alert or a SAN alert 206 (insteed of a normal two way alert 200).
+	 * Therefore it is necessary to check for TWO_WAY and TWO_WAY_BY_SERVER.
+	 */
+
+	if (type != SML_ALERT_TWO_WAY &&
+	    type != SML_ALERT_SLOW_SYNC &&
+	    type != SML_ALERT_TWO_WAY_BY_SERVER)
+	{
+		smlErrorSet(&error, SML_ERROR_NOT_SUPPORTED, "Unsupported alert type %d.", type);
+		goto error;
+	}
 	
 	char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
 
@@ -160,7 +174,7 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	 * SML_ERROR_REQUIRE_REFRESH 508
 	 * This return code enforces a SLOW-SYNC.
 	 */
-	if (type == SML_ALERT_TWO_WAY)
+	if (type == SML_ALERT_TWO_WAY || type == SML_ALERT_TWO_WAY_BY_SERVER)
 	{
 		if (!last)
 		{
@@ -185,7 +199,7 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 		}
 	}
 	
-	if (!ret || type != SML_ALERT_TWO_WAY)
+	if (!ret || (type != SML_ALERT_TWO_WAY && type != SML_ALERT_TWO_WAY_BY_SERVER))
 		osync_objtype_sink_set_slowsync(database->sink, TRUE);
 	
 	osync_trace(TRACE_INTERNAL, "%s: updating sync anchor %s to %s", __func__, key, next);
