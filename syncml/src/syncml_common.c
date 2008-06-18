@@ -176,24 +176,27 @@ void syncml_free_database(SmlDatabase *database)
 	// if something is present here then it must be failed
 	// because this is a software bug
 
-	while (database->syncChanges != NULL && database->syncChanges[0] != NULL) {
-		osync_trace(TRACE_ERROR, "%s: detected old change", __func__);
-		osync_change_unref(database->syncChanges[0]);
-		database->syncChanges[0] = NULL;
-		database->syncChanges = &(database->syncChanges[1]);
-	}
 	if (database->syncChanges != NULL) {
 		osync_trace(TRACE_ERROR, "%s: detected old change array", __func__);
+		int i;
+		for (i = 0; database->syncChanges[i] != NULL; i++)
+		{ 
+			osync_trace(TRACE_ERROR, "%s: detected old change", __func__);
+			osync_change_unref(database->syncChanges[i]);
+			database->syncChanges[i] = NULL;
+		}
 		safe_free((void **) &(database->syncChanges));
-	}
-	while (database->syncContexts != NULL && database->syncContexts[0] != NULL) {
-		OSyncError **error = NULL;
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - context discovered on finalize", __func__);
-		report_error_on_context(&(database->syncContexts[0]), error, TRUE);
-		database->syncContexts = &(database->syncContexts[1]);
 	}
 	if (database->syncContexts != NULL) {
 		osync_trace(TRACE_ERROR, "%s: detected old change context array", __func__);
+		int i;
+		for (i = 0; database->syncContexts[i] != NULL; i++)
+		{ 
+			OSyncError **error = NULL;
+			osync_error_set(error, OSYNC_ERROR_GENERIC,
+				"%s - context discovered on finalize", __func__);
+			report_error_on_context(&(database->syncContexts[i]), error, TRUE);
+		}
 		safe_free((void **) &(database->syncContexts));
 	}
 
@@ -700,6 +703,8 @@ void safe_free(gpointer *address)
 void report_success_on_context(OSyncContext **ctx)
 {
     osync_trace(TRACE_INTERNAL, "%s: report success on osync_context %p.", __func__, *ctx);
+    g_assert(ctx);
+    g_assert(*ctx);
     osync_context_report_success(*ctx);
     osync_context_unref(*ctx);
     *ctx = NULL;
@@ -710,6 +715,9 @@ void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool 
     osync_trace(
         TRACE_INTERNAL, "%s: report error on osync_context %p (%s).", __func__,
         *ctx, osync_error_print(error));
+    g_assert(ctx);
+    g_assert(*ctx);
+    g_assert(error);
     osync_context_report_osyncerror(*ctx, *error);
     osync_context_unref(*ctx);
     *ctx = NULL;

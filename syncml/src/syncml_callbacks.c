@@ -527,13 +527,7 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	}
 
 	g_assert(database->getChangesCtx);
-
-	if (!type) {
-		// FIXME: I think this is an error ...
-		report_success_on_context(&(database->getChangesCtx));
-		osync_trace(TRACE_EXIT, "%s - missing change type", __func__);
-		return TRUE;
-	}
+	g_assert(type);
 
 	OSyncChange *change = osync_change_new(&oerror);
 	if (!change) {
