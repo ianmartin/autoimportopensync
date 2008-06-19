@@ -192,28 +192,28 @@ void syncml_free_database(SmlDatabase *database)
 		int i;
 		for (i = 0; database->syncContexts[i] != NULL; i++)
 		{ 
-			OSyncError **error = NULL;
-			osync_error_set(error, OSYNC_ERROR_GENERIC,
+			OSyncError *error = NULL;
+			osync_error_set(&error, OSYNC_ERROR_GENERIC,
 				"%s - context discovered on finalize", __func__);
-			report_error_on_context(&(database->syncContexts[i]), error, TRUE);
+			report_error_on_context(&(database->syncContexts[i]), &error, TRUE);
 		}
 		safe_free((void **) &(database->syncContexts));
 	}
 
 	if (database->syncModeCtx) {
-		OSyncError **error = NULL;
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - syncModeCtx context discovered on finalize", __func__);
-		report_error_on_context(&(database->syncModeCtx), error, TRUE);
+		OSyncError *error = NULL;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - syncModeCtx context discovered on finalize", __func__);
+		report_error_on_context(&(database->syncModeCtx), &error, TRUE);
 	}
 	if (database->getChangesCtx) {
-		OSyncError **error = NULL;
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - getChangesCtx context discovered on finalize", __func__);
-		report_error_on_context(&(database->getChangesCtx), error, TRUE);
+		OSyncError *error = NULL;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - getChangesCtx context discovered on finalize", __func__);
+		report_error_on_context(&(database->getChangesCtx), &error, TRUE);
 	}
 	if (database->commitCtx) {
-		OSyncError **error = NULL;
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s - commitCtx context discovered on finalize", __func__);
-		report_error_on_context(&(database->commitCtx), error, TRUE);
+		OSyncError *error = NULL;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - commitCtx context discovered on finalize", __func__);
+		report_error_on_context(&(database->commitCtx), &error, TRUE);
 	}
 	osync_trace(TRACE_INTERNAL, "%s - contexts cleaned", __func__);
 
