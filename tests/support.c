@@ -629,14 +629,23 @@ osync_bool osync_testing_file_chmod(const char *file, int mode)
  */
 osync_bool osync_testing_file_copy(const char *source, const char *dest)
 {
-        gchar *cmd;
-        int ret;
+        gboolean ret;
+        const char *argv[] = { "cp", source, dest, NULL };
+        int exitstatus = -1;
 
-        cmd = g_strdup_printf("cp %s %s", source, dest);
-        ret = system(cmd);
-        g_free(cmd);
+        ret = g_spawn_sync(NULL,	        /* working directory */
+                           (char **)argv,	/* arguments */
+                           NULL,	        /* environment */
+                           G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+                           NULL,	        /* child setup function */
+                           NULL,	        /* user data for child setup func */
+                           NULL,	        /* stdin */
+                           NULL,	        /* stdout */
+                           &exitstatus,	        /* exit status */
+                           NULL		        /* error function */
+                        );
 
-        return ret;
+        return ret && WEXITSTATUS(exitstatus) == 0;
 }
 
 /*! @brief Find differences between two files
