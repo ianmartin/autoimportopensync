@@ -118,8 +118,8 @@ START_TEST (filter_sync_deny_all)
 	synchronize_once(engine, &error);
 	osync_engine_finalize(engine, &error);
 
-	fail_unless(!system("test \"x$(ls data1)\" = \"xtestdata\""), NULL);
-	fail_unless(!system("test \"x$(ls data2)\" = \"xtestdata2\""), NULL);
+	fail_unless(osync_testing_file_exists("data1/testdata"), NULL);
+	fail_unless(osync_testing_file_exists("data2/testdata2"), NULL);
 
 	destroy_testbed(testbed);
 }
@@ -162,7 +162,7 @@ START_TEST (filter_sync_custom)
 	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine, &error);
 
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"), NULL);
 
 	destroy_testbed(testbed);
 }
@@ -314,13 +314,13 @@ START_TEST (filter_sync_vcard_only)
 	osync_engine_finalize(engine, &error);
 	osync_engine_unref(engine);
 
-	fail_unless(!system("test \"x$(ls data1/testdata)\" = \"xdata1/testdata\""), NULL);
-	fail_unless(!system("test \"x$(ls data1/testdata2)\" = \"xdata1/testdata2\""), NULL);
-	fail_unless(!system("test \"x$(ls data1/testdata3)\" = \"xdata1/testdata3\""), NULL);
-	fail_unless(!system("test \"x$(ls data1/vcard.vcf)\" = \"xdata1/vcard.vcf\""), NULL);
-	
-	fail_unless(!system("test \"x$(ls data2/testdata3)\" = \"xdata2/testdata3\""), NULL);
-	fail_unless(!system("test \"x$(ls data2/vcard.vcf)\" = \"xdata2/vcard.vcf\""), NULL);
+	fail_unless(osync_testing_file_exists("data1/testdata"), NULL);
+	fail_unless(osync_testing_file_exists("data1/testdata2"), NULL);
+	fail_unless(osync_testing_file_exists("data1/testdata3"), NULL);
+	fail_unless(osync_testing_file_exists("data1/vcard.vcf"), NULL);
+
+	fail_unless(osync_testing_file_exists("data2/testdata3"), NULL);
+	fail_unless(osync_testing_file_exists("data2/vcard.vcf"), NULL);
 
 	destroy_testbed(testbed);
 }
@@ -357,7 +357,7 @@ START_TEST(filter_destobjtype_delete)
 
 	/* Synchronize once, delete a file, and synchronize again */
 
-	fail_unless(!system("rm data1/file"), NULL);
+	fail_unless(!osync_testing_file_remove("data1/file"), NULL);
 
 	synchronize_once(engine, NULL);
 	mark_point();
@@ -403,9 +403,9 @@ START_TEST (filter_sync_read_only)
 
 	fail_unless(num_read == 1);
 
-	fail_unless(!system("test \"x$(ls data1/testdata)\" = \"xdata1/testdata\""), NULL);
-	fail_unless(!system("test \"x$(ls data1/testdata2)\" = \"xdata1/testdata2\""), NULL);
-	fail_unless(!system("test \"x$(ls data2/testdata2)\" = \"xdata2/testdata2\""), NULL);
+	fail_unless(osync_testing_file_exists("data1/testdata"), NULL);
+	fail_unless(osync_testing_file_exists("data1/testdata2"), NULL);
+	fail_unless(osync_testing_file_exists("data2/testdata2"), NULL);
 
 	destroy_testbed(testbed);
 }
