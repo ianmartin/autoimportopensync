@@ -620,6 +620,44 @@ osync_bool osync_testing_file_chmod(const char *file, int mode)
 	return g_chmod(file, mode);
 }
 
+/*! @brief Copy files
+ *
+ * @param source source filename
+ * @param dest destination filename
+ * @returns TRUE on success, FALSE otherwise
+ *
+ */
+osync_bool osync_testing_file_copy(const char *source, const char *dest)
+{
+        gchar *cmd;
+        int ret;
+
+        cmd = g_strdup_printf("cp %s %s", source, dest);
+        ret = system(cmd);
+        g_free(cmd);
+
+        return ret;
+}
+
+/*! @brief Find differences between two files
+ *
+ * @param source source filename
+ * @param dest destination filename
+ * @returns TRUE on success, FALSE otherwise
+ *
+ */
+osync_bool osync_testing_diff(const char *file1, const char *file2)
+{
+        gchar *cmd;
+        int ret;
+
+        cmd = g_strdup_printf("test \"x`(" DIFF " -x \".*\" %s %s)`\" = \"x\"", file1, file2);
+        ret = system(cmd);
+        g_free(cmd);
+
+        return ret;
+}
+
 /*! @brief Creates a simple OSyncPluginConfig with a single resource.
  *         If config is not null the ressource information gets added.
  * 

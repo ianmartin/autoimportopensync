@@ -91,7 +91,16 @@ void conflict_handler_delay(OSyncEngine *engine, OSyncMappingEngine *mapping, vo
 osync_bool osync_testing_file_exists(const char *file);
 osync_bool osync_testing_file_remove(const char *file);
 osync_bool osync_testing_file_chmod(const char *file, int mode);
+osync_bool osync_testing_file_copy(const char *source, const char *dest);
+osync_bool osync_testing_diff(const char *file1, const char *file2);
 
 /* Plugin config helper */
 OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objformat, const char *format_config);
+
+/* gdiff is GNU diff in Solaris */
+#ifdef HAVE_SOLARIS
+#define DIFF "gdiff"
+#else
+#define DIFF "diff"
+#endif
 

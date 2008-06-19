@@ -19,6 +19,7 @@
 #cmakedefine OPENSYNC_TRACE
 
 #cmakedefine HAVE_FLOCK
+#cmakedefine HAVE_SOLARIS
 
 #define OPENSYNC_TESTDATA "${CMAKE_CURRENT_SOURCE_DIR}/tests/data"
 #cmakedefine OPENSYNC_UNITTESTS
