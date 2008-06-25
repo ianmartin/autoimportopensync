@@ -4,7 +4,7 @@
   <!-- Warning: this schema is partially inconsistent with the XML format used by the vformat
        converter. It will be updated soon, but in the meantime if you depend on the details of the
        format, please also check the converter source (and report any bugs or inconsistencies you spot). -->
-
+  <xsd:include schemaLocation="xmlformat-common.xsd"/>
   <xsd:element name="contact">
     <xsd:complexType>
       <xsd:sequence>
@@ -61,12 +61,6 @@
     </xsd:complexType>
   </xsd:element>
 
-    <xsd:complexType name="StringContent">
-      <xsd:sequence>
-        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
-      </xsd:sequence>
-    </xsd:complexType>
-
     <xsd:complexType name="DateContent">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
@@ -116,12 +110,6 @@
       </xsd:sequence>
       <xsd:attribute name="Location" type="AddressLocation"/>
       <xsd:attribute name="Preferred" type="Preferred"/>
-    </xsd:complexType>
-
-	<xsd:complexType name="Categories">
-      <xsd:sequence>
-        <xsd:element minOccurs="0" maxOccurs="unbounded" name="Category" type="xsd:string"/>
-      </xsd:sequence>
     </xsd:complexType>
 
 
