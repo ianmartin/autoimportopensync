@@ -41,6 +41,10 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			osync_trace(TRACE_INTERNAL, "session flush so nothing to do");
 			break;
 		case SML_MANAGER_CONNECT_DONE:
+			osync_trace(TRACE_INTERNAL, "transport connection established");
+			break;
+		case SML_MANAGER_SESSION_ESTABLISHED:
+			osync_trace(TRACE_INTERNAL, "session established");
 			g_mutex_lock(env->connectMutex);
 			env->gotDisconnect = FALSE;
 			env->isConnected = TRUE;
