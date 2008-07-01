@@ -73,6 +73,15 @@ SmlBool _recv_change(
 		void *userdata,
 		SmlError **smlerror);
 
+SmlBool _recv_unwanted_change(
+		SmlDsSession *dsession,
+		SmlChangeType type,
+		const char *uid,
+		char *data, unsigned int size,
+		const char *contenttype,
+		void *userdata,
+		SmlError **smlerror);
+
 void _recv_change_reply(
 		SmlDsSession *dsession,
 		SmlStatus *status,

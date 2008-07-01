@@ -242,7 +242,7 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     smlDsSessionGetAlert(database->session, _ds_client_recv_alert, database);
     smlDsSessionGetEvent(database->session, _ds_event, database);
     smlDsSessionGetSync(database->session, _recv_sync, database);
-    smlDsSessionGetChanges(database->session, _recv_change, database);
+    smlDsSessionGetChanges(database->session, _recv_unwanted_change, database);
 
     if (!flush_session_for_all_databases(database->env, TRUE, &error))
         goto error;

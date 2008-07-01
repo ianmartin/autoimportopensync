@@ -151,9 +151,9 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			smlSessionUseNumberOfChanges(session, TRUE);
 			
 			if (env->recvLimit)
-				smlSessionSetReceivingMaxMsgSize(session, env->recvLimit);
+				smlSessionSetLocalMaxMsgSize(session, env->recvLimit);
 			if (env->maxObjSize)
-				smlSessionSetReceivingMaxObjSize(session, env->maxObjSize);
+				smlSessionSetLocalMaxObjSize(session, env->maxObjSize);
 			if (env->recvLimit && env->maxObjSize)
 				smlSessionUseLargeObjects(session, TRUE);
 			osync_trace(TRACE_INTERNAL, "%s: maxObjSize %d",
@@ -512,24 +512,6 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	SmlDatabase *database = (SmlDatabase *)userdata;
 	OSyncError *oerror = NULL;
 
-	if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT &&
-	    !database->getChangesCtx)
-	{
-		/* This should be the second OMA DS session of an OMA DS
-		 * client. If this is the case then we simply ignore what the
-		 * server sends as answer for the second synchronization.
-		 * This is not clean but we have here two servers and both
-		 * wants to have the last word :(
-		 *
-		 * OMA DS protocol allows that a client does not send a map.
-		 * This is no problem here because the first OMA DS session
-		 * should guarantee a clean server database at the remote peer.
-		 * Nevertheless this is a hack.
-		 */
-		osync_trace(TRACE_EXIT, "%s: second OMA DS client connection detected", __func__);
-		return TRUE;
-	}
-
 	g_assert(database->getChangesCtx);
 	g_assert(type);
 
@@ -634,6 +616,60 @@ error:
 	}
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(error));
 	return FALSE;
+}
+
+SmlBool _recv_unwanted_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, error);
+	SmlDatabase *database = (SmlDatabase *)userdata;
+	OSyncError *oerror = NULL;
+
+	/* This should be the second OMA DS session of an OMA DS
+	 * client. If this is the case then we simply ignore what the
+	 * server sends as answer for the second synchronization.
+	 * This is not clean but we have here two servers and both
+	 * wants to have the last word :(
+	 *
+	 * OMA DS protocol allows that a client does not send a map.
+	 * This is no problem here because the first OMA DS session
+	 * should guarantee a clean server database at the remote peer.
+	 * Nevertheless this is a hack.
+	 */
+	osync_trace(TRACE_EXIT, "%s: second OMA DS client connection detected", __func__);
+
+	if (type == SML_CHANGE_DELETE)
+	{
+		/* Now we are in real trouble. The server wants to
+		 * delete an entry and it is impossible to propagate
+		 * this to OpenSync's plugin mechanisms. So the
+		 * important question when does this happen?
+		 *
+		 * Answer: on SLOW-SYNC
+		 *
+		 * 1. No data is send from the OMA DS client to the OMA
+		 *    DS server during the first session.
+		 * 2. The OMA DS server sends all relevant(!!!) data
+		 *    to the OMA DS client during the first session.
+		 * 3. OpenSync runs its merger.
+		 * 4. The OMA DS client sends all data to the OMA DS
+		 *    server including some old events.
+		 * 5. The OMA DS server tries to delete these events
+		 *    on the client because the client should only use
+		 *    the actual events (common option on calendar
+		 *    servers).
+		 *
+		 * It is not necessary to do something because both
+		 * parties now it and both can ignore it now.
+		 */
+		osync_trace(TRACE_EXIT, "%s - ignore Delete command", __func__);
+		return TRUE;
+	} else {
+		/* This problem should be fixed with the next SLOW-SYNC. */
+		osync_trace(TRACE_EXIT_ERROR, "%s - unexpected Add or Replace command", __func__);
+		SmlErrorSet(error, SML_ERROR_TEMPORARY, "Unwanted Add or Replace command on second OMA DS session.");
+		return FALSE;
+	}
+
 }
 
 void _recv_change_reply(SmlDsSession *dsession, SmlStatus *status, const char *newuid, void *userdata)
