@@ -9,18 +9,12 @@ static osync_bool dummy_filter_hook(OSyncData *data, const char *config)
 
 START_TEST (filter_setup)
 {
-	char *testbed = setup_testbed("filter_setup");
-
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_group_load(group, "configs/group", &error);
-	fail_unless(error == NULL, osync_error_print(&error));
-	fail_unless(group != NULL, NULL);
-
 	mark_point();
 	
 	OSyncFilter *filter = osync_filter_new("mockobjtype1", OSYNC_FILTER_DENY, &error);
@@ -38,8 +32,6 @@ START_TEST (filter_setup)
 	osync_filter_unref(filter);
 
 	osync_group_unref(group);
-
-	destroy_testbed(testbed);
 }
 END_TEST
 
