@@ -666,7 +666,7 @@ SmlBool _recv_unwanted_change(SmlDsSession *dsession, SmlChangeType type, const 
 	} else {
 		/* This problem should be fixed with the next SLOW-SYNC. */
 		osync_trace(TRACE_EXIT_ERROR, "%s - unexpected Add or Replace command", __func__);
-		SmlErrorSet(error, SML_ERROR_TEMPORARY, "Unwanted Add or Replace command on second OMA DS session.");
+		smlErrorSet(error, SML_ERROR_TEMPORARY, "Unwanted Add or Replace command on second OMA DS session.");
 		return FALSE;
 	}
 
