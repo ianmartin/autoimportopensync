@@ -61,20 +61,20 @@ void ds_client_init_sync_mode(SmlDatabase *database)
 
 	/* initialize the timestamps and alert type */
 	SmlAlertType alertType = SML_ALERT_SLOW_SYNC;
-	char *last = NULL; // perhaps NULL is better
-	char *next = malloc(sizeof(char)*17);
+	char *local_last = NULL; // perhaps NULL is better
+	database->localNext = malloc(sizeof(char)*17);
 	time_t htime = time(NULL);
 	if (env->onlyLocaltime)
-		strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
+		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
 	else
-		strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
 	if (!osync_objtype_sink_get_slowsync(database->sink))
         {
 		/* this must be a two-way-sync */
 		alertType = SML_ALERT_TWO_WAY;
-		char *key = g_strdup_printf("remoteanchor%s", smlDsServerGetLocation(database->server));
-		last = osync_anchor_retrieve(database->env->anchor_path, key);
-		safe_cfree(&key);
+		char *local_key = g_strdup_printf("localanchor%s", smlDsServerGetLocation(database->server));
+		local_last = osync_anchor_retrieve(database->env->anchor_path, local_key);
+		safe_cfree(&local_key);
 	}
 
 	/* The OMA DS client starts the synchronization so there should be no
@@ -84,11 +84,10 @@ void ds_client_init_sync_mode(SmlDatabase *database)
 				database->server,
 				env->session,
 				alertType,
-				last, next,
+				local_last, database->localNext,
 				_recv_alert_reply, database,
 				&error);
-	safe_cfree(&next);
-	if (last) safe_cfree(&last);
+	if (local_last) safe_cfree(&local_last);
 	if (!database->session)
 		goto error;
 
@@ -220,21 +219,27 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     // send sync alert
     // slow sync should be initialized via _ds_client_recv_alert
     // if this happens then the DsSession is already present
-    char *key = g_strdup_printf("remoteanchor%s", smlDsServerGetLocation(database->server));
-    char *last = osync_anchor_retrieve(database->env->anchor_path, key);
-    char *next = malloc(sizeof(char)*17);
+    char *local_key = g_strdup_printf("localanchor%s", smlDsServerGetLocation(database->server));
+    char *local_last = osync_anchor_retrieve(database->env->anchor_path, local_key);
+    if (database->localNext)
+        safe_cfree(&(database->localNext));
+    database->localNext = malloc(sizeof(char)*17);
     time_t htime = time(NULL);
     if (database->env->onlyLocaltime)
-        strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
+        strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
     else
-        strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+        strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
     database->session = smlDsServerSendAlert(
                                database->server,
                                database->env->session,
                                SML_ALERT_TWO_WAY,
-                               last, next,
+                               local_last, database->localNext,
                                _recv_alert_reply, database,
                                &error);
+    safe_cfree(&local_key);
+    if (local_last)
+        safe_cfree(&local_last);
+
     if (!database->session)
         goto error;
 
@@ -276,7 +281,8 @@ SmlBool _ds_client_recv_alert(
     SmlPluginEnv *env = database->env;
     OSyncError *oserror = NULL;
 
-    char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
+    char *remote_key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
+    database->remoteNext = strdup(next);
 
     if (database->syncModeCtx && type == SML_ALERT_TWO_WAY)
     {
@@ -286,19 +292,19 @@ SmlBool _ds_client_recv_alert(
             osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "TWO-WAY-SYNC is requested but there is no LAST anchor.");
             goto oserror;
         }
-        if (!osync_anchor_compare(env->anchor_path, key, last))
+        if (!osync_anchor_compare(env->anchor_path, remote_key, last))
         {
-            char *local = osync_anchor_retrieve(env->anchor_path, key);
+            char *remote_last = osync_anchor_retrieve(env->anchor_path, remote_key);
             osync_error_set(
                 &oserror, OSYNC_ERROR_GENERIC,
                 "TWO-WAY-SYNC is requested but the cached LAST anchor (%) does not match the presented LAST anchor from the remote peer (%).",
-                local, last);
-            safe_cfree(&local);
+                remote_last, last);
+            safe_cfree(&remote_last);
             goto oserror;
         }
         if (osync_objtype_sink_get_slowsync(database->sink))
         {
-            osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "SLOW-SYNC is requested but the local sink still wants a TWO-WAY-SYNC.");
+            osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "SLOW-SYNC is requested but the remote sink wants a TWO-WAY-SYNC.");
             goto oserror;
         }
     }
@@ -306,10 +312,7 @@ SmlBool _ds_client_recv_alert(
     if (type == SML_ALERT_SLOW_SYNC)
         osync_objtype_sink_set_slowsync(database->sink, TRUE);
 
-    // if we do the update then we should store the new  anchor
-    // if the update fails then the next sync is a slow sync
-    osync_anchor_update(env->anchor_path, key, next);
-    safe_cfree(&key);
+    safe_cfree(&remote_key);
 
     if (database->syncModeCtx)
     {
@@ -336,8 +339,8 @@ SmlBool _ds_client_recv_alert(
     osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
     return TRUE;
 oserror:
-    if (key)
-        safe_cfree(&key);
+    if (remote_key)
+        safe_cfree(&remote_key);
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
     if (database->syncModeCtx)
         report_error_on_context(&(database->syncModeCtx), &oserror, TRUE);

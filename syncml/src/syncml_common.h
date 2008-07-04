@@ -139,6 +139,8 @@ typedef struct SmlDatabase {
 	OSyncObjTypeSink *sink;
 	char *objtype;	
 	char *url;
+	char *remoteNext;
+	char *localNext;
 
 	SmlDsSessionAlertCb dsSessionCallback;
 

@@ -96,11 +96,20 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 					SmlDatabase *database = o->data;
 					if (database->commitCtx)
 						report_success_on_context(&(database->commitCtx));
+					/* write new sync anchors */
+					char *anchor = g_strdup_printf(
+								"localanchor%s",
+								 smlDsSessionGetLocation(database->session));
+					osync_anchor_update(env->anchor_path, anchor, database->localNext);
+					anchor = g_strdup_printf(
+								"remoteanchor%s",
+								 smlDsSessionGetLocation(database->session));
+					osync_anchor_update(env->anchor_path, anchor, database->remoteNext);
 				}
 
 				/* a real disconnet happens */
 				env->gotDisconnect = TRUE;
-				if (env->disconnectCtx) { 
+				if (env->disconnectCtx) {
 					osync_trace(TRACE_INTERNAL, "%s: signal disconnect via context", __func__);
 					report_success_on_context(&(env->disconnectCtx));
 				}

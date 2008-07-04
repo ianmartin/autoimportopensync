@@ -156,6 +156,10 @@ void syncml_free_database(SmlDatabase *database)
 
 	// cleanup configuration stuff
 
+	if (database->remoteNext)
+		safe_cfree(&(database->remoteNext));
+	if (database->localNext)
+		safe_cfree(&(database->localNext));
 	if (database->url)
 		safe_cfree(&(database->url));
 	if (database->objtype)

@@ -169,6 +169,7 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	}
 	
 	char *remote_key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
+	database->remoteNext = strdup(next);
 
 	/* We return FALSE if we need a special return code as answer:
 	 * SML_ERROR_REQUIRE_REFRESH 508
@@ -201,56 +202,37 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	
 	if (!ret || (type != SML_ALERT_TWO_WAY && type != SML_ALERT_TWO_WAY_BY_SERVER))
 		osync_objtype_sink_set_slowsync(database->sink, TRUE);
-
-	/* FIXME: This is a bug.
-	 * FIXME: The remote anchor is updated much too early.
-	 * FIXME: The standard explicitly defines that the anchor MUST
-	 * FIXME: NOT be updated before even the transport finished
-	 * FIXME: successfully.
-	 */
-	osync_trace(TRACE_INTERNAL, "%s: updating remote sync anchor %s to %s", __func__, remote_key, next);
-	osync_anchor_update(env->anchor_path, remote_key, next);
 	safe_cfree(&remote_key);
 
 	/* generate new timestamp for local anchors */
 	char *local_key = g_strdup_printf("localanchor%s", smlDsSessionGetLocation(dsession));
 	char *local_last = osync_anchor_retrieve(database->env->anchor_path, local_key);
-	char *local_next = malloc(sizeof(char)*17);
+	database->localNext = malloc(sizeof(char)*17);
 	time_t htime = time(NULL);
 	if (database->env->onlyLocaltime)
-		strftime(local_next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
+		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
 	else
-		strftime(local_next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
 
 	/* send alert */
 	if (osync_objtype_sink_get_slowsync(database->sink)) {
 		if (!smlDsSessionSendAlert(
 			dsession, SML_ALERT_SLOW_SYNC,
-			local_last, local_next,
+			local_last, database->localNext,
 			_recv_alert_reply, database, &error)
 		   )
 			goto error;
 	} else {
 		if (!smlDsSessionSendAlert(
 			dsession, SML_ALERT_TWO_WAY,
-			local_last, local_next,
+			local_last, database->localNext,
 			_recv_alert_reply, database, &error)
 		   )
 			goto error;
 	}
 
-	/* FIXME: This is a bug.
-	 * FIXME: The local anchor is updated much too early.
-	 * FIXME: The standard explicitly defines that the anchor MUST
-	 * FIXME: NOT be updated before even the transport finished
-	 * FIXME: successfully.
-	 */
-	osync_trace(TRACE_INTERNAL, "%s: updating local sync anchor %s to %s", __func__, local_key, local_next);
-	osync_anchor_update(env->anchor_path, local_key, local_next);
-
 	/* free local anchor stuff */
 	safe_cfree(&local_key);
-	safe_cfree(&local_next);
 	if (local_last)
 		safe_cfree(&local_last);
 
