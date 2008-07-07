@@ -161,7 +161,7 @@ START_TEST (proxy_discover)
 	fail_unless(osync_client_proxy_num_objtypes(proxy) == 1, NULL);
 	OSyncObjTypeSink *sink = osync_client_proxy_nth_objtype(proxy, 0);
 	fail_unless(sink != NULL, NULL);
-	fail_unless(!strcmp(osync_objtype_sink_get_name(sink), "file"), NULL);
+	fail_unless(!strcmp(osync_objtype_sink_get_name(sink), "mockobjtype1"), NULL);
 	
 	fail_unless(osync_objtype_sink_num_objformat_sinks(sink) == 1, NULL);
 	OSyncObjFormatSink *format_sink = osync_objtype_sink_nth_objformat_sink(sink, 0);
