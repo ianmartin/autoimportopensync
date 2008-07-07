@@ -27,6 +27,10 @@
 #include "opensync_group_internals.h"
 #include "opensync-db.h"
 
+#ifdef OPENSYNC_UNITTESTS
+#include "opensync_member_internals.h"
+#endif /* OPENSYNC_UNITTESTS */
+
 #ifndef _WIN32
 #include <sys/file.h>
 
@@ -135,6 +139,11 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 		member = osync_member_new(error);
 		if (!member)
 			goto error_close;
+
+#ifdef OPENSYNC_UNITTESTS
+		if (group->schemadir)
+			osync_member_set_schemadir(member, group->schemadir);
+#endif /* OPENSYNC_UNITTESTS */
 		
 		member_path = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
 		if (!osync_member_load(member, member_path, error)) {
@@ -222,6 +231,27 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 	return ret;
 }
 
+#ifdef OPENSYNC_UNITTESTS
+/** @brief Set the schemadir for configuration validation to a custom directory.
+ *  This is actually only inteded for UNITTESTS to run tests without 
+ *  having OpenSync installed.
+ * 
+ * @param group Pointer to group
+ * @param schemadir Custom schemadir path
+ * 
+ */
+void osync_group_set_schemadir(OSyncGroup *group, const char *schemadir)
+{
+	osync_assert(group);
+	osync_assert(schemadir);
+
+	if (group->schemadir)
+		g_free(group->schemadir);
+
+	group->schemadir = g_strdup(schemadir); 
+}
+#endif /* OPENSYNC_UNITTESTS */
+
 /*@}*/
 
 /**
@@ -300,6 +330,11 @@ void osync_group_unref(OSyncGroup *group)
 		if (group->configdir)
 			g_free(group->configdir);
 			
+#ifdef OPENSYNC_UNITTESTS
+		if (group->schemadir)
+			g_free(group->schemadir);
+#endif /* OPENSYNC_UNITTESTS */
+
 		g_free(group);
 	}
 }

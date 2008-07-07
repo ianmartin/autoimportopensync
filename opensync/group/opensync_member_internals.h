@@ -42,6 +42,15 @@ struct OSyncMember {
 	
 	OSyncCapabilities *capabilities;
 	OSyncMerger *merger;
+
+#ifdef OPENSYNC_UNITTESTS
+	char *schemadir;
+#endif /* OPENSYNC_UNITTESTS */
 };
+
+
+#ifdef OPENSYNC_UNITTESTS
+void osync_member_set_schemadir(OSyncMember *member, const char *schemadir);
+#endif /* OPENSYNC_UNITTESTS */
 
 #endif /* _OPENSYNC_MEMBER_INTERNALS_H_ */

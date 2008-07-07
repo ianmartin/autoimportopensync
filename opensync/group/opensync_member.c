@@ -146,6 +146,27 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 	return sink;
 }
 
+#ifdef OPENSYNC_UNITTESTS
+/** @brief Set the schemadir for configuration validation to a custom directory.
+ *  This is actually only inteded for UNITTESTS to run tests without 
+ *  having OpenSync installed.
+ * 
+ * @param member Pointer to member 
+ * @param schemadir Custom schemadir path
+ * 
+ */
+void osync_member_set_schemadir(OSyncMember *member, const char *schemadir)
+{
+	osync_assert(member);
+	osync_assert(schemadir);
+
+	if (member->schemadir)
+		g_free(member->schemadir);
+
+	member->schemadir = g_strdup(schemadir); 
+}
+#endif /* OPENSYNC_UNITTESTS */
+
 /*@}*/
 
 /**
@@ -224,6 +245,12 @@ void osync_member_unref(OSyncMember *member)
 			osync_merger_unref(osync_member_get_merger(member));
 		
 		osync_member_flush_objtypes(member);
+
+#ifdef OPENSYNC_UNITTESTS
+		if (member->schemadir)
+			g_free(member->schemadir);
+#endif /* OPENSYNC_UNITTESTS */
+
 
 		g_free(member);
 	}
@@ -326,6 +353,7 @@ OSyncPluginConfig *osync_member_get_config_or_default(OSyncMember *member, OSync
 {
 	char *filename = NULL;
 	OSyncPluginConfig *config = NULL;
+	const char *schemadir = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	g_assert(member);
@@ -348,7 +376,12 @@ OSyncPluginConfig *osync_member_get_config_or_default(OSyncMember *member, OSync
 		osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
 	}
 
-	if (!osync_plugin_config_file_load(config, filename, error))
+#ifdef OPENSYNC_UNITTESTS
+	if (member->schemadir)
+		schemadir = member->schemadir;
+#endif
+
+	if (!osync_plugin_config_file_load(config, filename, schemadir, error))
 		goto error_free_config;
 		
 	osync_member_set_config(member, config);
@@ -396,6 +429,7 @@ osync_bool osync_member_has_config(OSyncMember *member)
 OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
+	const char *schemadir = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	osync_assert(member);
@@ -417,7 +451,12 @@ OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **err
 	if (!config)
 		goto error;
 
-	if (!osync_plugin_config_file_load(config, filename, error))
+#ifdef OPENSYNC_UNITTESTS
+	if (member->schemadir)
+		schemadir = member->schemadir;
+#endif
+
+	if (!osync_plugin_config_file_load(config, filename, schemadir, error))
 		goto error_free_config;
 
 	g_free(filename);

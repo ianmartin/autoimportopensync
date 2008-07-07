@@ -46,7 +46,15 @@ struct OSyncGroup {
 	/** The configured converter status of this group */
 	osync_bool converter_enabled;
 	
+#ifdef OPENSYNC_UNITTESTS
+	char *schemadir;
+#endif /* OPENSYNC_UNITTESTS*/	
 	int ref_count;
 };
+
+
+#ifdef OPENSYNC_UNITTESTS
+void osync_group_set_schemadir(OSyncGroup *group, const char *schemadir);
+#endif /* OPENSYNC_UNITTESTS*/
 
 #endif /* _OPENSYNC_GROUP_INTERNALS_H_ */
