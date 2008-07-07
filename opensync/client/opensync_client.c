@@ -540,33 +540,28 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	client->plugin_info->memberid = memberid;
 #endif	
 
-#if 0 /* Not ready for prime-time (dgollub, 20080613) */
 	/* Enable active sinks */
 	OSyncList *r = osync_plugin_config_get_ressources(config);
 	for (; r; r = r->next) {
 		OSyncPluginRessource *res = r->data;
 		OSyncObjTypeSink *sink;
 
+		const char *objtype = osync_plugin_ressource_get_objtype(res); 
+		/* Check for ObjType sink */
+		if (!(sink = osync_plugin_info_find_objtype(client->plugin_info, objtype))) {
+			sink = osync_objtype_sink_new(objtype, error);
+			if (!sink)
+				goto error_finalize;
+
+			osync_plugin_info_add_objtype(client->plugin_info, sink);
+		}
+
 		OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
 		for (; o; o = o->next) {
 			OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
-			const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
-			OSyncObjFormat *objformat = osync_format_env_find_objformat(client->format_env, objformat_str);
-			const char *objtype = osync_objformat_get_objtype(objformat);; 
-
-			/* Check for ObjType sink */
-			if (!(sink = osync_plugin_info_find_objtype(client->plugin_info, objtype))) {
-				sink = osync_objtype_sink_new(objtype, error);
-				if (!sink)
-					goto error_finalize;
-
-				osync_plugin_info_add_objtype(client->plugin_info, sink);
-			}
-
 			osync_objtype_sink_add_objformat_sink(sink, format_sink);
 		}
 	}
-#endif /* Not ready */	
 	
 	client->plugin_data = osync_plugin_initialize(client->plugin, client->plugin_info, error);
 	if (!client->plugin_data)
