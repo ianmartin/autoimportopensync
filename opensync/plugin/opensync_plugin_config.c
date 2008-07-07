@@ -1038,6 +1038,31 @@ void osync_plugin_config_remove_ressource(OSyncPluginConfig *config, OSyncPlugin
 	osync_plugin_ressource_unref(ressource);
 }
 
+OSyncPluginRessource *osync_plugin_config_find_active_ressource(OSyncPluginConfig *config, const char *objtype)
+{
+	osync_assert(config);
+	osync_assert(objtype);
+
+	OSyncList *r;
+	for (r = config->ressources; r; r = r->next) {
+		OSyncPluginRessource *res = r->data;
+
+		if (!osync_plugin_ressource_is_enabled(res))
+			continue;
+
+		const char *res_objtype = osync_plugin_ressource_get_objtype(res);
+		if (!res_objtype)
+			continue;
+
+		if (!strcmp(res_objtype, objtype))
+			return res;
+
+	}
+
+	return NULL;
+}
+
+
 OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *config)
 {
 	osync_assert(config);

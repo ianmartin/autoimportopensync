@@ -38,6 +38,7 @@ OSYNC_EXPORT void osync_plugin_config_set_localization(OSyncPluginConfig *config
 
 /* Ressources */
 OSYNC_EXPORT OSyncList *osync_plugin_config_get_ressources(OSyncPluginConfig *plugin);
+OSYNC_EXPORT OSyncPluginRessource *osync_plugin_config_find_active_ressource(OSyncPluginConfig *config, const char *objtype);
 OSYNC_EXPORT void osync_plugin_config_add_ressource(OSyncPluginConfig *plugin, OSyncPluginRessource *ressource);
 OSYNC_EXPORT void osync_plugin_config_remove_ressource(OSyncPluginConfig *plugin, OSyncPluginRessource *ressource);
 
