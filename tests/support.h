@@ -96,7 +96,7 @@ osync_bool osync_testing_file_copy(const char *source, const char *dest);
 osync_bool osync_testing_diff(const char *file1, const char *file2);
 
 /* Plugin config helper */
-OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objformat, const char *format_config);
+OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objtype, const char *objformat, const char *format_config);
 
 /* gdiff is GNU diff in Solaris */
 #ifdef HAVE_SOLARIS

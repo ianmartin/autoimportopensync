@@ -2253,16 +2253,16 @@ START_TEST (sync_detect_obj)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncMember *member1 = osync_group_nth_member(group, 0);
-	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "file-1", "mockformat1", NULL);
-	simple_plugin_config(config1, "file2-1", "mockformat2", NULL);
-	simple_plugin_config(config1, "file3-1", "mockformat3", NULL);
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "file-1", "mockobjtype1", "mockformat1", NULL);
+	simple_plugin_config(config1, "file2-1", "mockobjtype2", "mockformat2", NULL);
+	simple_plugin_config(config1, "file3-1", "mockobjtype3", "mockformat3", NULL);
 	osync_member_set_config(member1, config1);
 	osync_plugin_config_unref(config1);
 
 	OSyncMember *member2 = osync_group_nth_member(group, 1);
-	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "file-2", "mockformat1", NULL);
-	simple_plugin_config(config2, "file2-2", "mockformat2", NULL);
-	simple_plugin_config(config2, "file3-2", "mockformat3", NULL);
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "file-2", "mockobjtype1", "mockformat1", NULL);
+	simple_plugin_config(config2, "file2-2", "mockobjtype2", "mockformat2", NULL);
+	simple_plugin_config(config2, "file3-2", "mockobjtype3", "mockformat3", NULL);
 	osync_member_set_config(member2, config2);
 	osync_plugin_config_unref(config2);
 	
@@ -2460,14 +2460,14 @@ START_TEST (sync_detect_obj2)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncMember *member1 = osync_group_nth_member(group, 0);
-	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "file-1", "mockformat1", NULL);
-	simple_plugin_config(config1, "file2-1", "mockformat2", NULL);
-	simple_plugin_config(config1, "file3-1", "mockformat3", NULL);
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "file-1", "mockobjtype1", "mockformat1", NULL);
+	simple_plugin_config(config1, "file2-1", "mockobjtype2", "mockformat2", NULL);
+	simple_plugin_config(config1, "file3-1", "mockobjtype3", "mockformat3", NULL);
 	osync_member_set_config(member1, config1);
 	osync_plugin_config_unref(config1);
 
 	OSyncMember *member2 = osync_group_nth_member(group, 1);
-	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "file-2", "mockformat1", NULL);
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "file-2", "mockobjtype1", "mockformat1", NULL);
 	osync_member_set_config(member2, config2);
 	osync_plugin_config_unref(config2);
 	

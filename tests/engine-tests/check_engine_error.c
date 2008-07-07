@@ -176,7 +176,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 	osync_member_set_configdir(debug->member1, path);
 	g_free(path);
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjformat1", NULL);
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member1, config1);
 	osync_plugin_config_unref(config1);
 	
@@ -191,7 +191,7 @@ static OSyncDebugGroup *_create_group(char *testbed)
 
 	_member_add_objtype(debug->member2, "mockobjtype1");
 
-	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjformat1", NULL);
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member2, config2);
 	osync_plugin_config_unref(config2);
 	
@@ -265,7 +265,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjformat1", NULL);
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member1, config1);
 	osync_plugin_config_unref(config1);
 
@@ -280,7 +280,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member2, "mockobjtype1");
-	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjformat1", NULL);
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member2, config2);
 	osync_plugin_config_unref(config2);
 	
@@ -435,7 +435,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjformat1", NULL);
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member1, config1);
 	osync_plugin_config_unref(config1);
 
@@ -449,7 +449,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
 
-	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjformat1", NULL);
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member2, config2);
 	osync_plugin_config_unref(config2);
 
@@ -507,7 +507,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	g_free(path);
 
 	_member_add_objtype(debug->member1, "mockobjtype1");
-	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjformat1", NULL);
+	OSyncPluginConfig *config1 = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member1, config1);
 	osync_plugin_config_unref(config1);
 
@@ -521,7 +521,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 	osync_member_set_configdir(debug->member2, path);
 	g_free(path);
 	_member_add_objtype(debug->member2, "mockobjtype1");
-	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjformat1", NULL);
+	OSyncPluginConfig *config2 = simple_plugin_config(NULL, "data2", "mockobjtype1", "mockobjformat1", NULL);
 	osync_member_set_config(debug->member2, config2);
 	osync_plugin_config_unref(config2);
 

@@ -677,7 +677,10 @@ osync_bool osync_testing_diff(const char *file1, const char *file2)
  * @returns OSyncPluginConfig pointer or asserts on error
  * 
  */
-OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objformat, const char *format_config) {
+OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objtype, const char *objformat, const char *format_config) {
+
+	osync_assert(objtype);
+	osync_assert(objformat);
 
 	OSyncError *error = NULL;
 
@@ -692,6 +695,7 @@ OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *p
 		osync_objformat_sink_set_config(format_sink, format_config);
 
 	OSyncPluginRessource *res = osync_plugin_ressource_new(&error);
+	osync_plugin_ressource_set_objtype(res, objtype);
 	osync_plugin_ressource_set_path(res, path); 
 
 

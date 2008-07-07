@@ -101,7 +101,7 @@ START_TEST (proxy_init)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockformat1", NULL);
+	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockformat1", NULL);
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
 	osync_plugin_config_unref(config);
 
@@ -143,7 +143,7 @@ START_TEST (proxy_discover)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockformat1", NULL);
+	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockformat1", NULL);
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
 	osync_plugin_config_unref(config);
 
@@ -202,7 +202,7 @@ START_TEST (proxy_connect)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockformat1", NULL);
+	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockformat1", NULL);
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
 	osync_plugin_config_unref(config);
 	fail_unless(error == NULL, NULL);
