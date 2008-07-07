@@ -33,9 +33,8 @@ struct OSyncPluginRessource {
 	/** MIME type of this ressource */
 	char *mime;
 	/** Objtype of the ressource */
-	// KILL?! TODO
-	//char *objtype;
-	/** ObjFormatSink List of this ressource */
+	char *objtype;
+	/** OSyncObjFormatSink List of this ressource */
 	OSyncList *objformatsinks;
 	/** Filesystem path */
 	char *path;

@@ -53,6 +53,9 @@ void osync_plugin_ressource_unref(OSyncPluginRessource *ressource)
 		if (ressource->name)
 			g_free(ressource->name);
 
+		if (ressource->objtype)
+			g_free(ressource->objtype);
+
 		if (ressource->mime)
 			g_free(ressource->mime);
 
@@ -140,7 +143,6 @@ void osync_plugin_ressource_remove_objformat_sink(OSyncPluginRessource *ressourc
 	osync_objformat_sink_unref(formatsink);
 }
 
-#if 0 /* KILL? */
 const char *osync_plugin_ressource_get_objtype(OSyncPluginRessource *ressource)
 {
 	osync_assert(ressource);
@@ -155,7 +157,6 @@ void osync_plugin_ressource_set_objtype(OSyncPluginRessource *ressource, const c
 
 	ressource->objtype = g_strdup(objtype);
 }
-#endif
 
 const char *osync_plugin_ressource_get_path(OSyncPluginRessource *ressource)
 {
