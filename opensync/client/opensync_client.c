@@ -463,6 +463,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	char *groupname = NULL;
 	char *configdir = NULL;
 	char *formatdir = NULL;
+	int haspluginconfig = 0;
 	OSyncPluginConfig *config = NULL;
 	OSyncQueue *outgoing = NULL;
 	
@@ -474,8 +475,9 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_string(message, &pluginname);
 	osync_message_read_string(message, &groupname);
 	osync_message_read_string(message, &configdir);
+	osync_message_read_int(message, &haspluginconfig);
 
-	if (!osync_demarshal_pluginconfig(message, &config, error))
+	if (haspluginconfig && !osync_demarshal_pluginconfig(message, &config, error))
 		goto error;
 	
 	osync_trace(TRACE_INTERNAL, "enginepipe %s, formatdir %s, plugindir %s, pluginname %s", enginepipe, formatdir, plugindir, pluginname);
@@ -525,10 +527,12 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 		goto error;
 	
 	osync_plugin_info_set_configdir(client->plugin_info, configdir);
-	osync_plugin_info_set_config(client->plugin_info, config);
 	osync_plugin_info_set_loop(client->plugin_info, client->context);
 	osync_plugin_info_set_format_env(client->plugin_info, client->format_env);
 	osync_plugin_info_set_groupname(client->plugin_info, groupname);
+
+	if (config)
+		osync_plugin_info_set_config(client->plugin_info, config);
 	
 #ifdef OPENSYNC_UNITTESTS
 	long long int memberid;
@@ -583,7 +587,9 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	g_free(plugindir);
 	g_free(groupname);
 	g_free(formatdir);
-	osync_plugin_config_unref(config);
+	
+	if (config)
+		osync_plugin_config_unref(config);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -599,7 +605,10 @@ error:
 	g_free(plugindir);
 	g_free(groupname);
 	g_free(formatdir);
-	osync_plugin_config_unref(config);
+
+	if (config)
+		osync_plugin_config_unref(config);
+
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }

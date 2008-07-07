@@ -1003,6 +1003,8 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
 	osync_assert(proxy);
 	
+	int haspluginconfig = config ? TRUE : FALSE;
+
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
@@ -1021,8 +1023,9 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	osync_message_write_string(message, plugin);
 	osync_message_write_string(message, groupname);
 	osync_message_write_string(message, configdir);
+	osync_message_write_int(message, haspluginconfig);
 
-	if (!osync_marshal_pluginconfig(message, config, error))
+	if (haspluginconfig && !osync_marshal_pluginconfig(message, config, error))
 		goto error;
 
 #ifdef OPENSYNC_UNITTESTS
