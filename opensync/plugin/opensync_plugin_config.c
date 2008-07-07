@@ -546,7 +546,7 @@ error:
 	return FALSE;
 }
 
-osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error)
+osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, config, __NULLSTR(path), __NULLSTR(schemadir), error);
 	xmlDocPtr doc = NULL;
@@ -907,11 +907,6 @@ OSyncPluginConfig *osync_plugin_config_ref(OSyncPluginConfig *config)
 	g_atomic_int_inc(&(config->ref_count));
 
 	return config;
-}
-
-osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, OSyncError **error)
-{
-	return _osync_plugin_config_file_load(config, path, NULL, error);
 }
 
 osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *path, OSyncError **error)

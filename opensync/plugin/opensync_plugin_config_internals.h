@@ -41,7 +41,5 @@ struct OSyncPluginConfig {
 	int ref_count;
 };
 
-osync_bool _osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error);
-
 #endif /*_OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_*/
 
