@@ -52,9 +52,10 @@
   <xsd:complexType name="Ressource">
     <xsd:sequence>
       <xsd:element maxOccurs="1" minOccurs="1" name="Enabled" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Formats" type="Formats" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Name" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="MIME" type="xsd:string" />
-      <xsd:element maxOccurs="1" minOccurs="0" name="Formats" type="Formats" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="ObjType" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Path" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Url" type="xsd:string" />
     </xsd:sequence>

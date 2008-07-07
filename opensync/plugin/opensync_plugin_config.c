@@ -450,13 +450,15 @@ static OSyncPluginRessource *_osync_plugin_config_parse_ressource(OSyncPluginCon
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Enabled")) {
 			osync_plugin_ressource_enable(res, atoi(str));
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Formats")) {
+			if (!_osync_plugin_config_parse_ressource_formats(res, cur->xmlChildrenNode, error))
+				goto error_free_str;
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Name")) {
 			osync_plugin_ressource_set_name(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"MIME")) {
 			osync_plugin_ressource_set_mime(res, str);
-		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Formats")) {
-			if (!_osync_plugin_config_parse_ressource_formats(res, cur->xmlChildrenNode, error))
-				goto error_free_str;
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"ObjType")) {
+			osync_plugin_ressource_set_objtype(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Path")) {
 			osync_plugin_ressource_set_path(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Url")) {
@@ -803,7 +805,7 @@ static osync_bool _osync_plugin_config_assemble_ressource(xmlNode *cur, OSyncPlu
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, res, error);
 
 	OSyncList *o;
-	const char *name, *mime, *path, *url;
+	const char *name, *mime, *objtype, *path, *url;
 
 	xmlNode *next, *node = xmlNewChild(cur, NULL, (xmlChar*)"Ressource", NULL);
 	if (!node) {
@@ -814,18 +816,22 @@ static osync_bool _osync_plugin_config_assemble_ressource(xmlNode *cur, OSyncPlu
 	osync_bool res_enabled = osync_plugin_ressource_is_enabled(res);
 	xmlNewChild(node, NULL, (xmlChar*)"Enabled", res_enabled ? (xmlChar*) "1" : (xmlChar*) "0");
 
-	if ((name = osync_plugin_ressource_get_name(res)))
-		xmlNewChild(node, NULL, (xmlChar*)"Name", (xmlChar*)name);
-
-	if ((mime = osync_plugin_ressource_get_mime(res)))
-		xmlNewChild(node, NULL, (xmlChar*)"MIME", (xmlChar*)mime);
-
 	next = xmlNewChild(node, NULL, (xmlChar*)"Formats", NULL);
 	for (o = osync_plugin_ressource_get_objformat_sinks(res); o; o = o->next) {
 		OSyncObjFormatSink *format_sink = o->data;
 		if (!_osync_plugin_config_assemble_ressource_format(next, format_sink, error))
 			goto error;
 	}
+
+	if ((name = osync_plugin_ressource_get_name(res)))
+		xmlNewChild(node, NULL, (xmlChar*)"Name", (xmlChar*)name);
+
+	if ((mime = osync_plugin_ressource_get_mime(res)))
+		xmlNewChild(node, NULL, (xmlChar*)"MIME", (xmlChar*)mime);
+
+	objtype = osync_plugin_ressource_get_objtype(res);
+	osync_assert(objtype); /* ObjType for Ressource MUST be set! */
+	xmlNewChild(node, NULL, (xmlChar*)"ObjType", (xmlChar*) objtype);
 
 	if ((path = osync_plugin_ressource_get_path(res)))
 		xmlNewChild(node, NULL, (xmlChar*)"Path", (xmlChar*)path);

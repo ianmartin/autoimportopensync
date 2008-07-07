@@ -450,6 +450,14 @@ START_TEST (plugin_config_ressources)
 	fail_unless(osync_list_length(osync_plugin_ressource_get_objformat_sinks(ressource)) == 2, NULL);
 	osync_objformat_sink_unref(format_sink2);
 
+	/* ObjType */
+	osync_plugin_ressource_set_objtype(ressource, "foobar");
+	fail_unless(!strcmp(osync_plugin_ressource_get_objtype(ressource), "foobar"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_ressource_set_objtype(ressource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_ressource_get_objtype(ressource), "barfoo"), NULL);
+
 	/* Path */
 	osync_plugin_ressource_set_path(ressource, "foobar");
 	fail_unless(!strcmp(osync_plugin_ressource_get_path(ressource), "foobar"), NULL);
@@ -539,6 +547,7 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_ressource_set_name(ressource1, "foobar1");
 	osync_plugin_ressource_set_mime(ressource1, "foobar1");
 	osync_plugin_ressource_add_objformat_sink(ressource1, format_sink1);
+	osync_plugin_ressource_set_objtype(ressource1, "foobar1");
 	osync_plugin_ressource_set_path(ressource1, "foobar1");
 	osync_plugin_ressource_set_url(ressource1, "foobar1");
 
@@ -555,6 +564,7 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_ressource_set_name(ressource2, "foobar2");
 	osync_plugin_ressource_set_mime(ressource2, "foobar2");
 	osync_plugin_ressource_add_objformat_sink(ressource2, format_sink2);
+	osync_plugin_ressource_set_objtype(ressource2, "foobar2");
 	osync_plugin_ressource_set_path(ressource2, "foobar2");
 	osync_plugin_ressource_set_url(ressource2, "foobar2");
 
@@ -598,6 +608,8 @@ START_TEST (plugin_config_save_and_load)
 		fail_unless(!strcmp(osync_plugin_ressource_get_name(r->data), value), NULL);
 		fail_unless(!strcmp(osync_plugin_ressource_get_mime(r->data), value), NULL);
 		fail_unless(!strcmp(_format_sink_get_objformat(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_ressource_get_objtype(r->data), value), NULL);
+
 		fail_unless(!strcmp(osync_plugin_ressource_get_path(r->data), value), NULL);
 		fail_unless(!strcmp(osync_plugin_ressource_get_url(r->data), value), NULL);
 		g_free(value);
