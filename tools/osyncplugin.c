@@ -1074,7 +1074,7 @@ error_disconnect_and_finalize:
 	if (plugin_env)
 		osync_plugin_env_free(plugin_env);
 error:	
-	fprintf(stderr, "%s\n", osync_error_print(&error));
+	fprintf(stderr, "Error: %s\n", osync_error_print(&error));
 	osync_error_unref(&error);
 	return FALSE;
 }
