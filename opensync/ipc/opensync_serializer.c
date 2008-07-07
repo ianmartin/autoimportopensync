@@ -634,6 +634,253 @@ error:
 	return FALSE;
 }
 
+#define MARSHAL_OBJFORMATSINK_CONFIG (0x1 << 1)
+
+osync_bool osync_marshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink *sink, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(sink);
+
+	/* Order:
+	 *
+	 * name (string)
+	 *
+	 * available_settings (uint)
+	 * 
+	 * (optional)
+	 * config (string)
+	 */
+
+	unsigned int available_settings = 0;
+	const char *config = osync_objformat_sink_get_config(sink);
+	const char *name = osync_objformat_sink_get_objformat(sink);
+
+	osync_assert(name);
+	osync_message_write_string(message, name);
+	
+	if (config)
+		available_settings |= MARSHAL_OBJFORMATSINK_CONFIG;
+
+	osync_message_write_uint(message, available_settings);
+
+	if (config)
+		osync_message_write_string(message, config); 
+
+	return TRUE;
+}
+
+osync_bool osync_demarshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink **sink, OSyncError **error)
+{
+	osync_assert(message);
+
+	/* Order:
+	 *
+	 * name (string)
+	 *
+	 * available_settings (uint)
+	 * 
+	 * (optional)
+	 * config (string)
+	 */
+
+	char *name = NULL;
+	char *config = NULL;
+
+	unsigned int available_settings = 0;
+
+	osync_message_read_string(message, &name);
+	osync_assert(name);
+
+	*sink = osync_objformat_sink_new(name, error);
+	if (!*sink)
+		goto error;
+
+	g_free(name);
+
+	osync_message_read_uint(message, &available_settings);
+
+	if (available_settings & MARSHAL_OBJFORMATSINK_CONFIG) {
+		osync_message_read_string(message, &config);
+		osync_objformat_sink_set_config(*sink, config);
+		g_free(config);
+	}
+
+	return TRUE;
+
+error:
+	if (name)
+		g_free(name);
+	return FALSE;
+}
+
+#define MARSHAL_PLUGINRESSOURCE_NAME (0x1 << 1)
+#define MARSHAL_PLUGINRESSOURCE_MIME (0x1 << 2)
+#define MARSHAL_PLUGINRESSOURCE_PATH (0x1 << 3)
+#define MARSHAL_PLUGINRESSOURCE_URL  (0x1 << 4)
+
+osync_bool osync_marshal_pluginressource(OSyncMessage *message, OSyncPluginRessource *res, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(res);
+
+	/* Order:
+	 *
+	 * enabled (int)
+	 * objtype (string)
+	 * num_sinks (uint)
+	 * sinks (OSyncObjFormatSink)
+	 *
+	 * available_settings (uint)
+	 * 
+	 * (optional)
+	 * name (string)
+	 * mime (string)
+	 * path (string)
+	 * url (string)
+	 */
+
+	unsigned int available_settings = 0;
+
+	const char *name = osync_plugin_ressource_get_name(res);
+	const char *mime = osync_plugin_ressource_get_mime(res);
+	const char *objtype = osync_plugin_ressource_get_objtype(res);
+	const char *path = osync_plugin_ressource_get_path(res);
+	const char *url = osync_plugin_ressource_get_url(res);
+
+	/* enabled */
+	osync_message_write_int(message, osync_plugin_ressource_is_enabled(res));
+
+	/* objtype */
+	osync_assert(objtype);
+	osync_message_write_string(message, objtype);
+
+	/* num_sinks */
+	OSyncList *sinks = osync_plugin_ressource_get_objformat_sinks(res);
+	unsigned int num_sinks = osync_list_length(sinks);
+	osync_message_write_uint(message, num_sinks);
+
+	/* format sinks */
+	OSyncList *s;
+	for (s = osync_plugin_ressource_get_objformat_sinks(res); s; s = s->next) {
+		OSyncObjFormatSink *sink = s->data;
+		if (!osync_marshal_objformatsink(message, sink, error))
+			goto error;
+	}
+
+	/** optional fields */
+
+	if (name)
+		available_settings |= MARSHAL_PLUGINRESSOURCE_NAME;
+
+	if (mime)
+		available_settings |= MARSHAL_PLUGINRESSOURCE_MIME;
+
+	if (path)
+		available_settings |= MARSHAL_PLUGINRESSOURCE_PATH;
+
+	if (url)
+		available_settings |= MARSHAL_PLUGINRESSOURCE_URL;
+
+	osync_message_write_uint(message, available_settings);
+
+	if (name)
+		osync_message_write_string(message, name);
+
+	if (mime)
+		osync_message_write_string(message, mime);
+
+	if (path)
+		osync_message_write_string(message, path);
+
+	if (url)
+		osync_message_write_string(message, url);
+	
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+osync_bool osync_demarshal_pluginressource(OSyncMessage *message, OSyncPluginRessource **res, OSyncError **error)
+{
+	/* Order:
+	 *
+	 * enabled (int)
+	 * objtype (string)
+	 * num_sinks (uint)
+	 * sinks (OSyncObjFormatSink)
+	 *
+	 * available_settings (uint)
+	 * 
+	 * (optional)
+	 * name (string)
+	 * mime (string)
+	 * path (string)
+	 * url (string)
+	 */
+
+	int enabled;
+	char *objtype = NULL;
+	unsigned int i, num_sinks;
+	unsigned int available_settings;
+	char *name = NULL;
+	char *mime = NULL;
+	char *path = NULL;
+	char *url = NULL;
+
+	*res = osync_plugin_ressource_new(error);
+	if (!*res)
+		goto error;
+
+
+	osync_message_read_int(message, &enabled);
+	osync_plugin_ressource_enable(*res, enabled);
+
+	osync_message_read_string(message, &objtype);
+	osync_plugin_ressource_set_objtype(*res, objtype);
+	g_free(objtype);
+
+	osync_message_read_uint(message, &num_sinks);
+	for (i=0; i < num_sinks; i++) {
+		OSyncObjFormatSink *sink = NULL;
+		if (!osync_demarshal_objformatsink(message, &sink, error))
+			goto error;
+
+		osync_plugin_ressource_add_objformat_sink(*res, sink);
+	}
+
+	osync_message_read_uint(message, &available_settings);
+
+	if (available_settings & MARSHAL_PLUGINRESSOURCE_NAME) {
+		osync_message_read_string(message, &name);
+		osync_plugin_ressource_set_name(*res, name);
+		g_free(name);
+	}
+
+	if (available_settings & MARSHAL_PLUGINRESSOURCE_MIME) {
+		osync_message_read_string(message, &mime);
+		osync_plugin_ressource_set_mime(*res, mime);
+		g_free(mime);
+	}
+
+	if (available_settings & MARSHAL_PLUGINRESSOURCE_PATH) {
+		osync_message_read_string(message, &path);
+		osync_plugin_ressource_set_path(*res, path);
+		g_free(path);
+	}
+
+	if (available_settings & MARSHAL_PLUGINRESSOURCE_URL) {
+		osync_message_read_string(message, &url);
+		osync_plugin_ressource_set_url(*res, url);
+		g_free(url);
+	}
+
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
 #define MARSHAL_PLUGINCONFIG_CONNECTION (0x1 << 1)
 #define MARSHAL_PLUGINCONFIG_AUTHENTICATON (0x1 << 2)
 #define MARSHAL_PLUGINCONFIG_LOCALIZATION (0x1 << 3)
@@ -650,6 +897,8 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 	 * $connection
 	 * $authenticatoin
 	 * $localization
+	 * $num_ressources
+	 * $ressources
 	 */
 
 	unsigned int available_subconfigs = 0;
@@ -664,6 +913,17 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 
 	if (conn && !osync_marshal_pluginconnection(message, conn, error))
 		goto error;
+
+
+	OSyncList *r = osync_plugin_config_get_ressources(config);
+	osync_message_write_uint(message, osync_list_length(r));
+
+	for (; r; r = r->next) {
+		OSyncPluginRessource *res = r->data;
+		if (!osync_marshal_pluginressource(message, res, error))
+			goto error;
+	}
+
 	
 	return TRUE;
 
@@ -680,11 +940,14 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 	 * $connection
 	 * $authenticatoin
 	 * $localization
+	 * $num_ressources
+	 * $ressources
 
 	 */
 
 	OSyncPluginConnection *conn = NULL;
 	unsigned int available_subconfigs = 0;
+	unsigned int i, num_ressources = 0;
 	
 	*config = osync_plugin_config_new(error);
 	if (!*config)
@@ -701,6 +964,17 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 		osync_plugin_config_set_connection(*config, conn);
 	}
 
+	osync_message_read_uint(message, &num_ressources);
+
+	/* number of ressources */
+	for (i = 0; i < num_ressources; i++) {
+		OSyncPluginRessource *res;
+		if (!osync_demarshal_pluginressource(message, &res, error))
+			goto error_free_config;
+
+		osync_plugin_config_add_ressource(*config, res);
+
+	}
 
 	return TRUE;
 
