@@ -732,27 +732,20 @@ static osync_bool mock_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
 	osync_assert_msg(config, "No OSyncPluginConfig set for mock_discover!");
 
+	/*
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	osync_assert_msg(config, "No OSyncFormatEnv set for mock_discover!");
+	*/
 
 	OSyncList *r = osync_plugin_config_get_ressources(config);
 	for (; r; r = r->next) {
 		OSyncPluginRessource *res = r->data;
 		OSyncObjTypeSink *sink;
 
-		OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
-		for (; o; o = o->next) {
-			OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
-			const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
-			OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, objformat_str);
-			const char *objtype = osync_objformat_get_objtype(objformat);
-
-			osync_trace(TRACE_INTERNAL, "objtype: %s\n", objtype);
-
-			/* Check for ObjType sink */
-			if ((sink = osync_plugin_info_find_objtype(info, objtype)))
-				osync_objtype_sink_set_available(sink, TRUE);
-		}
+		const char *objtype = osync_plugin_ressource_get_objtype(res);
+		/* Check for ObjType sink */
+		if ((sink = osync_plugin_info_find_objtype(info, objtype)))
+			osync_objtype_sink_set_available(sink, TRUE);
  	}
 
 	
