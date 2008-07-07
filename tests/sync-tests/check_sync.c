@@ -6,6 +6,8 @@
 #include <opensync/opensync-engine.h>
 #include <opensync/opensync-mapping.h>
 
+#include "opensync/group/opensync_group_internals.h"
+
 START_TEST (sync_setup_connect)
 {
 	char *testbed = setup_testbed("sync");
@@ -15,6 +17,7 @@ START_TEST (sync_setup_connect)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -59,6 +62,7 @@ START_TEST (sync_easy_new)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -159,6 +163,7 @@ START_TEST (sync_easy_new_del)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -285,6 +290,7 @@ START_TEST (sync_easy_conflict)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -388,6 +394,7 @@ START_TEST (sync_easy_new_mapping)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -548,6 +555,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -721,6 +729,7 @@ START_TEST (sync_easy_conflict_abort)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -973,6 +982,7 @@ START_TEST (sync_conflict_duplicate2)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -1152,6 +1162,7 @@ START_TEST (sync_conflict_delay)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -1321,6 +1332,7 @@ START_TEST (sync_conflict_deldel)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -1425,6 +1437,7 @@ START_TEST (sync_moddel)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -1594,6 +1607,7 @@ START_TEST (sync_conflict_moddel)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -1704,6 +1718,7 @@ START_TEST (sync_easy_dualdel)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -1888,6 +1903,7 @@ START_TEST (sync_large)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -2249,6 +2265,7 @@ START_TEST (sync_detect_obj)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -2456,6 +2473,7 @@ START_TEST (sync_detect_obj2)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -2655,6 +2673,7 @@ START_TEST (sync_slowsync_connect)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -2751,6 +2770,7 @@ START_TEST (sync_slowsync_connect)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -2857,6 +2877,7 @@ START_TEST (sync_slowsync_mainsink_connect)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -2952,6 +2973,7 @@ START_TEST (sync_slowsync_mainsink_connect)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	

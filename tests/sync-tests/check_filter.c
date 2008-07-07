@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include "opensync/format/opensync_filter_internals.h"
+#include "opensync/group/opensync_group_internals.h"
 
 static osync_bool dummy_filter_hook(OSyncData *data, const char *config)
 {
@@ -84,6 +85,7 @@ START_TEST (filter_sync_deny_all)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
@@ -126,6 +128,7 @@ START_TEST (filter_sync_custom)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
@@ -169,6 +172,7 @@ START_TEST (filter_save_and_load)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);
@@ -330,6 +334,7 @@ START_TEST(filter_destobjtype_delete)
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, osync_error_print(&error));
 	fail_unless(group != NULL, NULL);

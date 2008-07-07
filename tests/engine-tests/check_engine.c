@@ -9,6 +9,7 @@
 #include <opensync/opensync-context.h>
 
 #include "opensync/engine/opensync_engine_internals.h"
+#include "opensync/group/opensync_member_internals.h"
 
 #include "../mock-plugin/mock_sync.h"
 #include "../mock-plugin/mock_format.h"
@@ -80,6 +81,7 @@ START_TEST (engine_init)
 	osync_member_set_pluginname(member1, "mock-sync");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(member1, path);
+	osync_member_set_schemadir(member1, testbed);
 	g_free(path);
 	
 	OSyncMember *member2 = osync_member_new(&error);
@@ -90,6 +92,7 @@ START_TEST (engine_init)
 	osync_member_set_pluginname(member2, "mock-sync");
 	path = g_strdup_printf("%s/configs/group/1", testbed);
 	osync_member_set_configdir(member2, path);
+	osync_member_set_schemadir(member2, testbed);
 	g_free(path);
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);

@@ -2,6 +2,7 @@
 #include "engine_support.h"
 
 #include "opensync/engine/opensync_engine_internals.h"
+#include "opensync/group/opensync_group_internals.h"
 
 #include <opensync/opensync-group.h>
 #include <opensync/opensync-data.h>
@@ -809,6 +810,7 @@ START_TEST (one_of_two_connect_error)
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error); 
 	fail_unless(error == NULL, NULL);
 
@@ -854,6 +856,7 @@ START_TEST (two_of_three_connect_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -900,6 +903,7 @@ START_TEST (two_of_three_connect_error2)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -946,6 +950,7 @@ START_TEST (three_of_three_connect_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -990,6 +995,7 @@ START_TEST (one_of_three_connect_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1035,6 +1041,7 @@ START_TEST (no_connect_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1083,6 +1090,7 @@ START_TEST (single_connect_timeout)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1132,6 +1140,7 @@ START_TEST (dual_connect_timeout)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1180,6 +1189,7 @@ START_TEST (one_of_three_timeout)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1229,6 +1239,7 @@ START_TEST (timeout_and_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1278,6 +1289,7 @@ START_TEST (single_get_changes_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1328,6 +1340,7 @@ START_TEST (dual_get_changes_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1380,6 +1393,7 @@ START_TEST (two_of_three_get_changes_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1430,6 +1444,7 @@ START_TEST (one_of_three_get_changes_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1480,6 +1495,7 @@ START_TEST (one_of_three_get_changes_timeout)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1534,6 +1550,7 @@ START_TEST (get_changes_timeout_and_error)
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1589,6 +1606,7 @@ START_TEST (get_changes_timeout_sleep)
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1645,6 +1663,7 @@ START_TEST (single_commit_error)
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1702,6 +1721,7 @@ START_TEST (dual_commit_error)
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1755,6 +1775,7 @@ START_TEST (single_commit_timeout)
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1810,6 +1831,7 @@ START_TEST (dual_commit_timeout)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1866,6 +1888,7 @@ START_TEST (commit_timeout_and_error)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1922,6 +1945,7 @@ START_TEST (commit_timeout_and_error2)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -1976,6 +2000,7 @@ START_TEST (commit_error_modify)
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2041,6 +2066,7 @@ START_TEST (commit_error_delete)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2108,6 +2134,7 @@ START_TEST (committed_all_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2162,6 +2189,7 @@ START_TEST (committed_all_batch_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2215,6 +2243,7 @@ START_TEST (single_sync_done_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2268,6 +2297,7 @@ START_TEST (dual_sync_done_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2321,6 +2351,7 @@ START_TEST (triple_sync_done_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2374,6 +2405,7 @@ START_TEST (single_sync_done_timeout)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2429,6 +2461,7 @@ START_TEST (dual_sync_done_timeout)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2485,6 +2518,7 @@ START_TEST (sync_done_timeout_and_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2540,6 +2574,7 @@ START_TEST (single_disconnect_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2593,6 +2628,7 @@ START_TEST (dual_disconnect_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2646,6 +2682,7 @@ START_TEST (triple_disconnect_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2699,6 +2736,7 @@ START_TEST (single_disconnect_timeout)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2754,6 +2792,7 @@ START_TEST (dual_disconnect_timeout)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2810,6 +2849,7 @@ START_TEST (disconnect_timeout_and_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 
@@ -2868,6 +2908,7 @@ START_TEST (get_changes_disconnect_error)
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", &error);
 	fail_unless(error == NULL, NULL);
 

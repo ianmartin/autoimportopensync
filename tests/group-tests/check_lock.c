@@ -3,13 +3,15 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync-group.h>
 #include <opensync/opensync_internals.h>
-#include <opensync/engine/opensync_engine_internals.h>
+#include "opensync/engine/opensync_engine_internals.h"
+#include "opensync/group/opensync_group_internals.h"
 
 START_TEST (simple_lock)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncGroup *group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	
 	fail_unless(osync_group_lock(group) == OSYNC_LOCK_OK, NULL);
@@ -27,6 +29,7 @@ START_TEST (simple_seq_lock)
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncGroup *group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	
 	fail_unless(osync_group_lock(group) == OSYNC_LOCK_OK, NULL);
@@ -47,6 +50,7 @@ START_TEST (dual_lock)
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncGroup *group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	
 	fail_unless(osync_group_lock(group) == OSYNC_LOCK_OK, NULL);
@@ -64,8 +68,10 @@ START_TEST (dual_lock2)
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncGroup *group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	OSyncGroup *group2 = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group2, "configs/group", NULL);
 	
 	fail_unless(osync_group_lock(group) == OSYNC_LOCK_OK, NULL);
@@ -84,8 +90,10 @@ START_TEST (dual_sync_engine_lock)
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncGroup *group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	OSyncGroup *group2 = osync_group_new(NULL);
+	osync_group_set_schemadir(group2, testbed);
 	osync_group_load(group2, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
@@ -141,6 +149,7 @@ START_TEST (dual_sync_engine_unclean)
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncGroup *group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
@@ -186,6 +195,7 @@ START_TEST (dual_sync_engine_unclean)
 
 
 	group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	engine = osync_engine_new(group, &error);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
@@ -210,6 +220,7 @@ START_TEST (dual_sync_engine_unclean)
 	osync_group_unref(group);
 	
 	group = osync_group_new(NULL);
+	osync_group_set_schemadir(group, testbed);
 	osync_group_load(group, "configs/group", NULL);
 	engine = osync_engine_new(group, &error);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
