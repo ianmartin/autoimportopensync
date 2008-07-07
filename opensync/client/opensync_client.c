@@ -541,7 +541,11 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 #endif	
 
 	/* Enable active sinks */
-	OSyncList *r = osync_plugin_config_get_ressources(config);
+	OSyncList *r = NULL;
+
+	if (config)
+		r = osync_plugin_config_get_ressources(config);
+
 	for (; r; r = r->next) {
 		OSyncPluginRessource *res = r->data;
 		OSyncObjTypeSink *sink;
