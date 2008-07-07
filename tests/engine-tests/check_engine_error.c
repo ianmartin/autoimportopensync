@@ -120,14 +120,12 @@ static void *initialize_connect_error(OSyncPlugin *plugin, OSyncPluginInfo *info
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
 	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
-	if (!env)
-		goto error;
+	osync_assert(env);
 
-	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
-	if (!sink)
-		goto error;
+	OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, 0);
+	osync_assert(sink);
 	
-	OSyncObjFormatSink *formatsink = osync_objformat_sink_new("mockobjtype1", error);
+	OSyncObjFormatSink *formatsink = osync_objformat_sink_new("mockformat1", error);
 	osync_objtype_sink_add_objformat_sink(sink, formatsink);
 	
 	OSyncObjTypeSinkFunctions functions;
@@ -142,10 +140,6 @@ static void *initialize_connect_error(OSyncPlugin *plugin, OSyncPluginInfo *info
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
 }
 
 static void finalize(void *data)
