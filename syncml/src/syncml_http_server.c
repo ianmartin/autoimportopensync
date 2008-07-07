@@ -64,6 +64,7 @@ osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config
 	env->recvLimit = 0;
 	env->password = NULL;
 	env->useStringtable = TRUE;
+	env->useTimestampAnchor = TRUE;
 	env->onlyReplace = FALSE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
@@ -110,6 +111,10 @@ osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
 				env->useStringtable = atoi(str);
+			}
+
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"useTimestampAnchor")) {
+				env->useTimestampAnchor = atoi(str);
 			}
 
 			/* XXX Workaround for mobiles which only handle localtime! */

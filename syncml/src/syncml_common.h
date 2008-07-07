@@ -77,6 +77,7 @@ typedef struct SmlPluginEnv {
 	char *url;
 	char *proxy;
 	char *cafile;
+	SmlBool useTimestampAnchor;
 	
 	unsigned int recvLimit;
 	unsigned int maxObjSize;
@@ -217,5 +218,7 @@ void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool 
 OSyncChangeType _to_osync_changetype(SmlChangeType type);
 void set_session_user(SmlPluginEnv *env, const char* user);
 unsigned int get_num_changes(OSyncChange **changes);
+
+char *get_next_anchor(SmlDatabase *database, const char *last);
 
 #endif //_SYNCML_COMMON_H

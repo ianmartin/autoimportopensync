@@ -81,6 +81,20 @@
   
   <maxObjSize>0</maxObjSize>
   
+  <!-- The old default behavior of OpenSync was to use the same      -->
+  <!-- format like the connecting client. Some clients which were    -->
+  <!-- connected with another software expect always the anchor      -->
+  <!-- format of this software. Therefore it is possible to          -->
+  <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
+  <!--                                                               -->
+  <!--     0 ==> number format beginning with 1                      -->
+  <!--     1 ==> timestamp format                                    -->
+  <!--                                                               -->
+  <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
+  <!-- behavior is determined from the cached Last anchor.           -->
+
+  <useTimestampAnchor>1</useTimestampAnchor>
+  
   <!-- XXX: Currently you need to write this by your own.
        Later it's planned to create such entries on the fly during
        the discovery() call. Example database field:

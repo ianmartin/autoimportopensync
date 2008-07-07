@@ -731,3 +731,49 @@ void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool 
         *error = NULL;
     }
 }
+
+char *get_next_anchor(SmlDatabase *database, const char *last)
+{
+	osync_trace(TRACE_ENTRY, "%s - %s", __func__, last);
+	SmlBool use_timestamp = TRUE;
+	char *next = NULL;
+
+	/* determine the used format */
+	if (last == NULL || strlen(last) < 1)
+	{
+		/* last is not set until now */
+		use_timestamp = database->env->useTimestampAnchor;
+		if (! use_timestamp)
+			next = "1";
+	} else {
+		/* last is set in the anchro database */
+		if (strstr(last, "Z"))
+		{
+			/* last is a timestamp */
+			use_timestamp = TRUE;
+		} else {
+			/* last is a number */
+			use_timestamp = FALSE;
+		}
+	}
+	osync_trace(TRACE_INTERNAL, "%s - use timestamp is %d", __func__, use_timestamp);
+
+	if (use_timestamp)
+	{
+		next = malloc(sizeof(char)*17);
+		time_t htime = time(NULL);
+		if (database->env->onlyLocaltime)
+			strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
+		else
+			strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+	} else {
+		if (next == NULL)
+		{
+			unsigned long count = strtoul(last, NULL, 10);
+			count++;
+			next = g_strdup_printf("%lu", count);
+		}
+	}
+	osync_trace(TRACE_ENTRY, "%s - %s", __func__, next);
+	return next;
+}

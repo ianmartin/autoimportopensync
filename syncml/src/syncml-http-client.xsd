@@ -24,6 +24,7 @@
           <xsd:element default="0" name="onlyLocaltime" type="os:Boolean"/>
           <xsd:element default="0" name="recvLimit" type="os:Numeric"/>
           <xsd:element default="0" name="maxObjSize" type="os:Numeric"/>
+          <xsd:element default="1" name="useTimestampAnchor" type="os:Boolean"/>
           <xsd:element default="contacts" name="contact_db" type="os:String"/>
           <xsd:element default="calendar" name="calendar_db" type="os:String"/>
           <xsd:element default="notes" name="note_db" type="os:String"/>

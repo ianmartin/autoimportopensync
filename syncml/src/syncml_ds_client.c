@@ -59,15 +59,9 @@ void ds_client_init_sync_mode(SmlDatabase *database)
         SmlError *error = NULL;
         OSyncError *oserror = NULL;
 
-	/* initialize the timestamps and alert type */
+	/* initialize the last anchor */
 	SmlAlertType alertType = SML_ALERT_SLOW_SYNC;
 	char *local_last = NULL; // perhaps NULL is better
-	database->localNext = malloc(sizeof(char)*17);
-	time_t htime = time(NULL);
-	if (env->onlyLocaltime)
-		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
-	else
-		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
 	if (!osync_objtype_sink_get_slowsync(database->sink))
         {
 		/* this must be a two-way-sync */
@@ -76,6 +70,11 @@ void ds_client_init_sync_mode(SmlDatabase *database)
 		local_last = osync_anchor_retrieve(database->env->anchor_path, local_key);
 		safe_cfree(&local_key);
 	}
+
+	/* initialize the next anchor */
+	if (database->localNext)
+		safe_cfree(&(database->localNext));
+	database->localNext = get_next_anchor(database, local_last);
 
 	/* The OMA DS client starts the synchronization so there should be no
 	 * DsSession (datastore session) present.
@@ -223,12 +222,7 @@ void ds_client_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     char *local_last = osync_anchor_retrieve(database->env->anchor_path, local_key);
     if (database->localNext)
         safe_cfree(&(database->localNext));
-    database->localNext = malloc(sizeof(char)*17);
-    time_t htime = time(NULL);
-    if (database->env->onlyLocaltime)
-        strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
-    else
-        strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+    database->localNext = get_next_anchor(database, local_last);
     database->session = smlDsServerSendAlert(
                                database->server,
                                database->env->session,

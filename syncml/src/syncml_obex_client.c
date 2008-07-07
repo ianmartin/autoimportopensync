@@ -70,6 +70,8 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, config, error);
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
+
+	env->useTimestampAnchor = TRUE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -159,6 +161,10 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
 				env->useStringtable = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"useTimestampAnchor")) {
+				env->useTimestampAnchor = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyreplace")) {

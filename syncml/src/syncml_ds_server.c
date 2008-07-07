@@ -207,12 +207,9 @@ SmlBool _ds_server_recv_alert(SmlDsSession *dsession, SmlAlertType type, const c
 	/* generate new timestamp for local anchors */
 	char *local_key = g_strdup_printf("localanchor%s", smlDsSessionGetLocation(dsession));
 	char *local_last = osync_anchor_retrieve(database->env->anchor_path, local_key);
-	database->localNext = malloc(sizeof(char)*17);
-	time_t htime = time(NULL);
-	if (database->env->onlyLocaltime)
-		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
-	else
-		strftime(database->localNext, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
+	if (database->localNext)
+		safe_cfree(&(database->localNext));
+	database->localNext = get_next_anchor(database, local_last);
 
 	/* send alert */
 	if (osync_objtype_sink_get_slowsync(database->sink)) {

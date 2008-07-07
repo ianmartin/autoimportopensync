@@ -211,6 +211,7 @@ osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config
         env->onlyLocaltime = FALSE;
         env->maxObjSize = 0;
         env->recvLimit = 0;
+	env->useTimestampAnchor = TRUE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -279,6 +280,9 @@ osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit")) {
 				env->recvLimit = atoi(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"useTimestampAnchor")) {
+				env->useTimestampAnchor = atoi(str);
 			}
 
 			/* this is necessary to work together with such servers like OCS */
