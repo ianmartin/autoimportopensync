@@ -697,6 +697,7 @@ OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *p
 	OSyncPluginRessource *res = osync_plugin_ressource_new(&error);
 	osync_plugin_ressource_set_objtype(res, objtype);
 	osync_plugin_ressource_set_path(res, path); 
+	osync_plugin_ressource_enable(res, TRUE);
 	osync_plugin_ressource_add_objformat_sink(res, format_sink);
 
 
