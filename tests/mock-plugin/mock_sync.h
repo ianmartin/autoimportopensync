@@ -65,7 +65,7 @@ typedef struct MockDir {
 	OSyncObjFormat *objformat;
 	OSyncPluginRessource *res;
 	GDir *dir;
-	char *path;
+	const char *path;
 	OSyncHashTable *hashtable;
 	mock_env *env;
 	osync_bool committed_all;
