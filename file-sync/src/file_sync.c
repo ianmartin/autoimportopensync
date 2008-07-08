@@ -545,16 +545,17 @@ static void osync_filesync_finalize(void *data)
 }
 
 /* Here we actually tell opensync which sinks are available. For this plugin, we
- * go through the list of directories and enable all, since all have been configured */
+ * just report all objtype as available. Since the ressource are configured like this. */
 static osync_bool osync_filesync_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
-	OSyncFileEnv *env = (OSyncFileEnv *)data;
-	GList *o = env->directories;
-	for (; o; o = o->next) {
-		OSyncFileDir *dir = o->data;
-		osync_objtype_sink_set_available(dir->sink, TRUE);
+	int i, numobjs = osync_plugin_info_num_objtypes(info);
+	for (i = 0; i < numobjs; i++) {
+		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
+		g_assert(sink);
+
+		osync_objtype_sink_set_available(sink, TRUE);
 	}
 	
 	OSyncVersion *version = osync_version_new(error);
