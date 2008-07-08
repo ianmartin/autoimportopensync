@@ -44,7 +44,7 @@ OSyncObjFormatSink *osync_objformat_sink_new(const char *objformat, OSyncError *
 	
 	OSyncObjFormatSink *formatsink = osync_try_malloc0(sizeof(OSyncObjFormatSink), error);
 	if (!formatsink)
-		return FALSE;
+		return NULL;
 	
 	/*formatsink->objformat = osync_objformat_ref(objformat);*/
 	formatsink->objformat = g_strdup(objformat);
