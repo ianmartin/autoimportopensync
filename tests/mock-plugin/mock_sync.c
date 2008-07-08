@@ -579,35 +579,23 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
 		osync_assert(sink);
 
-		OSyncList *r = osync_plugin_config_get_ressources(config);
-		for (; r; r = r->next) {
-			OSyncPluginRessource *res = r->data;
+		const char *objtype = osync_objtype_sink_get_name(sink);
+		dir->res = osync_plugin_config_find_active_ressource(config, objtype);
+		dir->path = osync_plugin_ressource_get_path(dir->res);
+		osync_assert(dir->path);
 
-			OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
-			for (; o; o = o->next) {
-				OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
-				const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
-				osync_assert(objformat_str);
-				OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, objformat_str);
-				osync_assert(objformat);
-				const char *objtype = osync_objformat_get_objtype(objformat);
-				osync_assert(objtype);
-				if (!strcmp(objtype, osync_objtype_sink_get_name(sink))) {
-					dir->res = osync_plugin_ressource_ref(res);
-					dir->path = g_strdup(osync_plugin_ressource_get_path(res));
-					dir->objformat = osync_objformat_ref(objformat);
-					break;
-				}
-						 
-			}
-
-			if (dir->res)
-				break;
-		}
+		OSyncList *format_sinks = osync_plugin_ressource_get_objformat_sinks(dir->res);
+		osync_assert(osync_list_length(format_sinks) == 1);
+		OSyncObjFormatSink *format_sink = osync_list_nth_data(format_sinks, 0);
+		const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
+		osync_assert(objformat_str);
+		dir->objformat = osync_format_env_find_objformat(formatenv, objformat_str);
+		osync_assert(dir->objformat);
+		osync_objformat_ref(dir->objformat);
 
 		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
 		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-		dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
+		dir->hashtable = osync_hashtable_new(tablepath, objtype, error);
 		g_free(tablepath);
 		
 		osync_assert(dir->hashtable);
