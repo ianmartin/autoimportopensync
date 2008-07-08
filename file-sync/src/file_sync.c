@@ -160,33 +160,6 @@ static char *osync_filesync_generate_hash(struct stat *buf)
 	return hash;
 }
 
-static void osync_filesync_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
-{
-	OSyncError *error = NULL;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	
-	osync_context_report_success(ctx);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-	
-error:
-	osync_context_report_osyncerror(ctx, error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	osync_error_unref(&error);
-}
-
-static void osync_filesync_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	
-	osync_context_report_success(ctx);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-
 //typedef void (* OSyncSinkWriteFn) 
 //typedef void (* OSyncSinkCommittedAllFn) (void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
