@@ -42,8 +42,6 @@ typedef struct OSyncFileEnv {
 } OSyncFileEnv;
 
 typedef struct OSyncFileDir {
-	char *objtype;
-	char *objformat_input;
 	OSyncObjFormat *objformat_output;
 	const char *path;
 	GDir *dir;

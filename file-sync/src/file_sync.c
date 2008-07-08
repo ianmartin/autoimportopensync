@@ -26,12 +26,6 @@
 
 static void free_dir(OSyncFileDir *dir)
 {
-	if (dir->objtype)
-		g_free(dir->objtype);
-
-	if (dir->objformat_input)
-		g_free(dir->objformat_input);
-
 	if (dir->sink)
 		osync_objtype_sink_unref(dir->sink);
 
