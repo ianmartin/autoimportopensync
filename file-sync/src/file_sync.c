@@ -21,6 +21,7 @@
 #include "file_sync.h"
 #include <opensync/file.h>
 #include <opensync/opensync-version.h>
+#include <assert.h>
 #include <stdlib.h>
 
 static void free_dir(OSyncFileDir *dir)
@@ -54,104 +55,6 @@ static void free_env(OSyncFileEnv *env)
 	}
 	
 	g_free(env);
-}
-
-static osync_bool osync_filesync_parse_directory(OSyncFileEnv *env, xmlNode *cur, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
-
-	OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
-	if (!dir)
-		goto error;
-	dir->env = env;
-	
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
-				dir->path = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
-				dir->objtype = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				dir->objformat_input = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"converterpath_config")) {
-				dir->converterpath_config = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"recursive")) {
-				dir->recursive = (g_ascii_strcasecmp(str, "TRUE") == 0);
-			}
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-
-	if (!dir->path) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Path not set");
-		goto error_free_dir;
-	}
-
-	osync_trace(TRACE_INTERNAL, "Got directory %s with objtype %s", dir->path, dir->objtype);
-
-	env->directories = g_list_append(env->directories, dir);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error_free_dir:
-	free_dir(dir);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
-/*Load the state from a xml file and return it in the conn struct*/
-static osync_bool osync_filesync_parse_settings(OSyncFileEnv *env, const char *data, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data, error);
-	xmlDoc *doc = NULL;
-	xmlNode *cur = NULL;
-
-	doc = xmlParseMemory(data, strlen(data) + 1);
-	if (!doc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
-		goto error;
-	}
-
-	cur = xmlDocGetRootElement(doc);
-
-	if (!cur) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
-		goto error_free_doc;
-	}
-
-	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
-		goto error_free_doc;
-	}
-
-	cur = cur->xmlChildrenNode;
-
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"directory")) {
-				if (!osync_filesync_parse_directory(env, cur->xmlChildrenNode, error))
-					goto error_free_doc;
-			}
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-
-	xmlFreeDoc(doc);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error_free_doc:
-	xmlFreeDoc(doc);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
 }
 
 static char *osync_filesync_generate_hash(struct stat *buf)
@@ -677,9 +580,8 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 	
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	
-	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
-	if (!osync_filesync_parse_settings(env, osync_plugin_info_get_config(info), error))
-		goto error_free_env;
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	assert(config);
 
 	/* Now we register the objtypes that we can sync. This plugin is special. It can
 	 * synchronize any objtype we configure it to sync and where a conversion
