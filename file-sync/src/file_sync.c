@@ -26,9 +26,6 @@
 
 static void free_dir(OSyncFileDir *dir)
 {
-	if (dir->path)
-		g_free(dir->path);
-		
 	if (dir->objtype)
 		g_free(dir->objtype);
 
@@ -573,38 +570,27 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 	if (!env)
 		goto error;
 	
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
 	assert(config);
 
-	/* Now we register the objtypes that we can sync. This plugin is special. It can
-	 * synchronize any objtype we configure it to sync and where a conversion
-	 * path to the file format can be found */
-	GList *o = env->directories;
-	for (; o; o = o->next) {
-		OSyncFileDir *dir = o->data;
 
-		dir->objformat_output = osync_format_env_find_objformat(formatenv, "file");
-
-		/* We register the given objtype here */
-		OSyncObjTypeSink *sink = osync_objtype_sink_new(dir->objtype, error);
-		if (!sink)
+	int i, numobjs = osync_plugin_info_num_objtypes(info);
+	for (i = 0; i < numobjs; i++) {
+		OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
+		if (!dir)
 			goto error_free_env;
-		
-		if (!dir->objformat_input)
-			dir->objformat_input = g_strdup("file");
 
-		if (!osync_format_env_find_objformat(formatenv, dir->objformat_input)) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Configured storage format \"%s\" for object type \"%s\" is unknown. Is the format plugin missing?",
-					dir->objformat_input, dir->objtype);
-			osync_objtype_sink_unref(sink);
+		dir->sink = osync_plugin_info_nth_objtype(info, i);
+		assert(dir->sink);
+
+		const char *objtype = osync_objtype_sink_get_name(dir->sink);
+		OSyncPluginRessource *res = osync_plugin_config_find_active_ressource(config, objtype);
+		dir->path = osync_plugin_ressource_get_path(res);
+		if (!dir->path) {
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Path for object type \"%s\" is not configured.", objtype);
 			goto error_free_env;
 		}
-	
 
-		dir->sink = sink;
-		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
 		memset(&functions, 0, sizeof(functions));
@@ -616,12 +602,11 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		
 		/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
 		 * again once the functions are called */
-		osync_objtype_sink_set_functions(sink, functions, dir);
-		osync_plugin_info_add_objtype(info, sink);
+		osync_objtype_sink_set_functions(dir->sink, functions, dir);
 
 		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
 		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-		dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
+		dir->hashtable = osync_hashtable_new(tablepath, objtype, error);
 		g_free(tablepath);
 	
 		if (!dir->hashtable)
@@ -631,7 +616,7 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 			goto error_free_env;
 
 		char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-		char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
+		char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(dir->sink));
 		if (!osync_anchor_compare(anchorpath, path_field, dir->path))
 			osync_objtype_sink_set_slowsync(dir->sink, TRUE);
 		g_free(anchorpath);
