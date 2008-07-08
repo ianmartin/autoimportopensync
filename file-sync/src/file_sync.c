@@ -73,7 +73,6 @@ static osync_bool osync_filesync_read(void *userdata, OSyncPluginInfo *info, OSy
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	OSyncFileEnv *env = (OSyncFileEnv *)userdata;
 	OSyncError *error = NULL;
 	
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
@@ -447,8 +446,6 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	OSyncFileEnv *env = (OSyncFileEnv *)data;
-	int i = 0;
 	OSyncError *error = NULL;
 
 	
