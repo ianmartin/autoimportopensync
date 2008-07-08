@@ -93,7 +93,6 @@ static osync_bool osync_filesync_read(void *userdata, OSyncPluginInfo *info, OSy
 	if (strcmp("file", dir->objformat_input)) {
 
 		OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, dir->objformat_input);
-		osync_objformat_set_config(objformat, dir->converterpath_config);
 		odata = osync_data_new(data, size, objformat, &error);
 		if (!odata) {
 			osync_change_unref(change);
@@ -382,7 +381,6 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, OSyncPluginInfo *
 			if (strcmp("file", directory->objformat_input)) {
 
 				OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, directory->objformat_input);
-				osync_objformat_set_config(objformat, directory->converterpath_config);
 				odata = osync_data_new(data, size, objformat, &error);
 				if (!odata) {
 					osync_change_unref(change);
@@ -591,7 +589,6 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		OSyncFileDir *dir = o->data;
 
 		dir->objformat_output = osync_format_env_find_objformat(formatenv, "file");
-		osync_objformat_set_config(dir->objformat_output, dir->converterpath_config);
 
 		/* We register the given objtype here */
 		OSyncObjTypeSink *sink = osync_objtype_sink_new(dir->objtype, error);
@@ -610,8 +607,6 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 	
 
 		dir->sink = sink;
-		
-		osync_objtype_sink_add_objformat_with_config(sink, dir->objformat_input, dir->converterpath_config);
 		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
