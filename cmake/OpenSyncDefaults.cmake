@@ -26,7 +26,7 @@ INCLUDE( OpenSyncPlatforms )
 
 # Installation directories:
 
-SET( OPENSYNC_API_DIR "opensync-1.0" )
+SET( OPENSYNC_API_DIR "${OPENSYNC_SONAME}" )
 SET( OPENSYNC_PLUGINDIR "${LIB_INSTALL_DIR}/${OPENSYNC_API_DIR}/plugins" CACHE PATH "OpenSync plugin directory" )
 SET( OPENSYNC_FORMATSDIR "${LIB_INSTALL_DIR}/${OPENSYNC_API_DIR}/formats" CACHE PATH "OpenSync format plugin directory" )
 SET( OPENSYNC_PYTHON_PLUGINDIR "${LIB_INSTALL_DIR}/${OPENSYNC_API_DIR}/python-plugins" CACHE PATH "OpenSync python plugin directory" )
