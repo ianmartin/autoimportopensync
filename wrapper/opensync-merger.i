@@ -212,7 +212,8 @@ typedef struct {} XMLFormat;
 	}
 
 	bool validate() {
-		return osync_xmlformat_validate(self);
+		OSyncError *err = NULL;
+		return osync_xmlformat_validate(self, &err);
 	}
 
 	void sort() {
