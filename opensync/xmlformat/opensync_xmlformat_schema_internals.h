@@ -1,6 +1,6 @@
 /*
  * libopensync - A synchronization framework
- * Copyright (C) 2006  NetNix Finland Ltd <netnix@netnix.fi>
+ * Copyright (C) 2008  NetNix Finland Ltd <netnix@netnix.fi>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,35 +16,32 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
- * Author: Daniel Friedrich <daniel.friedrich@opensync.org>
+ * Author: Bjoern Ricks <bjoern.ricks@gmail.com>
  * 
  */
  
-#ifndef OPENSYNC_XMLFORMAT_INTERNALS_H_
-#define OPENSYNC_XMLFORMAT_INTERNALS_H_
+#ifndef OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
+#define OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
 
+#include <libxml/xpath.h>
+#include <libxml/xmlschemas.h>
+#include <libxml/tree.h>
 
 /** 
- * @brief Represent a XMLFormat object
+ * @brief Represents a Schema object
  * @ingroup OSyncXMLFormatPrivateAPI
  */
-struct OSyncXMLFormat {
+struct OSyncXMLFormatSchema {
+	/** The schema object */
+	xmlSchemaPtr schema;
+	/** The schema validation context */
+	xmlSchemaValidCtxtPtr context;
+	/** The object type of OSyncXMLFormat */
+	char *objtype;
 	/** The reference counter for this object */
 	int ref_count;
-	/** The first xmlfield */
-	OSyncXMLField *first_child;
-	/** The last xmlfield */
-	OSyncXMLField *last_child;
-	/** counter which holds the number of xmlfields */
-	int child_count;	
-	/** The wrapped xml document */
-	xmlDocPtr doc;
-	/** sorted status of xmlformat */
-	osync_bool sorted;
-
 };
 
-int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname);
+OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error); 
 
-
-#endif /*OPENSYNC_XMLFORMAT_INTERNAL_H_*/
+#endif /* OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_ */

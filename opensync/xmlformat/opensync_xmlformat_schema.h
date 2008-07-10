@@ -1,6 +1,6 @@
 /*
  * libopensync - A synchronization framework
- * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2008  Bjoern Ricks <bjoern.ricks@gmail.com>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,18 +16,16 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
+ * Author: Bjoern Ricks <bjoern.ricks@gmail.com>
+ * 
  */
+ 
+#ifndef OPENSYNC_XMLFORMAT_SCHEMA_H_
+#define OPENSYNC_XMLFORMAT_SCHEMA_H_
 
-#ifndef OPENSYNCXMLFORMAT_H_
-#define OPENSYNCXMLFORMAT_H
+OSYNC_EXPORT OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance(OSyncXMLFormat *xmlformat, OSyncError **error);
+OSYNC_EXPORT void osync_xmlformat_schema_unref(OSyncXMLFormatSchema *schema);
+OSYNC_EXPORT OSyncXMLFormatSchema *osync_xmlformat_schema_ref(OSyncXMLFormatSchema *osyncschema);
+OSYNC_EXPORT osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXMLFormat *xmlformat, OSyncError **error);
 
-OPENSYNC_BEGIN_DECLS
-
-#include "xmlformat/opensync_xmlformat.h"
-#include "xmlformat/opensync_xmlformat_schema.h"
-#include "xmlformat/opensync_xmlfield.h"
-#include "xmlformat/opensync_xmlfieldlist.h"
-
-OPENSYNC_END_DECLS
-
-#endif /*OPENSYNCXMLFORMAT_H*/
+#endif /* OPENSYNC_XMLFORMAT_SCHEMA_H_ */

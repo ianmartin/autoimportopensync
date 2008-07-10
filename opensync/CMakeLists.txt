@@ -57,6 +57,7 @@ SET( libopensync_LIB_SRCS
    xmlformat/opensync_xmlfield.c
    xmlformat/opensync_xmlfieldlist.c
    xmlformat/opensync_xmlformat.c
+   xmlformat/opensync_xmlformat_schema.c
 )
 
 ADD_LIBRARY( opensync SHARED ${libopensync_LIB_SRCS} )
@@ -126,6 +127,11 @@ SET( osplugin_SRCS
    client/osplugin.c
 )
 ADD_EXECUTABLE( osplugin ${osplugin_SRCS} )
+
+IF(COMMAND cmake_policy)
+  cmake_policy(SET CMP0005 OLD)
+ENDIF(COMMAND cmake_policy)
+
 ADD_DEFINITIONS( -DOSPLUGIN="\\\"${OPENSYNC_LIBEXEC_DIR}/osplugin\\\"" )
 
 TARGET_LINK_LIBRARIES( osplugin opensync ${GLIB2_LIBRARIES} ${GTHREAD2_LIBRARIES} ${GMODULE2_LIBRARIES} )

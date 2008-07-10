@@ -177,6 +177,7 @@ typedef struct OSyncArchive OSyncArchive;
 typedef struct OSyncCapabilities OSyncCapabilities;
 typedef struct OSyncCapability OSyncCapability;
 typedef struct OSyncXMLFormat OSyncXMLFormat;
+typedef struct OSyncXMLFormatSchema OSyncXMLFormatSchema;
 typedef struct OSyncXMLField OSyncXMLField;
 typedef struct OSyncXMLFieldList OSyncXMLFieldList;
 typedef struct OSyncMerger OSyncMerger;

@@ -48,7 +48,7 @@ OSYNC_EXPORT OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlf
 OSYNC_EXPORT OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error, ...);
 
 OSYNC_EXPORT osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, unsigned int *size);
-OSYNC_EXPORT osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat);
+OSYNC_EXPORT osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat, OSyncError **error);
 
 OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
 

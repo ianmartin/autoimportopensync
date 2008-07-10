@@ -26,6 +26,7 @@
 #include <opensync/opensync_xml.h>
 
 #include "opensync_xmlformat_internals.h"
+#include "opensync_xmlformat_schema_internals.h"
 #include "opensync_xmlfield_internals.h"
 #include "opensync_xmlfieldlist_internals.h"
 
