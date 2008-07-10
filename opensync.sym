@@ -833,3 +833,7 @@ osync_xmlformat_size
 osync_xmlformat_sort
 osync_xmlformat_unref
 osync_xmlformat_validate
+osync_xmlformat_schema_get_instance
+osync_xmlformat_schema_ref
+osync_xmlformat_schema_unref
+osync_xmlformat_schema_validate
