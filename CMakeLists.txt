@@ -24,6 +24,10 @@ SET( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_SOURCE_DIR}/cmake/modul
 
 CMAKE_MINIMUM_REQUIRED( VERSION 2.4 )
 
+IF(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 NEW)
+ENDIF(COMMAND cmake_policy)
+
 INCLUDE( Documentation )
 INCLUDE( OpenSyncDefaults )
 INCLUDE( OpenSyncPackaging )
