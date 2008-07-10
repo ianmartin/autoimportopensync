@@ -13,7 +13,7 @@
 #  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 #
 
-# Take care about opensync-1.0.pc settings
+# Take care about libopensync.pc settings
 INCLUDE( FindPkgConfig )
 
 IF ( OpenSync_FIND_REQUIRED )
@@ -23,15 +23,15 @@ ELSE( OpenSync_FIND_REQUIRED )
 ENDIF ( OpenSync_FIND_REQUIRED )
 
 IF ( OPENSYNC_MIN_VERSION )
-	PKG_SEARCH_MODULE( OPENSYNC ${_pkgconfig_REQUIRED} opensync-1.0>=${OPENSYNC_MIN_VERSION} )
+	PKG_SEARCH_MODULE( OPENSYNC ${_pkgconfig_REQUIRED} libopensync >=${OPENSYNC_MIN_VERSION} )
 ELSE ( OPENSYNC_MIN_VERSION )
-	PKG_SEARCH_MODULE( OPENSYNC ${_pkgconfig_REQUIRED} opensync-1.0 )
+	PKG_SEARCH_MODULE( OPENSYNC ${_pkgconfig_REQUIRED} libopensync )
 ENDIF ( OPENSYNC_MIN_VERSION )
 
 FIND_PROGRAM( PKGCONFIG_EXECUTABLE NAMES pkg-config )
 
 IF ( PKGCONFIG_EXECUTABLE )
-	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS opensync-1.0 --variable=datadir OUTPUT_VARIABLE _opensync_data_DIR )
+	EXEC_PROGRAM( ${PKGCONFIG_EXECUTABLE} ARGS libopensync --variable=datadir OUTPUT_VARIABLE _opensync_data_DIR )
 	STRING( REGEX REPLACE "[\r\n]" " " _opensync_data_DIR "${_opensync_data_DIR}"  )
 ENDIF ( PKGCONFIG_EXECUTABLE )
 
@@ -47,7 +47,7 @@ ENDIF ( OPENSYNC_CMAKE_MODULES )
 # Look for OpenSync include dir and libraries without pkg-config 
 IF( NOT OPENSYNC_FOUND AND NOT PKG_CONFIG_FOUND )
 	# Fallback if pkg-config doesn't exist
-	FIND_PATH( OPENSYNC_INCLUDE_DIRS opensync/opensync.h PATH_SUFFIXES opensync-1.0
+	FIND_PATH( OPENSYNC_INCLUDE_DIRS opensync/opensync.h PATH_SUFFIXES libopensync
 			PATHS
 			/opt/local/include/
 			/sw/include/
