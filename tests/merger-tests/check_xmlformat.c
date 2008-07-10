@@ -2,7 +2,7 @@
 
 #include <opensync/opensync-xmlformat.h>
 
-#include "opensync/xmlformat/opensync_xmlformat_internals.h"
+#include "opensync/xmlformat/opensync-xmlformat_internals.h"
 
 START_TEST (xmlformat_new)
 {
@@ -275,6 +275,7 @@ START_TEST (xmlformat_event_schema)
 	char *buffer;
 	unsigned int size;
 	OSyncError *error = NULL;
+	OSyncXMLFormatSchema *schema = NULL;
 
 	fail_unless(osync_file_read("event.xml", &buffer, &size, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -283,9 +284,12 @@ START_TEST (xmlformat_event_schema)
 	fail_unless(error == NULL, NULL);
 
 	g_free(buffer);
-
-	fail_unless(_osync_xmlformat_validate(xmlformat, testbed) != FALSE, NULL);
-
+	schema = osync_xmlformat_schema_new(xmlformat, testbed, &error);
+	fail_if( schema == NULL );
+	fail_unless( osync_xmlformat_schema_validate(schema, xmlformat, &error) );
+	
+	osync_xmlformat_schema_unref(schema);
+	
 	osync_xmlformat_unref(xmlformat);
 
 	destroy_testbed(testbed);
@@ -364,6 +368,25 @@ START_TEST (xmlfield_sort)
 }
 END_TEST
 
+START_TEST (xmlformat_schema_get_instance)
+{
+	OSyncError *error = NULL;
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", &error);
+	fail_unless(xmlformat != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncXMLFormatSchema *schema1 = osync_xmlformat_schema_get_instance(xmlformat, &error);
+	OSyncXMLFormatSchema *schema2 = osync_xmlformat_schema_get_instance(xmlformat, &error);
+	
+	fail_unless( schema1 == schema2 );
+	fail_unless( schema1->ref_count == 2 );
+
+	osync_xmlformat_schema_unref(schema1);
+	osync_xmlformat_schema_unref(schema2);
+
+}
+END_TEST
+
 Suite *xmlformat_suite(void)
 {
 	Suite *s = suite_create("XMLFormat");
@@ -378,6 +401,9 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlformat_compare_field2null", xmlformat_compare_field2null);
 	create_case(s, "xmlformat_compare_ignore_fields", xmlformat_compare_ignore_fields);
 	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);
+
+	// xmlformat schema
+	create_case(s, "xmlformat_schema_get_instance", xmlformat_schema_get_instance);
 
 	// xmlfield
 	create_case(s, "xmlfield_new", xmlfield_new);
