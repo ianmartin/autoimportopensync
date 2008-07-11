@@ -210,7 +210,7 @@ osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config
 	env->fakeSoftwareVersion = g_strdup("1.0");
         env->onlyLocaltime = FALSE;
         env->maxObjSize = OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE;
-        env->recvLimit = OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE;
+        env->maxMsgSize = OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE;
 	env->useTimestampAnchor = TRUE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
@@ -278,8 +278,8 @@ osync_bool syncml_http_client_parse_config(SmlPluginEnv *env, const char *config
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize") && atoi(str)) {
 				env->maxObjSize = atoi(str);
 			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit") && atoi(str)) {
-				env->recvLimit = atoi(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxMsgSize") && atoi(str)) {
+				env->maxMsgSize = atoi(str);
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"useTimestampAnchor")) {
 				env->useTimestampAnchor = atoi(str);
@@ -390,7 +390,7 @@ void *syncml_http_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env->manager)
 		goto error_free_env;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
-	smlManagerSetLocalMaxMsgSize(env->manager, env->recvLimit);
+	smlManagerSetLocalMaxMsgSize(env->manager, env->maxMsgSize);
 	smlManagerSetLocalMaxObjSize(env->manager, env->maxObjSize);
 
 	/* The authenticator is only used here to get a handler for the header.

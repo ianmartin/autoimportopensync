@@ -22,7 +22,7 @@
   <onlyLocaltime>0</onlyLocaltime>
 
   <!-- Sets the maximum allowed size in bytes of incoming messages (some device need this option set). Example: 10000 -->
-  <recvLimit>0</recvLimit>
+  <maxMsgSize>0</maxMsgSize>
   
   <maxObjSize>0</maxObjSize>
   

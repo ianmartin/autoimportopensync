@@ -12,7 +12,7 @@
           <xsd:element default="0" name="usestringtable" type="os:Boolean"/>
           <xsd:element default="0" name="onlyreplace" type="os:Boolean"/>
           <xsd:element default="0" name="onlyLocaltime" type="os:Boolean"/>
-          <xsd:element default="0" name="recvLimit" type="os:Numeric"/>
+          <xsd:element default="0" name="maxMsgSize" type="os:Numeric"/>
           <xsd:element default="0" name="maxObjSize" type="os:Numeric"/>
           <xsd:element default="1" name="useTimestampAnchor" type="os:Boolean"/>
           <xsd:element default="contacts" name="contact_db" type="os:String"/>

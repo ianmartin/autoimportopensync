@@ -28,12 +28,12 @@
   <!-- Workaround around for servers use local timestamps and _no_ UTC timestamps! -->
   <onlyLocaltime>0</onlyLocaltime>
   
-  <!-- WARNING: some servers require recvLimit and maxObjSize                    -->
+  <!-- WARNING: some servers require maxMsgSize and maxObjSize                   -->
   <!-- The SyncML specification only requires the meta information               -->
   <!-- if large objects are enabled.                                             -->
   <!-- Nevertheless the most mobiles send it because of their limited resources. -->
 
-  <recvLimit>40000</recvLimit>
+  <maxMsgSize>40000</maxMsgSize>
   
   <maxObjSize>4000000</maxObjSize>
 

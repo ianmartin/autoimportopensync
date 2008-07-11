@@ -87,7 +87,7 @@ typedef struct SmlPluginEnv {
 	char *cafile;
 	SmlBool useTimestampAnchor;
 	
-	unsigned int recvLimit;
+	unsigned int maxMsgSize;
 	unsigned int maxObjSize;
 
 	SmlBool gotDisconnect;

@@ -1301,17 +1301,12 @@ SmlBool init_env_devinf (SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **ser
         smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
     }
 
-    // libsyncml definitely supports large objects
-    // so we must meet the requirement
-    // The default are:
-    //     MaxMsgSize    100.000
-    //     MaxObjSize 10.000.000 (to support images in contacts)
     smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
     smlDevInfSetSupportsLargeObjs(devinf, TRUE);
     if (!env->onlyLocaltime)
         smlDevInfSetSupportsUTC(devinf, TRUE);
-    if (env->recvLimit < 10000) env->recvLimit = 100000;
-    if (env->maxObjSize < 10000) env->maxObjSize = 10000000;
+    g_assert(env->maxMsgSize);
+    g_assert(env->maxObjSize);
 
     env->devinf = devinf;
 

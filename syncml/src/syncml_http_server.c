@@ -66,7 +66,7 @@ osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config
 	env->useTimestampAnchor = TRUE;
 	env->onlyReplace = FALSE;
         env->maxObjSize = OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE;
-        env->recvLimit = OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE;
+        env->maxMsgSize = OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -123,8 +123,8 @@ osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config
 				env->onlyReplace = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit") && atoi(str)) {
-				env->recvLimit = atoi(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxMsgSize") && atoi(str)) {
+				env->maxMsgSize = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize") && atoi(str)) {
@@ -206,7 +206,7 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env->manager)
 		goto error;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
-	smlManagerSetLocalMaxMsgSize(env->manager, env->recvLimit);
+	smlManagerSetLocalMaxMsgSize(env->manager, env->maxMsgSize);
 	smlManagerSetLocalMaxObjSize(env->manager, env->maxObjSize);
 	
 	/* The authenticator */
