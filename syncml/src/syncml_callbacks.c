@@ -120,7 +120,8 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			if (!env->gotDisconnect) {
 				if (env->tryDisconnect == FALSE) {
 					env->tryDisconnect = TRUE;
-					smlTransportDisconnect(env->tsp, NULL, NULL);
+					SmlError *error = NULL;
+					smlTransportDisconnect(env->tsp, NULL, &error);
 					/* It is not a good idea to wait for the
 					 * disconnect here. First this is an
 					 * asynchronous software so it is always
@@ -158,13 +159,7 @@ void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSession *s
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);
 			smlSessionUseNumberOfChanges(session, TRUE);
-			
-			if (env->recvLimit)
-				smlSessionSetLocalMaxMsgSize(session, env->recvLimit);
-			if (env->maxObjSize)
-				smlSessionSetLocalMaxObjSize(session, env->maxObjSize);
-			if (env->recvLimit && env->maxObjSize)
-				smlSessionUseLargeObjects(session, TRUE);
+
 			osync_trace(TRACE_INTERNAL, "%s: maxObjSize %d",
 				__func__, env->maxObjSize);
 			

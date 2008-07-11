@@ -72,6 +72,8 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 	xmlNodePtr cur = NULL;
 
 	env->useTimestampAnchor = TRUE;
+        env->maxObjSize = OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE;
+        env->recvLimit = OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE;
 	
 	if (!(doc = xmlParseMemory(config, strlen(config)))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -125,10 +127,6 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 				env->type = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit")) {
-				env->recvLimit = atoi(str);
-			}
-			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"version")) {
 				switch (atoi(str)) {
 					case 0:
@@ -171,7 +169,11 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config
 				env->onlyReplace = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit") && atoi(str)) {
+				env->recvLimit = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize") && atoi(str)) {
 				env->maxObjSize = atoi(str);
 			}
 
@@ -306,6 +308,9 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env->manager)
 		goto error_free_env;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
+	smlManagerSetLocalMaxMsgSize(env->manager, env->recvLimit);
+	smlManagerSetLocalMaxObjSize(env->manager, env->maxObjSize);
+	smlNotificationSetManager(env->san, env->manager);
 	
 	/* The authenticator */
 	env->auth = smlAuthNew(&serror);
