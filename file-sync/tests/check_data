@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 PLUGINPATH="$1/src"
 
 TMPDIR=`mktemp -d /tmp/osplg.XXXXXX` || exit 1
