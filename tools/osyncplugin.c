@@ -1058,7 +1058,7 @@ int main(int argc, char **argv) {
 	if (plugin_env)
 		osync_plugin_env_free(plugin_env);
 
-	return TRUE;
+	return EXIT_SUCCESS;
 
 error_disconnect_and_finalize:
 	if (plugin_data)
@@ -1071,6 +1071,6 @@ error_disconnect_and_finalize:
 error:	
 	fprintf(stderr, "Error: %s\n", osync_error_print(&error));
 	osync_error_unref(&error);
-	return FALSE;
+	return EXIT_FAILURE;
 }
 
