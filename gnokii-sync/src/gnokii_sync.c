@@ -20,6 +20,12 @@
 
 #include "gnokii_sync.h"
 
+#include "gnokii_comm.h"
+#include "gnokii_config.h"
+
+#include "gnokii_calendar.h"
+#include "gnokii_contact.h"
+
 static void free_gnokiienv(gnokii_environment *env) { 
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
@@ -194,6 +200,9 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "No Plugin configuration");
 		goto error;
 	}
+
+	if (!gnokii_config_parse(env, config, error))
+		goto error;
 	
 	/* main sink (objtype neutral) handles only connect and disconnect! */
 	env->mainsink = osync_objtype_main_sink_new(error);

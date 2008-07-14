@@ -18,7 +18,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
-#include <gnokii_sync.h>
+#include "gnokii_sync.h"
 
-osync_bool gnokii_config_parse(gnokii_environment *env, const char *data, OSyncError **error);
+osync_bool gnokii_config_parse(gnokii_environment *env, OSyncPluginConfig *config, OSyncError **error);
 

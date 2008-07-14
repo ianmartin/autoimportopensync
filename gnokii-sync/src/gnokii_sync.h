@@ -18,6 +18,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
+#ifndef GNOKII_SYNC_H
+#define GNOKII_SYNC_H
+
 #include <assert.h>
 #include <string.h>
 
@@ -36,11 +39,6 @@
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-version.h>
 
-#include "gnokii_comm.h"
-
-#include "gnokii_calendar.h"
-#include "gnokii_contact.h"
-
 typedef struct gnokii_environment {
 	GList                   *sinks; // gnokii_sinkenv
 	OSyncObjTypeSink	*mainsink;
@@ -54,4 +52,6 @@ typedef struct {
 	OSyncObjTypeSink        *sink;
 	OSyncHashTable		*hashtable;
 } gnokii_sinkenv;
+
+#endif /* GNOKII_SYNC_H */
 

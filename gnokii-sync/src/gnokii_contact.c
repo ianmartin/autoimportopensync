@@ -506,7 +506,6 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 	g_free(data);
 
-	int i;
         OSyncList *u, *uids = osync_hashtable_get_deleted(sinkenv->hashtable);
         for (u = uids; u; u = u->next) {
                 OSyncChange *change = osync_change_new(&error);
