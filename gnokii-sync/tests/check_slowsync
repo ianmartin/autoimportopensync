@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -x
+
+PLUGINPATH="$1/src"
+DATAPATH="$2"
+
+TMPDIR=`mktemp -d /tmp/osplg.XXXXXX` || exit 1
+#TMPCFG=`mktemp /tmp/osplgcfg.XXXXXX` || exit 1
+
+osyncplugin -p gnokii-sync -P $PLUGINPATH -C $TMPDIR -c $DATAPATH/test.conf --initialize --connect --slowsync --disconnect --finalize || exit 1
