@@ -1,4 +1,5 @@
 PROJECT( libopensync-plugin-gnokii C )
+CMAKE_MINIMUM_REQUIRED( VERSION 2.4 )
 
 SET( VERSION "0.36" )
 
