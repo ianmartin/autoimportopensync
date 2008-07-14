@@ -107,8 +107,7 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+	//OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	gnokii_environment *env = (gnokii_environment *) data;
 	
@@ -170,31 +169,36 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
 
-	char *configdata = NULL;
+	gnokii_environment *env = NULL;
+	OSyncPluginConfig *config = NULL;
+	gnokii_sinkenv *contact_sinkenv = NULL;
+	gnokii_sinkenv *event_sinkenv = NULL;
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+	if (!tablepath) {
+		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "No memory left for Plugin initialization");
+		goto error;
+	}
 	
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info); 
-
-	// create gnokii_environment which stores config and statemachine for libgnokii
-	gnokii_environment *env = osync_try_malloc0(sizeof(gnokii_environment), error);
+	/* create gnokii_environment which stores config and statemachine for libgnokii */
+	env = osync_try_malloc0(sizeof(gnokii_environment), error);
 	if (!env)
-		return NULL;
-
-	env->sinks = NULL;
+		goto error;
 
 	env->state = osync_try_malloc0(sizeof(struct gn_statemachine), error);
-	if (!env->state) {
-		free_gnokiienv(env);
-		return NULL;
-	}
+	if (!env->state)
+		goto error;
 
-	// parse the member configuration
-	if (!gnokii_config_parse(env, osync_plugin_info_get_config(info), error)) {
-		free_gnokiienv(env);
-		return NULL;
+	config = osync_plugin_info_get_config(info);
+	if (!config) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "No Plugin configuration");
+		goto error;
 	}
 	
-	// main sink - objtype neutral, handles (only) connect and disconnect!
+	/* main sink (objtype neutral) handles only connect and disconnect! */
 	env->mainsink = osync_objtype_main_sink_new(error);
+	if (!env->mainsink)
+		goto error;
 
 	OSyncObjTypeSinkFunctions main_functions;
 	memset(&main_functions, 0, sizeof(main_functions));
@@ -204,76 +208,96 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 	osync_objtype_sink_set_functions(env->mainsink, main_functions, NULL);
 	osync_plugin_info_set_main_sink(info, env->mainsink);
+	/* end of main sink */
+
+	/* init the contact sink */
+	contact_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error);
+	if (!contact_sinkenv)
+		goto error;
+
+	contact_sinkenv->sink = osync_plugin_info_find_objtype(info, "contact");
+	if (contact_sinkenv->sink) {
+		OSyncObjTypeSinkFunctions contact_functions;
+		memset(&contact_functions, 0, sizeof(contact_functions));
+		contact_functions.get_changes = gnokii_contact_get_changes;
+		contact_functions.commit = gnokii_contact_commit_change;
+		contact_functions.sync_done = sync_done;
+		/*
+		contact_functions.read = osync_filesync_read;
+		contact_functions.write = osync_filesync_write;
+		*/
+
+		osync_objtype_sink_set_functions(contact_sinkenv->sink, contact_functions, contact_sinkenv);
+
+		contact_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-contact");
+		if (!contact_sinkenv->objformat) {
+			osync_error_set(error, OSYNC_ERROR_PLUGIN_NOT_FOUND, "Format Plugin \"gnokii-contact\" not found.");
+			goto error;
+		}
 
 
-	// init the contact sink
-	gnokii_sinkenv *contact_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
-	contact_sinkenv->sink = osync_objtype_sink_new("contact", error);
-	osync_objtype_sink_add_objformat(contact_sinkenv->sink, "gnokii-contact");
+		env->sinks = g_list_append(env->sinks, contact_sinkenv);
 
-	OSyncObjTypeSinkFunctions contact_functions;
-	memset(&contact_functions, 0, sizeof(contact_functions));
-	contact_functions.get_changes = gnokii_contact_get_changes;
-	contact_functions.commit = gnokii_contact_commit_change;
-//	contact_functions.read = osync_filesync_read;
-//	contact_functions.write = osync_filesync_write;
-	contact_functions.sync_done = sync_done;
+		contact_sinkenv->hashtable = osync_hashtable_new(tablepath, "contact", error);
+		if (!contact_sinkenv->hashtable)
+			goto error;
 
-	osync_objtype_sink_set_functions(contact_sinkenv->sink, contact_functions, contact_sinkenv);
-	osync_plugin_info_add_objtype(info, contact_sinkenv->sink);
+		if (!osync_hashtable_load(contact_sinkenv->hashtable, error))
+			goto error;
+	} else {
+		osync_trace(TRACE_INTERNAL, "Contact sink is disable by configuration.");
+	}
+	/* end of contact sink */
 
-        contact_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-contact");
-	osync_trace(TRACE_INTERNAL, "contact_sinkenv->objformat: %p", contact_sinkenv->objformat);
+	/* init the event sink */
+	event_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error);
+	if (!event_sinkenv)
+		goto error;
 
-	env->sinks = g_list_append(env->sinks, contact_sinkenv);
+	event_sinkenv->sink = osync_plugin_info_find_objtype(info, "event");
+	if (event_sinkenv->sink) {
+		OSyncObjTypeSinkFunctions event_functions;
+		memset(&event_functions, 0, sizeof(event_functions));
+		event_functions.get_changes = gnokii_calendar_get_changes;
+		event_functions.commit = gnokii_calendar_commit_change;
+		event_functions.sync_done = sync_done;
+		/*
+		event_functions.read = osync_filesync_read;
+		event_functions.write = osync_filesync_write;
+		*/
 
-	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-	contact_sinkenv->hashtable = osync_hashtable_new(tablepath, "contact", error);
+		osync_objtype_sink_set_functions(event_sinkenv->sink, event_functions, event_sinkenv);
+
+		event_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-event");
+		if (!event_sinkenv->objformat) {
+			osync_error_set(error, OSYNC_ERROR_PLUGIN_NOT_FOUND, "Format Plugin \"gnokii-event\" not found.");
+			goto error;
+		}
+
+		event_sinkenv->hashtable = osync_hashtable_new(tablepath, "event", error);
+
+		if (!event_sinkenv->hashtable)
+			goto error;
+
+		if (!osync_hashtable_load(event_sinkenv->hashtable, error))
+			goto error;
+
+		env->sinks = g_list_append(env->sinks, event_sinkenv);
+	} else {
+		osync_trace(TRACE_INTERNAL, "Event sink is disable by configuration.");
+	}
+	/* end of event sink */
 	
-	if (!contact_sinkenv->hashtable)
-		goto error;
-
-	if (!osync_hashtable_load(contact_sinkenv->hashtable, error))
-		goto error;
-
-	// init the event sink
-	gnokii_sinkenv *event_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
-	event_sinkenv->sink = osync_objtype_sink_new("event", error);
-	osync_objtype_sink_add_objformat(event_sinkenv->sink, "gnokii-event");
-
-	OSyncObjTypeSinkFunctions event_functions;
-	memset(&event_functions, 0, sizeof(event_functions));
-	event_functions.get_changes = gnokii_calendar_get_changes;
-	event_functions.commit = gnokii_calendar_commit_change;
-//	event_functions.read = osync_filesync_read;
-//	event_functions.write = osync_filesync_write;
-	event_functions.sync_done = sync_done;
-
-	osync_objtype_sink_set_functions(event_sinkenv->sink, event_functions, event_sinkenv);
-	osync_plugin_info_add_objtype(info, event_sinkenv->sink);
-
-        event_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-event");
-	event_sinkenv->hashtable = osync_hashtable_new(tablepath, "event", error);
-
-	if (!event_sinkenv->hashtable)
-		goto error;
-
-	if (!osync_hashtable_load(event_sinkenv->hashtable, error))
-		goto error;
-
-	env->sinks = g_list_append(env->sinks, event_sinkenv);
-	
+	/* Free Hashtable path */
 	g_free(tablepath);
 
-	//Process the config data here and set the options on your environment
-	if (configdata)
-		g_free(configdata);
-	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
-
 	return (void *)env;
 
 error:
+	if (env)
+		free_gnokiienv(env);
+
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
