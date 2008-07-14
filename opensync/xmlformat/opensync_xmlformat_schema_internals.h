@@ -42,6 +42,7 @@ struct OSyncXMLFormatSchema {
 	int ref_count;
 };
 
-OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error); 
+OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error);
+OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error); 
 
 #endif /* OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_ */

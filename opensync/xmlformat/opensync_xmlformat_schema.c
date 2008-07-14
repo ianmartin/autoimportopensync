@@ -69,18 +69,77 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, con
  	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt;
 	
  	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
+	if ( xmlSchemaParserCtxt == NULL ) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema parser context.");
+		goto error;
+	}
  	osyncschema->schema = xmlSchemaParse(xmlSchemaParserCtxt);
  	xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt);
+	if ( osyncschema->schema == NULL ) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not read schema file.");
+		goto error;
+	}
 
  	osyncschema->context = xmlSchemaNewValidCtxt(osyncschema->schema);
  	if (osyncschema->context == NULL) {
  		xmlSchemaFree(osyncschema->schema);
- 		g_free(osyncschema->objtype);
- 		g_free(osyncschema);
- 		osyncschema = NULL;
- 		osync_error_set(error, OSYNC_ERROR_GENERIC, "XMLFormat validation failed. Could not create Schema Context.");
+ 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema validation context.");
+		goto error;
  	}
+	osync_trace(TRACE_EXIT, "%s", __func__ );
  	return osyncschema;
+error:
+ 	g_free(osyncschema->objtype);
+ 	g_free(osyncschema);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+/**
+ * @brief Get a  schema for the xmlformat.
+ *
+ * This function creates only one instance of a schema for each objtype. If a xmlformat is passed as a parameter with the same
+ * objtype as a xmlformat prior the returned pointer to a OSyncXMLFormatSchema instance is the same as before.
+ *
+ * @param xmlformat The pointer to a xmlformat object
+ * @param schemadir Path of the dir where the schema files are found.  
+ * @param error The error which will hold the info in case of an error
+ * @return Pointer to a instance of OSyncXMLFormatSchema
+ */
+
+OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error) {
+	static GList *schemas = NULL;
+	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
+	OSyncXMLFormatSchema *osyncschema = NULL;
+	GList * entry;
+	const char *objtype;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, xmlformat, error);
+	
+	osync_assert(xmlformat);
+	
+	objtype = osync_xmlformat_get_objtype(xmlformat);
+	// get mutex
+	g_static_mutex_lock(&mutex);
+	// find schema for objtype
+	for ( entry = schemas; entry != NULL; entry=entry->next) { // should be fast enough for only a few objtypes
+		osyncschema = (OSyncXMLFormatSchema *) entry->data;
+		if (!strcmp(osyncschema->objtype, objtype) ) {
+			osync_xmlformat_schema_ref(osyncschema);
+			return osyncschema;
+		}
+		osyncschema = NULL;
+	}
+	if ( osyncschema == NULL ) {
+		osyncschema = osync_xmlformat_schema_new(xmlformat, schemadir, error);
+		if ( osyncschema != NULL ) {
+			schemas = g_list_append(schemas, osyncschema);
+		}
+	}
+	// release mutex
+	g_static_mutex_unlock(&mutex);
+	osync_trace(TRACE_EXIT, "%s, (%p)", __func__, osyncschema );
+	return osyncschema;	
 }
 
 /*@}*/
@@ -104,38 +163,8 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, con
  * @return Pointer to a instance of OSyncXMLFormatSchema
  */
 
-OSyncXMLFormatSchema * osync_xmlformat_schema_get_instance(OSyncXMLFormat * xmlformat, OSyncError **error) {
-	static GList * schemas = NULL;
-	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
-	OSyncXMLFormatSchema * osyncschema = NULL;
-	GList * entry;
-	const char * objtype;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, xmlformat, error);
-	
-	osync_assert(xmlformat);
-	
-	objtype = osync_xmlformat_get_objtype(xmlformat);
-	// get mutex
-	g_static_mutex_lock(&mutex);
-	// find schema for objtype
-	for ( entry = schemas; entry != NULL; entry=entry->next) { // should be fast enough for only a few objtypes
-		osyncschema = (OSyncXMLFormatSchema *) entry->data;
-		if (!strcmp(osyncschema->objtype, objtype) ) {
-			osync_xmlformat_schema_ref(osyncschema);
-			return osyncschema;
-		}
-		osyncschema = NULL;
-	}
-	if ( osyncschema == NULL ) {
-		osyncschema = osync_xmlformat_schema_new(xmlformat, NULL, error);
-		if ( osyncschema != NULL ) {
-			schemas = g_list_append(schemas, osyncschema);
-		}
-	}
-	// release mutex
-	g_static_mutex_unlock(&mutex);
-	return osyncschema;	
+OSyncXMLFormatSchema * osync_xmlformat_schema_get_instance(OSyncXMLFormat *xmlformat, OSyncError **error) {
+	return osync_xmlformat_schema_get_instance_with_path(xmlformat, NULL, error);	
 }
 
 /**
@@ -146,7 +175,7 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_get_instance(OSyncXMLFormat * xmlf
  * @return TRUE if xmlformat valid else FALSE
  */
 
-osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema * schema, OSyncXMLFormat * xmlformat, OSyncError **error)
+osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXMLFormat *xmlformat, OSyncError **error)
 {
 	osync_assert(xmlformat);
 	osync_assert(schema);
