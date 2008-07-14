@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
+
+  <xsd:element name="syncmember">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element maxOccurs="1" minOccurs="0" name="pluginname" type="xsd:string"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="objtype" type="ObjType"/>
+      </xsd:sequence>
+      <xsd:attribute name="version" type="xsd:string"/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:complexType name="ObjType">
+    <xsd:sequence>
+      <xsd:element maxOccurs="1" minOccurs="0" name="enabled" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="read" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="getchanges" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="write" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="name" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="objformat" type="ObjFormat" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ObjFormat">
+    <xsd:sequence>
+      <xsd:element maxOccurs="1" minOccurs="0" name="name" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="config" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>
