@@ -63,6 +63,7 @@ static osync_bool osync_filesync_read(void *userdata, OSyncPluginInfo *info, OSy
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, userdata, info, ctx, change);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncError *error = NULL;
 	
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
@@ -99,7 +100,9 @@ static osync_bool osync_filesync_read(void *userdata, OSyncPluginInfo *info, OSy
 	file->size = size;
 	file->path = g_strdup(osync_change_get_uid(change));
 	
-	odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), dir->objformat_output, &error);
+	OSyncObjFormat *fileformat = osync_format_env_find_objformat(formatenv, "file");
+
+	odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), fileformat, &error);
 	if (!odata) {
 		osync_change_unref(change);
 		osync_context_report_osyncwarning(ctx, error);
@@ -342,8 +345,8 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncError *error = NULL;
-
 	
 	if (osync_objtype_sink_get_slowsync(dir->sink)) {
 		osync_trace(TRACE_INTERNAL, "Slow sync requested");
@@ -373,7 +376,9 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 		osync_change_set_uid(change, uid);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 		
-		OSyncData *odata = osync_data_new(NULL, 0, dir->objformat_output, &error);
+	        OSyncObjFormat *fileformat = osync_format_env_find_objformat(formatenv, "file");
+
+		OSyncData *odata = osync_data_new(NULL, 0, fileformat, &error);
 		if (!odata) {
 			osync_change_unref(change);
 			osync_context_report_osyncwarning(ctx, error);
