@@ -93,7 +93,7 @@ static long long int _osync_group_create_member_id(OSyncGroup *group)
 		i++;
 		if (filename)
 			g_free(filename);
-		filename = g_strdup_printf("%s/%lli", group->configdir, i);
+		filename = g_strdup_printf("%s%c%lli", group->configdir, G_DIR_SEPARATOR, i);
 	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
 	
 	g_free(filename);
@@ -129,7 +129,7 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 	}
 
 	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s/syncmember.conf", osync_group_get_configdir(group), de);
+		filename = g_strdup_printf ("%s%c%s%csyncmember.conf", osync_group_get_configdir(group), G_DIR_SEPARATOR, de, G_DIR_SEPARATOR);
 		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 			g_free(filename);
 			continue;
@@ -145,7 +145,7 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 			osync_member_set_schemadir(member, group->schemadir);
 #endif /* OPENSYNC_UNITTESTS */
 		
-		member_path = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
+		member_path = g_strdup_printf ("%s%c%s", osync_group_get_configdir(group), G_DIR_SEPARATOR, de);
 		if (!osync_member_load(member, member_path, error)) {
 			g_free(member_path);
 			goto error_free_member;
@@ -376,7 +376,7 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 		return OSYNC_LOCKED;
 	}
 	
-	lockfile = g_strdup_printf("%s/lock", group->configdir);
+	lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
 
 	if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
 		osync_trace(TRACE_INTERNAL, "locking group: file exists");
@@ -462,7 +462,7 @@ void osync_group_unlock(OSyncGroup *group)
 	
 	group->lock_fd = 0;
 	
-	lockfile = g_strdup_printf("%s/lock", group->configdir);
+	lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
 	
 	g_unlink(lockfile);
 	g_free(lockfile);
@@ -530,7 +530,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 		}
 	}
 	
-	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
+	filename = g_strdup_printf ("%s%csyncgroup.conf", group->configdir, G_DIR_SEPARATOR);
 	osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename);
 	
 	doc = xmlNewDoc((xmlChar*)"1.0");
@@ -652,7 +652,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 		OSyncMember *member = m->data;
 
 		/* flush hashtable */
-		path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
+		path = g_strdup_printf("%s%chashtable.db", osync_member_get_configdir(member), G_DIR_SEPARATOR);
 		if (!(db = osync_db_new(error)))
 			goto error_and_free;
 
@@ -664,7 +664,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 		g_free(path);
 
 		/* flush anchor db */ 
-		path = g_strdup_printf("%s/anchor.db", osync_member_get_configdir(member));
+		path = g_strdup_printf("%s%canchor.db", osync_member_get_configdir(member), G_DIR_SEPARATOR);
 		if (!(db = osync_db_new(error)))
 			goto error_and_free;
 
@@ -677,7 +677,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 
 	}
 
-	path = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
+	path = g_strdup_printf("%s%carchive.db", osync_group_get_configdir(group), G_DIR_SEPARATOR);
 	if (!(db = osync_db_new(error)))
 		goto error_and_free;
 
@@ -722,14 +722,14 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	
 	if (!g_path_is_absolute(path)) {
 		char *curdir = g_get_current_dir();
-		real_path = g_strdup_printf("%s/%s", curdir, path);
+		real_path = g_strdup_printf("%s%c%s", curdir, G_DIR_SEPARATOR, path);
 		g_free(curdir);
 	} else {
 		real_path = g_strdup(path);
 	}
 	
 	osync_group_set_configdir(group, real_path);
-	filename = g_strdup_printf("%s/syncgroup.conf", real_path);
+	filename = g_strdup_printf("%s%csyncgroup.conf", real_path, G_DIR_SEPARATOR);
 	g_free(real_path);
 	
 	if (!osync_xml_open_file(&doc, &cur, filename, "syncgroup", error)) {
@@ -859,7 +859,7 @@ void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
 	g_assert(group);
 	
 	if (!osync_member_get_configdir(member)) {
-		char *configdir = g_strdup_printf("%s/%lli", group->configdir, _osync_group_create_member_id(group));
+		char *configdir = g_strdup_printf("%s%c%lli", group->configdir, G_DIR_SEPARATOR, _osync_group_create_member_id(group));
 		osync_member_set_configdir(member, configdir);
 		g_free(configdir);
 	}

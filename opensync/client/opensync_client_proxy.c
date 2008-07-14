@@ -109,7 +109,7 @@ end:
 
 /*static char *_osync_client_pid_filename(OSyncClientProxy *proxy)
 {
-	return g_strdup_printf("%s/osplugin.pid", proxy->path);
+	return g_strdup_printf("%s%cosplugin.pid", proxy->path, G_DIR_SEPARATOR);
 }*/
 
 /*static osync_bool osync_client_remove_pidfile(OSyncClientProxy *proxy, OSyncError **error)
@@ -895,13 +895,13 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 		if (!osync_queue_connect(proxy->outgoing, OSYNC_QUEUE_SENDER, error))
 			goto error;
 	} else {
-		char *name = g_strdup_printf("%s/pluginpipe", path);
+		char *name = g_strdup_printf("%s%cpluginpipe", path, G_DIR_SEPARATOR);
 		proxy->outgoing = osync_queue_new(name, error);
 		g_free(name);
 		if (!proxy->outgoing)
 			goto error;
 		
-		name = g_strdup_printf("%s/enginepipe", path);
+		name = g_strdup_printf("%s%cenginepipe", path, G_DIR_SEPARATOR);
 		proxy->incoming = osync_queue_new(name, error);
 		g_free(name);
 		if (!proxy->incoming)

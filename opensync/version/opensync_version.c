@@ -124,7 +124,7 @@ OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char 
 	}
 	
 	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s", descpath, de);
+		filename = g_strdup_printf ("%s%c%s", descpath, G_DIR_SEPARATOR, de);
 		
 		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.xml", filename)) {
 			g_free(filename);

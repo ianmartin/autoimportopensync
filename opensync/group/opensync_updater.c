@@ -452,7 +452,7 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 	}
 
 	while ((de = g_dir_read_name(dir))) {
-		member_path = g_strdup_printf("%s/%s/", backup_groupdir, de);
+		member_path = g_strdup_printf("%s%c%s%c", backup_groupdir, G_DIR_SEPARATOR, de, G_DIR_SEPARATOR);
 		if (!g_file_test(member_path, G_FILE_TEST_IS_DIR)) {
 			g_free(member_path);
 			continue;
@@ -475,7 +475,7 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 			goto error;
 		}
 
-		member_path = g_strdup_printf("%s/%s/", orig_groupdir, de);
+		member_path = g_strdup_printf("%s%c%s%c", orig_groupdir, G_DIR_SEPARATOR, de, G_DIR_SEPARATOR);
 		if (g_mkdir(member_path, orig_stat.st_mode) < 0) { 
 			g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create new member directory: %s",  gerror->message);
@@ -486,7 +486,7 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 		g_free(member_path);
 
 		while ((member_de = g_dir_read_name(member_dir))) {
-			config = g_strdup_printf("%s/%s/%s", backup_groupdir, de, member_de);
+			config = g_strdup_printf("%s%c%s%c%s", backup_groupdir, G_DIR_SEPARATOR, de, G_DIR_SEPARATOR, member_de);
 			
 			/* Only copy files ending with ".conf" */
 			if (!g_file_test(config, G_FILE_TEST_IS_REGULAR) || !sscanf(config, "%*s.conf")) {
@@ -502,7 +502,7 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 			}
 			g_free(config);
 
-			copy_config = g_strdup_printf("%s/%s/%s", orig_groupdir, de, member_de);
+			copy_config = g_strdup_printf("%s%c%s%c%s", orig_groupdir, G_DIR_SEPARATOR, de, G_DIR_SEPARATOR, member_de);
 
 			if (!g_file_set_contents(copy_config, content, length, &gerror)) {
 				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Failed writing configfile: %s", gerror->message);
@@ -522,7 +522,7 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 	g_dir_close(dir);
 
 
-	config = g_strdup_printf("%s/%s", backup_groupdir, "syncgroup.conf");
+	config = g_strdup_printf("%s%c%s", backup_groupdir, G_DIR_SEPARATOR, "syncgroup.conf");
 
 	if (!g_file_get_contents(config, &content, &length, &gerror)) {
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Failed reading group configfile: %s", gerror->message);
@@ -532,7 +532,7 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 	}
 	g_free(config);
 
-	copy_config = g_strdup_printf("%s/%s", orig_groupdir, "syncgroup.conf");
+	copy_config = g_strdup_printf("%s%c%s", orig_groupdir, G_DIR_SEPARATOR, "syncgroup.conf");
 
 	if (!g_file_set_contents(copy_config, content, length, &gerror)) {
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Failed writing group configfile: %s", gerror->message);

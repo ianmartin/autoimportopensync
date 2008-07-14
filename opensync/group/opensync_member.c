@@ -439,7 +439,7 @@ OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **err
 		return member->config;
 	}
 	
-	filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
+	filename = g_strdup_printf("%s%c%s.conf", member->configdir, G_DIR_SEPARATOR, member->pluginname);
 	osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename);
 	
 	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
@@ -510,7 +510,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path, error);
 
-	filename = g_strdup_printf ("%s/syncmember.conf", path);
+	filename = g_strdup_printf ("%s%csyncmember.conf", path, G_DIR_SEPARATOR);
 	
 	basename = g_path_get_basename(path);
 	member->id = atoi(basename);
@@ -699,7 +699,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	/* TODO Validate file before storing! */
 
 	//Saving the syncmember.conf
-	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
+	filename = g_strdup_printf ("%s%csyncmember.conf", member->configdir, G_DIR_SEPARATOR);
 	xmlSaveFormatFile(filename, doc, 1);
 	g_free(filename);
 
@@ -707,7 +707,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	
 	//Saving the config if it exists
 	if (member->config) {
-		filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
+		filename = g_strdup_printf("%s%c%s.conf", member->configdir, G_DIR_SEPARATOR, member->pluginname);
 		if (!osync_plugin_config_file_save(member->config, filename, error)) {
 			g_free(filename);
 			goto error;

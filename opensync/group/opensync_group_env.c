@@ -63,7 +63,7 @@ static long long int _osync_group_env_create_group_id(OSyncGroupEnv *env)
 		i++;
 		if (filename)
 			g_free(filename);
-		filename = g_strdup_printf("%s/group%lli", env->groupsdir, i);
+		filename = g_strdup_printf("%s%cgroup%lli", env->groupsdir, G_DIR_SEPARATOR, i);
 	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
 	g_free(filename);
 	return i;
@@ -175,7 +175,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		if (!homedir)
 			homedir = g_get_home_dir();
 
-		env->groupsdir = g_strdup_printf("%s/.opensync", homedir);
+		env->groupsdir = g_strdup_printf("%s%c.opensync", homedir, G_DIR_SEPARATOR);
 		osync_trace(TRACE_INTERNAL, "Default home dir: %s", env->groupsdir);
 		
 		if (!g_file_test(env->groupsdir, G_FILE_TEST_EXISTS)) {
@@ -187,7 +187,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		}
 	} else {
 		if (!g_path_is_absolute(path)) {
-			env->groupsdir = g_strdup_printf("%s/%s", g_get_current_dir(), path);
+			env->groupsdir = g_strdup_printf("%s%c%s", g_get_current_dir(), G_DIR_SEPARATOR, path);
 		} else {
 			env->groupsdir = g_strdup(path);
 		}
@@ -207,7 +207,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	}
 	
 	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s", env->groupsdir, de);
+		filename = g_strdup_printf ("%s%c%s", env->groupsdir, G_DIR_SEPARATOR, de);
 		
 		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || !g_pattern_match_simple("group*", de)) {
 			g_free(filename);
@@ -301,7 +301,7 @@ osync_bool osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group, OSyn
 	}
 	
 	if (!osync_group_get_configdir(group)) {
-		char *configdir = g_strdup_printf("%s/group%lli", env->groupsdir, _osync_group_env_create_group_id(env));
+		char *configdir = g_strdup_printf("%s%cgroup%lli", env->groupsdir, G_DIR_SEPARATOR, _osync_group_env_create_group_id(env));
 		osync_group_set_configdir(group, configdir);
 		g_free(configdir);
 	}

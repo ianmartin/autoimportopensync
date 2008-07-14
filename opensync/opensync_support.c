@@ -166,7 +166,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	pid = getpid();
 	endline = "\n";
 #endif
-	logfile = g_strdup_printf("%s/Thread%lu-%i.log", trace, id, pid);
+	logfile = g_strdup_printf("%s%cThread%lu-%i.log", trace, G_DIR_SEPARATOR, id, pid);
 	
 	va_start(arglist, message);
 	
