@@ -400,6 +400,7 @@ void finalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	SmlError *error = NULL;
 
 	/* glib stuff */
 	/* It is necessary to stop the glib dispatching or
@@ -432,7 +433,13 @@ void finalize(void *data)
 	/* Cleanup the libsyncml library */
 
 	if (env->tsp) {
-		smlTransportFinalize(env->tsp, NULL);
+		if (!smlTransportFinalize(env->tsp, &error)) {
+			g_warning("%s: smlTransportFinalize failed. %s",
+				__func__, smlErrorPrint(&error));
+			smlErrorDeref(&error);
+		}
+		env->tsp = NULL;
+	
 	}
 	if (env->manager) {
 		/* The manager needs a transport.
