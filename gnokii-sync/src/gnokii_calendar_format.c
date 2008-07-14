@@ -26,6 +26,7 @@
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-merger.h>
 #include <opensync/opensync-time.h>
+#include <opensync/opensync-xmlformat.h>
 
 #include "gnokii_calendar_utils.h"
 
