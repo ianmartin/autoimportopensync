@@ -1,8 +1,53 @@
 #!/bin/bash
 
+PLUGINPATH="$1/src"
+
 TMPDIR=`mktemp -d /tmp/osplg.XXXXXX` || exit 1
-
 TMPCFG=`mktemp /tmp/osplgcfg.XXXXXX` || exit 1
-echo "<config><path>$TMPDIR</path><recursive>FALSE</recursive></config>" > $TMPCFG
 
-osyncplugin file-sync --config $TMPCFG --type data --plugin ../src/.libs/file_sync.so || exit 1
+mkdir -p $TMPDIR/data $TMPDIR/data_new
+date > $TMPDIR/data/foo1
+date > $TMPDIR/data/foo2
+
+(
+cat <<EOF
+<?xml version="1.0"?>
+<config version="1.0">
+  <Ressources>
+    <Ressource>
+      <Enabled>1</Enabled>
+      <ObjType>data</ObjType>
+      <Path>$TMPDIR/data</Path>
+    </Ressource>
+  </Ressources>
+</config>
+EOF
+) > $TMPCFG
+
+osyncplugin --plugin file-sync --pluginpath $PLUGINPATH --config $TMPCFG --configdir $TMPDIR --initialize --connect --sync --syncdone --disconnect --finalize || exit 1
+touch $TMPDIR/data/foo2
+
+osyncplugin --plugin file-sync --pluginpath $PLUGINPATH --config $TMPCFG --configdir $TMPDIR --initialize --connect --sync --syncdone --disconnect --finalize || exit 1
+date +%s > $TMPDIR/data/foo2
+
+osyncplugin --plugin file-sync --pluginpath $PLUGINPATH --config $TMPCFG --configdir $TMPDIR --initialize --connect --sync --syncdone --disconnect --finalize || exit 1
+rm $TMPDIR/data/foo1
+
+osyncplugin --plugin file-sync --pluginpath $PLUGINPATH --config $TMPCFG --configdir $TMPDIR --initialize --connect --sync --syncdone --disconnect --finalize || exit 1
+
+(
+cat <<EOF
+<?xml version="1.0"?>
+<config version="1.0">
+  <Ressources>
+    <Ressource>
+      <Enabled>1</Enabled>
+      <ObjType>data</ObjType>
+      <Path>$TMPDIR/data_new</Path>
+    </Ressource>
+  </Ressources>
+</config>
+EOF
+) > $TMPCFG
+
+osyncplugin --plugin file-sync --pluginpath $PLUGINPATH --config $TMPCFG --configdir $TMPDIR --initialize --connect --sync --syncdone --disconnect --finalize || exit 1
