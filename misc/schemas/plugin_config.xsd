@@ -4,11 +4,11 @@
   <xsd:element name="config">
     <xsd:complexType>
       <xsd:sequence>
+        <xsd:element maxOccurs="1" minOccurs="0" name="AdvancedOptions" type="AdvancedOptions"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Authentication" type="Authentication"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Connection" type="Connection"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Localization" type="Localization"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="Ressources" type="Ressources"/>
-<!--    <xsd:element maxOccurs="1" minOccurs="0" name="AdvancedOptions" type="AdvancedOptions"/> -->
+        <xsd:element maxOccurs="1" minOccurs="0" name="Ressources" type="Ressources"/>
       </xsd:sequence>
       <xsd:attribute name="version" type="xsd:string"/>
     </xsd:complexType>
@@ -16,9 +16,48 @@
 
   <xsd:complexType name="AdvancedOptions">
     <xsd:sequence>
-    <!-- TODO: self declaring schema -->
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="AdvancedOption" type="AdvancedOption"/>
     </xsd:sequence>
   </xsd:complexType>
+
+  <xsd:complexType name="AdvancedOption">
+    <xsd:sequence>
+      <xsd:element maxOccurs="1" minOccurs="0" name="DisplayName" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="MaxOccurs" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="MaxSize" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="Name" type="xsd:string" />
+      <xsd:element maxOccurs="unbounded" minOccurs="0" name="Parameter" type="AdvancedParameter" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Type" type="AdvancedType" />
+      <xsd:element maxOccurs="unbounded" minOccurs="0" name="ValEnum" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="AdvancedParameter">
+    <xsd:sequence>
+      <xsd:element maxOccurs="1" minOccurs="0" name="DisplayName" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="Name" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Type" type="AdvancedType" />
+      <xsd:element maxOccurs="unbounded" minOccurs="0" name="ValEnum" type="xsd:string" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:simpleType name="AdvancedType">
+    <xsd:restriction base="xsd:string">
+      <!-- TODO: bool is true/false or 1/0 or both? -->
+      <xsd:enumeration value="bool"/>
+      <xsd:enumeration value="char"/>
+      <xsd:enumeration value="double"/>
+      <xsd:enumeration value="int"/>
+      <xsd:enumeration value="long"/>
+      <xsd:enumeration value="longlong"/>
+      <xsd:enumeration value="uint"/>
+      <xsd:enumeration value="ulong"/>
+      <xsd:enumeration value="ulonglong"/>
+      <!-- string is just char with MaxSize > 1
+      <xsd:enumeration value="string"/>
+      -->
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <xsd:complexType name="Authentication">
     <xsd:sequence>
