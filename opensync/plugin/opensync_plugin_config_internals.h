@@ -28,6 +28,8 @@
  * @ingroup OSyncPluginConfigPrivateAPI 
  **/
 struct OSyncPluginConfig {
+	/** Advanced Options */
+	OSyncList *advancedoptions;
 	/** Connection configuration */
 	OSyncPluginConnection *connection;
 	/** Authentication configuration */

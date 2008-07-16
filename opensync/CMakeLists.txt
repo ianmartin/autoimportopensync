@@ -44,6 +44,7 @@ SET( libopensync_LIB_SRCS
    merger/opensync_capability.c
    merger/opensync_merger.c
    module/opensync_module.c
+   plugin/opensync_plugin_advancedoptions.c
    plugin/opensync_plugin_authentication.c
    plugin/opensync_plugin.c
    plugin/opensync_plugin_config.c

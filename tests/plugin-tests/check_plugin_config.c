@@ -168,6 +168,127 @@ START_TEST (plugin_config_subcomponents_nomemory)
 }
 END_TEST
 
+START_TEST (plugin_config_advancedoption)
+{
+	char *testbed = setup_testbed(NULL);
+
+	OSyncError *error = NULL;
+	OSyncPluginConfig *config = osync_plugin_config_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(config != NULL, NULL);
+
+	/* Advanced Option */
+	OSyncPluginAdvancedOption *option = osync_plugin_advancedoption_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(option != NULL, NULL);
+
+	osync_plugin_advancedoption_set_maxsize(option, 2323);
+	fail_unless(osync_plugin_advancedoption_get_maxsize(option) == 2323, NULL);
+
+	osync_plugin_advancedoption_set_maxoccurs(option, 3232);
+	fail_unless(osync_plugin_advancedoption_get_maxoccurs(option) == 3232, NULL);
+
+	osync_plugin_advancedoption_set_type(option, OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_BOOL);
+	fail_unless(osync_plugin_advancedoption_get_type(option) == OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_BOOL, NULL);
+
+
+	/* Check for uniq number of VALENUMs */
+	osync_plugin_advancedoption_add_valenum(option, "bar");
+	osync_plugin_advancedoption_add_valenum(option, "foo");
+	osync_plugin_advancedoption_add_valenum(option, "foo");
+	osync_plugin_advancedoption_add_valenum(option, "foo");
+
+	/* Expected result: 2 - 1x foo, 1x bar */
+	fail_unless(osync_list_length(osync_plugin_advancedoption_get_valenums(option)) == 2, NULL);
+
+	/* Expected resut: 1 - 1x bar */
+	osync_plugin_advancedoption_remove_valenum(option, "bar");
+	fail_unless(osync_list_length(osync_plugin_advancedoption_get_valenums(option)) == 1, NULL);
+
+	/*****/
+
+	osync_plugin_advancedoption_set_displayname(option, "foo");
+	fail_unless(!strcmp(osync_plugin_advancedoption_get_displayname(option), "foo"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_advancedoption_set_displayname(option, "bar");
+	fail_unless(!strcmp(osync_plugin_advancedoption_get_displayname(option), "bar"), NULL);
+
+	osync_plugin_advancedoption_set_name(option, "foo");
+	fail_unless(!strcmp(osync_plugin_advancedoption_get_name(option), "foo"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_advancedoption_set_name(option, "bar");
+	fail_unless(!strcmp(osync_plugin_advancedoption_get_name(option), "bar"), NULL);
+
+	fail_unless(osync_plugin_advancedoption_ref(option) != NULL, NULL);
+	osync_plugin_advancedoption_unref(option);
+	osync_plugin_advancedoption_unref(option);
+
+	osync_plugin_config_unref(config);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (plugin_config_advancedoption_param)
+{
+	char *testbed = setup_testbed(NULL);
+
+	OSyncError *error = NULL;
+	OSyncPluginConfig *config = osync_plugin_config_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(config != NULL, NULL);
+
+	/* Advanced Option */
+	OSyncPluginAdvancedOptionParameter *param = osync_plugin_advancedoption_param_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(param != NULL, NULL);
+
+	osync_plugin_advancedoption_param_set_type(param, OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_BOOL);
+	fail_unless(osync_plugin_advancedoption_param_get_type(param) == OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_BOOL, NULL);
+
+
+	/* Check for uniq number of VALENUMs */
+	osync_plugin_advancedoption_param_add_valenum(param, "bar");
+	osync_plugin_advancedoption_param_add_valenum(param, "foo");
+	osync_plugin_advancedoption_param_add_valenum(param, "foo");
+	osync_plugin_advancedoption_param_add_valenum(param, "foo");
+
+	/* Expected result: 2 - 1x foo, 1x bar */
+	fail_unless(osync_list_length(osync_plugin_advancedoption_param_get_valenums(param)) == 2, NULL);
+
+	/* Expected resut: 1 - 1x bar */
+	osync_plugin_advancedoption_param_remove_valenum(param, "bar");
+	fail_unless(osync_list_length(osync_plugin_advancedoption_param_get_valenums(param)) == 1, NULL);
+
+	/*****/
+
+	osync_plugin_advancedoption_param_set_displayname(param, "foo");
+	fail_unless(!strcmp(osync_plugin_advancedoption_param_get_displayname(param), "foo"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_advancedoption_param_set_displayname(param, "bar");
+	fail_unless(!strcmp(osync_plugin_advancedoption_param_get_displayname(param), "bar"), NULL);
+
+	osync_plugin_advancedoption_param_set_name(param, "foo");
+	fail_unless(!strcmp(osync_plugin_advancedoption_param_get_name(param), "foo"), NULL);
+
+	/* Overwrite (leak check) */
+	osync_plugin_advancedoption_param_set_name(param, "bar");
+	fail_unless(!strcmp(osync_plugin_advancedoption_param_get_name(param), "bar"), NULL);
+
+	fail_unless(osync_plugin_advancedoption_param_ref(param) != NULL, NULL);
+	osync_plugin_advancedoption_param_unref(param);
+	osync_plugin_advancedoption_param_unref(param);
+
+	osync_plugin_config_unref(config);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+
 START_TEST (plugin_config_authentication)
 {
 	char *testbed = setup_testbed(NULL);
@@ -510,6 +631,35 @@ START_TEST (plugin_config_save_and_load)
 	fail_unless(error == NULL, NULL);
 	fail_unless(config != NULL, NULL);
 
+	/* Advanced Options */
+	OSyncPluginAdvancedOption *option = osync_plugin_advancedoption_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(option != NULL, NULL);
+
+	osync_plugin_advancedoption_set_maxsize(option, 1);
+	osync_plugin_advancedoption_set_maxoccurs(option, 1);
+	osync_plugin_advancedoption_set_displayname(option, "foobar1");
+	osync_plugin_advancedoption_set_name(option, "foobar1");
+	osync_plugin_advancedoption_set_type(option, OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_CHAR);
+
+	osync_plugin_advancedoption_add_valenum(option, "FOOBAR1");
+	osync_plugin_advancedoption_add_valenum(option, "FOOBAR2");
+	fail_unless(osync_list_length(osync_plugin_advancedoption_get_valenums(option)) == 2, NULL);
+
+	/* Advanced Parameter */
+	OSyncPluginAdvancedOptionParameter *param = osync_plugin_advancedoption_param_new(&error);
+	fail_unless(error == NULL, NULL);
+	fail_unless(param != NULL, NULL);
+
+	osync_plugin_advancedoption_param_set_displayname(param, "bar1");
+	osync_plugin_advancedoption_param_set_name(param, "bar1");
+	osync_plugin_advancedoption_param_set_type(param, OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_INT);
+
+	osync_plugin_advancedoption_param_add_valenum(param, "BAR1");
+	osync_plugin_advancedoption_param_add_valenum(param, "BAR2");
+	fail_unless(osync_list_length(osync_plugin_advancedoption_param_get_valenums(param)) == 2, NULL);
+	osync_plugin_advancedoption_add_parameter(option, param);
+
 	/* Localization */
 	OSyncPluginLocalization *local = osync_plugin_localization_new(&error);
 	fail_unless(error == NULL, NULL);
@@ -569,6 +719,8 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_ressource_set_url(ressource2, "foobar2");
 
 	/* Set subcomponents */
+	osync_plugin_config_add_advancedoption(config, option);
+	osync_plugin_advancedoption_unref(option);
 	osync_plugin_config_set_authentication(config, auth);
 	osync_plugin_authentication_unref(auth);
 	osync_plugin_config_set_localization(config, local);
@@ -588,10 +740,15 @@ START_TEST (plugin_config_save_and_load)
 	OSyncPluginLocalization *reloaded_local = osync_plugin_config_get_localization(reloaded_config);
 	OSyncPluginAuthentication *reloaded_auth = osync_plugin_config_get_authentication(reloaded_config);
 	OSyncList *reloaded_ressources = osync_plugin_config_get_ressources(reloaded_config);
+	OSyncList *reloaded_advancedoptions = osync_plugin_config_get_advancedoptions(reloaded_config);
+	OSyncList *reloaded_advancedoption_parameters = NULL;
+	OSyncList *reloaded_advancedoption_valenums = NULL;
+	OSyncList *reloaded_advancedoption_param_valenums = NULL;
 
 	fail_unless(reloaded_local != NULL, NULL);
 	fail_unless(reloaded_auth != NULL, NULL);
 	fail_unless(reloaded_ressources != NULL, NULL);
+	fail_unless(reloaded_advancedoptions != NULL, NULL);
 
 	fail_unless(!strcmp(osync_plugin_localization_get_language(reloaded_local), "de_DE"), NULL);
 	fail_unless(!strcmp(osync_plugin_localization_get_encoding(reloaded_local), "cp1222"), NULL);
@@ -601,8 +758,8 @@ START_TEST (plugin_config_save_and_load)
 	fail_unless(!strcmp(osync_plugin_authentication_get_password(reloaded_auth), "bar"), NULL);
 	fail_unless(!strcmp(osync_plugin_authentication_get_reference(reloaded_auth), "ref"), NULL);
 
-	OSyncList *r;
-	int i;
+	OSyncList *r, *p, *v;
+	int i, j, k;
 	for (i = 1, r = reloaded_ressources; r; r = r->next, i++) {
 		char *value = g_strdup_printf("foobar%i", i);
 		fail_unless(!strcmp(osync_plugin_ressource_get_name(r->data), value), NULL);
@@ -614,6 +771,43 @@ START_TEST (plugin_config_save_and_load)
 		fail_unless(!strcmp(osync_plugin_ressource_get_url(r->data), value), NULL);
 		g_free(value);
 	}
+
+	for (i = 1, r = reloaded_advancedoptions; r; r = r->next, i++) {
+		char *value = g_strdup_printf("foobar%i", i);
+		fail_unless(!strcmp(osync_plugin_advancedoption_get_name(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_advancedoption_get_displayname(r->data), value), NULL);
+		fail_unless(osync_plugin_advancedoption_get_maxsize(r->data) == i, NULL);
+		fail_unless(osync_plugin_advancedoption_get_maxoccurs(r->data) == i, NULL);
+		fail_unless(osync_plugin_advancedoption_get_type(r->data) == OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_CHAR, NULL);
+		g_free(value);
+
+		reloaded_advancedoption_valenums = osync_plugin_advancedoption_get_valenums(r->data);
+		for (j = 1, v = reloaded_advancedoption_valenums; v; v = v->next, j++) {
+			char *value = g_strdup_printf("FOOBAR%i", j);
+			fail_unless(!strcmp(v->data, value), NULL);
+			g_free(value);
+		}
+
+		reloaded_advancedoption_parameters = osync_plugin_advancedoption_get_parameters(r->data);
+		for (j = 1, p = reloaded_advancedoption_parameters; p; p = p->next, j++) {
+			char *value = g_strdup_printf("bar%i", j);
+			fail_unless(!strcmp(osync_plugin_advancedoption_param_get_name(p->data), value), NULL);
+			fail_unless(!strcmp(osync_plugin_advancedoption_param_get_displayname(p->data), value), NULL);
+			g_free(value);
+
+			reloaded_advancedoption_param_valenums = osync_plugin_advancedoption_param_get_valenums(p->data);
+			for (k = 1, v = reloaded_advancedoption_param_valenums; v; v = v->next, k++) {
+				char *value = g_strdup_printf("BAR%i", k);
+				fail_unless(!strcmp(v->data, value), NULL);
+				g_free(value);
+
+			}
+
+		}
+
+
+	}
+
 
 	osync_plugin_config_unref(config);
 	osync_plugin_config_unref(reloaded_config);
@@ -871,6 +1065,8 @@ Suite *client_suite(void)
 	create_case(s, "plugin_config_new_nomemory", plugin_config_new_nomemory);
 	create_case(s, "plugin_config_subcomponents", plugin_config_subcomponents);
 	create_case(s, "plugin_config_subcomponents_nomemory", plugin_config_subcomponents_nomemory);
+	create_case(s, "plugin_config_advancedoption", plugin_config_advancedoption);
+	create_case(s, "plugin_config_advancedoption_param", plugin_config_advancedoption_param);
 	create_case(s, "plugin_config_authentication", plugin_config_authentication);
 	create_case(s, "plugin_config_connection", plugin_config_connection);
 	create_case(s, "plugin_config_localization", plugin_config_localization);

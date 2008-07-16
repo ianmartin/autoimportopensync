@@ -24,8 +24,122 @@
 #include "opensync-plugin.h"
 #include "opensync-format.h"
 #include "opensync_plugin_config_internals.h"
+#include "opensync_plugin_advancedoptions_internals.h"
 
 #include "opensync_xml.h"
+
+static OSyncPluginAdvancedOptionParameter *_osync_plugin_config_parse_advancedoption_param(OSyncPluginAdvancedOption *option, xmlNode *cur, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, option, cur, error);
+
+	OSyncPluginAdvancedOptionParameter *param = osync_plugin_advancedoption_param_new(error);
+	if (!param)
+		goto error;
+
+	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (!str)
+			continue;
+
+		if (!xmlStrcmp(cur->name, BAD_CAST "DisplayName"))
+			osync_plugin_advancedoption_param_set_displayname(param, str);
+		else if (!xmlStrcmp(cur->name, BAD_CAST "Name"))
+			osync_plugin_advancedoption_param_set_name(param, str);
+		else if (!xmlStrcmp(cur->name, BAD_CAST "Type"))
+			osync_plugin_advancedoption_param_set_type(param, 
+					osync_plugin_advancedoption_type_string_to_val(str));
+		else if (!xmlStrcmp(cur->name, BAD_CAST "ValEnum"))
+			osync_plugin_advancedoption_param_add_valenum(param, str);
+
+		xmlFree(str);
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return param;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static OSyncPluginAdvancedOption *_osync_plugin_config_parse_advancedoption(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
+
+	OSyncPluginAdvancedOptionParameter *param;
+	OSyncPluginAdvancedOption *option = osync_plugin_advancedoption_new(error);
+	if (!option)
+		goto error;
+
+	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (!str)
+			continue;
+
+		if (!xmlStrcmp(cur->name, BAD_CAST "DisplayName"))
+			osync_plugin_advancedoption_set_displayname(option, str);
+		else if (!xmlStrcmp(cur->name, BAD_CAST "MaxOccurs"))
+			osync_plugin_advancedoption_set_maxoccurs(option, atoi(str));
+		else if (!xmlStrcmp(cur->name, BAD_CAST "MaxSize"))
+			osync_plugin_advancedoption_set_maxsize(option, atoi(str));
+		else if (!xmlStrcmp(cur->name, BAD_CAST "Name"))
+			osync_plugin_advancedoption_set_name(option, str);
+		else if (!xmlStrcmp(cur->name, BAD_CAST "Parameter")) {
+			if (!(param = _osync_plugin_config_parse_advancedoption_param(option, cur->xmlChildrenNode, error)))
+				goto error;
+
+			option->parameters = osync_list_prepend(option->parameters, param);
+
+		} else if (!xmlStrcmp(cur->name, BAD_CAST "Type")) {
+			osync_plugin_advancedoption_set_type(option, osync_plugin_advancedoption_type_string_to_val(str));
+		} else if (!xmlStrcmp(cur->name, BAD_CAST "ValEnum"))
+			osync_plugin_advancedoption_add_valenum(option, str);
+
+		xmlFree(str);
+	}
+
+	option->parameters = osync_list_reverse(option->parameters);
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, option);
+	return option;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static osync_bool _osync_plugin_config_parse_advancedoptions(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
+{
+	OSyncPluginAdvancedOption *option;
+
+	for (; cur != NULL; cur = cur->next) {
+
+		if (cur->type != XML_ELEMENT_NODE)
+			continue;
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"AdvancedOption")) {
+			if (!(option = _osync_plugin_config_parse_advancedoption(config, cur->xmlChildrenNode, error)))
+				goto error;
+
+			config->advancedoptions = osync_list_prepend(config->advancedoptions, option);
+		}
+	}
+
+	config->advancedoptions = osync_list_reverse(config->advancedoptions);
+
+	return TRUE;
+
+error:
+	return FALSE; 
+}
 
 static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
@@ -521,7 +635,9 @@ static osync_bool _osync_plugin_config_parse(OSyncPluginConfig *config, xmlNode 
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"Authentication")) {
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"AdvancedOptions")) {
+			ret = _osync_plugin_config_parse_advancedoptions(config, cur->xmlChildrenNode, error);
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Authentication")) {
 			ret = _osync_plugin_config_parse_authentication(config, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Connection")) {
 			ret = _osync_plugin_config_parse_connection(config, cur->xmlChildrenNode, error);
@@ -870,6 +986,146 @@ error:
 	return FALSE;
 }
 
+static osync_bool _osync_plugin_config_assemble_advancedoption_param(xmlNode *cur, OSyncPluginAdvancedOptionParameter *param, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, param, error);
+
+	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Parameter", NULL);
+	if (!node) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
+		goto error;
+	}
+
+	/* DisplayName */
+	if (osync_plugin_advancedoption_param_get_displayname(param))
+		xmlNewChild(node, NULL, BAD_CAST "DisplayName", 
+				BAD_CAST osync_plugin_advancedoption_param_get_displayname(param));
+
+	/* Name */
+	if (!osync_plugin_advancedoption_param_get_name(param)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Name for advanced option not set.");
+		goto error;
+	}
+
+	xmlNewChild(node, NULL, BAD_CAST "Name", BAD_CAST osync_plugin_advancedoption_param_get_name(param));
+
+	/* Type */
+	if (!osync_plugin_advancedoption_param_get_type(param)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Type for advanced option not set.");
+		goto error;
+	}
+
+	xmlNewChild(node, NULL, BAD_CAST "Type", BAD_CAST osync_plugin_advancedoption_param_get_type_string(param));
+
+	/* ValEnum */
+	OSyncList *v;
+	for (v = osync_plugin_advancedoption_param_get_valenums(param); v; v = v->next) {
+		char *valenum = v->data;
+		xmlNewChild(node, NULL, BAD_CAST "ValEnum", BAD_CAST valenum);
+	}
+
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+
+}
+
+static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSyncPluginAdvancedOption *option, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, option, error);
+
+	OSyncList *o;
+	const char *name, *mime, *objtype, *path, *url;
+
+	xmlNode *next, *node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOption", NULL);
+	if (!node) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
+		goto error;
+	}
+
+	/* DisplayName */
+	if (osync_plugin_advancedoption_get_displayname(option))
+		xmlNewChild(node, NULL, BAD_CAST "DisplayName", 
+				BAD_CAST osync_plugin_advancedoption_get_displayname(option));
+
+	/* MaxOccurs */
+	if (osync_plugin_advancedoption_get_maxoccurs(option)) {
+		char *str = g_strdup_printf("%u", osync_plugin_advancedoption_get_maxoccurs(option));
+		xmlNewChild(node, NULL, BAD_CAST "MaxOccurs", BAD_CAST str);
+		g_free(str);
+	}
+
+	/* MaxSize */
+	if (osync_plugin_advancedoption_get_maxsize(option)) {
+		char *str = g_strdup_printf("%u", osync_plugin_advancedoption_get_maxsize(option));
+		xmlNewChild(node, NULL, BAD_CAST "MaxSize", BAD_CAST str);
+		g_free(str);
+	}
+
+	/* Name */
+	if (!osync_plugin_advancedoption_get_name(option)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Name for advanced option not set.");
+		goto error;
+	}
+
+	xmlNewChild(node, NULL, BAD_CAST "Name", BAD_CAST osync_plugin_advancedoption_get_name(option));
+
+	/* Parameters */
+	OSyncList *p;
+	for (p = osync_plugin_advancedoption_get_parameters(option); p; p = p->next) {
+		OSyncPluginAdvancedOptionParameter *param = p->data;
+		if (!_osync_plugin_config_assemble_advancedoption_param(node, param, error))
+			goto error;
+	}
+
+	/* Type */
+	if (!osync_plugin_advancedoption_get_type(option)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Type for advanced option not set.");
+		goto error;
+	}
+
+	xmlNewChild(node, NULL, BAD_CAST "Type", BAD_CAST osync_plugin_advancedoption_get_type_string(option));
+
+	/* ValEnum */
+	OSyncList *v;
+	for (v = osync_plugin_advancedoption_get_valenums(option); v; v = v->next) {
+		char *valenum = v->data;
+		xmlNewChild(node, NULL, BAD_CAST "ValEnum", BAD_CAST valenum);
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_plugin_config_assemble_advancedoptions(xmlNode *cur, OSyncList *options, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, options, error);
+
+	OSyncList *o;
+
+	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOptions", NULL);
+	if (!node) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
+		goto error;
+	}
+
+	for (o = options; o; o = o->next)
+		if (!_osync_plugin_config_assemble_advancedoption(node, o->data, error))
+			goto error;
+
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
 
 OSyncPluginConfig *osync_plugin_config_new(OSyncError **error)
 {
@@ -921,6 +1177,7 @@ osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *
 	OSyncPluginAuthentication *auth;
 	OSyncPluginLocalization *local;
 	OSyncList *ressources;
+	OSyncList *options;
 	
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	if (!doc) {
@@ -939,6 +1196,11 @@ osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *
 	g_free(version_str);
 
 	/** Assemble... */
+	/* Advanced Options */
+	if ((options = osync_plugin_config_get_advancedoptions(config)))
+		if (!_osync_plugin_config_assemble_advancedoptions(doc->children, options, error))
+			goto error_and_free;
+
 	/* Authentication */
 	if ((auth = osync_plugin_config_get_authentication(config)))
 		if (!_osync_plugin_config_assemble_authentication(doc->children, auth, error))
@@ -974,6 +1236,36 @@ error:
 }
 
 
+/* Advanced Options */
+OSyncList *osync_plugin_config_get_advancedoptions(OSyncPluginConfig *config)
+{
+	osync_assert(config);
+	return config->advancedoptions;
+
+}
+
+void osync_plugin_config_add_advancedoption(OSyncPluginConfig *config, OSyncPluginAdvancedOption *option)
+{
+	osync_assert(config);
+	osync_assert(option);
+
+	if (osync_list_find(config->advancedoptions, option))
+			return;
+
+	osync_plugin_advancedoption_ref(option);
+	config->advancedoptions = osync_list_prepend(config->advancedoptions, option);
+}
+
+void osync_plugin_config_remove_advancedoption(OSyncPluginConfig *config, OSyncPluginAdvancedOption *option)
+{
+	osync_assert(config);
+	osync_assert(option);
+
+	config->advancedoptions = osync_list_remove(config->advancedoptions, option);
+	osync_plugin_advancedoption_unref(option);
+}
+
+/* Authentication */
 OSyncPluginAuthentication *osync_plugin_config_get_authentication(OSyncPluginConfig *config)
 {
 	osync_assert(config);
@@ -989,6 +1281,7 @@ void osync_plugin_config_set_authentication(OSyncPluginConfig *config, OSyncPlug
 	config->authentication = osync_plugin_authentication_ref(authentication);
 }
 
+/* Localization */
 OSyncPluginLocalization *osync_plugin_config_get_localization(OSyncPluginConfig *config)
 {
 	osync_assert(config);

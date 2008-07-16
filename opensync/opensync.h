@@ -148,6 +148,8 @@ typedef struct OSyncModule OSyncModule;
 typedef struct OSyncObjTypeSink OSyncObjTypeSink;
 typedef struct OSyncPluginConfig OSyncPluginConfig;
 typedef struct OSyncPluginAuthentication OSyncPluginAuthentication;
+typedef struct OSyncPluginAdvancedOption OSyncPluginAdvancedOption;
+typedef struct OSyncPluginAdvancedOptionParameter OSyncPluginAdvancedOptionParameter;
 typedef struct OSyncPluginConnection OSyncPluginConnection;
 typedef struct OSyncPluginLocalization OSyncPluginLocalization;
 typedef struct OSyncPluginRessource OSyncPluginRessource;
