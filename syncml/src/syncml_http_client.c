@@ -76,13 +76,9 @@ guint64 init_client_session (SmlPluginEnv *env, SmlError **error)
         osync_trace(TRACE_INTERNAL, "%s: credential initialized", __func__);
     }
 
-    /* create random session ID - glib only supports 32 bit random numbers */
-    guint64 sessionID = (((guint64) g_random_int ()) << 32) + g_random_int ();
-    char *sessionString = g_strdup_printf("%lu", sessionID);
-    osync_trace(TRACE_INTERNAL, "%s: new session ID is %llu (%s)",
-                __func__, sessionID, sessionString);
-
     /* create session */
+    char *sessionString = smlManagerGetNewSessionID(env->manager);
+    guint64 sessionID = strtoull(sessionString, NULL, 10);
     SmlLocation *target = smlLocationNew(env->url, NULL, error);
     SmlLocation *source = smlLocationNew(env->identifier, NULL, error);
     SmlLink *link = smlLinkNew(env->tsp, NULL, error);
