@@ -25,7 +25,8 @@ START_TEST (sync_setup_connect)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -71,6 +72,7 @@ START_TEST (sync_easy_new)
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
 	
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -171,7 +173,8 @@ START_TEST (sync_easy_new_del)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -298,7 +301,8 @@ START_TEST (sync_easy_conflict)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -402,7 +406,8 @@ START_TEST (sync_easy_new_mapping)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -563,7 +568,8 @@ START_TEST (sync_easy_conflict_duplicate)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -737,7 +743,8 @@ START_TEST (sync_easy_conflict_abort)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -991,6 +998,7 @@ START_TEST (sync_conflict_duplicate2)
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
 	
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -1171,6 +1179,7 @@ START_TEST (sync_conflict_delay)
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
 	
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -1340,7 +1349,8 @@ START_TEST (sync_conflict_deldel)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -1446,6 +1456,7 @@ START_TEST (sync_moddel)
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
 	
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -1616,6 +1627,7 @@ START_TEST (sync_conflict_moddel)
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
 	
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -1726,7 +1738,8 @@ START_TEST (sync_easy_dualdel)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -1912,6 +1925,7 @@ START_TEST (sync_large)
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
 	
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -2291,7 +2305,8 @@ START_TEST (sync_detect_obj)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -2497,7 +2512,8 @@ START_TEST (sync_detect_obj2)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -2681,7 +2697,8 @@ START_TEST (sync_slowsync_connect)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -2778,7 +2795,8 @@ START_TEST (sync_slowsync_connect)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -2885,7 +2903,8 @@ START_TEST (sync_slowsync_mainsink_connect)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -2981,7 +3000,8 @@ START_TEST (sync_slowsync_mainsink_connect)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_unref(group);
-	
+
+	osync_engine_set_schemadir(engine, testbed);	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	

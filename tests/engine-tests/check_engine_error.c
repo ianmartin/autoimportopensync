@@ -605,6 +605,8 @@ START_TEST (single_init_error)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -636,6 +638,8 @@ START_TEST (double_init_error)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+	
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -667,6 +671,8 @@ START_TEST (no_config_error)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -698,6 +704,8 @@ START_TEST (no_objtype_error)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -729,6 +737,8 @@ START_TEST (dual_connect_error)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 	
@@ -817,6 +827,8 @@ START_TEST (one_of_two_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -863,6 +875,8 @@ START_TEST (two_of_three_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -910,6 +924,8 @@ START_TEST (two_of_three_connect_error2)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -957,6 +973,8 @@ START_TEST (three_of_three_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1002,6 +1020,8 @@ START_TEST (one_of_three_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1048,6 +1068,8 @@ START_TEST (no_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1074,8 +1096,8 @@ START_TEST (no_connect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -1097,6 +1119,8 @@ START_TEST (single_connect_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1147,6 +1171,8 @@ START_TEST (dual_connect_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1196,6 +1222,8 @@ START_TEST (one_of_three_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1246,6 +1274,8 @@ START_TEST (timeout_and_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1296,6 +1326,8 @@ START_TEST (single_get_changes_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1347,6 +1379,8 @@ START_TEST (dual_get_changes_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1400,6 +1434,8 @@ START_TEST (two_of_three_get_changes_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1451,6 +1487,8 @@ START_TEST (one_of_three_get_changes_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1502,6 +1540,8 @@ START_TEST (one_of_three_get_changes_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1557,6 +1597,8 @@ START_TEST (get_changes_timeout_and_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1613,6 +1655,8 @@ START_TEST (get_changes_timeout_sleep)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1670,6 +1714,8 @@ START_TEST (single_commit_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1706,7 +1752,7 @@ START_TEST (single_commit_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	
 	destroy_testbed(testbed);
@@ -1728,6 +1774,8 @@ START_TEST (dual_commit_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1782,6 +1830,8 @@ START_TEST (single_commit_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1816,7 +1866,7 @@ START_TEST (single_commit_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	
 	destroy_testbed(testbed);
@@ -1838,6 +1888,8 @@ START_TEST (dual_commit_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1895,6 +1947,8 @@ START_TEST (commit_timeout_and_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -1952,6 +2006,8 @@ START_TEST (commit_timeout_and_error2)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2007,6 +2063,8 @@ START_TEST (commit_error_modify)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2053,7 +2111,7 @@ START_TEST (commit_error_modify)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data2 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data2", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2073,6 +2131,8 @@ START_TEST (commit_error_delete)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2119,7 +2179,7 @@ START_TEST (commit_error_delete)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data2 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data2", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2141,6 +2201,8 @@ START_TEST (committed_all_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2172,8 +2234,8 @@ START_TEST (committed_all_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2196,6 +2258,8 @@ START_TEST (committed_all_batch_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2227,8 +2291,8 @@ START_TEST (committed_all_batch_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2250,6 +2314,8 @@ START_TEST (single_sync_done_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2281,8 +2347,8 @@ START_TEST (single_sync_done_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2304,6 +2370,8 @@ START_TEST (dual_sync_done_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2335,8 +2403,8 @@ START_TEST (dual_sync_done_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2358,6 +2426,8 @@ START_TEST (triple_sync_done_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2389,8 +2459,8 @@ START_TEST (triple_sync_done_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2412,6 +2482,8 @@ START_TEST (single_sync_done_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2445,8 +2517,8 @@ START_TEST (single_sync_done_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2468,6 +2540,8 @@ START_TEST (dual_sync_done_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2501,8 +2575,8 @@ START_TEST (dual_sync_done_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2525,6 +2599,8 @@ START_TEST (sync_done_timeout_and_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2558,8 +2634,8 @@ START_TEST (sync_done_timeout_and_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2581,6 +2657,8 @@ START_TEST (single_disconnect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2612,8 +2690,8 @@ START_TEST (single_disconnect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2635,6 +2713,8 @@ START_TEST (dual_disconnect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2666,8 +2746,8 @@ START_TEST (dual_disconnect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2689,6 +2769,8 @@ START_TEST (triple_disconnect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2720,8 +2802,8 @@ START_TEST (triple_disconnect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2743,6 +2825,8 @@ START_TEST (single_disconnect_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2776,8 +2860,8 @@ START_TEST (single_disconnect_timeout)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2799,6 +2883,8 @@ START_TEST (dual_disconnect_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2832,8 +2918,8 @@ START_TEST (dual_disconnect_timeout)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2856,6 +2942,8 @@ START_TEST (disconnect_timeout_and_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -2889,8 +2977,8 @@ START_TEST (disconnect_timeout_and_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	destroy_testbed(testbed);
 }
@@ -2915,6 +3003,8 @@ START_TEST (get_changes_disconnect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 

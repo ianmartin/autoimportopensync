@@ -98,6 +98,8 @@ START_TEST (engine_init)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
 
@@ -318,6 +320,8 @@ START_TEST (engine_sync)
 	OSyncDebugGroup *debug = _create_group(testbed);
 	
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
+	osync_engine_set_schemadir(engine, testbed);
+
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
@@ -626,6 +630,7 @@ START_TEST (engine_sync_multi_obj)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
 	
@@ -1018,6 +1023,7 @@ START_TEST (engine_sync_out_of_order)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 	
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -1242,6 +1248,7 @@ START_TEST (engine_sync_reuse)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
 	
@@ -1282,6 +1289,7 @@ START_TEST (engine_sync_stress)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 	
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -1511,6 +1519,7 @@ START_TEST (engine_sync_read_write)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -1707,6 +1716,7 @@ START_TEST (engine_sync_read_write_stress)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 	
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -1904,6 +1914,7 @@ START_TEST (engine_sync_read_write_stress2)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
 	

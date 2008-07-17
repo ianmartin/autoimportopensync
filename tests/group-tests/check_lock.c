@@ -104,6 +104,7 @@ START_TEST (dual_sync_engine_lock)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	OSyncEngine *engine2 = osync_engine_new(group2, &error);
 	fail_unless(error == NULL, osync_error_print(&error));
@@ -111,6 +112,7 @@ START_TEST (dual_sync_engine_lock)
 
 	osync_engine_set_plugindir(engine2, testbed);
 	osync_engine_set_formatdir(engine2, testbed);
+	osync_engine_set_schemadir(engine2, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), osync_error_print(&error));
 	fail_unless(!osync_engine_initialize(engine2, &error), osync_error_print(&error));
@@ -135,8 +137,8 @@ START_TEST (dual_sync_engine_lock)
 	osync_engine_unref(engine);
 	osync_engine_unref(engine2);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 	
 	osync_group_unref(group);
 	osync_group_unref(group2);
@@ -159,6 +161,7 @@ START_TEST (dual_sync_engine_unclean)
 	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, osync_error_print(&error));
@@ -202,6 +205,7 @@ START_TEST (dual_sync_engine_unclean)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 	
 	num_engine_prev_unclean = 0;
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -227,6 +231,7 @@ START_TEST (dual_sync_engine_unclean)
 	
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 	
 	for (o = engine->object_engines; o; o = o->next) {
 		OSyncObjEngine *objengine = o->data;
@@ -247,8 +252,8 @@ START_TEST (dual_sync_engine_unclean)
 	
 	fail_unless(num_engine_prev_unclean == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
+	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(!osync_testing_diff("data1", "data3"));
 
 	osync_group_unref(group);
 	

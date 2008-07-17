@@ -107,6 +107,7 @@ START_TEST (filter_sync_deny_all)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), osync_error_print(&error));
 	synchronize_once(engine, &error);
@@ -152,6 +153,7 @@ START_TEST (filter_sync_custom)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
@@ -304,6 +306,7 @@ START_TEST (filter_sync_vcard_only)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
@@ -347,6 +350,7 @@ START_TEST(filter_destobjtype_delete)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
@@ -393,6 +397,7 @@ START_TEST (filter_sync_read_only)
 
 	osync_engine_set_plugindir(engine, testbed);
 	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	synchronize_once(engine, NULL);
