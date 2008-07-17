@@ -45,7 +45,9 @@ struct OSyncEngine {
 	char *engine_path;
 	char *plugin_dir;
 	char *format_dir;
-	
+#ifdef OPENSYNC_UNITTESTS
+	char *schema_dir;
+#endif /* OPENSYNC_UNITTESTS */	
 	OSyncFormatEnv *formatenv;
 	OSyncPluginEnv *pluginenv;
 	
@@ -111,6 +113,11 @@ struct OSyncEngine {
 	osync_bool busy;
 	
 	GHashTable *internalFormats;
+	GHashTable *internalSchemas;
 };
+
+#ifdef OPENSYNC_UNITTESTS
+void osync_engine_set_schemadir(OSyncEngine *engine, const char *schema_dir);
+#endif /* OPENSYNC_UNITTESTS */
 
 #endif /*OPENSYNC_ENGINE_INTERNALS_H_*/

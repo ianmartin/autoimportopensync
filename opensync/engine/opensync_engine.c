@@ -36,6 +36,10 @@
 #include "opensync_engine.h"
 #include "opensync_engine_internals.h"
 
+#ifdef OPENSYNC_UNITTESTS
+#include "xmlformat/opensync-xmlformat_internals.h"
+#endif
+
 static void osync_engine_set_error(OSyncEngine *engine, OSyncError *error)
 {
 	osync_assert(engine);
@@ -118,6 +122,35 @@ static int _osync_engine_get_objengine_position(OSyncEngine *engine, OSyncObjEng
 	osync_assert(ret >= 0);
 
 	return ret;
+}
+
+gboolean foreach_schema(void *key, void *value, void *userdata) {
+	osync_xmlformat_schema_unref((OSyncXMLFormatSchema *)value);
+	return TRUE;
+}
+
+static void _osync_engine_finalize_internal_schemas(OSyncEngine *engine)
+{
+
+	if ( engine->internalSchemas != NULL ) {
+		g_hash_table_foreach_remove(engine->internalSchemas, foreach_schema, NULL);
+	} 
+
+}
+
+static void _osync_engine_set_internal_schema(OSyncEngine *engine, const char *objtype, OSyncError **error) 
+{
+	osync_trace(TRACE_INTERNAL, "Setting internal schema for objtype %s", objtype);
+
+	// init OSyncXMLFormatSchemas
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new(objtype, NULL);
+#ifdef OPENSYNC_UNITTESTS
+	OSyncXMLFormatSchema *schema = osync_xmlformat_schema_get_instance_with_path(xmlformat, engine->schema_dir, error);
+#else
+	OSyncXMLFormatSchema *schema = osync_xmlformat_schema_get_instance(xmlformat, error);
+#endif
+	osync_xmlformat_unref(xmlformat);
+	g_hash_table_insert(engine->internalSchemas, g_strdup(objtype), schema);
 }
 
 static void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
@@ -366,6 +399,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 		g_thread_init (NULL);
 	
 	engine->internalFormats = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	engine->internalSchemas = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 	
 	engine->context = g_main_context_new();
 	engine->thread = osync_thread_new(engine->context, error);
@@ -500,6 +534,9 @@ void osync_engine_unref(OSyncEngine *engine)
 		
 		if (engine->error)
 			osync_error_unref(&(engine->error));
+
+		if (engine->internalSchemas)
+			g_hash_table_destroy(engine->internalSchemas);
 		
 		g_free(engine);
 		osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1073,6 +1110,11 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
 	_osync_engine_set_internal_format(engine, "todo", osync_format_env_find_objformat(engine->formatenv, "xmlformat-todo"));
 	_osync_engine_set_internal_format(engine, "note", osync_format_env_find_objformat(engine->formatenv, "xmlformat-note"));
+	/* init schemas */
+	_osync_engine_set_internal_schema(engine, "contact", error);
+	_osync_engine_set_internal_schema(engine, "event", error);
+	_osync_engine_set_internal_schema(engine, "todo", error);
+	_osync_engine_set_internal_schema(engine, "note", error);
 	
 	osync_trace(TRACE_INTERNAL, "Running the main loop");
 	if (!_osync_engine_start(engine, error))
@@ -1158,6 +1200,9 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 		osync_plugin_env_free(engine->pluginenv);
 		engine->pluginenv = NULL;
 	}
+	
+	/* free internal schemas */
+	_osync_engine_finalize_internal_schemas(engine);
 
 	if (!engine->error)
 		osync_group_unlock(engine->group);
@@ -1815,4 +1860,25 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
+
+#ifdef OPENSYNC_UNITTESTS
+/** @brief Set the schemadir for schema validation to a custom directory.
+ *  This is actually only inteded for UNITTESTS to run tests without 
+ *  having OpenSync installed.
+ * 
+ * @param engine Pointer to engine
+ * @param schemadir Custom schemadir path
+ * 
+ */
+void osync_engine_set_schemadir(OSyncEngine *engine, const char *schema_dir)
+{
+	osync_assert(engine);
+	osync_assert(schema_dir);
+
+	if (engine->schema_dir)
+		g_free(engine->schema_dir);
+
+	engine->schema_dir = g_strdup(schema_dir); 
+}
+#endif /* OPENSYNC_UNITTESTS */
 
