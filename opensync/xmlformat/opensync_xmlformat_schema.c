@@ -213,19 +213,12 @@ osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXM
  * @param error The error which will hold the info in case of an error
  */
 void osync_xmlformat_schema_unref(OSyncXMLFormatSchema *osyncschema) {
-	GList *entry;	
 
 	osync_assert(osyncschema);
 
 	if (g_atomic_int_dec_and_test(&(osyncschema->ref_count))) {
 		_osync_xmlformat_schema_lock_mutex();
-		int number_schemas = g_list_length(schemas);
-		if ( number_schemas == 1 ) {
-			schemas = NULL;
-		}
-		else {
-			entry = g_list_remove(schemas, osyncschema);
-		}
+		schemas = g_list_remove(schemas, osyncschema);
 		_osync_xmlformat_schema_unlock_mutex();
 		xmlSchemaFreeValidCtxt(osyncschema->context);
 		xmlSchemaFree(osyncschema->schema);
