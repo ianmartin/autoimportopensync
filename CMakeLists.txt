@@ -7,9 +7,31 @@ STRING( REGEX REPLACE "Rev: " "" OPENSYNC_SVN_REVISION ${OPENSYNC_SVN_REVISION} 
 STRING( REGEX REPLACE "^\\$" "" OPENSYNC_SVN_REVISION ${OPENSYNC_SVN_REVISION} )
 STRING( REGEX REPLACE " \\$$" "" OPENSYNC_SVN_REVISION ${OPENSYNC_SVN_REVISION} )
 
-SET( OPENSYNC_SOVERSION 1 )
-SET( OPENSYNC_SONAME "libopensync${OPENSYNC_SOVERSION}" )
-SET( OPENSYNC_PLUGINVERSION ${OPENSYNC_SOVERSION} )
+
+# The most recent interface number that this library implements.
+#UPDATE: If any interface have been added, removed or changed since
+#UPDATE: the last update increment CURRENT.
+SET( OPENSYNC_LIBVERSION_CURRENT 1 )
+
+# The implementation number of the CURRENT interface.
+# UPDATE: Increment only if the library code has changed at all, since
+# UPDATE: last release.
+# UPDATE: Set REVISION to 0 if any interface have been added, removed or
+# UPDATE: changed since the last update.
+SET( OPENSYNC_LIBVERSION_REVISION 0 )
+
+# The difference between the newest and the oldest interfaces.
+# UPDATE: If any interface have been added since the last public
+# UPDATE: release, then increment.
+# UPDATE: If any interface have been removed since the last release
+# UPDATE: reset to 0.
+SET( OPENSYNC_LIBVERSION_AGE 0 )
+
+
+# The range of implemention CURRENT - AGE is the SOVERSION
+MATH( EXPR OPENSYNC_LIBVERSION_SOVERSION "${OPENSYNC_LIBVERSION_CURRENT} - ${OPENSYNC_LIBVERSION_AGE}" )
+
+SET( OPENSYNC_LIBVERSION_VERSION "${OPENSYNC_LIBVERSION_SOVERSION}.${OPENSYNC_LIBVERSION_REVISION}.${OPENSYNC_LIBVERSION_AGE}" )
 
 IF ( $ENV{OPENSYNC_RELEASE} )
 	SET( OPENSYNC_VERSION "${OPENSYNC_VERSION_MAJOR}.${OPENSYNC_VERSION_MINOR}" )	
@@ -17,6 +39,7 @@ ELSE ( $ENV{OPENSYNC_RELEASE} )
 	SET( OPENSYNC_VERSION "${OPENSYNC_VERSION_MAJOR}.${OPENSYNC_VERSION_MINOR}-r${OPENSYNC_SVN_REVISION}" )	
 ENDIF ( $ENV{OPENSYNC_RELEASE} )
 
+SET( OPENSYNC_PLUGINVERSION ${OPENSYNC_LIBVERSION_SOVERSION} )
 
 ################################################	
 
