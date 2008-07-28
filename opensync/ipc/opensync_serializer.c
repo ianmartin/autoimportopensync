@@ -634,7 +634,7 @@ error:
 	return FALSE;
 }
 
-#define MARSHAL_OBJFORMATSINK_CONFIG (0x1 << 1)
+#define MARSHAL_OBJFORMATSINK_CONFIG (1 << 1)
 
 osync_bool osync_marshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink *sink, OSyncError **error)
 {
@@ -713,10 +713,305 @@ error:
 	return FALSE;
 }
 
-#define MARSHAL_PLUGINRESSOURCE_NAME (0x1 << 1)
-#define MARSHAL_PLUGINRESSOURCE_MIME (0x1 << 2)
-#define MARSHAL_PLUGINRESSOURCE_PATH (0x1 << 3)
-#define MARSHAL_PLUGINRESSOURCE_URL  (0x1 << 4)
+
+#define MARSHAL_PLUGINADVANCEDOPTION_PARAM_DISPLAYNAME (1 << 1)
+
+osync_bool osync_marshal_pluginadvancedoption_param(OSyncMessage *message, OSyncPluginAdvancedOptionParameter *param, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(param);
+
+	/* Order:
+	 *
+	 * available_subconfigs
+	 *
+	 * displayname (string) (optional)
+	 * name (string)
+	 * type (uint)
+	 * value (string)
+	 * num_valenum (uint)
+	 * valenum (string list)
+	 */
+
+	unsigned int available_subconfigs = 0;
+	const char *displayname = NULL;
+	const char *name = NULL;
+	unsigned int type = 0;
+	const char *value = NULL;
+	unsigned int num_valenum = 0;
+	unsigned int i;
+	OSyncList *valenum = NULL;
+
+
+	displayname = osync_plugin_advancedoption_param_get_displayname(param);
+	if (displayname)
+		available_subconfigs |= MARSHAL_PLUGINADVANCEDOPTION_PARAM_DISPLAYNAME;
+
+	osync_message_write_uint(message, available_subconfigs);
+
+	osync_message_write_string(message, displayname);
+
+	name = osync_plugin_advancedoption_param_get_name(param);
+	osync_message_write_string(message, name);
+
+	type = osync_plugin_advancedoption_param_get_type(param);
+	osync_message_write_uint(message, type);
+
+	value = osync_plugin_advancedoption_param_get_value(param);
+	osync_message_write_string(message, value);
+
+	valenum = osync_plugin_advancedoption_param_get_valenums(param);
+	num_valenum = osync_list_length(valenum);
+	osync_message_write_uint(message, num_valenum);
+
+	for (i=0; i < num_valenum; i++) {
+		value = osync_list_nth_data(valenum, i);
+		osync_message_write_string(message, value);
+	}
+	
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+#define MARSHAL_PLUGINADVANCEDOPTION_DISPLAYNAME (1 << 1)
+#define MARSHAL_PLUGINADVANCEDOPTION_MAXOCCURS   (1 << 2)
+#define MARSHAL_PLUGINADVANCEDOPTION_MAXSIZE     (1 << 3)
+
+osync_bool osync_marshal_pluginadvancedoption(OSyncMessage *message, OSyncPluginAdvancedOption *opt, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(opt);
+
+	/* Order:
+	 *
+	 * available_subconfigs
+	 *
+	 * displayname (string) (optional)
+	 * maxoccurs (uint)     (optional)
+	 * maxsize (uint)       (optional)
+	 * name (string)
+	 * type (uint)
+	 * value (string)
+	 * num_parameters (uint)
+	 * parameters (OSyncPluginAdvancedOptionParameter list)
+	 * num_valenum (uint)
+	 * valenum (string list)
+	 */
+
+	unsigned int available_subconfigs = 0;
+	const char *displayname = NULL;
+	unsigned int maxoccurs = 0;
+	unsigned int maxsize = 0;
+	const char *name = NULL;
+	unsigned int type = 0;
+	const char *value = NULL;
+	unsigned int num_parameters = 0;
+	OSyncList *parameters;
+	const char *param = NULL;
+	unsigned int num_valenum = 0;
+	unsigned int i;
+	OSyncList *valenum = NULL;
+
+	displayname = osync_plugin_advancedoption_get_displayname(opt);
+	if (displayname)
+		available_subconfigs |= MARSHAL_PLUGINADVANCEDOPTION_DISPLAYNAME;
+
+	maxoccurs = osync_plugin_advancedoption_get_maxoccurs(opt);
+	if (maxoccurs)
+		available_subconfigs |= MARSHAL_PLUGINADVANCEDOPTION_MAXOCCURS;
+
+	maxsize = osync_plugin_advancedoption_get_maxsize(opt);
+	if (maxsize)
+		available_subconfigs |= MARSHAL_PLUGINADVANCEDOPTION_MAXSIZE;
+
+	osync_message_write_uint(message, available_subconfigs);
+
+	if (displayname)
+		osync_message_write_string(message, displayname);
+
+	if (maxoccurs)
+		osync_message_write_uint(message, maxoccurs);
+
+	if (maxsize)
+		osync_message_write_uint(message, maxsize);
+
+	name = osync_plugin_advancedoption_get_name(opt);
+	osync_message_write_string(message, name);
+
+	type = osync_plugin_advancedoption_get_type(opt);
+	osync_message_write_uint(message, type);
+
+	value = osync_plugin_advancedoption_get_value(opt);
+	osync_message_write_string(message, value);
+
+	parameters = osync_plugin_advancedoption_get_parameters(opt);
+	num_parameters = osync_list_length(parameters);
+	osync_message_write_uint(message, num_parameters);
+
+	for (i=0; i < num_parameters; i++) {
+		param = osync_list_nth_data(parameters, i);
+		osync_message_write_string(message, param);
+	}
+
+	valenum = osync_plugin_advancedoption_get_valenums(opt);
+	num_valenum = osync_list_length(valenum);
+	osync_message_write_uint(message, num_valenum);
+
+	for (i=0; i < num_valenum; i++) {
+		value = osync_list_nth_data(valenum, i);
+		osync_message_write_string(message, value);
+	}
+
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+osync_bool osync_demarshal_pluginadvancedoption_param(OSyncMessage *message, OSyncPluginAdvancedOptionParameter **param, OSyncError **error)
+{
+	/* Order:
+	 *
+	 * displayname (string)     (optional)
+	 * name (string)
+	 * type (uint)
+	 * value (string)
+	 * num_valenum (uint)
+	 * valenum (string list)
+	 */
+
+	char *displayname = NULL;
+	char *name = NULL;
+	char *value = NULL;
+	unsigned int type;
+	unsigned int num_valenum;
+	unsigned int i;
+	OSyncList *valenum;
+
+	*param = osync_plugin_advancedoption_param_new(error);
+	if (!*param)
+		goto error;
+
+	osync_message_read_string(message, &displayname);
+	osync_plugin_advancedoption_param_set_name(*param, displayname);
+	g_free(displayname);
+
+	osync_message_read_string(message, &name);
+	osync_plugin_advancedoption_param_set_name(*param, name);
+	g_free(name);
+
+	osync_message_read_uint(message, &type);
+	osync_plugin_advancedoption_param_set_type(*param, type);
+
+	osync_message_read_string(message, &value);
+	osync_plugin_advancedoption_param_set_value(*param, value);
+	g_free(value);
+
+	osync_message_read_uint(message, &num_valenum);
+
+	for (i=0; i < num_valenum; i++) {
+		osync_message_read_string(message, &value);
+		osync_plugin_advancedoption_param_add_valenum(*param, value);
+	}
+
+	return TRUE;
+error:
+	return FALSE;
+}
+
+osync_bool osync_demarshal_pluginadvancedoption(OSyncMessage *message, OSyncPluginAdvancedOption **opt, OSyncError **error)
+{
+	/* Order:
+	 *
+	 * available_subconfigs
+	 *
+	 * displayname (string) (optional)
+	 * maxoccurs (uint)     (optional)
+	 * maxsize (uint)       (optional)
+	 * name (string)
+	 * type (uint)
+	 * value (string)
+	 * num_parameters (uint)
+	 * parameters (OSyncPluginAdvancedOptionParameter list)
+	 * num_valenum (uint)
+	 * valenum (string list)
+	 */
+
+	unsigned int available_subconfigs = 0;
+	char *displayname = NULL;
+	char *name = NULL;
+	char *value = NULL;
+	unsigned int maxoccurs;
+	unsigned int maxsize;
+	unsigned int type;
+	unsigned int num_parameters;
+	unsigned int num_valenum;
+	unsigned int i;
+	OSyncList *valenum;
+	OSyncList *parameters;
+
+	*opt = osync_plugin_advancedoption_new(error);
+	if (!*opt)
+		goto error;
+
+	osync_message_read_uint(message, &available_subconfigs);
+	if (available_subconfigs & MARSHAL_PLUGINADVANCEDOPTION_DISPLAYNAME) {
+		osync_message_read_string(message, &displayname);
+		osync_plugin_advancedoption_set_name(*opt, displayname);
+		g_free(displayname);
+	}
+
+	if (available_subconfigs & MARSHAL_PLUGINADVANCEDOPTION_MAXOCCURS) {
+		osync_message_read_uint(message, &maxoccurs);
+		osync_plugin_advancedoption_set_maxoccurs(*opt, maxoccurs);
+	}
+
+
+	if (available_subconfigs & MARSHAL_PLUGINADVANCEDOPTION_MAXSIZE) {
+		osync_message_read_uint(message, &maxsize);
+		osync_plugin_advancedoption_set_maxsize(*opt, maxsize);
+	}
+
+	osync_message_read_string(message, &name);
+	osync_plugin_advancedoption_set_name(*opt, name);
+	g_free(name);
+
+	osync_message_read_uint(message, &type);
+	osync_plugin_advancedoption_set_maxsize(*opt, type);
+
+	osync_message_read_string(message, &value);
+	osync_plugin_advancedoption_set_value(*opt, value);
+	g_free(value);
+
+	osync_message_read_uint(message, &num_parameters);
+
+	for (i=0; i < num_parameters; i++) {
+		OSyncPluginAdvancedOptionParameter *param;
+		if (!osync_demarshal_pluginadvancedoption_param(message, &param, error))
+			goto error;
+
+		osync_plugin_advancedoption_add_parameter(*opt, param);
+	}
+
+	osync_message_read_uint(message, &num_valenum);
+
+	for (i=0; i < num_valenum; i++) {
+		osync_message_read_string(message, &value);
+		osync_plugin_advancedoption_add_valenum(*opt, value);
+	}
+
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+#define MARSHAL_PLUGINRESSOURCE_NAME (1 << 1)
+#define MARSHAL_PLUGINRESSOURCE_MIME (1 << 2)
+#define MARSHAL_PLUGINRESSOURCE_PATH (1 << 3)
+#define MARSHAL_PLUGINRESSOURCE_URL  (1 << 4)
 
 osync_bool osync_marshal_pluginressource(OSyncMessage *message, OSyncPluginRessource *res, OSyncError **error)
 {
@@ -881,9 +1176,9 @@ error:
 	return FALSE;
 }
 
-#define MARSHAL_PLUGINCONFIG_CONNECTION (0x1 << 1)
-#define MARSHAL_PLUGINCONFIG_AUTHENTICATON (0x1 << 2)
-#define MARSHAL_PLUGINCONFIG_LOCALIZATION (0x1 << 3)
+#define MARSHAL_PLUGINCONFIG_CONNECTION		(1 << 1)
+#define MARSHAL_PLUGINCONFIG_AUTHENTICATON	(1 << 2)
+#define MARSHAL_PLUGINCONFIG_LOCALIZATION	(1 << 3)
 
 osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error)
 {
@@ -894,11 +1189,13 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 	 * 
 	 * $available subconfigs
 	 *
-	 * $connection
-	 * $authenticatoin
-	 * $localization
+	 * $connection         (optional)
+	 * $authenticatoin     (optional) TODO
+	 * $localization       (optional) TODO
 	 * $num_ressources
 	 * $ressources
+	 * $num_advancedoptions
+	 * $advancedoptions
 	 */
 
 	unsigned int available_subconfigs = 0;
@@ -924,6 +1221,14 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 			goto error;
 	}
 
+	OSyncList *aos = osync_plugin_config_get_advancedoptions(config);
+	osync_message_write_uint(message, osync_list_length(aos));
+
+	for (; aos; aos = aos->next) {
+		OSyncPluginAdvancedOption *opt = aos->data;
+		if (!osync_marshal_pluginadvancedoption(message, opt, error))
+			goto error;
+	}
 	
 	return TRUE;
 
@@ -937,17 +1242,19 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 	 * 
 	 * $available subconfigs
 	 *
-	 * $connection
-	 * $authenticatoin
-	 * $localization
+	 * $connection            (optional)
+	 * $authenticatoin        (optional)
+	 * $localization          (optional)
 	 * $num_ressources
 	 * $ressources
+	 * $num_advancedoptions
+	 * $options
 
 	 */
 
 	OSyncPluginConnection *conn = NULL;
 	unsigned int available_subconfigs = 0;
-	unsigned int i, num_ressources = 0;
+	unsigned int i, num_ressources = 0, num_advancedoptions = 0;
 	
 	*config = osync_plugin_config_new(error);
 	if (!*config)
@@ -974,6 +1281,17 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 
 		osync_plugin_config_add_ressource(*config, res);
 
+	}
+
+	osync_message_read_uint(message, &num_advancedoptions);
+	
+	/* number of advancedoptions */
+	for (i=0; i < num_advancedoptions; i++) {
+		OSyncPluginAdvancedOption *opt;
+		if (!osync_demarshal_pluginadvancedoption(message, &opt, error))
+			goto error_free_config;
+
+		osync_plugin_config_add_advancedoption(*config, opt);
 	}
 
 	return TRUE;
