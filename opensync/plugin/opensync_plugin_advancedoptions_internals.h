@@ -49,6 +49,9 @@ struct OSyncPluginAdvancedOption {
 	/** List of Value Enumeration - consisits of (char*) */
 	OSyncList *valenum;
 
+	/** The actual option value. */
+	char *value;
+
 	/** Object reference counting */
 	int ref_count;
 };
@@ -66,6 +69,9 @@ struct OSyncPluginAdvancedOptionParameter {
 
 	/** List of Value Enumeration - consisits of (char*) */
 	OSyncList *valenum;
+
+	/** The actual parameter value. */
+	char *value;
 
 	/** Object reference counting */
 	int ref_count;

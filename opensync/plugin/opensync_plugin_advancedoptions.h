@@ -66,6 +66,9 @@ OSYNC_EXPORT OSyncList *osync_plugin_advancedoption_get_valenums(OSyncPluginAdva
 OSYNC_EXPORT void osync_plugin_advancedoption_add_valenum(OSyncPluginAdvancedOption *option, const char *value);
 OSYNC_EXPORT void osync_plugin_advancedoption_remove_valenum(OSyncPluginAdvancedOption *option, const char *value);
 
+OSYNC_EXPORT void osync_plugin_advancedoption_set_value(OSyncPluginAdvancedOption *option, const char *value);
+OSYNC_EXPORT const char *osync_plugin_advancedoption_get_value(OSyncPluginAdvancedOption *option);
+
 /* OSyncPluginAdvancedOptionParameter */
 OSYNC_EXPORT OSyncPluginAdvancedOptionParameter *osync_plugin_advancedoption_param_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_advancedoption_param_unref(OSyncPluginAdvancedOptionParameter *param);
@@ -84,6 +87,9 @@ OSYNC_EXPORT void osync_plugin_advancedoption_param_set_type(OSyncPluginAdvanced
 OSYNC_EXPORT OSyncList *osync_plugin_advancedoption_param_get_valenums(OSyncPluginAdvancedOptionParameter *param);
 OSYNC_EXPORT void osync_plugin_advancedoption_param_add_valenum(OSyncPluginAdvancedOptionParameter *param, const char *value);
 OSYNC_EXPORT void osync_plugin_advancedoption_param_remove_valenum(OSyncPluginAdvancedOptionParameter *param, const char *value);
+
+OSYNC_EXPORT void osync_plugin_advancedoption_param_set_value(OSyncPluginAdvancedOptionParameter *param, const char *value);
+OSYNC_EXPORT const char *osync_plugin_advancedoption_param_get_value(OSyncPluginAdvancedOptionParameter *param);
 
 #endif /*_OPENSYNC_PLUGIN_ADVANCEDOPTIONS_H_*/
 

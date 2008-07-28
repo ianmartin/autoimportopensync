@@ -54,6 +54,8 @@ static OSyncPluginAdvancedOptionParameter *_osync_plugin_config_parse_advancedop
 					osync_plugin_advancedoption_type_string_to_val(str));
 		else if (!xmlStrcmp(cur->name, BAD_CAST "ValEnum"))
 			osync_plugin_advancedoption_param_add_valenum(param, str);
+		else if (!xmlStrcmp(cur->name, BAD_CAST "Value"))
+			osync_plugin_advancedoption_param_set_value(param, str);
 
 		xmlFree(str);
 	}
@@ -100,8 +102,11 @@ static OSyncPluginAdvancedOption *_osync_plugin_config_parse_advancedoption(OSyn
 
 		} else if (!xmlStrcmp(cur->name, BAD_CAST "Type")) {
 			osync_plugin_advancedoption_set_type(option, osync_plugin_advancedoption_type_string_to_val(str));
-		} else if (!xmlStrcmp(cur->name, BAD_CAST "ValEnum"))
+		} else if (!xmlStrcmp(cur->name, BAD_CAST "ValEnum")) {
 			osync_plugin_advancedoption_add_valenum(option, str);
+		} else if (!xmlStrcmp(cur->name, BAD_CAST "Value")) {
+			osync_plugin_advancedoption_set_value(option, str);
+		}
 
 		xmlFree(str);
 	}
@@ -1024,6 +1029,13 @@ static osync_bool _osync_plugin_config_assemble_advancedoption_param(xmlNode *cu
 		xmlNewChild(node, NULL, BAD_CAST "ValEnum", BAD_CAST valenum);
 	}
 
+	/* Value */
+	if (!osync_plugin_advancedoption_param_get_value(param)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Value for advanced option not set.");
+		goto error;
+	}
+
+	xmlNewChild(node, NULL, BAD_CAST "Value", BAD_CAST osync_plugin_advancedoption_param_get_value(param));
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1095,6 +1107,15 @@ static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSy
 		char *valenum = v->data;
 		xmlNewChild(node, NULL, BAD_CAST "ValEnum", BAD_CAST valenum);
 	}
+
+	/* Value */
+	if (!osync_plugin_advancedoption_get_value(option)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Value for advanced option not set.");
+		goto error;
+	}
+
+	xmlNewChild(node, NULL, BAD_CAST "Value", BAD_CAST osync_plugin_advancedoption_get_value(option));
+
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;

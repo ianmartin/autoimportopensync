@@ -275,6 +275,20 @@ void osync_plugin_advancedoption_remove_valenum(OSyncPluginAdvancedOption *optio
 	option->valenum = osync_list_remove(option->valenum, data->data);
 }
 
+const char *osync_plugin_advancedoption_get_value(OSyncPluginAdvancedOption *option)
+{
+	osync_assert(option);
+	return option->value;
+}
+
+void osync_plugin_advancedoption_set_value(OSyncPluginAdvancedOption *option, const char *value)
+{
+	osync_assert(option);
+	if (option->value)
+		g_free(option->value);
+
+	option->value = g_strdup(value);
+}
 
 /* OSyncPluginAdvancedOptionParameter */
 
@@ -396,5 +410,21 @@ void osync_plugin_advancedoption_param_remove_valenum(OSyncPluginAdvancedOptionP
 		return;
 
 	param->valenum = osync_list_remove(param->valenum, data->data);
+}
+
+const char *osync_plugin_advancedoption_param_get_value(OSyncPluginAdvancedOptionParameter *param)
+{
+	osync_assert(param);
+	return param->value;
+}
+
+void osync_plugin_advancedoption_param_set_value(OSyncPluginAdvancedOptionParameter *param, const char *value)
+{
+	osync_assert(param);
+	if (param->value)
+		g_free(param->value);
+
+	param->value = g_strdup(value);
+
 }
 
