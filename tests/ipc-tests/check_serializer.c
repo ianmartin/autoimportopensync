@@ -4,6 +4,16 @@
 #include <opensync/opensync-ipc.h>
 #include <opensync/opensync-plugin.h>
 
+static osync_bool _compare_string(const char *string1, const char *string2)
+{
+	if ((!!string1) != (!!string2))
+		return FALSE;
+
+	if (string1 && string2 && strcmp(string1, string2))
+		return FALSE;
+
+	return TRUE;
+}
 
 static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1, OSyncPluginConnection *conn2)
 {
@@ -13,39 +23,39 @@ static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1,
 	switch (osync_plugin_connection_get_type(conn1)) {
 		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
 		/** Bluetooth */
-		if (strcmp(osync_plugin_connection_bt_get_addr(conn1), osync_plugin_connection_bt_get_addr(conn2)))
+		if (!_compare_string(osync_plugin_connection_bt_get_addr(conn1), osync_plugin_connection_bt_get_addr(conn2)))
 			return FALSE;
 
-		if (osync_plugin_connection_bt_get_channel(conn1) == osync_plugin_connection_bt_get_channel(conn2))
+		if (osync_plugin_connection_bt_get_channel(conn1) != osync_plugin_connection_bt_get_channel(conn2))
 			return FALSE;
 
-		if (strcmp(osync_plugin_connection_bt_get_sdpuuid(conn1), osync_plugin_connection_bt_get_sdpuuid(conn2)))
+		if (!_compare_string(osync_plugin_connection_bt_get_sdpuuid(conn1), osync_plugin_connection_bt_get_sdpuuid(conn2)))
 			return FALSE;
 		break;
 		case OSYNC_PLUGIN_CONNECTION_USB:
 		/** USB */
-		if (osync_plugin_connection_usb_get_vendorid(conn1) == osync_plugin_connection_usb_get_vendorid(conn2))
+		if (osync_plugin_connection_usb_get_vendorid(conn1) != osync_plugin_connection_usb_get_vendorid(conn2))
 			return FALSE;
 
-		if (osync_plugin_connection_usb_get_productid(conn1) == osync_plugin_connection_usb_get_productid(conn2))
+		if (osync_plugin_connection_usb_get_productid(conn1) != osync_plugin_connection_usb_get_productid(conn2))
 			return FALSE;
 
-		if (osync_plugin_connection_usb_get_interface(conn1) == osync_plugin_connection_usb_get_interface(conn2))
+		if (osync_plugin_connection_usb_get_interface(conn1) != osync_plugin_connection_usb_get_interface(conn2))
 			return FALSE;
 		break;
 
 		case OSYNC_PLUGIN_CONNECTION_NETWORK:
 		/** Network */
-		if (strcmp(osync_plugin_connection_net_get_address(conn1), osync_plugin_connection_net_get_address(conn2)))
+		if (!_compare_string(osync_plugin_connection_net_get_address(conn1), osync_plugin_connection_net_get_address(conn2)))
 			return FALSE;
 
-		if (osync_plugin_connection_net_get_port(conn1) == osync_plugin_connection_net_get_port(conn2))
+		if (osync_plugin_connection_net_get_port(conn1) != osync_plugin_connection_net_get_port(conn2))
 			return FALSE;
 
-		if (strcmp(osync_plugin_connection_net_get_protocol(conn1), osync_plugin_connection_net_get_protocol(conn2)))
+		if (!_compare_string(osync_plugin_connection_net_get_protocol(conn1), osync_plugin_connection_net_get_protocol(conn2)))
 			return FALSE;
 
-		if (strcmp(osync_plugin_connection_net_get_dnssd(conn1), osync_plugin_connection_net_get_dnssd(conn2)))
+		if (!_compare_string(osync_plugin_connection_net_get_dnssd(conn1), osync_plugin_connection_net_get_dnssd(conn2)))
 			return FALSE;
 
 		break;
@@ -53,17 +63,17 @@ static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1,
 
 		case OSYNC_PLUGIN_CONNECTION_SERIAL:
 		/** Serial */
-		if (osync_plugin_connection_serial_get_speed(conn1) == osync_plugin_connection_serial_get_speed(conn2))
+		if (osync_plugin_connection_serial_get_speed(conn1) != osync_plugin_connection_serial_get_speed(conn2))
 			return FALSE;
 
-		if (strcmp(osync_plugin_connection_serial_get_devicenode(conn1), osync_plugin_connection_serial_get_devicenode(conn2)))
+		if (!_compare_string(osync_plugin_connection_serial_get_devicenode(conn1), osync_plugin_connection_serial_get_devicenode(conn2)))
 			return FALSE;
 
 		break;
 
 		case OSYNC_PLUGIN_CONNECTION_IRDA:
 		/** IrDA */
-		if (strcmp(osync_plugin_connection_irda_get_service(conn1), osync_plugin_connection_irda_get_service(conn2)))
+		if (!_compare_string(osync_plugin_connection_irda_get_service(conn1), osync_plugin_connection_irda_get_service(conn2)))
 			return FALSE;
 
 		break;
@@ -74,24 +84,145 @@ static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1,
 	return TRUE;
 }
 
+static osync_bool _compare_pluginconfig_authentication(OSyncPluginAuthentication *auth1, OSyncPluginAuthentication *auth2)
+{
+	osync_assert(auth1);
+	osync_assert(auth2);
+
+	const char *username1, *username2;
+	const char *password1, *password2;
+	const char *reference1, *reference2;
+
+	username1 = osync_plugin_authentication_get_username(auth1);
+	username2 = osync_plugin_authentication_get_username(auth2);
+
+	if (!_compare_string(username1, username2))
+		return FALSE;
+
+	password1 = osync_plugin_authentication_get_password(auth1);
+	password2 = osync_plugin_authentication_get_password(auth2);
+
+	if (!_compare_string(password1, password2))
+		return FALSE;
+	
+	reference1 = osync_plugin_authentication_get_reference(auth1);
+	reference2 = osync_plugin_authentication_get_reference(auth2);
+
+	if (!_compare_string(reference1, reference2))
+		return FALSE;
+
+	return TRUE;
+}
+
+static osync_bool _compare_pluginconfig_localization(OSyncPluginLocalization *local1, OSyncPluginLocalization *local2)
+{
+	osync_assert(local1);
+	osync_assert(local2);
+
+	const char *encoding1, *encoding2;
+	const char *timezone1, *timezone2;
+	const char *language1, *language2;
+
+	encoding1 = osync_plugin_localization_get_encoding(local1);
+	encoding2 = osync_plugin_localization_get_encoding(local2);
+
+	if (!_compare_string(encoding1, encoding2))
+		return FALSE;
+
+	timezone1 = osync_plugin_localization_get_timezone(local1);
+	timezone2 = osync_plugin_localization_get_timezone(local2);
+
+	if (!_compare_string(timezone1, timezone2))
+		return FALSE;
+
+	language1 = osync_plugin_localization_get_language(local1);
+	language2 = osync_plugin_localization_get_language(local2);
+
+	if (!_compare_string(language1, language2))
+		return FALSE;
+	
+	return TRUE;
+}
+
+static osync_bool _compare_pluginconfig_ressource(OSyncPluginRessource *res1, OSyncPluginRessource *res2)
+{
+	if (osync_plugin_ressource_is_enabled(res1) != osync_plugin_ressource_is_enabled(res2))
+		return FALSE;
+
+	const char *name1 = osync_plugin_ressource_get_name(res1);
+	const char *name2 = osync_plugin_ressource_get_name(res2);
+
+	if (!_compare_string(name1, name2))
+		return FALSE;
+
+	const char *mime1 = osync_plugin_ressource_get_mime(res1);
+	const char *mime2 = osync_plugin_ressource_get_mime(res2);
+
+	if (!_compare_string(mime1, mime2))
+		return FALSE;
+
+	const char *objtype1 = osync_plugin_ressource_get_objtype(res1);
+	const char *objtype2 = osync_plugin_ressource_get_objtype(res2);
+
+	if (!_compare_string(objtype1, objtype2))
+		return FALSE;
+
+	return TRUE;
+}
+
+static osync_bool _compare_pluginconfig_ressources(OSyncList *ressources1, OSyncList *ressources2)
+{
+	unsigned int num_ressources1, num_ressources2;
+
+	OSyncList *it1, *list1 = osync_list_copy(ressources1);
+	OSyncList *it2, *list2 = osync_list_copy(ressources2);
+
+	num_ressources1 = osync_list_length(list1);
+	num_ressources2 = osync_list_length(list2);
+
+	for (it1 = list1; it1; it1 = it1->next) {
+		OSyncPluginRessource *res1 = it1->data;
+		for (it2 = list2; it2; it2 = it2->next) {
+			OSyncPluginRessource *res2 = it2->data;
+			if (_compare_pluginconfig_ressource(res1, res2)) {
+				/* Bingo! ressource match. */
+				list1 = osync_list_remove(list1, res1);
+				list2 = osync_list_remove(list2, res2);
+				break;
+			}
+		}
+	}
+
+	if (osync_list_length(list1) || osync_list_length(list2))
+		return FALSE;
+
+	return TRUE;
+}
+
 static osync_bool _compare_pluginconfig(OSyncPluginConfig *config1, OSyncPluginConfig *config2)
 {
-	/*
-	if (!_compare_pluginconfig_authentication(config1, config2))
+	OSyncPluginAuthentication *auth1 = osync_plugin_config_get_authentication(config1);
+	OSyncPluginAuthentication *auth2 = osync_plugin_config_get_authentication(config2);
+	if (auth1 && auth2 && !_compare_pluginconfig_authentication(auth1, auth2))
 		return FALSE;
 
-	if (!_compare_pluginconfig_localization(config1, config2))
+	OSyncPluginLocalization *local1 = osync_plugin_config_get_localization(config1);
+	OSyncPluginLocalization *local2 = osync_plugin_config_get_localization(config2);
+
+	if (local1 && local2 && !_compare_pluginconfig_localization(local1, local2))
 		return FALSE;
 
-	if (!_compare_pluginconfig_ressources(config1, config2))
+	OSyncList *ressources1 = osync_plugin_config_get_ressources(config1);
+	OSyncList *ressources2 = osync_plugin_config_get_ressources(config2);
+	if (!_compare_pluginconfig_ressources(ressources1, ressources2))
 		return FALSE;
-	*/
 
 	OSyncPluginConnection *conn1 = osync_plugin_config_get_connection(config1);
 	OSyncPluginConnection *conn2 = osync_plugin_config_get_connection(config2);
-	if (conn1 && conn2)
-		if (!_compare_pluginconfig_connection(conn1, conn2))
+	if (conn1 && conn2 && !_compare_pluginconfig_connection(conn1, conn2))
 			return FALSE;
+
+	/* TODO compare advanced options! */
 
 	return TRUE;
 }
@@ -116,11 +247,50 @@ START_TEST (serializer_pluginconfig)
 	fail_unless(osync_demarshal_pluginconfig(message, &config2, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
+	osync_message_unref(message);
+
 	fail_unless(_compare_pluginconfig(config1, config2), NULL);
+
+	osync_plugin_config_unref(config1);
+	osync_plugin_config_unref(config2);
 	
 	destroy_testbed(testbed);
 }
 END_TEST
+
+START_TEST (serializer_pluginconfig_full)
+{
+	char *testbed = setup_testbed("serializer_pluginconfig_full");
+	
+	OSyncError *error = NULL;
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
+	fail_unless(message != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	OSyncPluginConfig *config2;
+	OSyncPluginConfig *config1 = osync_plugin_config_new(&error);
+	fail_unless(config1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_plugin_config_file_load(config1, "config1.xml", testbed, &error));
+
+	fail_unless(osync_marshal_pluginconfig(message, config1, &error), NULL);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_demarshal_pluginconfig(message, &config2, &error), NULL);
+	fail_unless(error == NULL, NULL);
+
+	osync_message_unref(message);
+
+	fail_unless(_compare_pluginconfig(config1, config2), NULL);
+
+	osync_plugin_config_unref(config1);
+	osync_plugin_config_unref(config2);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 
 Suite *ipc_suite(void)
 {
@@ -128,6 +298,7 @@ Suite *ipc_suite(void)
 //	Suite *s2 = suite_create("Serializer");
 	
 	create_case(s, "serializer_pluginconfig", serializer_pluginconfig);
+	create_case(s, "serializer_pluginconfig_full", serializer_pluginconfig_full);
 	
 	return s;
 }
