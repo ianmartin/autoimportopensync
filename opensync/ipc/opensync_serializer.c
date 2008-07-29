@@ -1008,6 +1008,200 @@ error:
 	return FALSE;
 }
 
+#define MARSHAL_PLUGINLOCALIZATION_ENCODING	(1 << 1)
+#define MARSHAL_PLUGINLOCALIZATION_TIMEZONE     (1 << 2)
+#define MARSHAL_PLUGINLOCALIZATION_LANGUAGE     (1 << 3)
+
+osync_bool osync_marshal_pluginlocalization(OSyncMessage *message, OSyncPluginLocalization *local, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(local);
+
+	/*
+	 * Order:
+	 *
+	 * available_fields
+	 *
+	 * encoding (string) (optional)
+	 * timezone (string) (optional)
+	 * language (string) (optional)
+	 */
+
+	unsigned int available_fields = 0;
+	const char *encoding = NULL;
+	const char *timezone = NULL;
+	const char *language = NULL;
+
+	encoding = osync_plugin_localization_get_encoding(local);
+	timezone = osync_plugin_localization_get_timezone(local);
+	language = osync_plugin_localization_get_language(local);
+
+	if (encoding)
+		available_fields |= MARSHAL_PLUGINLOCALIZATION_ENCODING;
+
+	if (timezone)
+		available_fields |= MARSHAL_PLUGINLOCALIZATION_TIMEZONE;
+
+	if (language)
+		available_fields |= MARSHAL_PLUGINLOCALIZATION_LANGUAGE;
+
+	osync_message_write_uint(message, available_fields);
+
+	if (encoding)
+		osync_message_write_string(message, encoding);
+
+	if (timezone)
+		osync_message_write_string(message, timezone);
+
+	if (language)
+		osync_message_write_string(message, language);
+
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+osync_bool osync_demarshal_pluginlocalization(OSyncMessage *message, OSyncPluginLocalization **local, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(local);
+
+	unsigned int available_fields = 0;
+	char *encoding = NULL;
+	char *timezone = NULL;
+	char *language = NULL;
+
+	*local = osync_plugin_localization_new(error);
+	if (!*local)
+		goto error;
+
+	osync_message_read_uint(message, &available_fields);
+
+	if (available_fields & MARSHAL_PLUGINLOCALIZATION_ENCODING) {
+		osync_message_read_string(message, &encoding);
+		osync_plugin_localization_set_encoding(*local, encoding);
+		g_free(encoding);
+	}
+
+	if (available_fields & MARSHAL_PLUGINLOCALIZATION_TIMEZONE) {
+		osync_message_read_string(message, &timezone);
+		osync_plugin_localization_set_encoding(*local, timezone);
+		g_free(timezone);
+	}
+	
+	
+	if (available_fields & MARSHAL_PLUGINLOCALIZATION_LANGUAGE) {
+		osync_message_read_string(message, &language);
+		osync_plugin_localization_set_encoding(*local, language);
+		g_free(language);
+	}
+
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+#define MARSHAL_PLUGINAUTEHNTICATION_PASSWORD  (1 << 1)
+#define MARSHAL_PLUGINAUTEHNTICATION_REFERENCE (1 << 2)
+
+osync_bool osync_marshal_pluginauthentication(OSyncMessage *message, OSyncPluginAuthentication *auth, OSyncError **error)
+{
+	osync_assert(message);
+	osync_assert(auth);
+
+	/*
+	 * Order:
+	 *
+	 * available_fields
+	 *
+	 * username  (string)
+	 * password  (string) (optional)
+	 * reference (string) (optional)
+	 *
+	 */
+
+	unsigned int available_fields = 0;
+	const char *username = NULL;
+	const char *password = NULL;
+	const char *reference = NULL;
+
+	username = osync_plugin_authentication_get_username(auth);
+	password = osync_plugin_authentication_get_password(auth);
+	reference = osync_plugin_authentication_get_reference(auth);
+
+	osync_assert(username);
+
+	if (password)
+		available_fields |= MARSHAL_PLUGINAUTEHNTICATION_PASSWORD; 
+
+	if (reference)
+		available_fields |= MARSHAL_PLUGINAUTEHNTICATION_REFERENCE;
+
+	osync_message_write_uint(message, available_fields);
+
+	osync_message_write_string(message, username);
+
+	if (password)
+		osync_message_write_string(message, password);
+
+	if (reference)
+		osync_message_write_string(message, reference);
+
+	return TRUE;
+error:
+	return FALSE;
+}
+
+osync_bool osync_demarshal_pluginauthentication(OSyncMessage *message, OSyncPluginAuthentication **auth, OSyncError **error)
+{
+	osync_assert(message);
+
+	/*
+	 * Order:
+	 *
+	 * available_fields
+	 *
+	 * username  (string)
+	 * password  (string) (optional)
+	 * reference (string) (optional)
+	 *
+	 */
+
+	unsigned int available_fields = 0;
+	char *username = NULL;
+	char *password = NULL;
+	char *reference = NULL;
+
+	*auth = osync_plugin_authentication_new(error);
+	if (!auth)
+		goto error;
+
+	osync_message_read_uint(message, &available_fields);
+
+	osync_message_read_string(message, &username);
+	osync_plugin_authentication_set_username(*auth, username);
+	g_free(username);
+
+	if (available_fields & MARSHAL_PLUGINAUTEHNTICATION_PASSWORD) {
+		osync_message_read_string(message, &password);
+		osync_plugin_authentication_set_password(*auth, password);
+		g_free(password);
+	}
+
+	if (available_fields & MARSHAL_PLUGINAUTEHNTICATION_REFERENCE) {
+		osync_message_read_string(message, &reference);
+		osync_plugin_authentication_set_reference(*auth, reference);
+		g_free(password);
+	}
+
+	return TRUE;
+error:
+	return FALSE;
+
+}
+
 #define MARSHAL_PLUGINRESSOURCE_NAME (1 << 1)
 #define MARSHAL_PLUGINRESSOURCE_MIME (1 << 2)
 #define MARSHAL_PLUGINRESSOURCE_PATH (1 << 3)
@@ -1177,7 +1371,7 @@ error:
 }
 
 #define MARSHAL_PLUGINCONFIG_CONNECTION		(1 << 1)
-#define MARSHAL_PLUGINCONFIG_AUTHENTICATON	(1 << 2)
+#define MARSHAL_PLUGINCONFIG_AUTHENTICATION	(1 << 2)
 #define MARSHAL_PLUGINCONFIG_LOCALIZATION	(1 << 3)
 
 osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error)
@@ -1190,8 +1384,8 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 	 * $available subconfigs
 	 *
 	 * $connection         (optional)
-	 * $authenticatoin     (optional) TODO
-	 * $localization       (optional) TODO
+	 * $authentication     (optional)
+	 * $localization       (optional)
 	 * $num_ressources
 	 * $ressources
 	 * $num_advancedoptions
@@ -1201,16 +1395,28 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 	unsigned int available_subconfigs = 0;
 
 	OSyncPluginConnection *conn = osync_plugin_config_get_connection(config);
+	OSyncPluginAuthentication *auth = osync_plugin_config_get_authentication(config);
+	OSyncPluginLocalization *local = osync_plugin_config_get_localization(config);
 
 	if (conn)
 		available_subconfigs |= MARSHAL_PLUGINCONFIG_CONNECTION;
 		
+	if (auth)
+		available_subconfigs |= MARSHAL_PLUGINCONFIG_AUTHENTICATION;
+
+	if (local)
+		available_subconfigs |= MARSHAL_PLUGINCONFIG_LOCALIZATION;
 
 	osync_message_write_uint(message, available_subconfigs);
 
 	if (conn && !osync_marshal_pluginconnection(message, conn, error))
 		goto error;
 
+	if (auth && !osync_marshal_pluginauthentication(message, auth, error))
+		goto error;
+
+	if (local && !osync_marshal_pluginlocalization(message, local, error))
+		goto error;
 
 	OSyncList *r = osync_plugin_config_get_ressources(config);
 	osync_message_write_uint(message, osync_list_length(r));
@@ -1243,7 +1449,7 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 	 * $available subconfigs
 	 *
 	 * $connection            (optional)
-	 * $authenticatoin        (optional)
+	 * $authentication        (optional)
 	 * $localization          (optional)
 	 * $num_ressources
 	 * $ressources
@@ -1253,6 +1459,8 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 	 */
 
 	OSyncPluginConnection *conn = NULL;
+	OSyncPluginAuthentication *auth = NULL;
+	OSyncPluginLocalization *local = NULL;
 	unsigned int available_subconfigs = 0;
 	unsigned int i, num_ressources = 0, num_advancedoptions = 0;
 	
@@ -1269,6 +1477,22 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 			goto error_free_config;
 
 		osync_plugin_config_set_connection(*config, conn);
+	}
+
+	/* Authentication */
+	if (available_subconfigs & MARSHAL_PLUGINCONFIG_AUTHENTICATION) {
+		if (!osync_demarshal_pluginauthentication(message, &auth, error))
+			goto error_free_config;
+
+		osync_plugin_config_set_authentication(*config, auth);
+	}
+
+	/* Localization */
+	if (available_subconfigs & MARSHAL_PLUGINCONFIG_LOCALIZATION) {
+		if (!osync_demarshal_pluginlocalization(message, &local, error))
+			goto error_free_config;
+
+		osync_plugin_config_set_localization(*config, local);
 	}
 
 	osync_message_read_uint(message, &num_ressources);
