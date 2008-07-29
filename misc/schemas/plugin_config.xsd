@@ -29,6 +29,7 @@
       <xsd:element maxOccurs="unbounded" minOccurs="0" name="Parameter" type="AdvancedParameter" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Type" type="AdvancedType" />
       <xsd:element maxOccurs="unbounded" minOccurs="0" name="ValEnum" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="Value" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
@@ -38,6 +39,7 @@
       <xsd:element maxOccurs="1" minOccurs="1" name="Name" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Type" type="AdvancedType" />
       <xsd:element maxOccurs="unbounded" minOccurs="0" name="ValEnum" type="xsd:string" />
+      <xsd:element maxOccurs="1" minOccurs="1" name="Value" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 
