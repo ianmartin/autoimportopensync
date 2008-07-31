@@ -15,6 +15,31 @@ static osync_bool _compare_string(const char *string1, const char *string2)
 	return TRUE;
 }
 
+typedef osync_bool (*_compare_func)(void *a, void *b);
+
+static osync_bool _compare_list(OSyncList *list1, OSyncList *list2, _compare_func cmpfunc)
+{
+	OSyncList *l1 = osync_list_copy(list1);
+	OSyncList *l2 = osync_list_copy(list2);
+
+	while (l1) {
+		for (l2 = osync_list_first(l2); l2; l2 = l2->next) {
+			if (!cmpfunc(l1->data, l2->data))
+				continue;
+
+			/* Bingo, match! */
+			l1 = osync_list_remove(l1, l1->data); 
+			l2 = osync_list_remove(l2, l2->data); 
+			break;
+		}
+	}
+
+	if (osync_list_length(l1) || osync_list_length(l2))
+		return FALSE;
+
+	return TRUE;
+}
+
 static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1, OSyncPluginConnection *conn2)
 {
 	osync_assert(conn1);
@@ -144,8 +169,10 @@ static osync_bool _compare_pluginconfig_localization(OSyncPluginLocalization *lo
 	return TRUE;
 }
 
-static osync_bool _compare_pluginconfig_ressource(OSyncPluginRessource *res1, OSyncPluginRessource *res2)
+static osync_bool _compare_pluginconfig_ressource(void *a, void *b)
 {
+	OSyncPluginRessource *res1 = a;
+	OSyncPluginRessource *res2 = b;
 	if (osync_plugin_ressource_is_enabled(res1) != osync_plugin_ressource_is_enabled(res2))
 		return FALSE;
 
@@ -170,31 +197,33 @@ static osync_bool _compare_pluginconfig_ressource(OSyncPluginRessource *res1, OS
 	return TRUE;
 }
 
-static osync_bool _compare_pluginconfig_ressources(OSyncList *ressources1, OSyncList *ressources2)
+static osync_bool _compare_pluginconfig_advacedoption_parameters(void *a, void *b)
 {
-	unsigned int num_ressources1, num_ressources2;
+	OSyncPluginAdvancedOptionParameter *param1 = a;
+	OSyncPluginAdvancedOptionParameter *param2 = b;
 
-	OSyncList *it1, *list1 = osync_list_copy(ressources1);
-	OSyncList *it2, *list2 = osync_list_copy(ressources2);
+	osync_assert(param1);
+	osync_assert(param2);
 
-	num_ressources1 = osync_list_length(list1);
-	num_ressources2 = osync_list_length(list2);
+	/* TODO compare fields */
 
-	for (it1 = list1; it1; it1 = it1->next) {
-		OSyncPluginRessource *res1 = it1->data;
-		for (it2 = list2; it2; it2 = it2->next) {
-			OSyncPluginRessource *res2 = it2->data;
-			if (_compare_pluginconfig_ressource(res1, res2)) {
-				/* Bingo! ressource match. */
-				list1 = osync_list_remove(list1, res1);
-				list2 = osync_list_remove(list2, res2);
-				break;
-			}
-		}
-	}
+	return TRUE;
+}
 
-	if (osync_list_length(list1) || osync_list_length(list2))
+static osync_bool _compare_pluginconfig_advancedoption(void *a, void *b)
+{
+	OSyncPluginAdvancedOption *opt1 = a;
+	OSyncPluginAdvancedOption *opt2 = b;
+	osync_assert(opt1);
+	osync_assert(opt2);
+
+	OSyncList *param_list1 = osync_plugin_advancedoption_get_parameters(opt1);
+	OSyncList *param_list2 = osync_plugin_advancedoption_get_parameters(opt2);
+
+	if (!_compare_list(param_list1, param_list2, _compare_pluginconfig_advacedoption_parameters))
 		return FALSE;
+
+	/* TODO compare fields */
 
 	return TRUE;
 }
@@ -214,15 +243,20 @@ static osync_bool _compare_pluginconfig(OSyncPluginConfig *config1, OSyncPluginC
 
 	OSyncList *ressources1 = osync_plugin_config_get_ressources(config1);
 	OSyncList *ressources2 = osync_plugin_config_get_ressources(config2);
-	if (!_compare_pluginconfig_ressources(ressources1, ressources2))
+	if (!_compare_list(ressources1, ressources2, _compare_pluginconfig_ressource))
 		return FALSE;
+
 
 	OSyncPluginConnection *conn1 = osync_plugin_config_get_connection(config1);
 	OSyncPluginConnection *conn2 = osync_plugin_config_get_connection(config2);
 	if (conn1 && conn2 && !_compare_pluginconfig_connection(conn1, conn2))
 			return FALSE;
 
-	/* TODO compare advanced options! */
+	OSyncList *advancedopts1 = osync_plugin_config_get_advancedoptions(config1);
+	OSyncList *advancedopts2 = osync_plugin_config_get_advancedoptions(config2);
+	if (!_compare_list(advancedopts1, advancedopts2, _compare_pluginconfig_advancedoption))
+		return FALSE;
+
 
 	return TRUE;
 }
