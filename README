@@ -20,6 +20,11 @@ is to extract this information and provide inconvertibility using an
 XML intermediate. OpenSync without any plugins is incapable of doing any
 synchronisation.
 
+Requirements
+============
+- CMake 2.4.4 or higer
+
+
 Installation
 ============
 
