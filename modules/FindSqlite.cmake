@@ -2,40 +2,52 @@
 # Once done this will define
 #
 #  SQLITE_FOUND - system has sqlite
-#  SQLITE_INCLUDE_DIR - the sqlite include directory
+#  SQLITE_INCLUDE_DIRS - the sqlite include directory
 #  SQLITE_LIBRARIES - Link these to use sqlite
-#  SQLITE_DEFINITIONS - Compiler switches required for using sqlite
 #
-	
-IF ( SQLITE_INCLUDE_DIR AND SQLITE_LIBRARIES )
-    SET( Sqlite_FIND_QUIETLY TRUE )
-ENDIF ( SQLITE_INCLUDE_DIR AND SQLITE_LIBRARIES )
+#  Copyright (c) 2008 Bjoern Ricks <bjoern.ricks@googlemail.com>
+#
+#  Redistribution and use is allowed according to the terms of the New
+#  BSD license.
+#  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
+#	
 
-IF ( NOT WIN32 )
-   INCLUDE( UsePkgConfig )
-   PKGCONFIG( sqlite3 _LibSQLITEIncDir _LibSQLITELinkDir _LibSQLITELinkFlags _LibSQLITECflags )
-ENDIF ( NOT WIN32 )
+INCLUDE( FindPkgConfig )
 
-# Look for sqlite3 include dir and libraries
-FIND_PATH( SQLITE_INCLUDE_DIR sqlite3.h PATHS ${_LibSQLITEIncDir} )
+IF ( Sqlite_FIND_REQUIRED )
+	SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE( Sqlite_FIND_REQUIRED )
+	SET( _pkgconfig_REQUIRED "" )	
+ENDIF ( Sqlite_FIND_REQUIRED )
 
-FIND_LIBRARY( SQLITE_LIBRARIES NAMES sqlite3 PATHS ${_LibSQLITELinkDir} )
+IF ( SQLITE_MIN_VERSION )
+	PKG_SEARCH_MODULE( SQLITE ${_pkgconfig_REQUIRED} sqlite>=${SQLITE_MIN_VERSION} )
+ELSE ( SQLITE_MIN_VERSION )
+	PKG_SEARCH_MODULE( SQLITE ${_pkgconfig_REQUIRED} sqlite )
+ENDIF ( SQLITE_MIN_VERSION )
 
-IF ( SQLITE_INCLUDE_DIR AND SQLITE_LIBRARIES )
-	SET( SQLITE_FOUND 1 )
-	IF ( NOT Sqlite_FIND_QUIETLY )
-		MESSAGE ( STATUS "Found sqlite3: ${SQLITE_LIBRARIES}" )
-	ENDIF ( NOT Sqlite_FIND_QUIETLY )
-ELSE ( SQLITE_INCLUDE_DIR AND SQLITE_LIBRARIES )
-	IF ( Sqlite_FIND_REQUIRED )
-		MESSAGE( SEND_ERROR "Could NOT find sqlite3" )
-	ELSE ( Sqlite_FIND_REQUIRED )
+
+IF( NOT SQLITE_FOUND AND NOT PKG_CONFIG_FOUND )
+	FIND_PATH( SQLITE_INCLUDE_DIRS sqlite.h )
+	FIND_LIBRARY( SQLITE_LIBRARIES sqlite )
+
+	# Report results
+	IF ( SQLITE_LIBRARIES AND SQLITE_INCLUDE_DIRS )	
+		SET( SQLITE_FOUND 1 )
 		IF ( NOT Sqlite_FIND_QUIETLY )
-			MESSAGE( STATUS "Could NOT find sqlite3" )	
+			MESSAGE( STATUS "Found Sqlite: ${SQLITE_LIBRARIES}" )
 		ENDIF ( NOT Sqlite_FIND_QUIETLY )
-	ENDIF ( Sqlite_FIND_REQUIRED )
-ENDIF ( SQLITE_INCLUDE_DIR AND SQLITE_LIBRARIES )
+	ELSE ( SQLITE_LIBRARIES AND SQLITE_INCLUDE_DIRS )	
+		IF ( Sqlite_FIND_REQUIRED )
+			MESSAGE( SEND_ERROR "Could NOT find Sqlite" )
+		ELSE ( Sqlite_FIND_REQUIRED )
+			IF ( NOT Sqlite_FIND_QUIETLY )
+				MESSAGE( STATUS "Could NOT find Sqlite" )	
+			ENDIF ( NOT Sqlite_FIND_QUIETLY )
+		ENDIF ( Sqlite_FIND_REQUIRED )
+	ENDIF ( SQLITE_LIBRARIES AND SQLITE_INCLUDE_DIRS )	
+ENDIF( NOT SQLITE_FOUND AND NOT PKG_CONFIG_FOUND )
 
 # Hide advanced variables from CMake GUIs
-MARK_AS_ADVANCED( SQLITE_INCLUDE_DIR SQLITE_LIBRARIES )
+MARK_AS_ADVANCED( SQLITE_LIBRARIES SQLITE_INCLUDE_DIRS )
 

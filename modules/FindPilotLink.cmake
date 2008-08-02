@@ -6,56 +6,50 @@
 #  PILOTLINK_LIBRARIES           List of libaries to use PilotLink
 #  PILOTLINK_DEFINITIONS         Definitions to compile PilotLink 
 #
-# Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
+#  Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
+#  Copyright (c) 2008 Bjoern Ricks <bjoern.ricks@googlemail.com>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
 #  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 #
 
-IF ( NOT WIN32 )
-	INCLUDE( UsePkgConfig )
-	# Take care about pilot-link.pc settings
-	PKGCONFIG( pilot-link _pilotlink_include_DIR _pilotlink_link_DIR _pilotlink_link_FLAGS _pilotlink_cflags )
-ENDIF ( NOT WIN32 )
+INCLUDE( FindPkgConfig )
 
-# Look for PilotLink include dir and libraries, and take care about pkg-config first...
-FIND_PATH( PILOTLINK_INCLUDE_DIR pi-version.h PATHS ${_pilotlink_include_DIR} NO_DEFAULT_PATH )
-FIND_PATH( PILOTLINK_INCLUDE_DIR pi-version.h 
-		PATHS
-		/opt/local/include/
-		/sw/include/
-		/usr/local/include/
-		/usr/include/ )
+IF ( PilotLink_FIND_REQUIRED )
+	SET( _pkgconfig_REQUIRED "REQUIRED" )
+ELSE( PilotLink_FIND_REQUIRED )
+	SET( _pkgconfig_REQUIRED "" )	
+ENDIF ( PilotLink_FIND_REQUIRED )
 
-FIND_LIBRARY( PILOTLINK_LIBRARIES pisock PATHS ${_pilotlink_link_DIR} NO_DEFAULT_PATH )
+IF ( PILOTLINK_MIN_VERSION )
+	PKG_SEARCH_MODULE( PILOTLINK ${_pkgconfig_REQUIRED} pilot-link>=${PILOTLINK_MIN_VERSION} )
+ELSE ( PILOTLINK_MIN_VERSION )
+	PKG_SEARCH_MODULE( PILOTLINK ${_pkgconfig_REQUIRED} pilot-link )
+ENDIF ( PILOTLINK_MIN_VERSION )
 
-FIND_LIBRARY( PILOTLINK_LIBRARIES pisock 
-		PATHS
-		/opt/local/lib
-		/sw/lib
-		/usr/lib
-		/usr/local/lib
-		/usr/lib64
-		/usr/local/lib64
-		/opt/lib64 )
 
-# Report results
-IF ( PILOTLINK_LIBRARIES AND PILOTLINK_INCLUDE_DIR )	
-	SET( PILOTLINK_FOUND 1 )
-	IF ( NOT PilotLink_FIND_QUIETLY )
-		MESSAGE( STATUS "Found PilotLink: ${PILOTLINK_LIBRARIES}" )
-	ENDIF ( NOT PilotLink_FIND_QUIETLY )
-ELSE ( PILOTLINK_LIBRARIES AND PILOTLINK_INCLUDE_DIR )	
-	IF ( PilotLink_FIND_REQUIRED )
-		MESSAGE( SEND_ERROR "Could NOT find PilotLink" )
-	ELSE ( PilotLink_FIND_REQUIRED )
+IF( NOT PILOTLINK_FOUND AND NOT PKG_CONFIG_FOUND )
+	FIND_PATH( PILOTLINK_INCLUDE_DIRS pilot-link )
+	FIND_LIBRARY( PILOTLINK_LIBRARIES pisock)
+
+	# Report results
+	IF ( PILOTLINK_LIBRARIES AND PILOTLINK_INCLUDE_DIRS )	
+		SET( PILOTLINK_FOUND 1 )
 		IF ( NOT PilotLink_FIND_QUIETLY )
-			MESSAGE( STATUS "Could NOT find PilotLink" )	
+			MESSAGE( STATUS "Found PilotLink: ${PILOTLINK_LIBRARIES}" )
 		ENDIF ( NOT PilotLink_FIND_QUIETLY )
-	ENDIF ( PilotLink_FIND_REQUIRED )
-ENDIF ( PILOTLINK_LIBRARIES AND PILOTLINK_INCLUDE_DIR )	
+	ELSE ( PILOTLINK_LIBRARIES AND PILOTLINK_INCLUDE_DIRS )	
+		IF ( PilotLink_FIND_REQUIRED )
+			MESSAGE( SEND_ERROR "Could NOT find PilotLink" )
+		ELSE ( PilotLink_FIND_REQUIRED )
+			IF ( NOT PilotLink_FIND_QUIETLY )
+				MESSAGE( STATUS "Could NOT find PilotLink" )	
+			ENDIF ( NOT PilotLink_FIND_QUIETLY )
+		ENDIF ( PilotLink_FIND_REQUIRED )
+	ENDIF ( PILOTLINK_LIBRARIES AND PILOTLINK_INCLUDE_DIRS )	
+ENDIF( NOT PILOTLINK_FOUND AND NOT PKG_CONFIG_FOUND )
 
 # Hide advanced variables from CMake GUIs
-MARK_AS_ADVANCED( PILOTLINK_LIBRARIES PILOTLINK_INCLUDE_DIR )
+MARK_AS_ADVANCED( PILOTLINK_LIBRARIES PILOTLINK_INCLUDE_DIRS )
 
