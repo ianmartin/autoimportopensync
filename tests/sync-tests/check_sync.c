@@ -7,6 +7,7 @@
 #include <opensync/opensync-mapping.h>
 
 #include "opensync/group/opensync_group_internals.h"
+#include "opensync/engine/opensync_engine_internals.h"
 
 START_TEST (sync_setup_connect)
 {

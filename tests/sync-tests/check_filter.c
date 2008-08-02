@@ -2,6 +2,7 @@
 
 #include "opensync/format/opensync_filter_internals.h"
 #include "opensync/group/opensync_group_internals.h"
+#include "opensync/engine/opensync_engine_internals.h"
 
 static osync_bool dummy_filter_hook(OSyncData *data, const char *config)
 {
