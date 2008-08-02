@@ -770,9 +770,6 @@ osync_bool osync_marshal_pluginadvancedoption_param(OSyncMessage *message, OSync
 	}
 	
 	return TRUE;
-
-error:
-	return FALSE;
 }
 
 #define MARSHAL_PLUGINADVANCEDOPTION_DISPLAYNAME (1 << 1)
@@ -865,9 +862,6 @@ osync_bool osync_marshal_pluginadvancedoption(OSyncMessage *message, OSyncPlugin
 	}
 
 	return TRUE;
-
-error:
-	return FALSE;
 }
 
 osync_bool osync_demarshal_pluginadvancedoption_param(OSyncMessage *message, OSyncPluginAdvancedOptionParameter **param, OSyncError **error)
@@ -888,7 +882,6 @@ osync_bool osync_demarshal_pluginadvancedoption_param(OSyncMessage *message, OSy
 	unsigned int type;
 	unsigned int num_valenum;
 	unsigned int i;
-	OSyncList *valenum;
 
 	*param = osync_plugin_advancedoption_param_new(error);
 	if (!*param)
@@ -950,8 +943,6 @@ osync_bool osync_demarshal_pluginadvancedoption(OSyncMessage *message, OSyncPlug
 	unsigned int num_parameters;
 	unsigned int num_valenum;
 	unsigned int i;
-	OSyncList *valenum;
-	OSyncList *parameters;
 
 	*opt = osync_plugin_advancedoption_new(error);
 	if (!*opt)
@@ -1060,9 +1051,6 @@ osync_bool osync_marshal_pluginlocalization(OSyncMessage *message, OSyncPluginLo
 		osync_message_write_string(message, language);
 
 	return TRUE;
-
-error:
-	return FALSE;
 }
 
 osync_bool osync_demarshal_pluginlocalization(OSyncMessage *message, OSyncPluginLocalization **local, OSyncError **error)
@@ -1153,8 +1141,6 @@ osync_bool osync_marshal_pluginauthentication(OSyncMessage *message, OSyncPlugin
 		osync_message_write_string(message, reference);
 
 	return TRUE;
-error:
-	return FALSE;
 }
 
 osync_bool osync_demarshal_pluginauthentication(OSyncMessage *message, OSyncPluginAuthentication **auth, OSyncError **error)
