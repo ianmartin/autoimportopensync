@@ -511,6 +511,7 @@ static osync_bool _osync_plugin_config_parse_ressource_format(OSyncPluginRessour
 	}
 
 	osync_plugin_ressource_add_objformat_sink(res, format_sink);
+	osync_objformat_sink_unref(format_sink);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1172,6 +1173,18 @@ void osync_plugin_config_unref(OSyncPluginConfig *config)
 			
 		if (config->authentication)
 			osync_plugin_authentication_unref(config->authentication);
+
+		while (config->advancedoptions) {
+			OSyncPluginAdvancedOption *opt = config->advancedoptions->data;
+			osync_plugin_advancedoption_unref(opt);
+			config->advancedoptions = osync_list_remove(config->advancedoptions, opt);
+		}
+
+		while (config->ressources) {
+			OSyncPluginRessource *res = config->ressources->data;
+			osync_plugin_ressource_unref(res);
+			config->ressources = osync_list_remove(config->ressources, res);
+		}
 			
 		g_free(config);
 	}
