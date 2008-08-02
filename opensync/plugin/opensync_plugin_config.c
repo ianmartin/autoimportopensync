@@ -1050,10 +1050,7 @@ static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSy
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, option, error);
 
-	OSyncList *o;
-	const char *name, *mime, *objtype, *path, *url;
-
-	xmlNode *next, *node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOption", NULL);
+	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOption", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;

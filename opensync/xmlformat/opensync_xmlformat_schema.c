@@ -78,8 +78,6 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, con
 	osyncschema->ref_count = 1;
 
  	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
- 	xmlSchemaPtr xmlSchema;
- 	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt;
 	
  	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
 	if ( xmlSchemaParserCtxt == NULL ) {
