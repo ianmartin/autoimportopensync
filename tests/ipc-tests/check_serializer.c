@@ -4,7 +4,7 @@
 #include <opensync/opensync-ipc.h>
 #include <opensync/opensync-plugin.h>
 
-static osync_bool _compare_string(const char *string1, const char *string2)
+static osync_bool _compare_string(const void *string1, const void *string2)
 {
 	if ((!!string1) != (!!string2))
 		return FALSE;
@@ -15,35 +15,28 @@ static osync_bool _compare_string(const char *string1, const char *string2)
 	return TRUE;
 }
 
-typedef osync_bool (*_compare_func)(void *a, void *b);
+typedef osync_bool (*_compare_func)(const void *a, const void *b);
 
 static osync_bool _compare_list(OSyncList *list1, OSyncList *list2, _compare_func cmpfunc)
 {
-	OSyncList *l1 = osync_list_copy(list1);
-	OSyncList *l2 = osync_list_copy(list2);
-
-	while (l1) {
-		for (l2 = osync_list_first(l2); l2; l2 = l2->next) {
-			if (!cmpfunc(l1->data, l2->data))
-				continue;
-
-			/* Bingo, match! */
-			l1 = osync_list_remove(l1, l1->data); 
-			l2 = osync_list_remove(l2, l2->data); 
-			break;
+	for (; list1; list1 = list1->next) {
+		for (list2 = osync_list_first(list2); list2; list2 = list2->next) {
+			if (cmpfunc(list1->data, list2->data))
+				break;
 		}
-	}
 
-	if (osync_list_length(l1) || osync_list_length(l2))
-		return FALSE;
+		if (!list2)
+			return FALSE;
+	}
 
 	return TRUE;
 }
 
 static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1, OSyncPluginConnection *conn2)
 {
-	osync_assert(conn1);
-	osync_assert(conn2);
+
+	if (!conn1 && !conn2)
+		return TRUE;
 
 	switch (osync_plugin_connection_get_type(conn1)) {
 		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
@@ -111,12 +104,12 @@ static osync_bool _compare_pluginconfig_connection(OSyncPluginConnection *conn1,
 
 static osync_bool _compare_pluginconfig_authentication(OSyncPluginAuthentication *auth1, OSyncPluginAuthentication *auth2)
 {
-	osync_assert(auth1);
-	osync_assert(auth2);
-
 	const char *username1, *username2;
 	const char *password1, *password2;
 	const char *reference1, *reference2;
+
+	if (!auth1 && !auth2)
+		return TRUE;
 
 	username1 = osync_plugin_authentication_get_username(auth1);
 	username2 = osync_plugin_authentication_get_username(auth2);
@@ -141,12 +134,12 @@ static osync_bool _compare_pluginconfig_authentication(OSyncPluginAuthentication
 
 static osync_bool _compare_pluginconfig_localization(OSyncPluginLocalization *local1, OSyncPluginLocalization *local2)
 {
-	osync_assert(local1);
-	osync_assert(local2);
-
 	const char *encoding1, *encoding2;
 	const char *timezone1, *timezone2;
 	const char *language1, *language2;
+
+	if (!local1 && !local2)
+		return TRUE;
 
 	encoding1 = osync_plugin_localization_get_encoding(local1);
 	encoding2 = osync_plugin_localization_get_encoding(local2);
@@ -169,10 +162,11 @@ static osync_bool _compare_pluginconfig_localization(OSyncPluginLocalization *lo
 	return TRUE;
 }
 
-static osync_bool _compare_pluginconfig_ressource(void *a, void *b)
+static osync_bool _compare_pluginconfig_ressource(const void *a, const void *b)
 {
-	OSyncPluginRessource *res1 = a;
-	OSyncPluginRessource *res2 = b;
+	OSyncPluginRessource *res1 = (OSyncPluginRessource *) a;
+	OSyncPluginRessource *res2 = (OSyncPluginRessource *) b;
+
 	if (osync_plugin_ressource_is_enabled(res1) != osync_plugin_ressource_is_enabled(res2))
 		return FALSE;
 
@@ -197,23 +191,51 @@ static osync_bool _compare_pluginconfig_ressource(void *a, void *b)
 	return TRUE;
 }
 
-static osync_bool _compare_pluginconfig_advacedoption_parameters(void *a, void *b)
+static osync_bool _compare_pluginconfig_advacedoption_parameters(const void *a, const void *b)
 {
-	OSyncPluginAdvancedOptionParameter *param1 = a;
-	OSyncPluginAdvancedOptionParameter *param2 = b;
+	OSyncPluginAdvancedOptionParameter *param1 = (OSyncPluginAdvancedOptionParameter *) a;
+	OSyncPluginAdvancedOptionParameter *param2 = (OSyncPluginAdvancedOptionParameter *) b;
 
 	osync_assert(param1);
 	osync_assert(param2);
 
-	/* TODO compare fields */
+	const char *displayname1 = osync_plugin_advancedoption_param_get_displayname(param1);
+	const char *displayname2 = osync_plugin_advancedoption_param_get_displayname(param2);
+
+	if (!_compare_string(displayname1, displayname2))
+		return FALSE;
+
+	const char *name1 = osync_plugin_advancedoption_param_get_name(param1);
+	const char *name2 = osync_plugin_advancedoption_param_get_name(param2);
+
+	if (!_compare_string(name1, name2))
+		return FALSE;
+
+	OSyncPluginAdvancedOptionType type1 = osync_plugin_advancedoption_param_get_type(param1);
+	OSyncPluginAdvancedOptionType type2 = osync_plugin_advancedoption_param_get_type(param2);
+
+	if (type1 != type2)
+		return FALSE;
+
+	OSyncList *valenums1 = osync_plugin_advancedoption_param_get_valenums(param1); 
+	OSyncList *valenums2 = osync_plugin_advancedoption_param_get_valenums(param2); 
+
+	if (!_compare_list(valenums1, valenums2, _compare_string))
+		return FALSE;
+
+	const char *value1 = osync_plugin_advancedoption_param_get_value(param1);
+	const char *value2 = osync_plugin_advancedoption_param_get_value(param2);
+
+	if (!_compare_string(value1, value2))
+		return FALSE;
 
 	return TRUE;
 }
 
-static osync_bool _compare_pluginconfig_advancedoption(void *a, void *b)
+static osync_bool _compare_pluginconfig_advancedoption(const void *a, const void *b)
 {
-	OSyncPluginAdvancedOption *opt1 = a;
-	OSyncPluginAdvancedOption *opt2 = b;
+	OSyncPluginAdvancedOption *opt1 = (OSyncPluginAdvancedOption *) a;
+	OSyncPluginAdvancedOption *opt2 = (OSyncPluginAdvancedOption *) b;
 	osync_assert(opt1);
 	osync_assert(opt2);
 
@@ -223,7 +245,47 @@ static osync_bool _compare_pluginconfig_advancedoption(void *a, void *b)
 	if (!_compare_list(param_list1, param_list2, _compare_pluginconfig_advacedoption_parameters))
 		return FALSE;
 
-	/* TODO compare fields */
+	const char *displayname1 = osync_plugin_advancedoption_get_displayname(opt1);
+	const char *displayname2 = osync_plugin_advancedoption_get_displayname(opt2);
+
+	if (!_compare_string(displayname1, displayname2))
+		return FALSE;
+
+	const char *name1 = osync_plugin_advancedoption_get_name(opt1);
+	const char *name2 = osync_plugin_advancedoption_get_name(opt2);
+
+	if (!_compare_string(name1, name2))
+		return FALSE;
+
+	OSyncPluginAdvancedOptionType type1 = osync_plugin_advancedoption_get_type(opt1);
+	OSyncPluginAdvancedOptionType type2 = osync_plugin_advancedoption_get_type(opt2);
+
+	if (type1 != type2)
+		return FALSE;
+
+	OSyncList *valenums1 = osync_plugin_advancedoption_get_valenums(opt1); 
+	OSyncList *valenums2 = osync_plugin_advancedoption_get_valenums(opt2); 
+
+	if (!_compare_list(valenums1, valenums2, _compare_string))
+		return FALSE;
+
+	const char *value1 = osync_plugin_advancedoption_get_value(opt1);
+	const char *value2 = osync_plugin_advancedoption_get_value(opt2);
+
+	if (!_compare_string(value1, value2))
+		return FALSE;
+
+	unsigned int maxsize1 = osync_plugin_advancedoption_get_maxsize(opt1);
+	unsigned int maxsize2 = osync_plugin_advancedoption_get_maxsize(opt2);
+
+	if (maxsize1 != maxsize2)
+		return FALSE;
+
+	unsigned int maxoccurs1 = osync_plugin_advancedoption_get_maxoccurs(opt1);
+	unsigned int maxoccurs2 = osync_plugin_advancedoption_get_maxoccurs(opt2);
+
+	if (maxoccurs1 != maxoccurs2)
+		return FALSE;
 
 	return TRUE;
 }
@@ -232,30 +294,25 @@ static osync_bool _compare_pluginconfig(OSyncPluginConfig *config1, OSyncPluginC
 {
 	OSyncPluginAuthentication *auth1 = osync_plugin_config_get_authentication(config1);
 	OSyncPluginAuthentication *auth2 = osync_plugin_config_get_authentication(config2);
-	if (auth1 && auth2 && !_compare_pluginconfig_authentication(auth1, auth2))
-		return FALSE;
+	fail_unless(_compare_pluginconfig_authentication(auth1, auth2), NULL);
 
 	OSyncPluginLocalization *local1 = osync_plugin_config_get_localization(config1);
 	OSyncPluginLocalization *local2 = osync_plugin_config_get_localization(config2);
 
-	if (local1 && local2 && !_compare_pluginconfig_localization(local1, local2))
-		return FALSE;
+	fail_unless(_compare_pluginconfig_localization(local1, local2), NULL);
 
 	OSyncList *ressources1 = osync_plugin_config_get_ressources(config1);
 	OSyncList *ressources2 = osync_plugin_config_get_ressources(config2);
-	if (!_compare_list(ressources1, ressources2, _compare_pluginconfig_ressource))
-		return FALSE;
+	fail_unless(_compare_list(ressources1, ressources2, _compare_pluginconfig_ressource), NULL);
 
 
 	OSyncPluginConnection *conn1 = osync_plugin_config_get_connection(config1);
 	OSyncPluginConnection *conn2 = osync_plugin_config_get_connection(config2);
-	if (conn1 && conn2 && !_compare_pluginconfig_connection(conn1, conn2))
-			return FALSE;
+	fail_unless(_compare_pluginconfig_connection(conn1, conn2), NULL);
 
 	OSyncList *advancedopts1 = osync_plugin_config_get_advancedoptions(config1);
 	OSyncList *advancedopts2 = osync_plugin_config_get_advancedoptions(config2);
-	if (!_compare_list(advancedopts1, advancedopts2, _compare_pluginconfig_advancedoption))
-		return FALSE;
+	fail_unless(_compare_list(advancedopts1, advancedopts2, _compare_pluginconfig_advancedoption), NULL);
 
 
 	return TRUE;
