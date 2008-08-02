@@ -14,4 +14,4 @@ Name: opensync
 Description: OpenSync synchronization framework
 Version: ${OPENSYNC_VERSION}
 Libs: -L${LIB_INSTALL_DIR} -lopensync
-Cflags: -I${INCLUDE_INSTALL_DIR}/${OPENSYNC_API_DIR}
+Cflags: -I${OPENSYNC_INCLUDE_DIR}
