@@ -15,7 +15,7 @@ kdepim_impl.cpp
 knotes.cpp
 )
 
-ADD_DEFINITIONS( -DKDEPIM_LIBDIR="\\\"${OPENSYNC_PLUGINDIR}\\\"" )
+ADD_DEFINITIONS( -DKDEPIM_LIBDIR="${OPENSYNC_PLUGINDIR}" )
 
 KDE3_ADD_DCOP_STUBS( kdepim_module_LIB_SRCS KNotesIface.h )
 

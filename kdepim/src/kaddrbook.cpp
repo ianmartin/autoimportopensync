@@ -122,8 +122,6 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 
 	OSyncError *error = NULL;
 
-	osync_hashtable_reset_reports(hashtable);
-
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync, resetting hashtable");
 		if (!osync_hashtable_slowsync(hashtable, &error)) {
@@ -243,7 +241,7 @@ void KContactDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChang
 		}
 	}
 
-	osync_hashtable_update_hash(hashtable, chtype, uid, osync_change_get_hash(chg));
+	osync_hashtable_update_change(hashtable, chg);
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);

@@ -298,8 +298,6 @@ void KCalEventDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vevent20");
 
-	osync_hashtable_reset_reports(hashtable);
-
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
 		if (!osync_hashtable_slowsync(hashtable, &error)) {
@@ -336,8 +334,6 @@ void KCalTodoDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vtodo20");
 
-	osync_hashtable_reset_reports(hashtable);
-
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
 		if (!osync_hashtable_slowsync(hashtable, &error)) {
@@ -370,7 +366,7 @@ void KCalEventDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChan
 	if (!kcal->commit(ctx, chg))
 		return;
 	
-	osync_hashtable_update_hash(hashtable, osync_change_get_changetype(chg), osync_change_get_uid(chg), osync_change_get_hash(chg));
+	osync_hashtable_update_change(hashtable, chg);
 	osync_context_report_success(ctx);
 }
 
@@ -380,6 +376,6 @@ void KCalTodoDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChang
 	if (!kcal->commit(ctx, chg))
 		return;
 	
-	osync_hashtable_update_hash(hashtable, osync_change_get_changetype(chg), osync_change_get_uid(chg), osync_change_get_hash(chg));
+	osync_hashtable_update_change(hashtable, chg);
 	osync_context_report_success(ctx);
 }

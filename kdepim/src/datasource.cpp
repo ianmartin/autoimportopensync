@@ -158,15 +158,14 @@ bool OSyncDataSource::report_change(OSyncPluginInfo *info, OSyncContext *ctx, QS
 	// needs to be reported
 	osync_change_set_hash(change, hash.data());
 
-	// Report entry ... otherwise it gets deleted!
-	osync_hashtable_report(hashtable, uid);
-
-	changetype = osync_hashtable_get_changetype(hashtable, uid, hash.data());
+	changetype = osync_hashtable_get_changetype(hashtable, change);
 	osync_change_set_changetype(change, changetype);
-	if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype) {
+
+	// Update change in hashtable ... otherwise it gets deleted!
+	osync_hashtable_update_change(hashtable, change);
+
+	if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype)
 		osync_context_report_change(ctx, change);
-		osync_hashtable_update_hash(hashtable, changetype, uid, hash.data());
-	}
 
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 	return true;
@@ -186,18 +185,19 @@ bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx, O
 	
 	int i;
 	OSyncError *error = NULL;
-	char **uids = osync_hashtable_get_deleted(hashtable);
+	OSyncList *u, *uids  = osync_hashtable_get_deleted(hashtable);
 	OSyncChange *change;
 	
-	for (i=0; uids[i]; i++) {
-		osync_trace(TRACE_INTERNAL, "going to delete entry with uid: %s", uids[i]);
+	for (u=uids; u; u = u->next) {
+		char *uid = (char *) u->data;
+		osync_trace(TRACE_INTERNAL, "going to delete entry with uid: %s", uids);
 		
 		change = osync_change_new(&error);
 		if (!change)
 			goto error;
 
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
-		osync_change_set_uid(change, uids[i]);
+		osync_change_set_uid(change, uid);
 
 		OSyncData *data = osync_data_new(NULL, 0, objformat, &error); 
 		if (!data)
@@ -206,22 +206,19 @@ bool OSyncDataSource::report_deleted(OSyncPluginInfo *info, OSyncContext *ctx, O
 		osync_data_set_objtype(data, osync_objtype_sink_get_name(sink));
 		osync_change_set_data(change, data);
 
-		osync_context_report_change(ctx, change);
-		osync_hashtable_update_hash(hashtable, OSYNC_CHANGE_TYPE_DELETED, uids[i], NULL);
 
-		free(uids[i]);
+		osync_hashtable_update_change(hashtable, change);
+		osync_context_report_change(ctx, change);
+
 		osync_change_unref(change);
 	}
-	free(uids);
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 	return true;
 
 error_free_change:	
 	osync_change_unref(change);
 error:	
-	for (; uids[i]; i++)
-		free(uids[i]);
-	free(uids);
+
 	osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(&error));
 	osync_error_unref(&error);
@@ -234,5 +231,5 @@ OSyncDataSource::~OSyncDataSource()
 		osync_objtype_sink_unref(sink);
 
 	if (hashtable)
-		osync_hashtable_free(hashtable);
+		osync_hashtable_unref(hashtable);
 }

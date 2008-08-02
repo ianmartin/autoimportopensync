@@ -155,8 +155,6 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		return;
 	}
 
-	osync_hashtable_reset_reports(hashtable);
-
 	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync, resetting hashtable");
 		if (!osync_hashtable_slowsync(hashtable, &error)) {
@@ -228,15 +226,13 @@ void KNotesDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 		// needs to be reported
 		osync_change_set_hash(chg, hash.data());
 
-		// Report entry ... otherwise it gets deleted!
-		osync_hashtable_report(hashtable, uid);
-		
-		changetype = osync_hashtable_get_changetype(hashtable, uid, hash.data());
+		changetype = osync_hashtable_get_changetype(hashtable, chg);
 		osync_change_set_changetype(chg, changetype);
-		if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype) {
+
+		// Update change in hashtable ... otherwise it gets deleted!
+		osync_hashtable_update_change(hashtable, chg);
+		if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype)
 			osync_context_report_change(ctx, chg);
-			osync_hashtable_update_hash(hashtable, changetype, uid, hash.data());
-		}
 
 		hash_value.reset();
 	}
@@ -360,7 +356,7 @@ void KNotesDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChange 
 		}*/
 	}
 
-	osync_hashtable_update_hash(hashtable, type, uid, osync_change_get_hash(chg));
+	osync_hashtable_update_change(hashtable, chg);
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
