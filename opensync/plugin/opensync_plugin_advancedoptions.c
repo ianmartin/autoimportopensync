@@ -140,6 +140,9 @@ void osync_plugin_advancedoption_unref(OSyncPluginAdvancedOption *option)
 			option->valenum = osync_list_remove(option->valenum, option->valenum->data);
 		}
 
+		if (option->value)
+			g_free(option->value);
+
 		g_free(option);
 	}
 }
