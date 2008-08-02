@@ -30,6 +30,7 @@ OSYNC_EXPORT osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config,
 
 /* Advanced Options */
 OSYNC_EXPORT OSyncList *osync_plugin_config_get_advancedoptions(OSyncPluginConfig *config);
+OSYNC_EXPORT OSyncPluginAdvancedOption *osync_plugin_config_get_advancedoption_value_by_name(OSyncPluginConfig *config, const char *name);
 OSYNC_EXPORT void osync_plugin_config_add_advancedoption(OSyncPluginConfig *config, OSyncPluginAdvancedOption *option);
 OSYNC_EXPORT void osync_plugin_config_remove_advancedoption(OSyncPluginConfig *config, OSyncPluginAdvancedOption *option);
 
