@@ -641,6 +641,7 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_advancedoption_set_displayname(option, "foobar1");
 	osync_plugin_advancedoption_set_name(option, "foobar1");
 	osync_plugin_advancedoption_set_type(option, OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_CHAR);
+	osync_plugin_advancedoption_set_value(option, "FOOBAR1");
 
 	osync_plugin_advancedoption_add_valenum(option, "FOOBAR1");
 	osync_plugin_advancedoption_add_valenum(option, "FOOBAR2");
@@ -654,6 +655,8 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_advancedoption_param_set_displayname(param, "bar1");
 	osync_plugin_advancedoption_param_set_name(param, "bar1");
 	osync_plugin_advancedoption_param_set_type(param, OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_INT);
+
+	osync_plugin_advancedoption_param_set_value(param, "BAR1");
 
 	osync_plugin_advancedoption_param_add_valenum(param, "BAR1");
 	osync_plugin_advancedoption_param_add_valenum(param, "BAR2");
@@ -788,6 +791,8 @@ START_TEST (plugin_config_save_and_load)
 			g_free(value);
 		}
 
+		fail_unless(!strcmp(osync_plugin_advancedoption_get_value(r->data), "FOOBAR1"));
+
 		reloaded_advancedoption_parameters = osync_plugin_advancedoption_get_parameters(r->data);
 		for (j = 1, p = reloaded_advancedoption_parameters; p; p = p->next, j++) {
 			char *value = g_strdup_printf("bar%i", j);
@@ -802,6 +807,8 @@ START_TEST (plugin_config_save_and_load)
 				g_free(value);
 
 			}
+
+			fail_unless(!strcmp(osync_plugin_advancedoption_param_get_value(p->data), "BAR1"));
 
 		}
 
