@@ -198,8 +198,10 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 			goto error;
 	
 		OSyncObjFormatSink *formatsink = osync_objtype_sink_find_objformat_sink(objtype_sink, internalFormat);
-		const char *config = osync_objformat_sink_get_config(formatsink); 
-		osync_converter_path_set_config(path, config);
+		if (formatsink) {
+			const char *config = osync_objformat_sink_get_config(formatsink); 
+			osync_converter_path_set_config(path, config);
+		}
 
 		if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
 			osync_converter_path_unref(path);
