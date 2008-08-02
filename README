@@ -13,16 +13,16 @@ be just about any kind of database we have a plugin like:
 
 OpenSync is not only limited to sync PIM data.
 
-The technical aspects of how the synchronisation is implemented can befound
+The technical aspects of how the synchronization is implemented can be found
 in this document [2] or in the OpenSync whitepaper stored in docs/ Each
 device has its own way of storing information and the purpose of OpenSync
 is to extract this information and provide inconvertibility using an
 XML intermediate. OpenSync without any plugins is incapable of doing any
-synchronisation.
+synchronization.
 
 Requirements
 ============
-- CMake 2.4.4 or higer
+- CMake 2.4.4 or higher
 
 
 Installation
@@ -31,7 +31,7 @@ Installation
 To build OpenSync you need CMake, (check for unit tests - optional) and
 the devel packages of sqlite3, glib2, and libxml2. swig for python bindings
 (optional). We only support out of source builds, which means you have to
-create a sperated build directory.
+create a separated build directory.
 
 mkdir build
 cd build
