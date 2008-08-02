@@ -914,6 +914,7 @@ osync_bool osync_demarshal_pluginadvancedoption_param(OSyncMessage *message, OSy
 	for (i=0; i < num_valenum; i++) {
 		osync_message_read_string(message, &value);
 		osync_plugin_advancedoption_param_add_valenum(*param, value);
+		g_free(value);
 	}
 
 	return TRUE;
@@ -993,6 +994,7 @@ osync_bool osync_demarshal_pluginadvancedoption(OSyncMessage *message, OSyncPlug
 			goto error;
 
 		osync_plugin_advancedoption_add_parameter(*opt, param);
+		osync_plugin_advancedoption_param_unref(param);
 	}
 
 	osync_message_read_uint(message, &num_valenum);
@@ -1000,6 +1002,7 @@ osync_bool osync_demarshal_pluginadvancedoption(OSyncMessage *message, OSyncPlug
 	for (i=0; i < num_valenum; i++) {
 		osync_message_read_string(message, &value);
 		osync_plugin_advancedoption_add_valenum(*opt, value);
+		g_free(value);
 	}
 
 	return TRUE;
@@ -1336,6 +1339,7 @@ osync_bool osync_demarshal_pluginressource(OSyncMessage *message, OSyncPluginRes
 			goto error;
 
 		osync_plugin_ressource_add_objformat_sink(*res, sink);
+		osync_objformat_sink_unref(sink);
 	}
 
 	osync_message_read_uint(message, &available_settings);
@@ -1477,6 +1481,7 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 			goto error_free_config;
 
 		osync_plugin_config_set_connection(*config, conn);
+		osync_plugin_connection_unref(conn);
 	}
 
 	/* Authentication */
@@ -1485,6 +1490,7 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 			goto error_free_config;
 
 		osync_plugin_config_set_authentication(*config, auth);
+		osync_plugin_authentication_unref(auth);
 	}
 
 	/* Localization */
@@ -1493,6 +1499,7 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 			goto error_free_config;
 
 		osync_plugin_config_set_localization(*config, local);
+		osync_plugin_localization_unref(local);
 	}
 
 	osync_message_read_uint(message, &num_ressources);
@@ -1504,6 +1511,7 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 			goto error_free_config;
 
 		osync_plugin_config_add_ressource(*config, res);
+		osync_plugin_ressource_unref(res);
 
 	}
 
@@ -1516,6 +1524,7 @@ osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig
 			goto error_free_config;
 
 		osync_plugin_config_add_advancedoption(*config, opt);
+		osync_plugin_advancedoption_unref(opt);
 	}
 
 	return TRUE;
