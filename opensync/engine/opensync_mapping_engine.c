@@ -44,7 +44,9 @@
 OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, parent, mapping, error);
-	g_assert(mapping);
+
+	osync_assert(parent);
+	osync_assert(mapping);
 	
 	OSyncMappingEngine *engine = osync_try_malloc0(sizeof(OSyncMappingEngine), error);
 	if (!engine)
