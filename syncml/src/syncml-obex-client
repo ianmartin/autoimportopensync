@@ -1,109 +1,160 @@
 <?xml version="1.0"?>
-<config>
-  <!-- sets the connection type to use. -->
-  <!-- please note that actually OBEX over network is not supported -->
-  <!-- 1 means obex over serial cable -->
-  <!-- 2 means obex over bluetooth    -->
-  <!-- 3 means obex over IRDA         -->
-  <!-- 4 means obex over network      -->
-  <!-- 5 means obex over usb          -->
-  <type>2</type>
+<config version="1.0">
+  <AdvancedOptions>
+   <AdvancedOption>
+     <DisplayName>WBXML compression</DisplayName>
+     <Name>WBXML</Name>
+     <Type>bool</Type>
+     <Value>1</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>SyncML Version</DisplayName>
+     <Name>SANVersion</Name>
+     <Type>string</Type>
+     <ValEnum>1.2</ValEnum>
+     <ValEnum>1.1</ValEnum>
+     <ValEnum>1.0</ValEnum>
+     <Value>1.1</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+    <!-- 
+        Some devices use a non-standard compliant AT command.
+        This special AT command contains for example the datastores
+        which should be synchronized. If you don't know what to
+        do then leave this empy or contact us via the user mailing
+        list.
   
-  <!-- (Only for bluetooth) The bluetooth address if the bluetooth mode is selected.
-       `hcitool scan` to search bluetooth devices.  -->
-  <bluetooth_address></bluetooth_address>
+        Some devices are supported by default. If yours is not
+        supported then please open a ticket.
   
-  <!-- (Only for bluetooth) The bluetooth channel to use.
-       `sdptool browse $MAC` to search for the correct channel
-       Example:
-       sdptool browse xx:xx:xx:xx:xx:xx | grep "\(Service Name\|Channel\)" -->
-  <bluetooth_channel></bluetooth_channel>
-  
-  <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (you will need access to the USB raw device) to find it. -->
-  <interface>0</interface>
+        Examples for AT commands:
+            Samsung: http://www.traud.de/gsm/samsung.htm
+     -->
+     <DisplayName>AT Command</DisplayName>
+     <Name>ATCommand</Name>
+     <Type>string</Type>
+     <Value></Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Some Nokia Series60 need as Identifer "PC Suite: -->
+     <DisplayName>Identifier</DisplayName>
+     <Name>Identifier</Name>
+     <Type>string</Type>
+     <Value></Value>
+   </AdvancedOption>
+    <!-- If your phone needs a special AT command but you don't
+         know it and it is not supported but you know a similar
+         phone which is supported then you can try to use this
+         potentially working profile by adding this phone's
+         identity here.
+   
+         at_manufacturer is the answer to AT+CGMI.
+         at_model        is the answer to AT+CGMM.
+   
+         Example: mobile          Samsung SGH-Z400
+                  at_manufacturer Samsung
+                  at_model        SGH-Z400
+      --> 
+   <AdvancedOption>
+     <DisplayName>AT Manufacturer</DisplayName>
+     <Name>ATManufacturer</Name>
+     <Type>string</Type>
+     <Value></Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>AT Model</DisplayName>
+     <Name>ATModel</Name>
+     <Type>string</Type>
+     <Value></Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- If wbxml is enabled, defines wether the wbxml should use string 
+          tables -->
+     <DisplayName>Use String Tables</DisplayName>
+     <Name>UseStringTable</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <!-- FIXME: OnlyReplace seems to be DEAD option - drop? -->
+   <AdvancedOption>
+     <!-- Never send ADD command, but send REPLACE (not needed normally) -->
+     <DisplayName>Only Replace (never send ADD command)</DisplayName>
+     <Name>OnlyReplace</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Workaround around for mobile phones which only use local timestamps 
+          and _no_ UTC timestamps! -->
+     <DisplayName>Only local time</DisplayName>
+     <Name>OnlyLocaltime</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Sets the maximum allowed size in bytes of incoming messages (some 
+          device need this option set). Example: 10000 -->
+     <DisplayName>Max Message Size (SyncML: MaxMsgSize)</DisplayName>
+     <Name>MaxMsgSize</Name>
+     <Type>uint</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Sets the maximum allowed size in bytes of incoming messages (some 
+          device need this option set). Example: 10000 -->
+     <DisplayName>Max Object Size (SyncML: MaxObjSize)</DisplayName>
+     <Name>MaxObjSize</Name>
+     <Type>uint</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- The old default behavior of OpenSync was to use the same      -->
+     <!-- format like the connecting client. Some clients which were    -->
+     <!-- connected with another software expect always the anchor      -->
+     <!-- format of this software. Therefore it is possible to          -->
+     <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
+     <!--                                                               -->
+     <!--     0 ==> number format beginning with 1                      -->
+     <!--     1 ==> timestamp format                                    -->
+     <!--                                                               -->
+     <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
+     <!-- behavior is determined from the cached Last anchor.           -->
+     <DisplayName>Use Timestamp Anchor</DisplayName>
+     <Name>UseTimeAnchor</Name>
+     <Type>bool</Type>
+     <Value>1</Value>
+   </AdvancedOption>
+  </AdvancedOptions>
+  <Authentication>
+    <Username></Username>
+    <Password></Password>
+  </Authentication>
+  <Connection>
+   <Bluetooth>
+     <!-- hcitool scan -->
+     <MAC></MAC>
+     <!-- sdptool search \-\-bdaddr=$MAC SYNCML --> 
+     <RFCommChannel>11</RFCommChannel>
+     <!-- SyncML UUID -->
+     <SDPUUID>00000002-0000-1000-8000-0002ee000002</SDPUUID>
+   </Bluetooth>
+   <USB>
+   </USB>
+  </Connection>
 
-  <!-- Some devices use a non-standard compliant AT command.
-       This special AT command contains for example the datastores
-       which should be synchronized. If you don't know what to
-       do then leave this empy or contact us via the user mailing
-       list.
+    <!-- To be filed by UI or hand:
+  <Ressources>
+    <Ressource>
+     <Enabled>1</Enabled>
+     <Formats>
+       <Format>
+         <Name>vcard21</Name>
+       </Format>
+     </Formats>
+     <Name>Contacts</Name>
+     <ObjType>contact</ObjType>
+    </Ressource>
+  </Ressources>
 
-       Some devices are supported by default. If yours is not
-       supported then please open a ticket.
-
-       Examples for AT commands:
-           Samsung: http://www.traud.de/gsm/samsung.htm
     -->
-  <at_command></at_command>
-
-  <!-- If your phone needs a special AT command but you don't
-       know it and it is not supported but you know a similar
-       phone which is supported then you can try to use this
-       potentially working profile by adding this phone's
-       identity here.
-
-       at_manufacturer is the answer to AT+CGMI.
-       at_model        is the answer to AT+CGMM.
-
-       Example: mobile          Samsung SGH-Z400
-                at_manufacturer Samsung
-                at_model        SGH-Z400
-    --> 
-  <at_manufacturer></at_manufacturer>
-  <at_model></at_model>
-
-  <!-- The string that the plugin will use to identify itself. Some devices need a special string here. -->
-  <identifier></identifier>
-  
-  <!-- The syncml version to use: 0 for 1.0, 1 for 1.1 and 2 for 1.2 -->
-  <version>1</version>
-  
-  <!-- if the plugin should use wbxml -->
-  <wbxml>1</wbxml>
-  
-  <!-- The username to use. Leave empty to not require a username -->
-  <username></username>
-  
-  <!-- the password for the username -->
-  <password></password>
- 
-  <!-- If wbxml is enabled, defines wether the wbxml should use string tables -->
-  <usestringtable>0</usestringtable>
-  
-  <!-- Never send ADD command, but send REPLACE (not needed normally) -->
-  <onlyreplace>0</onlyreplace>
-
-  <!-- Workaround around for mobile phones which only use local timestamps and _no_ UTC timestamps! -->
-  <onlyLocaltime>0</onlyLocaltime>
-  
-  <!-- Sets the maximum allowed size in bytes of incoming messages (some device need this option set). Example: 10000 -->
-  <maxMsgSize>0</maxMsgSize>
-  
-  <maxObjSize>0</maxObjSize>
-  
-  <!-- The old default behavior of OpenSync was to use the same      -->
-  <!-- format like the connecting client. Some clients which were    -->
-  <!-- connected with another software expect always the anchor      -->
-  <!-- format of this software. Therefore it is possible to          -->
-  <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
-  <!--                                                               -->
-  <!--     0 ==> number format beginning with 1                      -->
-  <!--     1 ==> timestamp format                                    -->
-  <!--                                                               -->
-  <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
-  <!-- behavior is determined from the cached Last anchor.           -->
-
-  <useTimestampAnchor>1</useTimestampAnchor>
-  
-  <!-- XXX: Currently you need to write this by your own.
-       Later it's planned to create such entries on the fly during
-       the discovery() call. Example database field:
-
-  <database>
-     <name>Contacts</name>
-     <objtype>contact</objtype>
-     <objformat>vcard21</objformat>
-  </database>
-  -->
-  
 </config>
