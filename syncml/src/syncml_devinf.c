@@ -387,6 +387,9 @@ SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *databas
     if (!datastore) goto error;
 
     const char *ct = get_database_pref_content_type(database, error);
+    if (!ct)
+	goto error;
+
     SmlDevInfContentType *ctype;
 
     if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD))
