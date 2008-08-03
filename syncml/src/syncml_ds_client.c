@@ -3,18 +3,15 @@
 
 SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-                SmlDatabase *database = o->data;
+	SmlDatabase *database = NULL;
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	unsigned int i, num_objtypes = osync_plugin_info_num_objtypes(info);
 
-                OSyncObjTypeSink *sink = osync_objtype_sink_new(database->objtype, error);
-                if (!sink)
-			return FALSE;
-                
+	for (i=0; i < num_objtypes; i++) {
+		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
+		const char *objtype = osync_objtype_sink_get_name(sink);
+
                 database->sink = sink;
-
-		if (!init_objformat(info, database, error))
-			return FALSE;
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
@@ -22,11 +19,17 @@ SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
                 functions.get_changes = ds_client_get_changeinfo;
                 functions.sync_done = sync_done;
 		functions.batch_commit = ds_client_batch_commit;
+
+		OSyncPluginRessource *res = osync_plugin_config_find_active_ressource(config, objtype);
+		if (!(database = syncml_config_parse_database(env, res, error)))
+			goto error;
                 
                 osync_objtype_sink_set_functions(sink, functions, database);
-                osync_plugin_info_add_objtype(info, sink);
 	}
 	return TRUE;
+
+error:
+	return FALSE;
 }
 	
 void ds_client_register_sync_mode(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
