@@ -45,19 +45,18 @@
 
   <xsd:simpleType name="AdvancedType">
     <xsd:restriction base="xsd:string">
-      <!-- TODO: bool is true/false or 1/0 or both? -->
+      <!-- bool is 1/0  -->
       <xsd:enumeration value="bool"/>
+      <!-- single character -->
       <xsd:enumeration value="char"/>
       <xsd:enumeration value="double"/>
       <xsd:enumeration value="int"/>
       <xsd:enumeration value="long"/>
       <xsd:enumeration value="longlong"/>
+      <xsd:enumeration value="string" />
       <xsd:enumeration value="uint"/>
       <xsd:enumeration value="ulong"/>
       <xsd:enumeration value="ulonglong"/>
-      <!-- string is just char with MaxSize > 1
-      <xsd:enumeration value="string"/>
-      -->
     </xsd:restriction>
   </xsd:simpleType>
 
