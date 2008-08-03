@@ -65,143 +65,114 @@ error:
 	report_error_on_context(&(env->connectCtx), &oserror, TRUE);
 }
 
-osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
+osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, OSyncPluginConfig *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, config, error);
-	xmlDocPtr doc = NULL;
-	xmlNodePtr cur = NULL;
+	OSyncPluginConnection *conn;
 
 	env->useTimestampAnchor = TRUE;
         env->maxObjSize = OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE;
         env->maxMsgSize = OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE;
+
+        conn = osync_plugin_config_get_connection(config);
+        if (!conn) {
+                osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "No configuration of connection available.");
+                goto error;
+        }
 	
-	if (!(doc = xmlParseMemory(config, strlen(config)))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
-		goto error;
+	switch(osync_plugin_connection_get_type(conn)) {
+		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
+			env->bluetoothAddress = osync_plugin_connection_bt_get_addr(conn);
+			if (osync_plugin_connection_bt_get_channel(conn))
+				env->bluetoothChannel = g_strdup_printf("%u", osync_plugin_connection_bt_get_channel(conn));
+
+			env->type = SML_TRANSPORT_CONNECTION_TYPE_BLUETOOTH;
+			break;
+                case OSYNC_PLUGIN_CONNECTION_USB:
+			/* TODO
+			osync_plugin_connection_usb_get_interface(conn);
+			*/
+			env->type = SML_TRANSPORT_CONNECTION_TYPE_USB;
+                        break;
+                case OSYNC_PLUGIN_CONNECTION_SERIAL:
+			/* TODO serial */
+			env->type = SML_TRANSPORT_CONNECTION_TYPE_SERIAL;
+                        break;
+                case OSYNC_PLUGIN_CONNECTION_IRDA:
+			/* TODO IRDA */
+			env->type = SML_TRANSPORT_CONNECTION_TYPE_IRDA;
+                        break;
+                case OSYNC_PLUGIN_CONNECTION_NETWORK:
+			/* TODO NEtwork */
+			env->type = SML_TRANSPORT_CONNECTION_TYPE_NET;
+                        break;
+                case OSYNC_PLUGIN_CONNECTION_UNKNOWN:
+		default:
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unsupported connection type configured.");
+			break;
 	}
 
-	if (!(cur = xmlDocGetRootElement(doc))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "config seems to be empty");
-		goto error_free_doc;
-	}
-	
-	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "config does not seem to be valid");
-		goto error_free_doc;
+	OSyncPluginAuthentication *auth = osync_plugin_config_get_authentication(config);
+	if (auth) {
+		env->username = osync_plugin_authentication_get_username(auth);
+		/* TODO: Make use of password keyrings/password wallets! */
+		env->password = osync_plugin_authentication_get_password(auth);
 	}
 
-	cur = cur->xmlChildrenNode;
+	OSyncList *optslist = osync_plugin_config_get_advancedoptions(config);
+	for (; optslist; optslist = optslist->next) {
+		OSyncPluginAdvancedOption *option = optslist->data;
 
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str && strlen(str)) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_address")) {
-				env->bluetoothAddress = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_channel")) {
-				env->bluetoothChannel = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"at_command")) {
-				env->atCommand = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"at_manufacturer")) {
-				env->atManufacturer = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"at_model")) {
-				env->atModel = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
-				env->port = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"identifier") && strlen(str)) {
-				env->identifier = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"type")) {
-				env->type = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"version")) {
-				switch (atoi(str)) {
-					case 0:
-						env->version = SML_SAN_VERSION_10;
-						break;
-					case 1:
-						env->version = SML_SAN_VERSION_11;
-						break;
-					case 2:
-						env->version = SML_SAN_VERSION_12;
-						break;
-					default:
-						xmlFree(str);
-						osync_error_set(error, OSYNC_ERROR_GENERIC, "config does not seem to be valid2");
-						goto error_free_doc;
-				}
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"wbxml")) {
-				env->useWbxml = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
-				env->username = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
-				env->password = g_strdup(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
-				env->useStringtable = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"useTimestampAnchor")) {
-				env->useTimestampAnchor = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyreplace")) {
-				env->onlyReplace = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxMsgSize") && atoi(str)) {
-				env->maxMsgSize = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize") && atoi(str)) {
-				env->maxObjSize = atoi(str);
+		const char *val = osync_plugin_advancedoption_get_value(option);
+		const char *name = osync_plugin_advancedoption_get_name(option);
+		g_assert(name);
+		g_assert(val);
+
+		if (!strcmp(SYNCML_PLUGIN_CONFIG_SANVERSION, name)) {
+
+			if (!strcmp(val, "1.2")) {
+				env->version = SML_SAN_VERSION_12;
+			} else if (!strcmp(val, "1.1")) {
+				env->version = SML_SAN_VERSION_11;
+			} else if (!strcmp(val, "1.0")) {
+				env->version = SML_SAN_VERSION_10;
+			} else {
+				osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Invalid SyncML SAN version.");
+				goto error;
 			}
 
-			/* XXX Workaround for mobiles which only handle localtime! */
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyLocaltime")) {
-				env->onlyLocaltime = atoi(str);
-			}
-
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"database")) {
-				if (!syncml_config_parse_database(env, cur->xmlChildrenNode, error))
-					goto error_free_doc;
-			}
-
-
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_WBXML, name)) {
+				env->useWbxml = atoi(val);
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATCOMMAND, name)) {
+				env->atCommand = val;
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMANUFACTURER, name)) {
+				env->atManufacturer = val;
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMODEL, name)) {
+				env->atModel = val;
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_IDENTIFIER, name)) {
+				env->identifier = val;
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USESTRINGTABLE, name)) {
+			env->useStringtable = atoi(val);
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USETIMEANCHOR, name)) {
+				env->useTimestampAnchor = atoi(val);
+		/* TODO: Dead option? */
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYREPLACE, name)) {
+				env->onlyReplace = atoi(val);
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXMSGSIZE, name)) {
+				env->maxMsgSize = atoi(val);
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXOBJSIZE, name)) {
+				env->maxObjSize = atoi(val);
+		/* XXX Workaround for mobiles which only handle localtime! */
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYLOCALTIME, name)) {
+				env->onlyLocaltime = atoi(val);
 		}
-		if (str)
-			xmlFree(str);
-
-		cur = cur->next;
-	}
 	
-	xmlFreeDoc(doc);
+
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_doc:
-	xmlFreeDoc(doc);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -218,10 +189,10 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	env->pluginInfo = info;
 	osync_plugin_info_ref(env->pluginInfo);
 
-	const char *configdata = osync_plugin_info_get_config(info);
-        osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+        osync_trace(TRACE_INTERNAL, "The config: %p", config);
 	
-	if (!syncml_obex_client_parse_config(env, configdata, error))
+	if (!syncml_obex_client_parse_config(env, config, error))
 		goto error_free_env;
 
 	env->num = 0;	
@@ -247,6 +218,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	if (!ds_server_init_databases(env, info, error))
 		goto error_free_env;
+
 
 	env->context = osync_plugin_info_get_loop(info); 
 
@@ -336,9 +308,11 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		if (!loc)
 			goto error_free_env;
 		
-		database->server = smlDsServerNew(
-					get_database_pref_content_type(database, error),
-                                	loc, &serror);
+		const char *ct = get_database_pref_content_type(database, error);
+		if (!ct)
+			goto error_free_env;
+
+		database->server = smlDsServerNew(ct, loc, &serror);
 		if (!database->server)
 			goto error_free_env;
 
