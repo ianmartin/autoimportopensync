@@ -160,12 +160,6 @@ void syncml_free_database(SmlDatabase *database)
 		safe_cfree(&(database->remoteNext));
 	if (database->localNext)
 		safe_cfree(&(database->localNext));
-	if (database->url)
-		safe_cfree(&(database->url));
-	if (database->objtype)
-		safe_cfree(&(database->objtype));
-	if (database->objformat_name)
-		safe_cfree(&(database->objformat_name));
 	if (database->objformat) {
 		osync_objformat_unref(database->objformat);
 		database->objformat = NULL;
@@ -243,11 +237,11 @@ SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
+SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginRessource *res, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, res, error);
 	g_assert(env);
-	g_assert(cur);
+	g_assert(res);
 
 	SmlDatabase *database = osync_try_malloc0(sizeof(SmlDatabase), error);
 	if (!database)
@@ -257,47 +251,26 @@ osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncEr
 	database->syncChanges = NULL;
 	database->syncContexts = NULL;
 
-        while (cur != NULL) {
-                char *str = (char*)xmlNodeGetContent(cur);
-                if (str) {
-                        if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
-                                database->url = g_strdup(str);
-                        } else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
-				database->objtype = g_strdup(str);
-                        } else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				database->objformat_name = g_strdup(str);;
-			}
-
-                        xmlFree(str);
-                }
-                cur = cur->next;
-        }
-
+	database->url = osync_plugin_ressource_get_name(res);
         if (!database->url) {
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "Database name not set");
                 goto error_free_database;
         }
 
+	database->objtype = osync_plugin_ressource_get_objtype(res);
         if (!database->objtype) {
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "\"objtype\" of a database not set");
                 goto error_free_database;
         }
 
-        if (!database->objformat_name) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Object Fomrat \"%s\" of a database not set", database->objformat_name);
-                goto error_free_database;
-        }
-
-        env->databases = g_list_append(env->databases, database);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, database);
+	return database;
 
 error_free_database:
 	syncml_free_database(database);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+	return NULL;
 }
 
 OSyncChangeType _to_osync_changetype(SmlChangeType type)
@@ -485,22 +458,8 @@ void finalize(void *data)
 
 	/* cleanup the configuration */
 
-	if (env->identifier)
-		safe_cfree(&(env->identifier));
-	if (env->username)
-		safe_cfree(&(env->username));
-	if (env->password)
-		safe_cfree(&(env->password));
-	if (env->bluetoothAddress)
-		safe_cfree(&(env->bluetoothAddress));
 	if (env->bluetoothChannel)
 		safe_cfree(&(env->bluetoothChannel));
-	if (env->atCommand)
-		safe_cfree(&(env->atCommand));
-	if (env->atManufacturer)
-		safe_cfree(&(env->atManufacturer));
-	if (env->atModel)
-		safe_cfree(&(env->atModel));
 	if (env->url)
 		safe_cfree(&(env->url));
 	if (env->port)
@@ -666,27 +625,6 @@ oserror:
     osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(oserror));
     report_error_on_context(&(database->commitCtx), oserror, FALSE);
     return FALSE;
-}
-
-osync_bool init_objformat(OSyncPluginInfo *info, SmlDatabase *database, OSyncError **error)
-{
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-
-	database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
-	if (!database->objformat) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
-		return FALSE;
-	}
-
-	osync_objformat_ref(database->objformat);
-	osync_trace(TRACE_INTERNAL, "%s: objformat is %s for %s", __func__,
-		osync_objformat_get_objtype(database->objformat),
-		osync_objformat_get_name(database->objformat));
-
-	// TODO:... in case of maemo ("plain text") we have to set "memo"...
-	osync_objtype_sink_add_objformat(database->sink, database->objformat_name);
-
-	return TRUE;
 }
 
 SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info)

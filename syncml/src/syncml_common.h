@@ -59,6 +59,19 @@
 #define OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE 10240
 #define OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE 10240000
 
+#define SYNCML_PLUGIN_CONFIG_SANVERSION "SANVersion"
+#define SYNCML_PLUGIN_CONFIG_WBXML "WBXML"
+#define SYNCML_PLUGIN_CONFIG_ATCOMMAND "ATCommand"
+#define SYNCML_PLUGIN_CONFIG_ATMANUFACTURER "ATManufacturer"
+#define SYNCML_PLUGIN_CONFIG_ATMODEL "ATModel"
+#define SYNCML_PLUGIN_CONFIG_IDENTIFIER "Identifier"
+#define SYNCML_PLUGIN_CONFIG_USESTRINGTABLE "UseStringTable"
+#define SYNCML_PLUGIN_CONFIG_USETIMEANCHOR "UseTimeAnchor"
+#define SYNCML_PLUGIN_CONFIG_ONLYREPLACE "OnlyReplace"
+#define SYNCML_PLUGIN_CONFIG_MAXMSGSIZE "MaxMsgSize"
+#define SYNCML_PLUGIN_CONFIG_MAXOBJSIZE "MaxObjSize"
+#define SYNCML_PLUGIN_CONFIG_ONLYLOCALTIME "OnlyLocaltime"
+
 typedef enum {
 	OSYNC_PLUGIN_SYNCML_COMMAND_UNKNOWN,
 	OSYNC_PLUGIN_SYNCML_COMMAND_SEND_ALERT,
@@ -67,16 +80,16 @@ typedef enum {
 } OSyncPluginSyncmlDatastoreCommand;
 
 typedef struct SmlPluginEnv {
-	char *bluetoothAddress;
+	const char *bluetoothAddress;
 	char *bluetoothChannel;
-	char *atCommand;
-	char *atManufacturer;
-	char *atModel;
-	char *identifier;
+	const char *atCommand;
+	const char *atManufacturer;
+	const char *atModel;
+	const char *identifier;
 	SmlNotificationVersion version;
 	osync_bool useWbxml;
-	char *username;
-	char *password;
+	const char *username;
+	const char *password;
 	SmlBool useStringtable;
 	SmlBool onlyReplace;
 	SmlBool onlyLocaltime;
@@ -144,10 +157,10 @@ typedef struct SmlDatabase {
 	SmlDsSession *session;
 	SmlDsServer *server;
 	OSyncObjFormat *objformat;
-	char *objformat_name;
+	const char *objformat_name;
 	OSyncObjTypeSink *sink;
-	char *objtype;	
-	char *url;
+	const char *objtype;	
+	const char *url;
 	char *remoteNext;
 	char *localNext;
 
@@ -189,14 +202,9 @@ SmlBool send_sync_message(
                         void *func_ptr,
                         OSyncError **oserror);
 
-osync_bool syncml_config_parse_database(
+SmlDatabase *syncml_config_parse_database(
 			SmlPluginEnv *env,
-			xmlNode *cur,
-			OSyncError **error);
-
-osync_bool init_objformat(
-			OSyncPluginInfo *info,
-			SmlDatabase *database,
+			OSyncPluginRessource *res,
 			OSyncError **error);
 
 SmlBool flush_session_for_all_databases(
