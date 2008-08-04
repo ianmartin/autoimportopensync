@@ -2,7 +2,7 @@
 # Find PilotLink headers, libraries and the answer to all questions.
 #
 #  PILOTLINK_FOUND               True if PilotLink got found
-#  PILOTLINK_INCLUDE_DIR         Location of PilotLink headers 
+#  PILOTLINK_INCLUDE_DIRS        Location of PilotLink headers 
 #  PILOTLINK_LIBRARIES           List of libaries to use PilotLink
 #  PILOTLINK_DEFINITIONS         Definitions to compile PilotLink 
 #
