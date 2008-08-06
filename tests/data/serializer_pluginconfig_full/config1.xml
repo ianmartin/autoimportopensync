@@ -16,8 +16,8 @@
       <RFCommChannel>11</RFCommChannel>
     </Bluetooth>
   </Connection>
-  <Ressources>
-    <Ressource>
+  <Resources>
+    <Resource>
       <Enabled>1</Enabled>
       <Formats>
         <Format>
@@ -26,8 +26,8 @@
       </Formats>
       <Name>Contacts</Name>
       <ObjType>contact</ObjType>
-    </Ressource>
-    <Ressource>
+    </Resource>
+    <Resource>
       <Enabled>1</Enabled>
       <Formats>
         <Format>
@@ -36,7 +36,7 @@
       </Formats>
       <Name>Calendar</Name>
       <ObjType>event</ObjType>
-    </Ressource>
-  </Ressources>
+    </Resource>
+  </Resources>
 </config>
 

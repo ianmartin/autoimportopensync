@@ -63,7 +63,7 @@ typedef struct mock_env {
 
 typedef struct MockDir {
 	OSyncObjFormat *objformat;
-	OSyncPluginRessource *res;
+	OSyncPluginResource *res;
 	GDir *dir;
 	const char *path;
 	OSyncHashTable *hashtable;

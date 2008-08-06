@@ -668,11 +668,11 @@ osync_bool osync_testing_diff(const char *file1, const char *file2)
 }
 
 /*! @brief Creates a simple OSyncPluginConfig with a single resource.
- *         If config is not null the ressource information gets added.
+ *         If config is not null the resource information gets added.
  * 
- * @param config OSyncPluginConfig pointer to add ressource info
+ * @param config OSyncPluginConfig pointer to add resource info
  * @param path relative path of resource
- * @param objformat the objformat of the ressource
+ * @param objformat the objformat of the resource
  * @param format_config the format converter config paramter
  * @returns OSyncPluginConfig pointer or asserts on error
  * 
@@ -694,15 +694,46 @@ OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *p
 	if (format_config)
 		osync_objformat_sink_set_config(format_sink, format_config);
 
-	OSyncPluginRessource *res = osync_plugin_ressource_new(&error);
-	osync_plugin_ressource_set_objtype(res, objtype);
-	osync_plugin_ressource_set_path(res, path); 
-	osync_plugin_ressource_enable(res, TRUE);
-	osync_plugin_ressource_add_objformat_sink(res, format_sink);
+	OSyncPluginResource *res = osync_plugin_resource_new(&error);
+	osync_plugin_resource_set_objtype(res, objtype);
+	osync_plugin_resource_set_path(res, path); 
+	osync_plugin_resource_enable(res, TRUE);
+	osync_plugin_resource_add_objformat_sink(res, format_sink);
 
 
-	osync_plugin_config_add_ressource(config, res);
+	osync_plugin_config_add_resource(config, res);
 
 	return config;
+}
+
+/*! @brief Creates a simple OSyncEngine with nth Members with mock-sync
+ *         plugins.
+ * 
+ * @param member_size The number of member the Group for this Engine should have
+ * @returns OSyncEngine pointer or asserts on error
+ * 
+ */
+OSyncEngine *osync_testing_create_engine_dummy(unsigned int member_size)
+{
+	unsigned int u;
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	for (u=0; u < member_size; u++) {
+		OSyncMember *member = osync_member_new(&error);
+		fail_unless(member != NULL, NULL);
+		fail_unless(error == NULL, NULL);
+
+		osync_group_add_member(group, member);
+	}
+
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	return engine;
 }
 

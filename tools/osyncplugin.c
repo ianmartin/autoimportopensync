@@ -69,6 +69,10 @@ typedef enum {
 typedef struct _Command {
 	Cmd cmd;
 	char *arg;
+	GCond *cond;
+	GMutex *mutex;
+	OSyncObjTypeSink *sink;
+	osync_bool done;
 } Command;
 
 typedef enum {
@@ -88,7 +92,7 @@ Command *new_command(Cmd cmd, const char *arg) {
 	Command *newcommand = malloc(sizeof(Command));
 	if (!newcommand) {
 		perror("Can't allocate new command");
-		exit(-errno);
+		exit(errno);
 	}
 
 	memset(newcommand, 0, sizeof(Command));
@@ -96,6 +100,9 @@ Command *new_command(Cmd cmd, const char *arg) {
 	newcommand->cmd = cmd;
 	if (arg)
 		newcommand->arg = strdup(arg);
+
+	newcommand->mutex = g_mutex_new();
+	newcommand->cond = g_cond_new();
 
 	cmdlist = g_list_append(cmdlist, newcommand);
 
@@ -321,13 +328,13 @@ osync_bool init(OSyncError **error) {
 		OSyncList *r = NULL;
 
 		if (config)
-			r = osync_plugin_config_get_ressources(config);
+			r = osync_plugin_config_get_resources(config);
 
 		for (; r; r = r->next) {
-			OSyncPluginRessource *res = r->data;
+			OSyncPluginResource *res = r->data;
 			OSyncObjTypeSink *sink;
 
-			const char *objtype = osync_plugin_ressource_get_objtype(res); 
+			const char *objtype = osync_plugin_resource_get_objtype(res); 
 			/* Check for ObjType sink */
 			if (!(sink = osync_plugin_info_find_objtype(plugin_info, objtype))) {
 				sink = osync_objtype_sink_new(objtype, error);
@@ -337,7 +344,7 @@ osync_bool init(OSyncError **error) {
 				osync_plugin_info_add_objtype(plugin_info, sink);
 			}
 
-			OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
+			OSyncList *o = osync_plugin_resource_get_objformat_sinks(res);
 			for (; o; o = o->next) {
 				OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
 				osync_objtype_sink_add_objformat_sink(sink, format_sink);
@@ -450,7 +457,9 @@ const char *_osyncplugin_changetype_str(OSyncChange *change)
 //typedef void (* OSyncContextChangeFn) (OSyncChange *, void *);
 void _osyncplugin_ctx_change_callback(OSyncChange *change, void *user_data)
 {
-	OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = cmd->sink;
+
 	printf("GETCHANGES:\t%s\t%s\t%s", 
 			_osyncplugin_changetype_str(change), 
 			osync_objtype_sink_get_name(sink),  
@@ -468,13 +477,20 @@ void _osyncplugin_ctx_change_callback(OSyncChange *change, void *user_data)
 //typedef void (* OSyncContextCallbackFn)(void *, OSyncError *);
 void _osyncplugin_ctx_callback_getchanges(void *user_data, OSyncError *error)
 {
-	OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error)
 		fprintf(stderr, "Sink \"%s\": %s\n", osync_objtype_sink_get_name(sink), osync_error_print(&error));
+
+	g_mutex_lock(cmd->mutex);
+	g_cond_signal(cmd->cond);
+	cmd->done = TRUE;
+	g_mutex_unlock(cmd->mutex);
+
 }
 
-osync_bool get_changes_sink(OSyncObjTypeSink *sink, SyncType type, void *plugin_data, OSyncError **error)
+osync_bool get_changes_sink(Command *cmd, OSyncObjTypeSink *sink, SyncType type, void *plugin_data, OSyncError **error)
 {
 	assert(sink);
 
@@ -494,7 +510,7 @@ osync_bool get_changes_sink(OSyncObjTypeSink *sink, SyncType type, void *plugin_
 		goto error;
 
 	osync_context_set_changes_callback(context, _osyncplugin_ctx_change_callback);
-	osync_context_set_callback(context, _osyncplugin_ctx_callback_getchanges, sink);
+	osync_context_set_callback(context, _osyncplugin_ctx_callback_getchanges, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
@@ -509,17 +525,19 @@ error:
 	return FALSE;
 }
 
-osync_bool get_changes(const char *objtype, SyncType type, void *plugin_data, OSyncError **error)
+osync_bool get_changes(Command *cmd, SyncType type, void *plugin_data, OSyncError **error)
 {
 	int num, i;
 	OSyncObjTypeSink *sink = NULL;
+	const char *objtype = cmd->arg;
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
 		if (!sink)
 			goto error;
 
-		if (!get_changes_sink(sink, type, plugin_data, error))
+		cmd->sink = sink;
+		if (!get_changes_sink(cmd, sink, type, plugin_data, error))
 			goto error;
 
 	} else {
@@ -528,13 +546,15 @@ osync_bool get_changes(const char *objtype, SyncType type, void *plugin_data, OS
 		for (i=0; i < num; i++) {
 			sink = osync_plugin_info_nth_objtype(plugin_info, i);
 
-			if (!get_changes_sink(sink, type, plugin_data, error))
+			cmd->sink = sink;
+			if (!get_changes_sink(cmd, sink, type, plugin_data, error))
 				goto error;
 		}
 
 		/* last but not least - the main sink */
 		if (get_main_sink())
-			if (!get_changes_sink(get_main_sink(), type, plugin_data, error))
+		
+			if (!get_changes_sink(cmd, get_main_sink(), type, plugin_data, error))
 				goto error;
 	}
 
@@ -550,7 +570,8 @@ void _osyncplugin_ctx_callback_connect(void *user_data, OSyncError *error)
 
 	OSyncError *locerror = NULL;
 
-	OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
@@ -565,21 +586,26 @@ void _osyncplugin_ctx_callback_connect(void *user_data, OSyncError *error)
 		printf(".\n");
 	}
 
+	g_mutex_lock(cmd->mutex);
+	g_cond_signal(cmd->cond);
+	g_mutex_unlock(cmd->mutex);
+
 	return;
 error:
 	fprintf(stderr, "ERROR: %s\n", osync_error_print(&locerror));
 	return;
 }
 
-osync_bool connect_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+osync_bool connect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
+	cmd->sink = sink;
 
 	OSyncContext *context = osync_context_new(error);
 	if (!context)
 		goto error;
 
-	osync_context_set_callback(context, _osyncplugin_ctx_callback_connect, sink);
+	osync_context_set_callback(context, _osyncplugin_ctx_callback_connect, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
@@ -593,31 +619,32 @@ error:
 	return FALSE;
 }
 
-static osync_bool connect(const char *objtype, void *plugin_data, OSyncError **error)
+static osync_bool connect(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	
-	int i, num;
+	unsigned int i, num;
 	OSyncObjTypeSink *sink = NULL;
+	const char *objtype = cmd->arg;
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
 		if (!sink)
 			goto error;
 
-		if (!connect_sink(sink, plugin_data, error))
+		if (!connect_sink(cmd, sink, plugin_data, error))
 			goto error;
 	} else {
 		num = osync_plugin_info_num_objtypes(plugin_info);
 		for (i=0; i < num; i++) {
 			sink = osync_plugin_info_nth_objtype(plugin_info, i);
 
-			if (!connect_sink(sink, plugin_data, error))
+			if (!connect_sink(cmd, sink, plugin_data, error))
 				goto error;
 		}
 
 		/* last but not least - the main sink */
 		if (get_main_sink())
-			if (!connect_sink(get_main_sink(), plugin_data, error))
+			if (!connect_sink(cmd, get_main_sink(), plugin_data, error))
 				goto error;
 	}
 
@@ -632,21 +659,25 @@ void _osyncplugin_ctx_callback_disconnect(void *user_data, OSyncError *error)
 
 	OSyncError *locerror = NULL;
 
-	OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
 		goto error;
 	}
 
-	if (!osync_objtype_sink_get_slowsync(sink)) {
-		if (osync_objtype_sink_get_name(sink))
-			printf("Sink \"%s\"", osync_objtype_sink_get_name(sink));
-		else
-			printf("Main Sink");
+	if (osync_objtype_sink_get_name(sink))
+		printf("Sink \"%s\"", osync_objtype_sink_get_name(sink));
+	else
+		printf("Main Sink");
 
-		printf(" disconnected.\n");
-	}
+	printf(" disconnected.\n");
+
+	g_mutex_lock(cmd->mutex);
+	g_cond_signal(cmd->cond);
+	cmd->done = TRUE;
+	g_mutex_unlock(cmd->mutex);
 
 	return;
 error:
@@ -654,7 +685,7 @@ error:
 	return;
 }
 
-osync_bool disconnect_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+osync_bool disconnect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 
@@ -662,7 +693,8 @@ osync_bool disconnect_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError
 	if (!context)
 		goto error;
 
-	osync_context_set_callback(context, _osyncplugin_ctx_callback_disconnect, sink);
+	cmd->sink = sink;
+	osync_context_set_callback(context, _osyncplugin_ctx_callback_disconnect, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
@@ -676,31 +708,32 @@ error:
 	return FALSE;
 }
 
-osync_bool disconnect(const char *objtype, void *plugin_data, OSyncError **error)
+osync_bool disconnect(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
+	const char *objtype = cmd->arg;
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
 		if (!sink)
 			goto error;
 
-		if (!disconnect_sink(sink, plugin_data, error))
+		if (!disconnect_sink(cmd, sink, plugin_data, error))
 			goto error;
 	} else {
 		num = osync_plugin_info_num_objtypes(plugin_info);
 		for (i=0; i < num; i++) {
 			sink = osync_plugin_info_nth_objtype(plugin_info, i);
 
-			if (!disconnect_sink(sink, plugin_data, error))
+			if (!disconnect_sink(cmd, sink, plugin_data, error))
 				goto error;
 		}
 
 		/* last but not least - the main sink */
 		if (get_main_sink())
-			if (!disconnect_sink(get_main_sink(), plugin_data, error))
+			if (!disconnect_sink(cmd, get_main_sink(), plugin_data, error))
 				goto error;
 	}
 
@@ -715,13 +748,17 @@ static void _osyncplugin_ctx_callback_commit_change(void *user_data, OSyncError 
 
 	OSyncError *locerror = NULL;
 
-	OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
 		goto error;
 	}
 
+	g_mutex_lock(cmd->mutex);
+	g_cond_signal(cmd->cond);
+	g_mutex_unlock(cmd->mutex);
 
 	return;
 error:
@@ -758,12 +795,13 @@ error:
 	return FALSE;
 }
 
-osync_bool commit(const char *objtype, OSyncChange *change, void *plugin_data, OSyncError **error)
+osync_bool commit(Command *cmd, OSyncChange *change, void *plugin_data, OSyncError **error)
 {
 	assert(change);
 
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
+	const char *objtype = cmd->arg;
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
@@ -792,13 +830,14 @@ error:
 	return FALSE;
 }
 
-osync_bool empty(const char *objtype, void *plugin_data, OSyncError **error)
+osync_bool empty(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	int i;
 	GList *c;
+	//const char *objtype = cmd->arg;
 	
 	/* Perform slowync - if objtype is set for this objtype, otherwise slowsync for ALL */
-	if (!get_changes(objtype, SYNCTYPE_FORCE_SLOWSYNC, plugin_data, error))
+	if (!get_changes(cmd, SYNCTYPE_FORCE_SLOWSYNC, plugin_data, error))
 		goto error;
 
 
@@ -806,7 +845,7 @@ osync_bool empty(const char *objtype, void *plugin_data, OSyncError **error)
 		OSyncChange *change = c->data;
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 
-		if (!commit(objtype, change, plugin_data, error))
+		if (!commit(cmd, change, plugin_data, error))
 			goto error;
 
 	}
@@ -823,12 +862,17 @@ void _osyncplugin_ctx_callback_syncdone(void *user_data, OSyncError *error)
 
 	OSyncError *locerror = NULL;
 
-	OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
 		goto error;
 	}
+
+	g_mutex_lock(cmd->mutex);
+	g_cond_signal(cmd->cond);
+	g_mutex_unlock(cmd->mutex);
 
 	return;
 error:
@@ -858,11 +902,12 @@ error:
 	return FALSE;
 }
 
-osync_bool syncdone(const char *objtype, void *plugin_data, OSyncError **error)
+osync_bool syncdone(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
+	const char *objtype = cmd->arg;
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
@@ -896,13 +941,17 @@ void _osyncplugin_ctx_callback_committedall(void *user_data, OSyncError *error)
 	assert(user_data);
 
 	OSyncError *locerror = NULL;
-	//char *objtype = NULL;
-	//OSyncObjTypeSink *sink = (OSyncObjTypeSink *) user_data;
+	Command *cmd = (Command *) user_data;		
+	//OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
 		goto error;
 	}
+
+	g_mutex_lock(cmd->mutex);
+	g_cond_signal(cmd->cond);
+	g_mutex_unlock(cmd->mutex);
 
 	return;
 error:
@@ -932,10 +981,11 @@ error:
 	return FALSE;
 }
 
-osync_bool committedall(const char *objtype, void *plugin_data, OSyncError **error)
+osync_bool committedall(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
+	const char *objtype = cmd->arg;
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
@@ -974,9 +1024,10 @@ osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 	if (cmd->cmd != CMD_INITIALIZE && *plugin_data == NULL)
 		fprintf(stderr, "WARNING: Got Plugin initialized? plugin_data is NULL.\n");
 
+
 	switch (cmd->cmd) {
 		case CMD_EMPTY:
-			if (!empty(cmd->arg, *plugin_data, error))
+			if (!empty(cmd, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_INITIALIZE:
@@ -987,23 +1038,23 @@ osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 			finalize_plugin(plugin_data);
 			break;
 		case CMD_CONNECT:
-			if (!connect(cmd->arg, *plugin_data, error))
+			if (!connect(cmd, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_DISCONNECT:
-			if (!disconnect(cmd->arg, *plugin_data, error))
+			if (!disconnect(cmd, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_SLOWSYNC:
-			if (!get_changes(cmd->arg, SYNCTYPE_FORCE_SLOWSYNC, *plugin_data, error))
+			if (!get_changes(cmd, SYNCTYPE_FORCE_SLOWSYNC, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_FASTSYNC:
-			if (!get_changes(cmd->arg, SYNCTYPE_FORCE_FASTSYNC, *plugin_data, error))
+			if (!get_changes(cmd, SYNCTYPE_FORCE_FASTSYNC, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_SYNC:
-			if (!get_changes(cmd->arg, SYNCTYPE_NORMAL, *plugin_data, error))
+			if (!get_changes(cmd, SYNCTYPE_NORMAL, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_COMMIT:
@@ -1013,7 +1064,7 @@ osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 			fprintf(stderr, "BATCHCOMMIT not yet implemented\n");
 			break;
 		case CMD_COMMITTEDALL:
-			if (!committedall(cmd->arg, *plugin_data, error))
+			if (!committedall(cmd, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_READ:
@@ -1023,11 +1074,38 @@ osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 			fprintf(stderr, "WRITE not yet implemented\n");
 			break;
 		case CMD_SYNCDONE:
-			if (!syncdone(cmd->arg, *plugin_data, error))
+			if (!syncdone(cmd, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_DISCOVER:
 			fprintf(stderr, "DISCOVER not yet implemented\n");
+			break;
+	}
+
+
+	printf("%s: %u - sink: %p\n", __func__, cmd->cmd, cmd->sink);
+	switch (cmd->cmd) {
+		case CMD_INITIALIZE:
+		case CMD_FINALIZE:
+		case CMD_DISCOVER:
+			break;
+
+		case CMD_EMPTY:
+		case CMD_CONNECT:
+		case CMD_DISCONNECT:
+		case CMD_SLOWSYNC:
+		case CMD_FASTSYNC:
+		case CMD_SYNC:
+		case CMD_COMMIT:
+		case CMD_BATCHCOMMIT:
+		case CMD_COMMITTEDALL:
+		case CMD_READ:
+		case CMD_WRITE:
+		case CMD_SYNCDONE:
+			printf("waiting .....\n");
+			if (!cmd->done)
+				g_cond_wait(cmd->cond, cmd->mutex);
+			printf("DONE\n");
 			break;
 	}
 
@@ -1042,6 +1120,9 @@ int main(int argc, char **argv) {
 	GList *o;
 	void *plugin_data = NULL;
 	OSyncError *error = NULL;
+
+	if (!g_thread_supported())
+		g_thread_init(NULL);
 
 	parse_args(argc, argv);
 

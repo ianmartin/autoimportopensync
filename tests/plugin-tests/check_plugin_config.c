@@ -5,10 +5,10 @@
 
 #include "opensync/plugin/opensync_plugin_config_internals.h"
 
-static const char *_format_sink_get_objformat(OSyncPluginRessource *res) {
+static const char *_format_sink_get_objformat(OSyncPluginResource *res) {
 
 	OSyncObjFormatSink *format_sink;
-	format_sink = (OSyncObjFormatSink *) osync_list_nth_data(osync_plugin_ressource_get_objformat_sinks(res), 0);
+	format_sink = (OSyncObjFormatSink *) osync_list_nth_data(osync_plugin_resource_get_objformat_sinks(res), 0);
 	fail_unless(!!format_sink, NULL);
 	return osync_objformat_sink_get_objformat(format_sink);
 }
@@ -156,8 +156,8 @@ START_TEST (plugin_config_subcomponents_nomemory)
 	fail_unless(auth == NULL, NULL);
 	osync_error_unref(&error);
 
-	/* Ressource(s) */
-	OSyncPluginRessource *res = osync_plugin_ressource_new(&error);
+	/* Resource(s) */
+	OSyncPluginResource *res = osync_plugin_resource_new(&error);
 	fail_unless(error != NULL, NULL);
 	fail_unless(res == NULL, NULL);
 	osync_error_unref(&error);
@@ -505,7 +505,7 @@ START_TEST (plugin_config_localization)
 }
 END_TEST
 
-START_TEST (plugin_config_ressources)
+START_TEST (plugin_config_resources)
 {
 	char *testbed = setup_testbed(NULL);
 
@@ -514,39 +514,39 @@ START_TEST (plugin_config_ressources)
 	fail_unless(error == NULL, NULL);
 	fail_unless(config != NULL, NULL);
 
-	/* Ressources */
-	OSyncList *ressources = NULL;
+	/* Resources */
+	OSyncList *resources = NULL;
 
-	/* Ressource */
-	OSyncPluginRessource *ressource = osync_plugin_ressource_new(&error);
+	/* Resource */
+	OSyncPluginResource *resource = osync_plugin_resource_new(&error);
 	fail_unless(error == NULL, NULL);
-	fail_unless(ressource != NULL, NULL);
+	fail_unless(resource != NULL, NULL);
 
 	/* Name */
-	osync_plugin_ressource_set_name(ressource, "foobar");
-	fail_unless(!strcmp(osync_plugin_ressource_get_name(ressource), "foobar"), NULL);
+	osync_plugin_resource_set_name(resource, "foobar");
+	fail_unless(!strcmp(osync_plugin_resource_get_name(resource), "foobar"), NULL);
 
 	/* Overwrite (leak check) */
-	osync_plugin_ressource_set_name(ressource, "barfoo");
-	fail_unless(!strcmp(osync_plugin_ressource_get_name(ressource), "barfoo"), NULL);
+	osync_plugin_resource_set_name(resource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_resource_get_name(resource), "barfoo"), NULL);
 
 	/* MIME */
-	osync_plugin_ressource_set_mime(ressource, "foobar");
-	fail_unless(!strcmp(osync_plugin_ressource_get_mime(ressource), "foobar"), NULL);
+	osync_plugin_resource_set_mime(resource, "foobar");
+	fail_unless(!strcmp(osync_plugin_resource_get_mime(resource), "foobar"), NULL);
 
 	/* Overwrite (leak check) */
-	osync_plugin_ressource_set_mime(ressource, "barfoo");
-	fail_unless(!strcmp(osync_plugin_ressource_get_mime(ressource), "barfoo"), NULL);
+	osync_plugin_resource_set_mime(resource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_resource_get_mime(resource), "barfoo"), NULL);
 
 	/* ObjFormat */
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("foobar", &error);
 	osync_assert(format_sink);
 	osync_objformat_sink_set_config(format_sink, "random");
 	fail_unless(!strcmp(osync_objformat_sink_get_config(format_sink), "random"), NULL);
-	osync_plugin_ressource_add_objformat_sink(ressource, format_sink);
+	osync_plugin_resource_add_objformat_sink(resource, format_sink);
 	osync_objformat_sink_unref(format_sink);
 
-	fail_unless(!strcmp(_format_sink_get_objformat(ressource), "foobar"), NULL);
+	fail_unless(!strcmp(_format_sink_get_objformat(resource), "foobar"), NULL);
 
 	/* Overwrite (leak check) */
 	OSyncObjFormatSink *format_sink2 = osync_objformat_sink_new("barfoo", &error);
@@ -554,66 +554,66 @@ START_TEST (plugin_config_ressources)
 	osync_objformat_sink_set_config(format_sink2, "random1");
 	osync_objformat_sink_set_config(format_sink2, "random2");
 	fail_unless(!strcmp(osync_objformat_sink_get_config(format_sink2), "random2"), NULL);
-	osync_plugin_ressource_add_objformat_sink(ressource, format_sink2);
+	osync_plugin_resource_add_objformat_sink(resource, format_sink2);
 	osync_objformat_sink_unref(format_sink2);
 
-	fail_unless(!strcmp(_format_sink_get_objformat(ressource), "barfoo"), NULL);
+	fail_unless(!strcmp(_format_sink_get_objformat(resource), "barfoo"), NULL);
 
 	/* Check for correct number objformat sinks: 2 sinks! */
-	fail_unless(osync_list_length(osync_plugin_ressource_get_objformat_sinks(ressource)) == 2, NULL);
+	fail_unless(osync_list_length(osync_plugin_resource_get_objformat_sinks(resource)) == 2, NULL);
 
 	/* Check if removing of an objformat sink work at all.. */
 	/** reference format_sink2, otherwise refcount gets 0 */
 	osync_objformat_sink_ref(format_sink2);
-	osync_plugin_ressource_remove_objformat_sink(ressource, format_sink2);
-	fail_unless(osync_list_length(osync_plugin_ressource_get_objformat_sinks(ressource)) == 1, NULL);
-	osync_plugin_ressource_add_objformat_sink(ressource, format_sink2);
-	fail_unless(osync_list_length(osync_plugin_ressource_get_objformat_sinks(ressource)) == 2, NULL);
+	osync_plugin_resource_remove_objformat_sink(resource, format_sink2);
+	fail_unless(osync_list_length(osync_plugin_resource_get_objformat_sinks(resource)) == 1, NULL);
+	osync_plugin_resource_add_objformat_sink(resource, format_sink2);
+	fail_unless(osync_list_length(osync_plugin_resource_get_objformat_sinks(resource)) == 2, NULL);
 	osync_objformat_sink_unref(format_sink2);
 
 	/* ObjType */
-	osync_plugin_ressource_set_objtype(ressource, "foobar");
-	fail_unless(!strcmp(osync_plugin_ressource_get_objtype(ressource), "foobar"), NULL);
+	osync_plugin_resource_set_objtype(resource, "foobar");
+	fail_unless(!strcmp(osync_plugin_resource_get_objtype(resource), "foobar"), NULL);
 
 	/* Overwrite (leak check) */
-	osync_plugin_ressource_set_objtype(ressource, "barfoo");
-	fail_unless(!strcmp(osync_plugin_ressource_get_objtype(ressource), "barfoo"), NULL);
+	osync_plugin_resource_set_objtype(resource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_resource_get_objtype(resource), "barfoo"), NULL);
 
 	/* Path */
-	osync_plugin_ressource_set_path(ressource, "foobar");
-	fail_unless(!strcmp(osync_plugin_ressource_get_path(ressource), "foobar"), NULL);
+	osync_plugin_resource_set_path(resource, "foobar");
+	fail_unless(!strcmp(osync_plugin_resource_get_path(resource), "foobar"), NULL);
 
 	/* Overwrite (leak check) */
-	osync_plugin_ressource_set_path(ressource, "barfoo");
-	fail_unless(!strcmp(osync_plugin_ressource_get_path(ressource), "barfoo"), NULL);
+	osync_plugin_resource_set_path(resource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_resource_get_path(resource), "barfoo"), NULL);
 
 	/* URL */
-	osync_plugin_ressource_set_url(ressource, "foobar");
-	fail_unless(!strcmp(osync_plugin_ressource_get_url(ressource), "foobar"), NULL);
+	osync_plugin_resource_set_url(resource, "foobar");
+	fail_unless(!strcmp(osync_plugin_resource_get_url(resource), "foobar"), NULL);
 
 	/* Overwrite (leak check) */
-	osync_plugin_ressource_set_url(ressource, "barfoo");
-	fail_unless(!strcmp(osync_plugin_ressource_get_url(ressource), "barfoo"), NULL);
+	osync_plugin_resource_set_url(resource, "barfoo");
+	fail_unless(!strcmp(osync_plugin_resource_get_url(resource), "barfoo"), NULL);
 
 	/* Invoke OSyncPluginConfig */
-	osync_plugin_config_add_ressource(config, ressource);
+	osync_plugin_config_add_resource(config, resource);
 
-	/* Check for correct amount of ressources */
-	fail_unless(osync_list_length(osync_plugin_config_get_ressources(config)) == 1, NULL);
-	osync_plugin_config_remove_ressource(config, ressource);
-	fail_unless(osync_list_length(osync_plugin_config_get_ressources(config)) == 0, NULL);
-	osync_plugin_config_add_ressource(config, ressource);
-	osync_plugin_config_add_ressource(config, ressource);
-	fail_unless(osync_list_length(osync_plugin_config_get_ressources(config)) == 1, NULL);
+	/* Check for correct amount of resources */
+	fail_unless(osync_list_length(osync_plugin_config_get_resources(config)) == 1, NULL);
+	osync_plugin_config_remove_resource(config, resource);
+	fail_unless(osync_list_length(osync_plugin_config_get_resources(config)) == 0, NULL);
+	osync_plugin_config_add_resource(config, resource);
+	osync_plugin_config_add_resource(config, resource);
+	fail_unless(osync_list_length(osync_plugin_config_get_resources(config)) == 1, NULL);
 
-	/* Twice to check for correct order of ref/unref calls in set_ressources() */
-	ressources = osync_plugin_config_get_ressources(config);
-	fail_unless(!strcmp(osync_plugin_ressource_get_url(ressources->data), "barfoo"), NULL);
-	osync_plugin_ressource_unref(ressources->data);
+	/* Twice to check for correct order of ref/unref calls in set_resources() */
+	resources = osync_plugin_config_get_resources(config);
+	fail_unless(!strcmp(osync_plugin_resource_get_url(resources->data), "barfoo"), NULL);
+	osync_plugin_resource_unref(resources->data);
 
-	fail_unless(osync_plugin_ressource_ref(ressource) != NULL, NULL);
-	osync_plugin_ressource_unref(ressource);
-	osync_plugin_ressource_unref(ressource);
+	fail_unless(osync_plugin_resource_ref(resource) != NULL, NULL);
+	osync_plugin_resource_unref(resource);
+	osync_plugin_resource_unref(resource);
 
 	osync_plugin_config_unref(config);
 
@@ -686,10 +686,10 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_authentication_set_password(auth, "bar");
 	osync_plugin_authentication_set_reference(auth, "ref");
 
-	/* Ressource #1 */
-	OSyncPluginRessource *ressource1 = osync_plugin_ressource_new(&error);
+	/* Resource #1 */
+	OSyncPluginResource *resource1 = osync_plugin_resource_new(&error);
 	fail_unless(error == NULL, NULL);
-	fail_unless(ressource1 != NULL, NULL);
+	fail_unless(resource1 != NULL, NULL);
 
 	/* OSyncObjFormatSink */
 	OSyncObjFormatSink *format_sink1 = osync_objformat_sink_new("foobar1", &error);
@@ -697,29 +697,29 @@ START_TEST (plugin_config_save_and_load)
 	osync_objformat_sink_set_config(format_sink1, "random1");
 
 	/* Name */
-	osync_plugin_ressource_set_name(ressource1, "foobar1");
-	osync_plugin_ressource_set_mime(ressource1, "foobar1");
-	osync_plugin_ressource_add_objformat_sink(ressource1, format_sink1);
-	osync_plugin_ressource_set_objtype(ressource1, "foobar1");
-	osync_plugin_ressource_set_path(ressource1, "foobar1");
-	osync_plugin_ressource_set_url(ressource1, "foobar1");
+	osync_plugin_resource_set_name(resource1, "foobar1");
+	osync_plugin_resource_set_mime(resource1, "foobar1");
+	osync_plugin_resource_add_objformat_sink(resource1, format_sink1);
+	osync_plugin_resource_set_objtype(resource1, "foobar1");
+	osync_plugin_resource_set_path(resource1, "foobar1");
+	osync_plugin_resource_set_url(resource1, "foobar1");
 
-	/* Ressource #2 */
-	OSyncPluginRessource *ressource2 = osync_plugin_ressource_new(&error);
+	/* Resource #2 */
+	OSyncPluginResource *resource2 = osync_plugin_resource_new(&error);
 	fail_unless(error == NULL, NULL);
-	fail_unless(ressource2 != NULL, NULL);
+	fail_unless(resource2 != NULL, NULL);
 
 	/* OSyncObjFormatSink */
 	OSyncObjFormatSink *format_sink2 = osync_objformat_sink_new("foobar2", &error);
 	fail_unless(format_sink2 != NULL, NULL);
 	osync_objformat_sink_set_config(format_sink2, "random2");
 
-	osync_plugin_ressource_set_name(ressource2, "foobar2");
-	osync_plugin_ressource_set_mime(ressource2, "foobar2");
-	osync_plugin_ressource_add_objformat_sink(ressource2, format_sink2);
-	osync_plugin_ressource_set_objtype(ressource2, "foobar2");
-	osync_plugin_ressource_set_path(ressource2, "foobar2");
-	osync_plugin_ressource_set_url(ressource2, "foobar2");
+	osync_plugin_resource_set_name(resource2, "foobar2");
+	osync_plugin_resource_set_mime(resource2, "foobar2");
+	osync_plugin_resource_add_objformat_sink(resource2, format_sink2);
+	osync_plugin_resource_set_objtype(resource2, "foobar2");
+	osync_plugin_resource_set_path(resource2, "foobar2");
+	osync_plugin_resource_set_url(resource2, "foobar2");
 
 	/* Set subcomponents */
 	osync_plugin_config_add_advancedoption(config, option);
@@ -728,10 +728,10 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_authentication_unref(auth);
 	osync_plugin_config_set_localization(config, local);
 	osync_plugin_localization_unref(local);
-	osync_plugin_config_add_ressource(config, ressource1);
-	osync_plugin_config_add_ressource(config, ressource2);
-	osync_plugin_ressource_unref(ressource1);
-	osync_plugin_ressource_unref(ressource2);
+	osync_plugin_config_add_resource(config, resource1);
+	osync_plugin_config_add_resource(config, resource2);
+	osync_plugin_resource_unref(resource1);
+	osync_plugin_resource_unref(resource2);
 
 	char *config_file = g_strdup_printf("%s/dummy_config.xml", testbed);
 	fail_unless(osync_plugin_config_file_save(config, config_file, &error), "%s", osync_error_print(&error));
@@ -742,7 +742,7 @@ START_TEST (plugin_config_save_and_load)
 
 	OSyncPluginLocalization *reloaded_local = osync_plugin_config_get_localization(reloaded_config);
 	OSyncPluginAuthentication *reloaded_auth = osync_plugin_config_get_authentication(reloaded_config);
-	OSyncList *reloaded_ressources = osync_plugin_config_get_ressources(reloaded_config);
+	OSyncList *reloaded_resources = osync_plugin_config_get_resources(reloaded_config);
 	OSyncList *reloaded_advancedoptions = osync_plugin_config_get_advancedoptions(reloaded_config);
 	OSyncList *reloaded_advancedoption_parameters = NULL;
 	OSyncList *reloaded_advancedoption_valenums = NULL;
@@ -750,7 +750,7 @@ START_TEST (plugin_config_save_and_load)
 
 	fail_unless(reloaded_local != NULL, NULL);
 	fail_unless(reloaded_auth != NULL, NULL);
-	fail_unless(reloaded_ressources != NULL, NULL);
+	fail_unless(reloaded_resources != NULL, NULL);
 	fail_unless(reloaded_advancedoptions != NULL, NULL);
 
 	fail_unless(!strcmp(osync_plugin_localization_get_language(reloaded_local), "de_DE"), NULL);
@@ -763,15 +763,15 @@ START_TEST (plugin_config_save_and_load)
 
 	OSyncList *r, *p, *v;
 	int i, j, k;
-	for (i = 1, r = reloaded_ressources; r; r = r->next, i++) {
+	for (i = 1, r = reloaded_resources; r; r = r->next, i++) {
 		char *value = g_strdup_printf("foobar%i", i);
-		fail_unless(!strcmp(osync_plugin_ressource_get_name(r->data), value), NULL);
-		fail_unless(!strcmp(osync_plugin_ressource_get_mime(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_resource_get_name(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_resource_get_mime(r->data), value), NULL);
 		fail_unless(!strcmp(_format_sink_get_objformat(r->data), value), NULL);
-		fail_unless(!strcmp(osync_plugin_ressource_get_objtype(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_resource_get_objtype(r->data), value), NULL);
 
-		fail_unless(!strcmp(osync_plugin_ressource_get_path(r->data), value), NULL);
-		fail_unless(!strcmp(osync_plugin_ressource_get_url(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_resource_get_path(r->data), value), NULL);
+		fail_unless(!strcmp(osync_plugin_resource_get_url(r->data), value), NULL);
 		g_free(value);
 	}
 
@@ -1077,7 +1077,7 @@ Suite *client_suite(void)
 	create_case(s, "plugin_config_authentication", plugin_config_authentication);
 	create_case(s, "plugin_config_connection", plugin_config_connection);
 	create_case(s, "plugin_config_localization", plugin_config_localization);
-	create_case(s, "plugin_config_ressources", plugin_config_ressources);
+	create_case(s, "plugin_config_resources", plugin_config_resources);
 	create_case(s, "plugin_config_save_and_load", plugin_config_save_and_load);
 	create_case(s, "plugin_config_save_and_load_connection_bluetooth", plugin_config_save_and_load_connection_bluetooth);
 	create_case(s, "plugin_config_save_and_load_connection_usb", plugin_config_save_and_load_connection_usb);

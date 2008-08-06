@@ -105,3 +105,6 @@ OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *p
 #define DIFF "diff"
 #endif
 
+/* Engine helper */
+OSyncEngine *osync_testing_create_engine_dummy(unsigned int member_size);
+

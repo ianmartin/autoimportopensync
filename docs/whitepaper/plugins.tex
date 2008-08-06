@@ -70,14 +70,14 @@ Object Type neutral task (e.g. Bluetooth, USB, ...) and needded to be done only
 once, only the Main Sink should be used. This avoids problems with shared access
 to an interface, since a connect function would be called for each Object Type
 for the same interface.\\
-This function MUST only establish a connection to the device or ressource. After
+This function MUST only establish a connection to the device or resource. After
 the connection got established successful the plugin MUST reply the context with
 \verb|osync_context_reply_success()|. On error the plugin replies a 
 human-readable
 (aka. userfriendly) error message with \verb|osync_context_reply_error()|.
 \subsection{Get Changes}
 The Get Changes function get called by the OpenSync Framework to request changes
-since last synchronization or all entries of the Object Type specific ressource.
+since last synchronization or all entries of the Object Type specific resource.
 Later one MUST be done when a Slow Sync got requested by the OpenSync
 Synchronization framework. If a Slow Sync got requested for this Sink MUST be
 checked with \verb|osync_objtype_sink_get_slowsync()|. On a Slow Sync the 
@@ -179,7 +179,7 @@ started by the OpenSync Framework within a thread (
 process mainloop of the OpenSync Framework, it's possible to run the plugin in 
 a separated process by forking it. The forking is done by the OpenSync
 Framework when the start type got set to \verb|OSYNC_START_TYPE_PROCESS|. If the
-plugin has to access a not public interface to get access to the data ressources
+plugin has to access a not public interface to get access to the data resources
 of an application it's possible to integrate the plugin within this application.
 So the plugin is running all the time this application is running and can
 communicate with the OpenSync Framework when the Process Type got set to 

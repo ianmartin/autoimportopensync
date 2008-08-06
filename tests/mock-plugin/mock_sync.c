@@ -580,11 +580,11 @@ static void *mock_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		osync_assert(sink);
 
 		const char *objtype = osync_objtype_sink_get_name(sink);
-		dir->res = osync_plugin_config_find_active_ressource(config, objtype);
-		dir->path = osync_plugin_ressource_get_path(dir->res);
+		dir->res = osync_plugin_config_find_active_resource(config, objtype);
+		dir->path = osync_plugin_resource_get_path(dir->res);
 		osync_assert(dir->path);
 
-		OSyncList *format_sinks = osync_plugin_ressource_get_objformat_sinks(dir->res);
+		OSyncList *format_sinks = osync_plugin_resource_get_objformat_sinks(dir->res);
 		osync_assert(osync_list_length(format_sinks) == 1);
 		OSyncObjFormatSink *format_sink = osync_list_nth_data(format_sinks, 0);
 		const char *objformat_str = osync_objformat_sink_get_objformat(format_sink);
@@ -697,7 +697,7 @@ static void mock_finalize(void *data)
 	while (env->directories) {
 		MockDir *dir = env->directories->data;
 
-		osync_plugin_ressource_unref(dir->res);
+		osync_plugin_resource_unref(dir->res);
 		osync_objformat_unref(dir->objformat);
 		osync_hashtable_unref(dir->hashtable);
 
@@ -725,12 +725,12 @@ static osync_bool mock_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	osync_assert_msg(config, "No OSyncFormatEnv set for mock_discover!");
 	*/
 
-	OSyncList *r = osync_plugin_config_get_ressources(config);
+	OSyncList *r = osync_plugin_config_get_resources(config);
 	for (; r; r = r->next) {
-		OSyncPluginRessource *res = r->data;
+		OSyncPluginResource *res = r->data;
 		OSyncObjTypeSink *sink;
 
-		const char *objtype = osync_plugin_ressource_get_objtype(res);
+		const char *objtype = osync_plugin_resource_get_objtype(res);
 		/* Check for ObjType sink */
 		if ((sink = osync_plugin_info_find_objtype(info, objtype)))
 			osync_objtype_sink_set_available(sink, TRUE);

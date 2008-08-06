@@ -162,28 +162,28 @@ static osync_bool _compare_pluginconfig_localization(OSyncPluginLocalization *lo
 	return TRUE;
 }
 
-static osync_bool _compare_pluginconfig_ressource(const void *a, const void *b)
+static osync_bool _compare_pluginconfig_resource(const void *a, const void *b)
 {
-	OSyncPluginRessource *res1 = (OSyncPluginRessource *) a;
-	OSyncPluginRessource *res2 = (OSyncPluginRessource *) b;
+	OSyncPluginResource *res1 = (OSyncPluginResource *) a;
+	OSyncPluginResource *res2 = (OSyncPluginResource *) b;
 
-	if (osync_plugin_ressource_is_enabled(res1) != osync_plugin_ressource_is_enabled(res2))
+	if (osync_plugin_resource_is_enabled(res1) != osync_plugin_resource_is_enabled(res2))
 		return FALSE;
 
-	const char *name1 = osync_plugin_ressource_get_name(res1);
-	const char *name2 = osync_plugin_ressource_get_name(res2);
+	const char *name1 = osync_plugin_resource_get_name(res1);
+	const char *name2 = osync_plugin_resource_get_name(res2);
 
 	if (!_compare_string(name1, name2))
 		return FALSE;
 
-	const char *mime1 = osync_plugin_ressource_get_mime(res1);
-	const char *mime2 = osync_plugin_ressource_get_mime(res2);
+	const char *mime1 = osync_plugin_resource_get_mime(res1);
+	const char *mime2 = osync_plugin_resource_get_mime(res2);
 
 	if (!_compare_string(mime1, mime2))
 		return FALSE;
 
-	const char *objtype1 = osync_plugin_ressource_get_objtype(res1);
-	const char *objtype2 = osync_plugin_ressource_get_objtype(res2);
+	const char *objtype1 = osync_plugin_resource_get_objtype(res1);
+	const char *objtype2 = osync_plugin_resource_get_objtype(res2);
 
 	if (!_compare_string(objtype1, objtype2))
 		return FALSE;
@@ -301,9 +301,9 @@ static osync_bool _compare_pluginconfig(OSyncPluginConfig *config1, OSyncPluginC
 
 	fail_unless(_compare_pluginconfig_localization(local1, local2), NULL);
 
-	OSyncList *ressources1 = osync_plugin_config_get_ressources(config1);
-	OSyncList *ressources2 = osync_plugin_config_get_ressources(config2);
-	fail_unless(_compare_list(ressources1, ressources2, _compare_pluginconfig_ressource), NULL);
+	OSyncList *resources1 = osync_plugin_config_get_resources(config1);
+	OSyncList *resources2 = osync_plugin_config_get_resources(config2);
+	fail_unless(_compare_list(resources1, resources2, _compare_pluginconfig_resource), NULL);
 
 
 	OSyncPluginConnection *conn1 = osync_plugin_config_get_connection(config1);
