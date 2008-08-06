@@ -1,10 +1,11 @@
 #include "syncml_ds_client.h"
 #include "syncml_callbacks.h"
 
-SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **error)
+SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncObjTypeSink *sink, OSyncError **error)
 {
 	SmlDatabase *database = NULL;
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	unsigned int i, num_objtypes = osync_plugin_info_num_objtypes(info);
 
 	for (i=0; i < num_objtypes; i++) {
@@ -21,7 +22,7 @@ SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
 		functions.batch_commit = ds_client_batch_commit;
 
 		OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype);
-		if (!(database = syncml_config_parse_database(env, res, error)))
+		if (!syncml_config_parse_database(env, formatenv, res, error))
 			goto error;
                 
                 osync_objtype_sink_set_functions(sink, functions, database);

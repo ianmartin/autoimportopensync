@@ -237,10 +237,18 @@ SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginResource *res, OSyncError **error)
+SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncObjTypeSink *sink, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, res, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, info, sink, error);
 	g_assert(env);
+	g_assert(info);
+	g_assert(sink);
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	const char *objtype = osync_objtype_sink_get_name(sink);
+	g_assert(objtype);
+	OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype); 
 	g_assert(res);
 
 	SmlDatabase *database = osync_try_malloc0(sizeof(SmlDatabase), error);
@@ -248,6 +256,7 @@ SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginResource
 		goto error;
 
 	database->env = env;
+	database->sink = sink;
 	database->syncChanges = NULL;
 	database->syncContexts = NULL;
 
@@ -262,6 +271,18 @@ SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginResource
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "\"objtype\" of a database not set");
                 goto error_free_database;
         }
+
+	/* TODO: Handle all available format sinks! */
+	OSyncList *fs = osync_plugin_resource_get_objformat_sinks(res);
+	OSyncObjFormatSink *fmtsink = osync_list_nth_data(fs, 0);
+	const char *objformat = osync_objformat_sink_get_objformat(fmtsink);
+
+	database->objformat = osync_format_env_find_objformat(formatenv, objformat);
+	osync_objformat_ref(database->objformat);
+
+	g_assert(database->objformat);
+
+	env->databases = g_list_append(env->databases, database);
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, database);
 	return database;
