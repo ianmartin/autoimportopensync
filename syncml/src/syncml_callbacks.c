@@ -363,6 +363,7 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	osync_trace(TRACE_INTERNAL, "%s: %s", __func__, database->objtype);
 
 	/* store device info */
+	/*
 	if (database->env->devinf_path)
 	{
 		OSyncError *error = NULL;
@@ -370,6 +371,7 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 		if (load_remote_devinf(database->env, &error))
 			set_capabilities(database->env, &error);
 	}
+	*/
 
 	/* set callbacks if the DsSession was not ready before */
 	database->session = dsession;
@@ -625,8 +627,7 @@ error:
 SmlBool _recv_unwanted_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, error);
-	SmlDatabase *database = (SmlDatabase *)userdata;
-	OSyncError *oerror = NULL;
+	/* SmlDatabase *database = (SmlDatabase *)userdata; */
 
 	/* This should be the second OMA DS session of an OMA DS
 	 * client. If this is the case then we simply ignore what the

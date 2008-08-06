@@ -20,7 +20,7 @@ SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
                 functions.sync_done = sync_done;
 		functions.batch_commit = ds_client_batch_commit;
 
-		OSyncPluginRessource *res = osync_plugin_config_find_active_ressource(config, objtype);
+		OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype);
 		if (!(database = syncml_config_parse_database(env, res, error)))
 			goto error;
                 
