@@ -488,8 +488,8 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		assert(dir->sink);
 
 		const char *objtype = osync_objtype_sink_get_name(dir->sink);
-		OSyncPluginRessource *res = osync_plugin_config_find_active_ressource(config, objtype);
-		dir->path = osync_plugin_ressource_get_path(res);
+		OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype);
+		dir->path = osync_plugin_resource_get_path(res);
 		if (!dir->path) {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Path for object type \"%s\" is not configured.", objtype);
 			goto error_free_env;
@@ -550,7 +550,7 @@ static void osync_filesync_finalize(void *data)
 }
 
 /* Here we actually tell opensync which sinks are available. For this plugin, we
- * just report all objtype as available. Since the ressource are configured like this. */
+ * just report all objtype as available. Since the resource are configured like this. */
 static osync_bool osync_filesync_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
