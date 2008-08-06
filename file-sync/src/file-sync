@@ -1,33 +1,16 @@
 <?xml version="1.0"?>
-<config>
-  <directory>
-    <path></path>
-    <objtype>data</objtype>
-  </directory>
-
-  <!-- 
-   
-   Field objformat set the object format which should be used to store.
-   objformat is optional - by default objformat is "file".
-
-  --> 
-        
-  <!--
-  <directory>
-    <path></path>
-    <objtype>contact</objtype>
-    <objformat>vcard30</objformat>
-    <converterpath_config></converterpath_config>
-  </directory>
-  -->
-
-  <!--
-  <directory>
-    <path></path>
-    <objtype>event</objtype>
-    <objformat>vevent20</objformat>
-    <converterpath_config></converterpath_config>
-  </directory>
-  -->
-
+<config version="1.0">
+  <Resources>
+    <Resource>
+     <Enabled>1</Enabled>
+     <Formats>
+       <Format>
+         <Name>file</Name>
+       </Format>
+     </Formats>
+     <ObjType>data</ObjType>
+     <!-- Path to sync -->
+     <Path></Path>
+    </Resource>
+  </Resources>
 </config>
