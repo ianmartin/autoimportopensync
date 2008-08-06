@@ -41,7 +41,7 @@
  * neutral actions. Actions like connecting/disconnecting which could
  * be a object type neutral - e.g. connecting to a device via bluetooth.
  * Object type specific example would be a connection to different 
- * object type specific databases/ressources.
+ * object type specific databases/resources.
  *
  * Main sink is not limited to the connect and disconnect functions! 
  * 

@@ -18,23 +18,23 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_RESSOURCE_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_RESSOURCE_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_RESOURCE_INTERNALS_H_
+#define _OPENSYNC_PLUGIN_RESOURCE_INTERNALS_H_
 
-/*! @brief Gives information about ressource
+/*! @brief Gives information about resource
  * 
- * @ingroup OSyncPluginRessourcePrivateAPI 
+ * @ingroup OSyncPluginResourcePrivateAPI 
  **/
-struct OSyncPluginRessource {
-	/** If ressource is enabled */
+struct OSyncPluginResource {
+	/** If resource is enabled */
 	osync_bool enabled;
-	/** Human readable identifier/name of ressource */
+	/** Human readable identifier/name of resource */
 	char *name;
-	/** MIME type of this ressource */
+	/** MIME type of this resource */
 	char *mime;
-	/** Objtype of the ressource */
+	/** Objtype of the resource */
 	char *objtype;
-	/** OSyncObjFormatSink List of this ressource */
+	/** OSyncObjFormatSink List of this resource */
 	OSyncList *objformatsinks;
 	/** Filesystem path */
 	char *path;
@@ -45,5 +45,5 @@ struct OSyncPluginRessource {
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_RESSOURCE_INTERNALS_H_*/
+#endif /*_OPENSYNC_PLUGIN_RESOURCE_INTERNALS_H_*/
 

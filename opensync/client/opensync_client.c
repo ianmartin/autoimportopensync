@@ -544,13 +544,13 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	OSyncList *r = NULL;
 
 	if (config)
-		r = osync_plugin_config_get_ressources(config);
+		r = osync_plugin_config_get_resources(config);
 
 	for (; r; r = r->next) {
-		OSyncPluginRessource *res = r->data;
+		OSyncPluginResource *res = r->data;
 		OSyncObjTypeSink *sink;
 
-		const char *objtype = osync_plugin_ressource_get_objtype(res); 
+		const char *objtype = osync_plugin_resource_get_objtype(res); 
 		/* Check for ObjType sink */
 		if (!(sink = osync_plugin_info_find_objtype(client->plugin_info, objtype))) {
 			sink = osync_objtype_sink_new(objtype, error);
@@ -560,7 +560,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 			osync_plugin_info_add_objtype(client->plugin_info, sink);
 		}
 
-		OSyncList *o = osync_plugin_ressource_get_objformat_sinks(res);
+		OSyncList *o = osync_plugin_resource_get_objformat_sinks(res);
 		for (; o; o = o->next) {
 			OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
 			osync_objtype_sink_add_objformat_sink(sink, format_sink);

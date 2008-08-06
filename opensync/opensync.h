@@ -152,7 +152,7 @@ typedef struct OSyncPluginAdvancedOption OSyncPluginAdvancedOption;
 typedef struct OSyncPluginAdvancedOptionParameter OSyncPluginAdvancedOptionParameter;
 typedef struct OSyncPluginConnection OSyncPluginConnection;
 typedef struct OSyncPluginLocalization OSyncPluginLocalization;
-typedef struct OSyncPluginRessource OSyncPluginRessource;
+typedef struct OSyncPluginResource OSyncPluginResource;
 
 /* Engine component */
 typedef struct OSyncEngine OSyncEngine;

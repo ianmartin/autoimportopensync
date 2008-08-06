@@ -18,40 +18,40 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_RESSOURCE_H_
-#define _OPENSYNC_PLUGIN_RESSOURCE_H_
+#ifndef _OPENSYNC_PLUGIN_RESOURCE_H_
+#define _OPENSYNC_PLUGIN_RESOURCE_H_
 
-OSYNC_EXPORT OSyncPluginRessource *osync_plugin_ressource_new(OSyncError **error);
-OSYNC_EXPORT void osync_plugin_ressource_unref(OSyncPluginRessource *ressource);
-OSYNC_EXPORT OSyncPluginRessource *osync_plugin_ressource_ref(OSyncPluginRessource *ressource);
+OSYNC_EXPORT OSyncPluginResource *osync_plugin_resource_new(OSyncError **error);
+OSYNC_EXPORT void osync_plugin_resource_unref(OSyncPluginResource *resource);
+OSYNC_EXPORT OSyncPluginResource *osync_plugin_resource_ref(OSyncPluginResource *resource);
 
-OSYNC_EXPORT osync_bool osync_plugin_ressource_is_enabled(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_enable(OSyncPluginRessource *ressource, osync_bool enable);
+OSYNC_EXPORT osync_bool osync_plugin_resource_is_enabled(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_enable(OSyncPluginResource *resource, osync_bool enable);
 
-OSYNC_EXPORT const char *osync_plugin_ressource_get_name(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_name(OSyncPluginRessource *ressource, const char *name);
+OSYNC_EXPORT const char *osync_plugin_resource_get_name(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_name(OSyncPluginResource *resource, const char *name);
 
-OSYNC_EXPORT const char *osync_plugin_ressource_get_mime(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_mime(OSyncPluginRessource *ressource, const char *mime);
+OSYNC_EXPORT const char *osync_plugin_resource_get_mime(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_mime(OSyncPluginResource *resource, const char *mime);
 
 /*
-OSYNC_EXPORT OSyncObjFormat *osync_plugin_ressource_get_objformat(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_objformat(OSyncPluginRessource *ressource, OSyncObjFormat *objformat);
+OSYNC_EXPORT OSyncObjFormat *osync_plugin_resource_get_objformat(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_objformat(OSyncPluginResource *resource, OSyncObjFormat *objformat);
 */
 
-OSYNC_EXPORT OSyncList *osync_plugin_ressource_get_objformat_sinks(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_add_objformat_sink(OSyncPluginRessource *ressource, OSyncObjFormatSink *formatsink);
-OSYNC_EXPORT void osync_plugin_ressource_remove_objformat_sink(OSyncPluginRessource *ressource, OSyncObjFormatSink *formatsink);
+OSYNC_EXPORT OSyncList *osync_plugin_resource_get_objformat_sinks(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_add_objformat_sink(OSyncPluginResource *resource, OSyncObjFormatSink *formatsink);
+OSYNC_EXPORT void osync_plugin_resource_remove_objformat_sink(OSyncPluginResource *resource, OSyncObjFormatSink *formatsink);
 
-OSYNC_EXPORT const char *osync_plugin_ressource_get_objtype(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_objtype(OSyncPluginRessource *ressource, const char *objtype);
+OSYNC_EXPORT const char *osync_plugin_resource_get_objtype(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_objtype(OSyncPluginResource *resource, const char *objtype);
 
-OSYNC_EXPORT const char *osync_plugin_ressource_get_path(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_path(OSyncPluginRessource *ressource, const char *path);
+OSYNC_EXPORT const char *osync_plugin_resource_get_path(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_path(OSyncPluginResource *resource, const char *path);
 
-OSYNC_EXPORT const char *osync_plugin_ressource_get_url(OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_ressource_set_url(OSyncPluginRessource *ressource, const char *url);
+OSYNC_EXPORT const char *osync_plugin_resource_get_url(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_url(OSyncPluginResource *resource, const char *url);
 
 
-#endif /*_OPENSYNC_PLUGIN_RESSOURCE_H_*/
+#endif /*_OPENSYNC_PLUGIN_RESOURCE_H_*/
 

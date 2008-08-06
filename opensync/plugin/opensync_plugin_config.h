@@ -42,11 +42,11 @@ OSYNC_EXPORT void osync_plugin_config_set_authentication(OSyncPluginConfig *conf
 OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_config_get_localization(OSyncPluginConfig *config);
 OSYNC_EXPORT void osync_plugin_config_set_localization(OSyncPluginConfig *config, OSyncPluginLocalization *localization);
 
-/* Ressources */
-OSYNC_EXPORT OSyncList *osync_plugin_config_get_ressources(OSyncPluginConfig *plugin);
-OSYNC_EXPORT OSyncPluginRessource *osync_plugin_config_find_active_ressource(OSyncPluginConfig *config, const char *objtype);
-OSYNC_EXPORT void osync_plugin_config_add_ressource(OSyncPluginConfig *plugin, OSyncPluginRessource *ressource);
-OSYNC_EXPORT void osync_plugin_config_remove_ressource(OSyncPluginConfig *plugin, OSyncPluginRessource *ressource);
+/* Resources */
+OSYNC_EXPORT OSyncList *osync_plugin_config_get_resources(OSyncPluginConfig *plugin);
+OSYNC_EXPORT OSyncPluginResource *osync_plugin_config_find_active_resource(OSyncPluginConfig *config, const char *objtype);
+OSYNC_EXPORT void osync_plugin_config_add_resource(OSyncPluginConfig *plugin, OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_config_remove_resource(OSyncPluginConfig *plugin, OSyncPluginResource *resource);
 
 /* Connection */
 OSYNC_EXPORT OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *config);

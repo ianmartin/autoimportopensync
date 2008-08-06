@@ -576,6 +576,7 @@ void osync_format_env_free(OSyncFormatEnv *env)
 	
 	/* Free the formats */
 	while (env->objformats) {
+		osync_trace(TRACE_INTERNAL, "FORMAT: %s", osync_objformat_get_name(env->objformats->data));
 		osync_objformat_unref(env->objformats->data);
 		env->objformats = g_list_remove(env->objformats, env->objformats->data);
 	}

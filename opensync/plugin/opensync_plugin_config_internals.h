@@ -36,8 +36,8 @@ struct OSyncPluginConfig {
 	OSyncPluginAuthentication *authentication;
 	/** Localization configuration */
 	OSyncPluginLocalization *localization;
-	/** List of ressource configurations */
-	OSyncList *ressources;
+	/** List of resource configurations */
+	OSyncList *resources;
 
 	/** Object reference counting */
 	int ref_count;
