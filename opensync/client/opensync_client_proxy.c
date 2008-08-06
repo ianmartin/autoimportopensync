@@ -312,12 +312,12 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 		
 		osync_message_read_int(message, &proxy->has_main_sink);
 		
-		int num_sinks = 0;
-		osync_message_read_int(message, &num_sinks);
+		unsigned int num_sinks = 0;
+		osync_message_read_uint(message, &num_sinks);
 		
 		osync_trace(TRACE_INTERNAL, "main sink?: %i, num objs?: %i", proxy->has_main_sink, num_sinks);
 		
-		int i = 0;
+		unsigned int i = 0;
 		for (i = 0; i < num_sinks; i++) {
 			OSyncObjTypeSink *sink = NULL;
 			if (!osync_demarshal_objtype_sink(message, &sink, &locerror))

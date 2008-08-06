@@ -265,7 +265,7 @@ void osync_plugin_info_add_objtype(OSyncPluginInfo *info, OSyncObjTypeSink *sink
  * @returns the number of object types in the plugin info
  * 
  */
-int osync_plugin_info_num_objtypes(OSyncPluginInfo *info)
+unsigned int osync_plugin_info_num_objtypes(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return g_list_length(info->objtypes);
@@ -278,7 +278,7 @@ int osync_plugin_info_num_objtypes(OSyncPluginInfo *info)
  * @returns the object type (sink) at the specified index
  * 
  */
-OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, int nth)
+OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, unsigned int nth)
 {
 	osync_assert(info);
 	return g_list_nth_data(info->objtypes, nth);

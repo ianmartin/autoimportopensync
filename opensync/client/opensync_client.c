@@ -666,7 +666,7 @@ error:
 static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessage *message, OSyncError **error)
 {
 	OSyncMessage *reply = NULL;
-	int i = 0;
+	unsigned int i = 0;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
@@ -682,8 +682,8 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 	else
 		osync_message_write_int(reply, 0);
 
-	int numobjs = osync_plugin_info_num_objtypes(client->plugin_info);
-	int avail = 0;
+	unsigned int numobjs = osync_plugin_info_num_objtypes(client->plugin_info);
+	unsigned int avail = 0;
 	for (i = 0; i < numobjs; i++) {
 		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(client->plugin_info, i);
 		if (osync_objtype_sink_is_available(sink)) {
@@ -691,7 +691,7 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 		}
 	}
 
-	osync_message_write_int(reply, avail);
+	osync_message_write_uint(reply, avail);
 	
 	for (i = 0; i < numobjs; i++) {
 		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(client->plugin_info, i);

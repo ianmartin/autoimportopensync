@@ -36,8 +36,8 @@ OSYNC_EXPORT const char *osync_plugin_info_get_configdir(OSyncPluginInfo *info);
 
 OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name);
 OSYNC_EXPORT void osync_plugin_info_add_objtype(OSyncPluginInfo *info, OSyncObjTypeSink *sink);
-OSYNC_EXPORT int osync_plugin_info_num_objtypes(OSyncPluginInfo *info);
-OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, int nth);
+OSYNC_EXPORT unsigned int osync_plugin_info_num_objtypes(OSyncPluginInfo *info);
+OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, unsigned int nth);
 
 OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_get_main_sink(OSyncPluginInfo *info);
 OSYNC_EXPORT void osync_plugin_info_set_main_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink);
