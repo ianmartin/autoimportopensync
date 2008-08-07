@@ -22,7 +22,8 @@ synchronization.
 
 Requirements
 ============
-- CMake 2.4.4 or higher
+- CMake 2.4.4 or higher <http://www.cmake.org/>
+- libxslt <http://xmlsoft.org/XSLT/>
 
 
 Installation
