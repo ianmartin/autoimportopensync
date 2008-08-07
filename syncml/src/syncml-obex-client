@@ -143,8 +143,8 @@
   </Connection>
 
     <!-- To be filed by UI or hand:
-  <Resources>
-    <Resource>
+  <Ressources>
+    <Ressource>
      <Enabled>1</Enabled>
      <Formats>
        <Format>
@@ -153,8 +153,8 @@
      </Formats>
      <Name>Contacts</Name>
      <ObjType>contact</ObjType>
-    </Resource>
-  </Resources>
+    </Ressource>
+  </Ressources>
 
     -->
 </config>

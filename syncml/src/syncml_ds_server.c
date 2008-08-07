@@ -4,6 +4,8 @@
 SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
 	SmlDatabase *database = NULL;
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	unsigned int i, num_objtypes = osync_plugin_info_num_objtypes(info);
 
 	for (i=0; i < num_objtypes; i++) {
@@ -17,10 +19,24 @@ SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
                 functions.sync_done = sync_done;
 		functions.batch_commit = ds_server_batch_commit;
 
-		if (!(database = syncml_config_parse_database(env, info, sink, error)))
+		OSyncPluginRessource *res = osync_plugin_config_find_active_ressource(config, objtype);
+		if (!(database = syncml_config_parse_database(env, res, error)))
 			goto error;
                 
+                database->sink = sink;
+
+		/* TODO: Handle all available format sinks! */
+		OSyncList *fs = osync_plugin_ressource_get_objformat_sinks(res);
+		OSyncObjFormatSink *fmtsink = osync_list_nth_data(fs, 0);
+		const char *objformat = osync_objformat_sink_get_objformat(fmtsink);
+
+		database->objformat = osync_format_env_find_objformat(formatenv, objformat);
+
+		g_assert(database->objformat);
+
                 osync_objtype_sink_set_functions(sink, functions, database);
+
+		env->databases = g_list_append(env->databases, database);
 	}
 	return TRUE;
 
