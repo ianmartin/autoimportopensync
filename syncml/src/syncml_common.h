@@ -204,7 +204,7 @@ SmlBool send_sync_message(
 
 SmlDatabase *syncml_config_parse_database(
 			SmlPluginEnv *env,
-			OSyncPluginRessource *res,
+			OSyncPluginResource *res,
 			OSyncError **error);
 
 SmlBool flush_session_for_all_databases(

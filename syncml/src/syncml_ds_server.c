@@ -19,14 +19,14 @@ SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
                 functions.sync_done = sync_done;
 		functions.batch_commit = ds_server_batch_commit;
 
-		OSyncPluginRessource *res = osync_plugin_config_find_active_ressource(config, objtype);
+		OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype);
 		if (!(database = syncml_config_parse_database(env, res, error)))
 			goto error;
                 
                 database->sink = sink;
 
 		/* TODO: Handle all available format sinks! */
-		OSyncList *fs = osync_plugin_ressource_get_objformat_sinks(res);
+		OSyncList *fs = osync_plugin_resource_get_objformat_sinks(res);
 		OSyncObjFormatSink *fmtsink = osync_list_nth_data(fs, 0);
 		const char *objformat = osync_objformat_sink_get_objformat(fmtsink);
 

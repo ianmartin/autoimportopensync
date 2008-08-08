@@ -237,7 +237,7 @@ SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginRessource *res, OSyncError **error)
+SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginResource *res, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, res, error);
 	g_assert(env);
@@ -251,13 +251,13 @@ SmlDatabase *syncml_config_parse_database(SmlPluginEnv *env, OSyncPluginRessourc
 	database->syncChanges = NULL;
 	database->syncContexts = NULL;
 
-	database->url = osync_plugin_ressource_get_name(res);
+	database->url = osync_plugin_resource_get_name(res);
         if (!database->url) {
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "Database name not set");
                 goto error_free_database;
         }
 
-	database->objtype = osync_plugin_ressource_get_objtype(res);
+	database->objtype = osync_plugin_resource_get_objtype(res);
         if (!database->objtype) {
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "\"objtype\" of a database not set");
                 goto error_free_database;
