@@ -79,6 +79,8 @@ void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *
 	(*error)->message = g_strdup_vprintf(format, args);
 	(*error)->type = type;
 	(*error)->ref_count = 1;
+
+	osync_trace(TRACE_ERROR, "%s", (*error)->message);
 	
 	return;
 }
