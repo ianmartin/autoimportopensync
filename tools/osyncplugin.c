@@ -39,6 +39,7 @@ char *formatpath = NULL;
 char *pluginname = NULL;
 char *configfile = NULL;
 char *configdir = NULL;
+osync_bool pluginlist= FALSE;
 GList *sinks = NULL;
 GList *cmdlist = NULL;
 GList *changesList = NULL;
@@ -87,7 +88,7 @@ typedef enum {
 /*
  * Argument handling 
  */
-Command *new_command(Cmd cmd, const char *arg) {
+static Command *new_command(Cmd cmd, const char *arg) {
 
 	Command *newcommand = malloc(sizeof(Command));
 	if (!newcommand) {
@@ -109,7 +110,7 @@ Command *new_command(Cmd cmd, const char *arg) {
 	return newcommand;
 }
 
-void free_command(Command **cmd) {
+static void free_command(Command **cmd) {
 	assert(*cmd);
 
 	if ((*cmd)->arg)
@@ -119,15 +120,43 @@ void free_command(Command **cmd) {
 	*cmd = NULL;
 }
 
-void usage(const char *name)
+static void usage(const char *name)
 {
+	/* TODO: improve usage output */
 	fprintf(stderr, "Usage: %s\n", name);
-	/* TODO: write usage output */
+	
+	fprintf (stderr, "Configuration options:\n");
+	fprintf (stderr, "[--config] \tSet config file\n");
+	fprintf (stderr, "[--configdir] \tSet different config directory. Default: ~./opensync\n");
+	
+	fprintf (stderr, "Plugin options:\n");
+	fprintf (stderr, "[--plugin] \tSet plugin\n");
+	fprintf (stderr, "[--pluginpath] \t\n");
+	fprintf (stderr, "[--pluginlist] \tShow list of plugins\n");
+	
+	fprintf (stderr, "Format options:\n");
+	fprintf (stderr, "[--formatpath] \t\n");
+	
+	fprintf (stderr, "Command options:\n");
+	fprintf (stderr, "[--initialize] \t\n");
+	fprintf (stderr, "[--connect] \t\n");
+	fprintf (stderr, "[--disconnect] \t\n");
+	fprintf (stderr, "[--finalize] \t\n");
+	fprintf (stderr, "[--slowsync] \t\n");
+	fprintf (stderr, "[--sync] \t\n");
+	fprintf (stderr, "[--fastsync] \t\n");
+	fprintf (stderr, "[--syncdone] \t\n");
+	fprintf (stderr, "[--committedall] \t\n");
+	fprintf (stderr, "[--commit] \t\n");
+	fprintf (stderr, "[--batchcommit] \t\n");
+	fprintf (stderr, "[--write] \t\n");
+	fprintf (stderr, "[--read] \t\n");
+	fprintf (stderr, "[--empty] \t\n");
 
 	exit(1);
 }
 
-void parse_args(int argc, char **argv) {
+static void parse_args(int argc, char **argv) {
 
 	int i;
 	char *arg;
@@ -157,6 +186,11 @@ void parse_args(int argc, char **argv) {
 		} else if (!strcmp(arg, "--pluginpath") || !strcmp(arg, "-P")) {
 			if (!pluginpath)
 				pluginpath = strdup(argv[i+1]);
+
+			i++;
+			continue;
+		} else if (!strcmp(arg, "--pluginlist") || !strcmp(arg, "-L")) {
+			pluginlist= TRUE;
 
 			i++;
 			continue;
@@ -268,7 +302,9 @@ void parse_args(int argc, char **argv) {
 			usage(argv[0]);
 		}
 	}
-
+	
+	if (pluginlist)
+		return;
 
 	if (!cmdlist)
 		fprintf(stderr, "No command set.\n");
@@ -287,7 +323,7 @@ void parse_args(int argc, char **argv) {
  * Plugin Commands
  */
 
-osync_bool init(OSyncError **error) {
+static osync_bool init(OSyncError **error) {
 	assert(!plugin);
 	assert(!plugin_env);
 
@@ -387,7 +423,7 @@ error:
 	return FALSE;
 }
 
-void *plugin_initialize(OSyncError **error)
+static void *plugin_initialize(OSyncError **error)
 {
 	void *plugin_data = osync_plugin_initialize(plugin, plugin_info, error);
 	
@@ -397,7 +433,7 @@ void *plugin_initialize(OSyncError **error)
 	return plugin_data;
 }
 
-void finalize_plugin(void **plugin_data)
+static void finalize_plugin(void **plugin_data)
 {
 
 	if (!*plugin_data)
@@ -408,7 +444,7 @@ void finalize_plugin(void **plugin_data)
 }
 
 
-OSyncObjTypeSink *find_sink(const char *objtype, OSyncError **error)
+static OSyncObjTypeSink *find_sink(const char *objtype, OSyncError **error)
 {
 	assert(objtype);
 
@@ -421,12 +457,12 @@ OSyncObjTypeSink *find_sink(const char *objtype, OSyncError **error)
 	return sink;
 }
 
-OSyncObjTypeSink *get_main_sink()
+static OSyncObjTypeSink *get_main_sink()
 {
 	return osync_plugin_info_get_main_sink(plugin_info);
 }
 
-const char *_osyncplugin_changetype_str(OSyncChange *change)
+static const char *_osyncplugin_changetype_str(OSyncChange *change)
 {
 	assert(change);
 
@@ -455,7 +491,7 @@ const char *_osyncplugin_changetype_str(OSyncChange *change)
 }
 
 //typedef void (* OSyncContextChangeFn) (OSyncChange *, void *);
-void _osyncplugin_ctx_change_callback(OSyncChange *change, void *user_data)
+static void _osyncplugin_ctx_change_callback(OSyncChange *change, void *user_data)
 {
 	Command *cmd = (Command *) user_data;		
 	OSyncObjTypeSink *sink = cmd->sink;
@@ -475,7 +511,7 @@ void _osyncplugin_ctx_change_callback(OSyncChange *change, void *user_data)
 }
 
 //typedef void (* OSyncContextCallbackFn)(void *, OSyncError *);
-void _osyncplugin_ctx_callback_getchanges(void *user_data, OSyncError *error)
+static void _osyncplugin_ctx_callback_getchanges(void *user_data, OSyncError *error)
 {
 	Command *cmd = (Command *) user_data;		
 	OSyncObjTypeSink *sink = cmd->sink;
@@ -490,7 +526,7 @@ void _osyncplugin_ctx_callback_getchanges(void *user_data, OSyncError *error)
 
 }
 
-osync_bool get_changes_sink(Command *cmd, OSyncObjTypeSink *sink, SyncType type, void *plugin_data, OSyncError **error)
+static osync_bool get_changes_sink(Command *cmd, OSyncObjTypeSink *sink, SyncType type, void *plugin_data, OSyncError **error)
 {
 	assert(sink);
 
@@ -525,7 +561,7 @@ error:
 	return FALSE;
 }
 
-osync_bool get_changes(Command *cmd, SyncType type, void *plugin_data, OSyncError **error)
+static osync_bool get_changes(Command *cmd, SyncType type, void *plugin_data, OSyncError **error)
 {
 	int num, i;
 	OSyncObjTypeSink *sink = NULL;
@@ -564,7 +600,7 @@ error:
 	return FALSE;
 }
 
-void _osyncplugin_ctx_callback_connect(void *user_data, OSyncError *error)
+static void _osyncplugin_ctx_callback_connect(void *user_data, OSyncError *error)
 {
 	assert(user_data);
 
@@ -596,7 +632,7 @@ error:
 	return;
 }
 
-osync_bool connect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+static osync_bool connect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 	cmd->sink = sink;
@@ -653,7 +689,7 @@ error:
 	return FALSE;
 }
 
-void _osyncplugin_ctx_callback_disconnect(void *user_data, OSyncError *error)
+static void _osyncplugin_ctx_callback_disconnect(void *user_data, OSyncError *error)
 {
 	assert(user_data);
 
@@ -685,7 +721,7 @@ error:
 	return;
 }
 
-osync_bool disconnect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+static osync_bool disconnect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 
@@ -708,7 +744,7 @@ error:
 	return FALSE;
 }
 
-osync_bool disconnect(Command *cmd, void *plugin_data, OSyncError **error)
+static osync_bool disconnect(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	
 	int i, num;
@@ -767,7 +803,7 @@ error:
 
 }
 
-osync_bool commit_sink(OSyncObjTypeSink *sink, OSyncChange *change, void *plugin_data, OSyncError **error) {
+static osync_bool commit_sink(OSyncObjTypeSink *sink, OSyncChange *change, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 	assert(change);
@@ -795,7 +831,7 @@ error:
 	return FALSE;
 }
 
-osync_bool commit(Command *cmd, OSyncChange *change, void *plugin_data, OSyncError **error)
+static osync_bool commit(Command *cmd, OSyncChange *change, void *plugin_data, OSyncError **error)
 {
 	assert(change);
 
@@ -830,7 +866,7 @@ error:
 	return FALSE;
 }
 
-osync_bool empty(Command *cmd, void *plugin_data, OSyncError **error)
+static osync_bool empty(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	int i;
 	GList *c;
@@ -856,7 +892,7 @@ error:
 	return FALSE;
 }
 
-void _osyncplugin_ctx_callback_syncdone(void *user_data, OSyncError *error)
+static void _osyncplugin_ctx_callback_syncdone(void *user_data, OSyncError *error)
 {
 	assert(user_data);
 
@@ -880,7 +916,7 @@ error:
 	return;
 }
 
-osync_bool syncdone_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+static osync_bool syncdone_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 
@@ -902,7 +938,7 @@ error:
 	return FALSE;
 }
 
-osync_bool syncdone(Command *cmd, void *plugin_data, OSyncError **error)
+static osync_bool syncdone(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	
 	int i, num;
@@ -936,7 +972,7 @@ error:
 	return FALSE;
 }
 
-void _osyncplugin_ctx_callback_committedall(void *user_data, OSyncError *error)
+static void _osyncplugin_ctx_callback_committedall(void *user_data, OSyncError *error)
 {
 	assert(user_data);
 
@@ -959,7 +995,7 @@ error:
 	return;
 }
 
-osync_bool committedall_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+static osync_bool committedall_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 
@@ -981,7 +1017,7 @@ error:
 	return FALSE;
 }
 
-osync_bool committedall(Command *cmd, void *plugin_data, OSyncError **error)
+static osync_bool committedall(Command *cmd, void *plugin_data, OSyncError **error)
 {
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
@@ -1017,7 +1053,7 @@ error:
 /*
  * Sync Flow
  */
-osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
+static osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **error) {
 
 	assert(cmd);
 
@@ -1115,6 +1151,42 @@ error:
 	return FALSE;
 }
 
+static osync_bool plugin_list(OSyncError **error) {
+	int num;
+	int i;
+	
+	assert(!plugin_env);
+
+	if (!(plugin_env = osync_plugin_env_new(error)))
+		goto error;
+
+	if (!(format_env = osync_format_env_new(error)))
+		goto error_free_pluginenv;
+
+	if (!osync_format_env_load_plugins(format_env, formatpath, error))
+		goto error_free_formatenv;
+
+	if (!osync_plugin_env_load(plugin_env, pluginpath, error))
+		goto error_free_formatenv;
+
+	num= osync_plugin_env_num_plugins(plugin_env);
+	for(i= 0; i < num; i++) {
+		OSyncPlugin* plugin= osync_plugin_env_nth_plugin(plugin_env, i);
+		fprintf (stdout, "Name:        %s\n", osync_plugin_get_name(plugin));
+		fprintf (stdout, "Description: %s\n", osync_plugin_get_description(plugin));		
+	} 
+	return TRUE;
+	
+error_free_formatenv:
+	osync_format_env_free(format_env);
+	format_env = NULL;
+error_free_pluginenv:
+	osync_plugin_env_free(plugin_env);
+	plugin_env = NULL;
+error:	
+	return FALSE;
+}
+
 int main(int argc, char **argv) {
 
 	GList *o;
@@ -1125,6 +1197,13 @@ int main(int argc, char **argv) {
 		g_thread_init(NULL);
 
 	parse_args(argc, argv);
+	
+	if (pluginlist) {
+		if (!plugin_list(&error))
+			goto error;
+			
+		goto success;
+	}
 
 	if (!init(&error))
 		goto error;
@@ -1135,7 +1214,7 @@ int main(int argc, char **argv) {
 
 
 	/* TODO: free command list - for easier memory leak checking */
-
+success:
 	if (plugin_env)
 		osync_plugin_env_free(plugin_env);
 
