@@ -363,7 +363,6 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 	osync_trace(TRACE_INTERNAL, "%s: %s", __func__, database->objtype);
 
 	/* store device info */
-	/*
 	if (database->env->devinf_path)
 	{
 		OSyncError *error = NULL;
@@ -371,7 +370,6 @@ void _ds_alert(SmlDsSession *dsession, void *userdata)
 		if (load_remote_devinf(database->env, &error))
 			set_capabilities(database->env, &error);
 	}
-	*/
 
 	/* set callbacks if the DsSession was not ready before */
 	database->session = dsession;
