@@ -65,6 +65,9 @@ static const char *_osync_plugin_advancedoption_get_type_string(OSyncPluginAdvan
 		case OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_ULONGLONG:
 			type = "ulonglong";
 			break;
+		case OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_STRING:
+			type = "string";
+			break;
 	}
 
 	return type;
@@ -92,6 +95,9 @@ OSyncPluginAdvancedOptionType osync_plugin_advancedoption_type_string_to_val(con
 		return OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_ULONG;
 	else if (!strcmp(typestr, "ulonglong"))
 		return OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_ULONGLONG;
+	else if (!strcmp(typestr, "string"))
+		return OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_STRING;
+
 	
 	return OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_NONE;
 }
