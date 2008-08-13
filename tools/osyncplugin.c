@@ -1213,10 +1213,15 @@ int main(int argc, char **argv) {
 			goto error_disconnect_and_finalize;
 
 
-	/* TODO: free command list - for easier memory leak checking */
 success:
 	if (plugin_env)
 		osync_plugin_env_free(plugin_env);
+
+	for (o=cmdlist; o; o = o->next) {
+		Command *cmd = o->data;
+		free_command(&cmd);
+	}
+
 
 	return EXIT_SUCCESS;
 
@@ -1228,6 +1233,12 @@ error_disconnect_and_finalize:
 //error_free_plugin_env:
 	if (plugin_env)
 		osync_plugin_env_free(plugin_env);
+
+	for (o=cmdlist; o; o = o->next) {
+		Command *cmd = o->data;
+		free_command(&cmd);
+	}
+
 error:	
 	fprintf(stderr, "Error: %s\n", osync_error_print(&error));
 	osync_error_unref(&error);
