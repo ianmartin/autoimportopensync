@@ -142,29 +142,31 @@ osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, OSyncPluginConfig 
 			}
 
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_WBXML, name)) {
-				env->useWbxml = atoi(val);
+			env->useWbxml = atoi(val);
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATCOMMAND, name)) {
-				env->atCommand = val;
+			env->atCommand = val;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMANUFACTURER, name)) {
-				env->atManufacturer = val;
+			env->atManufacturer = val;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMODEL, name)) {
-				env->atModel = val;
+			env->atModel = val;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_IDENTIFIER, name)) {
-				env->identifier = val;
+			env->identifier = val;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USESTRINGTABLE, name)) {
 			env->useStringtable = atoi(val);
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USETIMEANCHOR, name)) {
-				env->useTimestampAnchor = atoi(val);
+			env->useTimestampAnchor = atoi(val);
 		/* TODO: Dead option? */
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYREPLACE, name)) {
-				env->onlyReplace = atoi(val);
+			env->onlyReplace = atoi(val);
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXMSGSIZE, name)) {
+			if (atoi(val))
 				env->maxMsgSize = atoi(val);
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXOBJSIZE, name)) {
+			if (atoi(val))
 				env->maxObjSize = atoi(val);
 		/* XXX Workaround for mobiles which only handle localtime! */
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYLOCALTIME, name)) {
-				env->onlyLocaltime = atoi(val);
+			env->onlyLocaltime = atoi(val);
 		}
 	
 
