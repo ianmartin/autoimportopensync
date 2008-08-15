@@ -553,8 +553,7 @@ osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *c
 	engine->parent->conflicts = g_list_remove(engine->parent->conflicts, engine);
 	
 	if (osync_engine_check_get_changes(engine->parent->parent) && osync_bitcount(engine->parent->sink_errors | engine->parent->sink_get_changes) == g_list_length(engine->parent->sink_engines)) {
-		OSyncError *error = NULL;
-		if (!osync_obj_engine_command(engine->parent, OSYNC_ENGINE_COMMAND_WRITE, &error))
+		if (!osync_obj_engine_command(engine->parent, OSYNC_ENGINE_COMMAND_WRITE, error))
 			goto error;
 	} else
 		osync_trace(TRACE_INTERNAL, "Not triggering write. didnt receive all reads yet");
@@ -589,8 +588,7 @@ osync_bool osync_mapping_engine_ignore(OSyncMappingEngine *engine, OSyncError **
 	engine->parent->conflicts = g_list_remove(engine->parent->conflicts, engine);
 	
 	if (osync_engine_check_get_changes(engine->parent->parent) && osync_bitcount(engine->parent->sink_errors | engine->parent->sink_get_changes) == g_list_length(engine->parent->sink_engines)) {
-		OSyncError *error = NULL;
-		if (!osync_obj_engine_command(engine->parent, OSYNC_ENGINE_COMMAND_WRITE, &error))
+		if (!osync_obj_engine_command(engine->parent, OSYNC_ENGINE_COMMAND_WRITE, error))
 			goto error;
 	} else
 		osync_trace(TRACE_INTERNAL, "Not triggering write. didnt receive all reads yet");
