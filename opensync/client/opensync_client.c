@@ -24,7 +24,6 @@
 #include "opensync-context.h"
 #include "opensync-plugin.h"
 #include "opensync-ipc.h"
-#include "opensync-serializer.h"
 #include "opensync-format.h"
 #include "opensync-client.h"
 #include "opensync_client_internals.h"

@@ -7,7 +7,6 @@
 #include <sys/types.h>
 //#include <sys/wait.h>
 #include <glib.h>
-#include <sys/time.h>
 
 
 static void usage (char *name, int ecode)

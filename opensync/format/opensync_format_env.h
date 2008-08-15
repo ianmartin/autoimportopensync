@@ -21,6 +21,8 @@
 #ifndef _OPENSYNC_FORMAT_ENV_H_
 #define _OPENSYNC_FORMAT_ENV_H_
 
+#include <opensync/opensync_list.h>
+
 OSYNC_EXPORT OSyncFormatEnv *osync_format_env_new(OSyncError **error);
 OSYNC_EXPORT void osync_format_env_free(OSyncFormatEnv *env);
 OSYNC_EXPORT osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, OSyncError **error);

@@ -23,6 +23,8 @@
 #ifndef OPENSYNC_VERSION_H_
 #define OPENSYNC_VERSION_H_
 
+#include <opensync/opensync_list.h>
+
 OSYNC_EXPORT OSyncVersion *osync_version_new(OSyncError **error);
 OSYNC_EXPORT OSyncVersion *osync_version_ref(OSyncVersion *version);
 OSYNC_EXPORT void osync_version_unref(OSyncVersion *version);

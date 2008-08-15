@@ -21,6 +21,8 @@
 #ifndef _OPENSYNC_PLUGIN_CONFIG_H_
 #define _OPENSYNC_PLUGIN_CONFIG_H_
 
+#include <opensync/opensync_list.h>
+
 OSYNC_EXPORT OSyncPluginConfig *osync_plugin_config_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_config_unref(OSyncPluginConfig *config);
 OSYNC_EXPORT OSyncPluginConfig *osync_plugin_config_ref(OSyncPluginConfig *config);

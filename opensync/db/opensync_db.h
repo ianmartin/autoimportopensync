@@ -21,6 +21,7 @@
 #ifndef _OPENSYNC_DB_H_
 #define _OPENSYNC_DB_H_
 
+#include <opensync/opensync_list.h>
 
 OSYNC_EXPORT OSyncDB *osync_db_new(OSyncError **error);
 

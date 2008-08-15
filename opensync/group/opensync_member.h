@@ -21,6 +21,8 @@
 #ifndef _OPENSYNC_MEMBER_H_
 #define _OPENSYNC_MEMBER_H_
 
+#include <opensync/opensync_list.h>
+
 OSYNC_EXPORT OSyncMember *osync_member_new(OSyncError **error);
 OSYNC_EXPORT OSyncMember *osync_member_ref(OSyncMember *member);
 OSYNC_EXPORT void osync_member_unref(OSyncMember *member);

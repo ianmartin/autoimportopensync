@@ -21,6 +21,8 @@
 #ifndef OPENSYNC_MAPPING_ENTRY_ENGINE_INTERNALS_H_
 #define OPENSYNC_MAPPING_ENTRY_ENGINE_INTERNALS_H_
 
+#include "opensync_sink_engine_internals.h"
+
 typedef struct OSyncMappingEntryEngine {
 	int ref_count;
 	OSyncSinkEngine *sink_engine;

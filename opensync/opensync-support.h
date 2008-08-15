@@ -21,8 +21,6 @@
 #ifndef _OPENSYNC_SUPPORT_H
 #define _OPENSYNC_SUPPORT_H
 
-#include "opensync_list.h"
-
 OPENSYNC_BEGIN_DECLS
 
 /*! @ingroup OSyncDebugAPI

@@ -39,7 +39,6 @@ SET( libopensync_LIB_SRCS
    mapping/opensync_mapping.c
    mapping/opensync_mapping_entry.c
    mapping/opensync_mapping_table.c
-   mapping/opensync_mapping_view.c
    merger/opensync_capabilities.c
    merger/opensync_capability.c
    merger/opensync_merger.c

@@ -25,6 +25,8 @@
 #ifndef OPENSYNC_ARCHIVE_H_
 #define OPENSYNC_ARCHIVE_H_
 
+#include <opensync/opensync_list.h>
+
 OSYNC_EXPORT OSyncArchive *osync_archive_new(const char *filename, OSyncError **error);
 OSYNC_EXPORT OSyncArchive *osync_archive_ref(OSyncArchive *archive);
 OSYNC_EXPORT void osync_archive_unref(OSyncArchive *archive);

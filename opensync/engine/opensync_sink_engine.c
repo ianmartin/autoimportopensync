@@ -24,12 +24,8 @@
 #include "opensync-archive.h"
 #include "opensync-group.h"
 #include "opensync-engine.h"
-#include "opensync-client.h"
 #include "opensync-data.h"
 #include "opensync-mapping.h"
-#include "opensync-format.h"
-#include "opensync-merger.h"
-#include "opensync-plugin.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_obj_engine_internals.h"
