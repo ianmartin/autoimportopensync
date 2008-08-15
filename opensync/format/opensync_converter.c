@@ -45,7 +45,7 @@
 OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error)
 {
 	OSyncFormatConverter *converter = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %p, %p)", __func__, type, sourceformat, targetformat, convert_func, error);
+	osync_trace(TRACE_ENTRY, "%s(%i, %s %p, %s %p, %p, %p)", __func__, type, osync_objformat_get_name(sourceformat), sourceformat, osync_objformat_get_name(targetformat), targetformat, convert_func, error);
 	
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
@@ -79,7 +79,7 @@ OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjForma
 OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error)
 {
 	OSyncFormatConverter *converter = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sourceformat, targetformat, detect_func, error);
+	osync_trace(TRACE_ENTRY, "%s(%s %p, %s %p, %p, %p)", __func__, __NULLSTR(osync_objformat_get_name(sourceformat)), sourceformat, __NULLSTR(osync_objformat_get_name(targetformat)), targetformat, detect_func, error);
 
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
