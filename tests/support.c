@@ -660,7 +660,10 @@ osync_bool osync_testing_diff(const char *file1, const char *file2)
         gchar *cmd;
         int ret;
 
-        cmd = g_strdup_printf("test \"x`(" DIFF " -x \".*\" %s %s)`\" = \"x\"", file1, file2);
+	osync_assert(file1);
+	osync_assert(file2);
+
+        cmd = g_strdup_printf(DIFF " -x \".*\" %s %s", file1, file2);
         ret = system(cmd);
         g_free(cmd);
 
