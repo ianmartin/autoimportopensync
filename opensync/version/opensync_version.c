@@ -604,8 +604,6 @@ OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncE
 	if(priority > 0)
 	{
 		osync_trace(TRACE_INTERNAL, "Found capabilities file by version: %s ", (const char*)osync_version_get_identifier(winner));
-		if (capabilities)
-			osync_capabilities_unref(capabilities);
 
 		capabilities = osync_capabilities_load((const char*)osync_version_get_identifier(winner), error);
 		osync_version_unref(winner);
