@@ -1057,8 +1057,10 @@ static osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **err
 
 	assert(cmd);
 
-	if (cmd->cmd != CMD_INITIALIZE && *plugin_data == NULL)
+	if (cmd->cmd != CMD_INITIALIZE && *plugin_data == NULL) {
 		fprintf(stderr, "WARNING: Got Plugin initialized? plugin_data is NULL.\n");
+		goto error;
+	}
 
 
 	switch (cmd->cmd) {

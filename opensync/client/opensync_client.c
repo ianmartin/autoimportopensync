@@ -114,6 +114,9 @@ static void _osync_client_connect_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
+		if (!reply)
+			goto error;
+
 		//Send connect specific reply data
 		osync_message_write_int(reply, slowsync);
 
@@ -301,6 +304,9 @@ static void _osync_client_read_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
+		if (!reply)
+			goto error;
+
 		//Send get_changes specific reply data
 		osync_message_write_string(reply, osync_change_get_uid(baton->change));
 	} else {
@@ -345,6 +351,9 @@ static void _osync_client_commit_change_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
+		if (!reply)
+			goto error;
+
 		//Send get_changes specific reply data
 		osync_message_write_string(reply, osync_change_get_uid(baton->change));
 	} else {

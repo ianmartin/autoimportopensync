@@ -216,13 +216,13 @@ static osync_bool osync_xml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 				g_free(rightcontent);
 				goto next;
 			}
-			if (!strcmp(leftcontent, rightcontent)) {
-				g_free(rightcontent);
-				goto next;
-			}
 			if (!leftcontent || !rightcontent) {
 				osync_trace(TRACE_EXIT, "%s: One is empty", __func__);
 				return FALSE;
+			}
+			if (!strcmp(leftcontent, rightcontent)) {
+				g_free(rightcontent);
+				goto next;
 			}
 			g_free(rightcontent);
 		} while ((rightnode = rightnode->next));

@@ -1164,7 +1164,7 @@ osync_bool osync_demarshal_pluginauthentication(OSyncMessage *message, OSyncPlug
 	char *reference = NULL;
 
 	*auth = osync_plugin_authentication_new(error);
-	if (!auth)
+	if (!*auth)
 		goto error;
 
 	osync_message_read_uint(message, &available_fields);

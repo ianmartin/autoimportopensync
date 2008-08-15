@@ -136,7 +136,8 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 			g_mutex_unlock(queue->pendingLock);
 
 			pending->callback(errormsg, pending->user_data);
-			osync_message_unref(errormsg);
+			if (errormsg != NULL)
+				osync_message_unref(errormsg);
 
 			// TODO: Refcounting for OSyncPendingMessage
 			g_free(pending->timeout_info);

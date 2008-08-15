@@ -1275,10 +1275,10 @@ osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_context:
-	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -1319,10 +1319,10 @@ osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, vo
 	osync_trace(TRACE_EXIT, "%s", __func__);
     	return TRUE;
 
-error_free_context:
-	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -1363,10 +1363,10 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_context:
-	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -1409,10 +1409,10 @@ osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_chan
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_context:
-	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -1453,10 +1453,10 @@ osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_a
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_context:
-	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -1497,10 +1497,10 @@ osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb ca
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_context:
-	g_free(ctx);
 error_free_message:
 	osync_message_unref(message);
+error_free_context:
+	g_free(ctx);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
