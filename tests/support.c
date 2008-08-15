@@ -64,17 +64,17 @@ char *setup_testbed(const char *fkt_name)
 		abort();
 	g_free(command);*/
 	
-	command = g_strdup_printf("cp ./mock-plugin/mock-sync.so %s", testbed);
+	command = g_strdup_printf("cp ./mock-plugin/mock-sync.%s %s", G_MODULE_SUFFIX, testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp ./mock-plugin/mock-format.so %s", testbed);
+	command = g_strdup_printf("cp ./mock-plugin/mock-format.%s %s", G_MODULE_SUFFIX, testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp -R ../formats/*.so %s", testbed);
+	command = g_strdup_printf("cp -R ../formats/*.%s %s", G_MODULE_SUFFIX, testbed);
 	if (system(command))
 		abort();
 	g_free(command);

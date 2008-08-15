@@ -147,7 +147,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s%c%s", path, G_DIR_SEPARATOR, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.so", filename)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*."G_MODULE_SUFFIX, filename)) {
 			g_free(filename);
 			continue;
 		}

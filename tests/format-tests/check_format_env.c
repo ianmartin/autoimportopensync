@@ -369,7 +369,7 @@ START_TEST (conv_env_plugin)
 	fail_unless(error == NULL, NULL);
 	
 	char *curdir = g_get_current_dir();
-	char *path = g_strdup_printf("%s/mock-format.so", curdir);
+	char *path = g_strdup_printf("%s/mock-format.%s", curdir, G_MODULE_SUFFIX);
 	fail_unless(osync_module_load(module, path, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	g_free(path);
