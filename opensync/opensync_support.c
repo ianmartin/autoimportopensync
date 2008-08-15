@@ -31,6 +31,7 @@ GPrivate* current_tabs = NULL;
 GPrivate* thread_id = NULL;
 GPrivate* trace_disabled = NULL;
 GPrivate* trace_sensitive = NULL;
+GPrivate* print_stderr = NULL;
 const char *trace = NULL;
 
 #ifndef _WIN32
@@ -99,6 +100,15 @@ static void _osync_trace_init()
 		g_private_set(trace_sensitive, GINT_TO_POINTER(1));
 	else
 		g_private_set(trace_sensitive, GINT_TO_POINTER(0));
+
+	const char *error = g_getenv("OSYNC_PRINTERROR");
+	if (!print_stderr)
+		print_stderr = g_private_new(NULL);
+
+	if (error)
+		g_private_set(print_stderr, GINT_TO_POINTER(1));
+	else
+		g_private_set(print_stderr, GINT_TO_POINTER(0));
 	
 	if (!g_file_test(trace, G_FILE_TEST_IS_DIR)) {
 		printf("OSYNC_TRACE argument is no directory\n");
@@ -208,9 +218,16 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
+
+			if (print_stderr)
+				fprintf(stderr, "EXIT_ERROR: %s\n", buffer);
 			break;
 		case TRACE_ERROR:
 			logmessage = g_strdup_printf("[%li.%06li]%sERROR: %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+
+			if (print_stderr)
+				fprintf(stderr, "ERROR: %s\n", buffer);
+
 			break;
 	}
 	g_free(buffer);
