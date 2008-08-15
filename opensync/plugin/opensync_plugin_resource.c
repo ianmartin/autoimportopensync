@@ -23,7 +23,7 @@
 
 #include "opensync-format.h"
 #include "opensync-plugin.h"
-#include "opensync_plugin_ressource_internals.h"
+#include "opensync_plugin_resource_internals.h"
 
 OSyncPluginResource *osync_plugin_resource_new(OSyncError **error)
 {
