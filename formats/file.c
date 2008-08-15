@@ -207,7 +207,7 @@ error:
 
 osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	OSyncObjFormat *format = osync_objformat_new("file", "file", error);
+	OSyncObjFormat *format = osync_objformat_new("file", "data", error);
 	if (!format)
 		return FALSE;
 	
