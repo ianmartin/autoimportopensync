@@ -1027,6 +1027,24 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	if (haspluginconfig && !osync_marshal_pluginconfig(message, config, error))
 		goto error;
 
+	if (haspluginconfig) {
+		OSyncList *r = osync_plugin_config_get_resources(config);
+		for (; r; r = r->next) {
+			OSyncPluginResource *res = r->data;
+
+			if (!osync_plugin_resource_is_enabled(res))
+				continue;
+
+			const char *objtype = osync_plugin_resource_get_objtype(res);
+			OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+			 /* TODO: In discovery phase *sink COULD be NULL. Review if this is correct behavior. */
+			if (sink) {
+				osync_objtype_sink_ref(sink);
+				proxy->objtypes = g_list_append(proxy->objtypes, sink);
+			}
+		}
+	}
+
 #ifdef OPENSYNC_UNITTESTS
 	// Introduced (only) for testing/debugging purpose (mock-sync)
 	long long int memberid = 0; 

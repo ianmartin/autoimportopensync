@@ -100,10 +100,7 @@ static void _osync_obj_engine_connect_callback(OSyncClientProxy *proxy, void *us
 	}
 			
 	if (osync_bitcount(engine->sink_errors | engine->sink_connects) == g_list_length(engine->sink_engines)) {
-		if (osync_bitcount(engine->sink_connects) < 2) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Less than 2 sink_engines are connected");
-			osync_obj_engine_set_error(engine, locerror);
-		} else if (osync_bitcount(engine->sink_errors)) {
+		if (osync_bitcount(engine->sink_errors)) {
 			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "At least one sink_engine failed while connecting");
 			osync_obj_engine_set_error(engine, locerror);
 		}
@@ -720,11 +717,20 @@ osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **erro
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 
 	osync_trace(TRACE_INTERNAL, "Loaded %i mappings", osync_mapping_table_num_mappings(engine->mapping_table));
+
+	const char *objtype = osync_obj_engine_get_objtype(engine);
 	
 	int num = osync_engine_num_proxies(engine->parent);
 	int i = 0;
 	for (i = 0; i < num; i++) {
 		OSyncClientProxy *proxy = osync_engine_nth_proxy(engine->parent, i);
+		OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype); 
+		if (!sink) {
+			/* "data" sink engine counts also as valid. */
+			sink = osync_client_proxy_find_objtype_sink(proxy, "data"); 
+			if (!sink)
+				continue;
+		}
 		
 		OSyncSinkEngine *sinkengine = osync_sink_engine_new(i, proxy, engine, error);
 		if (!sinkengine)
@@ -915,6 +921,10 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 				long long int memberid = osync_member_get_id(member);
 
 				OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+				/* If sink could not be found use "data" sink if available */
+				if (!objtype_sink)
+					objtype_sink = osync_member_find_objtype_sink(member, "data");
+				/* TODO: Review if objtype_sink = NULL is valid at all. */
 
 				for (e = sinkengine->entries; e; e = e->next) {
 					OSyncMappingEntryEngine *entry_engine = e->data;
