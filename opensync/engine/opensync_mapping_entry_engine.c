@@ -94,8 +94,10 @@ osync_bool osync_entry_engine_matches(OSyncMappingEntryEngine *engine, OSyncChan
 	osync_assert(change);
 	
 	OSyncMappingEntry *entry = engine->entry;
+	const char *mapping_entry_uid = osync_mapping_entry_get_uid(entry); 
+	osync_assert(mapping_entry_uid);
 	
-	if (!strcmp(osync_mapping_entry_get_uid(entry), osync_change_get_uid(change)))
+	if (!strcmp(mapping_entry_uid, osync_change_get_uid(change)))
 		return TRUE;
 	
 	return FALSE;
