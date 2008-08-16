@@ -32,7 +32,10 @@ SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
 
 		database->objformat = osync_format_env_find_objformat(formatenv, objformat);
 
+		/* TODO: Handle error about missing objformat in a nice way. */
 		g_assert(database->objformat);
+
+		osync_objformat_ref(database->objformat);
 
                 osync_objtype_sink_set_functions(sink, functions, database);
 
