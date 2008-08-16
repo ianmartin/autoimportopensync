@@ -110,6 +110,8 @@ void osync_mapping_entry_set_dirty(OSyncMappingEntry *entry, osync_bool dirty)
 void osync_mapping_entry_set_uid(OSyncMappingEntry *entry, const char *uid)
 {
 	osync_assert(entry);
+	osync_assert(uid);
+
 	if (entry->uid)
 		g_free(entry->uid);
 	entry->uid = g_strdup(uid);

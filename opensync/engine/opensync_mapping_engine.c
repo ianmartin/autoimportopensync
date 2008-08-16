@@ -704,6 +704,7 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 			if (!change || osync_change_compare(existingEntry->change, change) == OSYNC_CONV_DATA_SAME){
 				existingChange = existingEntry->change;
 				osync_change_ref(existingChange);
+				osync_assert(osync_change_get_uid(existingChange));
 				break;
 			}
 
@@ -712,6 +713,7 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 			elevation++;
 		
 			existingChange = osync_change_clone(existingEntry->change, error);
+			osync_assert(osync_change_get_uid(existingChange));
 		}
 		
 		
