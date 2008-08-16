@@ -952,7 +952,7 @@ int osync_time_alarmdu2sec(const char *alarm)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
 
-        int i, secs, digits;
+        int i, secs, digits = 0;
         int is_digit = 0;
 	int sign = 1;	// when ical stamp doesn't start with '-' => seconds after event
         int days = 0, weeks = 0, hours = 0, minutes = 0, seconds = 0;
@@ -999,7 +999,9 @@ int osync_time_alarmdu2sec(const char *alarm)
                                 if (is_digit)
                                         break;
 
-                                sscanf((char*)(alarm+i),"%d",&digits);
+                                if (sscanf((char*)(alarm+i),"%d",&digits) == EOF)
+					return -1;
+
                                 is_digit = 1;
                                 break;
                 }
@@ -1141,7 +1143,7 @@ struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const in
  */ 
 struct tm *osync_time_dstchange(xmlNode *dstNode)
 {
-	int month;
+	int month = -1;
 	struct tm *dst_change = NULL, *tm_started = NULL;
 	char *started = NULL, *rule = NULL, *byday = NULL;
 
@@ -1159,13 +1161,18 @@ struct tm *osync_time_dstchange(xmlNode *dstNode)
 
 		if (strstr(rule, "BYDAY="))
 			byday = g_strdup(rule + 6);
-		else if (strstr(rule, "BYMONTH="))
-			sscanf(rule, "BYMONTH=%d", &month);
+		else if (strstr(rule, "BYMONTH=")) {
+			if (sscanf(rule, "BYMONTH=%d", &month) == EOF)
+				return NULL;
+		}
 		
 		xmlFree(rule);
 
 		current = current->next;
 	}
+
+	if (month == -1)
+		return NULL;
 
 	dst_change = osync_time_relative2tm(byday, month, tm_started->tm_year + 1900);
 

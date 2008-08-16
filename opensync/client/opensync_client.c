@@ -1418,7 +1418,8 @@ static gboolean osyncClientConnectCallback(gpointer data)
 	osync_trace(TRACE_INTERNAL, "About to connect to the incoming queue");
 	
 	/* We now connect to our incoming queue */
-	osync_queue_connect(client->incoming, OSYNC_QUEUE_RECEIVER, NULL);
+	if (!osync_queue_connect(client->incoming, OSYNC_QUEUE_RECEIVER, NULL))
+		return TRUE;
 	
 	return FALSE;
 }

@@ -759,7 +759,8 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 	osync_status_update_mapping(objengine->parent, existingMapping, OSYNC_MAPPING_EVENT_SOLVED, NULL);
 	
 	if (osync_engine_check_get_changes(objengine->parent) && osync_bitcount(objengine->sink_errors | objengine->sink_get_changes) == g_list_length(objengine->sink_engines)) {
-		osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_WRITE, error);
+		if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_WRITE, error))
+			goto error;
 	} else
 		osync_trace(TRACE_INTERNAL, "Not triggering write. didnt receive all reads yet");
 
