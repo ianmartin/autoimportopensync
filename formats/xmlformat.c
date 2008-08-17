@@ -69,7 +69,7 @@ osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output
 	}
 
 	*output = (char *) xmlformat;
-	*outpsize = size;
+	*outpsize = osync_xmlformat_size();
 
 	g_free(buffer);
 
