@@ -362,7 +362,7 @@ error:
 
 osync_bool osync_hashtable_save(OSyncHashTable *table, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, error);
 
 	osync_bool ret;
 
