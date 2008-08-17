@@ -45,7 +45,7 @@
 OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error)
 {
 	OSyncFormatConverter *converter = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%i, %s %p, %s %p, %p, %p)", __func__, type, osync_objformat_get_name(sourceformat), sourceformat, osync_objformat_get_name(targetformat), targetformat, convert_func, error);
+	osync_trace(TRACE_ENTRY, "%s(%i, %s %p, %s %p, %p, %p)", __func__, type, __NULLSTR(osync_objformat_get_name(sourceformat)), sourceformat, __NULLSTR(osync_objformat_get_name(targetformat)), targetformat, convert_func, error);
 	
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
@@ -232,7 +232,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 	unsigned int output_size = 0;
 	osync_bool free_input = FALSE;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, __NULLSTR(config), error);
 	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format), converter->target_format, osync_objformat_get_name(converter->target_format));
 	
 	if (converter->type != OSYNC_CONVERTER_DETECTOR) {
@@ -344,6 +344,7 @@ void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatCo
 {
 	osync_assert(path);
 	osync_assert(edge);
+
 	path->converters = g_list_append(path->converters, edge);
 	osync_converter_ref(edge);
 }
@@ -386,8 +387,11 @@ const char *osync_converter_path_get_config(OSyncFormatConverterPath *path)
 void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config)
 {
 	osync_assert(path);
+	osync_assert(config);
+
 	if (path->config)
 		g_free(path->config);
+
 	path->config = g_strdup(config);
 }
 
