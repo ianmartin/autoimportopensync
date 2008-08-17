@@ -23,7 +23,10 @@ INCLUDE( OpenSyncInternal )
 
 # Defaults
 SET( ENABLE_OBEX TRUE CACHE BOOL "OBEX Transport" )
-SET( ENABLE_HTTP TRUE CACHE BOOL "HTTP Transport" )
+
+# TODO: port HTTP transport to latest API
+#SET( ENABLE_HTTP TRUE CACHE BOOL "HTTP Transport" )
+SET( ENABLE_HTTP FALSE CACHE BOOL "HTTP Transport" )
 
 CONFIGURE_FILE("config.h.cmake" "config.h")
 
