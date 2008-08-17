@@ -122,7 +122,6 @@ osync_custom_filter_unref
 osync_data_clone
 osync_data_compare
 osync_data_get_data
-osync_data_get_data_ptr
 osync_data_get_objformat
 osync_data_get_objtype
 osync_data_get_printable

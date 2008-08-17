@@ -31,7 +31,6 @@ OSYNC_EXPORT const char *osync_data_get_objtype(OSyncData *data);
 OSYNC_EXPORT void osync_data_set_objtype(OSyncData *data, const char *objtype);
 
 OSYNC_EXPORT void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size);
-OSYNC_EXPORT void *osync_data_get_data_ptr(OSyncData *data);
 OSYNC_EXPORT void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size);
 OSYNC_EXPORT void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size);
 OSYNC_EXPORT osync_bool osync_data_has_data(OSyncData *data);

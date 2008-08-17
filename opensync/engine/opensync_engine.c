@@ -221,7 +221,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	{
 		osync_trace(TRACE_INTERNAL, "Merge the XMLFormat.");
 		char *buffer = NULL;
-		unsigned int size = 0;
+		unsigned int xmlformat_size = 0, size = 0;
 		OSyncXMLFormat *xmlformat = NULL;
 		OSyncXMLFormat *xmlformat_entire = NULL;
 
@@ -243,7 +243,9 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 				if(!xmlformat_entire)
 					goto error;
 					
-				xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(change));
+				osync_data_get_data(osync_change_get_data(change), (char **) &xmlformat, &xmlformat_size);
+				osync_assert(xmlformat_size == osync_xmlformat_size());
+
 				osync_merger_merge(merger, xmlformat, xmlformat_entire);
 				osync_xmlformat_unref(xmlformat_entire);
 			}

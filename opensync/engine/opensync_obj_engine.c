@@ -942,12 +942,14 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
 						char *buffer = NULL;
-						unsigned int size = 0;
+						unsigned int xmlformat_size = 0, size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
 						const char *objtype = osync_change_get_objtype(entry_engine->change);
 						OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 						
-						xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(entry_engine->change));
+						osync_data_get_data(osync_change_get_data(entry_engine->change), (char **) &xmlformat, &xmlformat_size);
+						osync_assert(xmlformat_size == osync_xmlformat_size());
+
 						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
 							osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not assamble the xmlformat");
 							goto error;	

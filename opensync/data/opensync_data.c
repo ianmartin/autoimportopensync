@@ -175,18 +175,6 @@ void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size)
 		*size = data->size;
 }
 
-/*! @brief Get a pointer to the data from a data object
- * 
- * @param data The data object
- * @returns a pointer to the data. Do not free this.
- * 
- */
-void *osync_data_get_data_ptr(OSyncData *data)
-{
-	osync_assert(data);
-	return data->data;
-}
-
 /*! @brief Get the data from a data object and then clear the data object's pointers to it
  * 
  * @param data The data object
