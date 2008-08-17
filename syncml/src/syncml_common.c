@@ -328,7 +328,7 @@ gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpointer user
 
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	report_success_on_context(&ctx);
+	osync_context_report_success(ctx);
 }
 
 void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
