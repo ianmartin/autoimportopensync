@@ -542,7 +542,7 @@ SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid
 	osync_trace(TRACE_INTERNAL,
 		"%s: objformat: %s", __func__,
 		osync_objformat_get_name(database->objformat));
-	OSyncData *odata = osync_data_new(data, size+1, database->objformat, &oerror);
+	OSyncData *odata = osync_data_new(data, size, database->objformat, &oerror);
 	if (!odata) {
 		goto oerror;
 	}
