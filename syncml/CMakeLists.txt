@@ -30,6 +30,11 @@ SET( ENABLE_HTTP FALSE CACHE BOOL "HTTP Transport" )
 
 CONFIGURE_FILE("config.h.cmake" "config.h")
 
+# add uninstall target
+CONFIGURE_FILE(	"${CMAKE_SOURCE_DIR}/cmake/modules/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+
 INCLUDE( CTest )
 ENABLE_TESTING()
 

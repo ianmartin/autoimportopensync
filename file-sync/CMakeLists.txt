@@ -15,6 +15,11 @@ FIND_PACKAGE( LibXml2 REQUIRED )
 INCLUDE( OpenSyncInternal )
 INCLUDE( Testing )
 
+# add uninstall target
+CONFIGURE_FILE(	"${CMAKE_SOURCE_DIR}/cmake/modules/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+
 ADD_SUBDIRECTORY( src )
 ADD_SUBDIRECTORY( tests )
 
