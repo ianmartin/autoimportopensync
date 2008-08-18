@@ -495,6 +495,20 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 			goto error_free_env;
 		}
 
+		OSyncList *s = osync_plugin_resource_get_objformat_sinks(res);
+		for (; s; s = s->next) {
+			OSyncObjFormatSink *fsink = s->data;
+			const char *objformat = osync_objformat_sink_get_objformat(fsink);
+			assert(objformat);
+			
+			/* TODO: Implement objformat sanity check in OpenSync Core */ 
+			if (strcmp(objformat, "file")) {
+				osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Format \"%s\" is not supported by file-sync. Only Format \"file\" is currently supported by the file-sync plugin.", objformat);
+				goto error_free_env;
+			}
+
+		}
+
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
 		memset(&functions, 0, sizeof(functions));
