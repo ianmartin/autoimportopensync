@@ -370,16 +370,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	return (void *)env;
 
 error_free_env:
-	if (env->san) {
-		smlNotificationFree(env->san);
-		env->san = NULL;
-	}
-	if (env->auth)
-		smlAuthFree(env->auth);
-	if (env->manager)
-		smlManagerFree(env->manager);
-	if (env->tsp)
-		smlTransportFree(env->tsp);
 	finalize(env);
 error:
 	if (serror)
