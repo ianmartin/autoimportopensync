@@ -1,7 +1,7 @@
 PROJECT( libopensync-plugin-gnokii C )
 CMAKE_MINIMUM_REQUIRED( VERSION 2.4 )
 
-SET( VERSION "0.37" )
+SET( VERSION "0.38" )
 
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
 
