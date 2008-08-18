@@ -684,7 +684,7 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 
 	*free_input = TRUE;
 	*output = (char *)xmlformat;
-	*outpsize = sizeof(xmlformat);
+	*outpsize = osync_xmlformat_size();
 
 	// XXX: remove this later?
 	osync_xmlformat_sort(xmlformat);

@@ -69,7 +69,7 @@ osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, char **out
 	
 	*free_input = TRUE;
 	*output = (char *)xmlformat;
-	*outpsize = sizeof(xmlformat);
+	*outpsize = osync_xmlformat_size();
 
 	osync_xmlformat_sort(xmlformat);
 	
