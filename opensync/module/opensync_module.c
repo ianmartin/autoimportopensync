@@ -75,6 +75,9 @@ void osync_module_free(OSyncModule *module)
  */
 void *osync_module_get_function(OSyncModule *module, const char *name, OSyncError **error)
 {
+	osync_assert(module);
+	osync_assert(name);
+	
 	void *function = NULL;
 	if (!module->module) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You need to load the module before getting a function");
@@ -82,7 +85,7 @@ void *osync_module_get_function(OSyncModule *module, const char *name, OSyncErro
 	}
 	
 	if (!g_module_symbol(module->module, name, &function)) {
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to locate symbol %s: %s", name, g_module_error());
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to locate symbol %s: %s", __NULLSTR(name), g_module_error());
 		return NULL;
 	}
 	
@@ -163,6 +166,8 @@ error:
 
 int osync_module_get_version(OSyncModule *module)
 {
+	osync_assert(module);
+	
 	void *function = NULL;
 	int (* fct_version)(void) = NULL;
 	int version = 0;
@@ -216,6 +221,7 @@ osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
 osync_bool osync_module_load(OSyncModule *module, const char *path, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, module, path, error);
+	osync_assert(module);
 	osync_assert(!module->module);
 	
 	if (!g_module_supported()) {
@@ -249,6 +255,7 @@ error:
 void osync_module_unload(OSyncModule *module)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
+	osync_assert(module);
 	osync_assert(module->module);
 	
 	if (!osync_module_get_function(module, "dont_free", NULL))

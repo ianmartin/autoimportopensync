@@ -81,7 +81,7 @@ OSyncPluginEnv *osync_plugin_env_new(OSyncError **error)
 void osync_plugin_env_free(OSyncPluginEnv *env)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
-	g_assert(env);
+	osync_assert(env);
 	
 	/* Free the plugins */
 	while (env->plugins) {
