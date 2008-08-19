@@ -38,7 +38,9 @@
 
 static void usage (char *name, int ecode)
 {
-	fprintf (stderr, "Usage: %s <file> <switches>\n", name);
+	fprintf (stderr, "Usage: %s <file> <switches>\n\n", name);
+	fprintf (stderr, "Switches:\n");
+	fprintf (stderr, "--help\t\tShow this help message\n");
 	fprintf (stderr, "--out <file>\tStore the output in this file (No output to stdout)\n");
 	fprintf (stderr, "--to-vcard21\tConvert to vcard 2.1\n");
 	fprintf (stderr, "--to-vcard30\tConvert to vcard 3.0\n");
@@ -280,6 +282,9 @@ int main (int argc, char *argv[])
 	if (argc < 2)
 		usage (argv[0], 1);
 
+	if (!strcmp (argv[1], "--help"))
+		usage (argv[0], 0);
+
 	char *filename = argv[1];
 	char *output = NULL;
 	conv_detection type = TARGET_AUTO;
@@ -288,7 +293,9 @@ int main (int argc, char *argv[])
 	int i;
 	for (i = 2; i < argc; i++) {
 		char *arg = argv[i];
-		if (!strcmp (arg, "--to-vcard21")) {
+		if (!strcmp (arg, "--help")) {
+			usage (argv[0], 0);
+		} else if (!strcmp (arg, "--to-vcard21")) {
 			type = TARGET_VCARD_21;
 		} else if (!strcmp (arg, "--to-vcard30")) {
 			type = TARGET_VCARD_30;
@@ -311,8 +318,6 @@ int main (int argc, char *argv[])
 			i++;
 			if (!output)
 				usage (argv[0], 1);
-		} else if (!strcmp (arg, "--help")) {
-			usage (argv[0], 0);
 		} else if (!strcmp (arg, "--")) {
 			break;
 		} else if (arg[0] == '-') {
@@ -335,6 +340,7 @@ int main (int argc, char *argv[])
 		goto error;
 	}
 
+	// read file
 	char *buffer;
 	unsigned int size;
 	if (!osync_file_read(filename, &buffer, &size, &error)) {
