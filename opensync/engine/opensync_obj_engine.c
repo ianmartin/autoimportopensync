@@ -320,6 +320,8 @@ osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClien
 {
 	OSyncSinkEngine *sinkengine = NULL;
 	
+	osync_assert(objengine);
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, objengine, proxy, change, error);
 	
 	/* Find the sinkengine for the proxy */

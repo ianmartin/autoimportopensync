@@ -716,9 +716,9 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	xmlNodePtr cur;
 	//xmlNodePtr filternode;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	osync_assert(group);
 	osync_assert(path);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	
 	if (!g_path_is_absolute(path)) {
 		char *curdir = g_get_current_dir();
