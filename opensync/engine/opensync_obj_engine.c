@@ -620,9 +620,10 @@ static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, OSyncError *
 
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error)
 {
+	osync_assert(parent);
+	osync_assert(objtype);
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, parent, objtype, formatenv, error);
-	g_assert(parent);
-	g_assert(objtype);
 	
 	OSyncObjEngine *engine = osync_try_malloc0(sizeof(OSyncObjEngine), error);
 	if (!engine)

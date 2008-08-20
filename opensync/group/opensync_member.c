@@ -463,6 +463,7 @@ OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **err
 
 	osync_member_set_config(member, config);
 
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return config;
 
 error_free_config:
