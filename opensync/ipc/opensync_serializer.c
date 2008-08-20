@@ -1182,7 +1182,7 @@ osync_bool osync_demarshal_pluginauthentication(OSyncMessage *message, OSyncPlug
 	if (available_fields & MARSHAL_PLUGINAUTEHNTICATION_REFERENCE) {
 		osync_message_read_string(message, &reference);
 		osync_plugin_authentication_set_reference(*auth, reference);
-		g_free(password);
+		g_free(reference);
 	}
 
 	return TRUE;
