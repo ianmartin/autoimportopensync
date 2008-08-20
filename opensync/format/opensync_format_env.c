@@ -974,7 +974,7 @@ osync_bool osync_format_env_convert(OSyncFormatEnv *env, OSyncFormatConverterPat
 	length = osync_converter_path_num_edges(path);
 	
 	if (length == 0) {
-		osync_trace(TRACE_EXIT, "%s: Path has 0 length");
+		osync_trace(TRACE_EXIT, "%s: Path has 0 length", __func__);
 		return TRUE;
 	}
 	
