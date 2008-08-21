@@ -151,6 +151,11 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
+	if (cur == NULL) { // don't set auth if Authentication tag is empty
+		osync_trace(TRACE_EXIT, "%s", __func__);
+		return TRUE;	
+	}
+	
 	OSyncPluginAuthentication *auth = osync_plugin_authentication_new(error);
 	if (!auth)
 		goto error;
