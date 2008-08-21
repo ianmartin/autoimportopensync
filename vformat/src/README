@@ -25,7 +25,7 @@ vcard.c
 	Beside the object formats, format detectores to detect vcard21 and
 	vcard30 in "plain" format.
 
-	TODO: Implement cutom filter for vCards - skeleton available.
+	TODO: Implement custom filter for vCards - skeleton available.
 
 vevent.c
 
@@ -43,12 +43,12 @@ vevent.c
 vtodo.c
 
 
-	Register the object formats "vevent10", "vevent20". 
+	Register the object formats "vtodo10", "vtodo20". 
 
-	vevent10 represents VTODO component of vCalendar 
+	vtodo10 represents VTODO component of vCalendar 
 		- http://www.imc.org/pdi/vcal-10.txt
 
-	vevent20 represents VTODO component of iCalendar 
+	vtodo20 represents VTODO component of iCalendar 
 		- RFC2445, Chapter 4.6.2 To-do Component
 
 
@@ -74,9 +74,11 @@ xmlformat-recurrence.c
 
 xmlformat-vcalendar.c
 
-	Provides common helper functions for the xmlformat-event from/to
-	vevent10 and vevent20 converters and xmlformat-todo from/to vtodo10 and 
-	vtodo20 conveters.
+	Provides common helper functions for
+
+		- xmlformat-event from/to vevent10 and vevent20 converters
+		- xmlformat-todo from/to vtodo10 and vtodo20 conveters
+		- xmlformat-note from/to vnote11 converter
 
 xmlformat-vcard.c
 
@@ -85,9 +87,6 @@ xmlformat-vcard.c
 xmlformat-vevent.c
 
 	Converter code of xmlformat-event from/to vevent10 and vevent20 converter.
-
-xmlformat-vtodo.c [TBD]
-
 	Converter code of xmlformat-todo from/to vtodo10 and vtodo20 converter.
 
 xmlformat-vnote.c
