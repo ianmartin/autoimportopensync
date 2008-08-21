@@ -571,6 +571,11 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format
 			osync_trace(TRACE_INTERNAL, "invalid character found in parameter spec: \"%i\" String so far: %s", lp[0], str->str);
 			g_string_assign (str, "");
 			_skip_until (&lp, ":;");
+			if (*lp == '\r') {
+				osync_trace(TRACE_INTERNAL, "string ended unexpectedly with \\r, skipping it");
+				break;
+			}
+
 		}
 	}
 
