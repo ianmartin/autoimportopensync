@@ -67,14 +67,6 @@
      <Type>string</Type>
      <Value></Value>
    </AdvancedOption>
-   <AdvancedOption>
-     <!-- If wbxml is enabled, defines wether the wbxml should use string 
-          tables -->
-     <DisplayName>Use String Tables</DisplayName>
-     <Name>UseStringTable</Name>
-     <Type>bool</Type>
-     <Value>0</Value>
-   </AdvancedOption>
    <!-- FIXME: OnlyReplace seems to be DEAD option - drop? -->
    <AdvancedOption>
      <!-- Never send ADD command, but send REPLACE (not needed normally) -->
@@ -88,6 +80,14 @@
           and _no_ UTC timestamps! -->
      <DisplayName>Only local time</DisplayName>
      <Name>OnlyLocaltime</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- If wbxml is enabled, defines wether the wbxml should use string 
+          tables -->
+     <DisplayName>Use String Tables</DisplayName>
+     <Name>UseStringTable</Name>
      <Type>bool</Type>
      <Value>0</Value>
    </AdvancedOption>

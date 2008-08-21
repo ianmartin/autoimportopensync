@@ -8,25 +8,20 @@ const char *get_database_pref_content_type(
 				SmlDatabase *database,
 				OSyncError **error);
 
-SmlDevInfDataStore *add_devinf_datastore(
-				SmlDevInf *devinf, 
-				SmlDatabase *database, 
-				OSyncError **error);
+/* ************************************************ */
+/* *****     Device Information Callbacks     ***** */
+/* ************************************************ */
 
-SmlBool store_devinf(
+SmlBool _write_devinf(
+		SmlDataSyncObject *dsObject,
 		SmlDevInf *devinf,
-		const char *filename,
-		OSyncError **error);
+		void *userdata,
+		SmlError **error);
 
-SmlBool load_remote_devinf(
-		SmlPluginEnv *env,
-		OSyncError **error);
-
-char *get_devinf_identifier();
-
-SmlDevInf *init_env_devinf(
-		SmlPluginEnv *env,
-		SmlDevInfDevTyp type,
-		SmlError **serror);
+SmlDevInf *_read_devinf(
+		SmlDataSyncObject *dsObject,
+		const char *devid,
+		void *userdata,
+		SmlError **error);
 
 #endif //_SYNCML_DEVINF_H

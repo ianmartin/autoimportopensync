@@ -1,6 +1,6 @@
 /*
  * syncml plugin - A syncml plugin for OpenSync
- * Copyright (C) 2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2008  Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,82 +27,65 @@
 /* *****     Management Callbacks     ***** */
 /* **************************************** */
 
-void _manager_event(
-		SmlManager *manager,
-		SmlManagerEventType type,
-		SmlSession *session,
-		SmlError *error,
-		void *userdata);
-
-/* *************************************** */
-/* *****     DsSession Callbacks     ***** */
-/* *************************************** */
-
-void _ds_event(SmlDsSession *dsession, SmlDsEvent event, void *userdata);
-
-void _ds_alert(SmlDsSession *dsession, void *userdata);
+void _recv_event(
+		SmlDataSyncObject *dsObject,
+		SmlDataSyncEventType type,
+		void *userdata,
+		SmlError *error);
 
 /* *********************************** */
 /* *****     Alert Callbacks     ***** */
 /* *********************************** */
 
-/* The real alert callbacks are specific for DS clients and servers.
- * So please check syncml_ds_client.h and syncml_ds_server.h for more details.
- */
+SmlAlertType _get_alert_type(
+			SmlDataSyncObject *dsObject,
+			const char *source,
+			SmlAlertType type,
+			void *userdata,
+			SmlError **error);
 
-void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *userdata);
+char *_get_anchor(
+		SmlDataSyncObject *dsObject,
+		const char *name,
+		void *userdata,
+		SmlError **error);
 
-/* ********************************** */
-/* *****     Sync Callbacks     ***** */
-/* ********************************** */
-
-void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata);
-
-void _recv_sync_reply(SmlSession *session, SmlStatus *status, void *userdata);
+SmlBool _set_anchor(
+		SmlDataSyncObject *dsObject,
+		const char *name,
+		const char *value,
+		void *userdata,
+		SmlError **error);
 
 /* ************************************ */
 /* *****     Change Callbacks     ***** */
 /* ************************************ */
 
 SmlBool _recv_change(
-		SmlDsSession *dsession,
+		SmlDataSyncObject *dsObject,
+		const char *source,
 		SmlChangeType type,
 		const char *uid,
-		char *data, unsigned int size,
-		const char *contenttype,
+		char *data,
+		unsigned int size,
 		void *userdata,
-		SmlError **smlerror);
+		SmlError **error);
 
 SmlBool _recv_unwanted_change(
-		SmlDsSession *dsession,
+		SmlDataSyncObject *dsObject,
+		const char *source,
 		SmlChangeType type,
 		const char *uid,
-		char *data, unsigned int size,
-		const char *contenttype,
+		char *data,
+		unsigned int size,
 		void *userdata,
-		SmlError **smlerror);
+		SmlError **error);
 
-void _recv_change_reply(
-		SmlDsSession *dsession,
-		SmlStatus *status,
+SmlBool _recv_change_status(
+		SmlDataSyncObject *dsObject,
+		unsigned int code,
 		const char *newuid,
-		void *userdata);
-
-/* ********************************* */
-/* *****     Map Callbacks     ***** */
-/* ********************************* */
-
-void _recv_map_reply(SmlSession *session, SmlStatus *status, void *userdata);
-
-/* ******************************************* */
-/* *****     Authentication Callback     ***** */
-/* ******************************************* */
-
-SmlBool _verify_user(
-                SmlChal *chal,
-                SmlCred *cred,
-                const char *username,
-                void *userdata,
-                SmlError **error);
+		void *userdata,
+		SmlError **error);
 
 #endif //_SYNCML_CALLBACKS_H

@@ -1,8 +1,6 @@
 #include "syncml_common.h"
 #include<opensync/db/opensync_db.h>
 
-SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filename, OSyncError **oerror);
-
 const char *get_database_pref_content_type(
 				SmlDatabase *database,
 				OSyncError **error)
@@ -39,469 +37,6 @@ const char *get_database_pref_content_type(
 
     osync_trace(TRACE_EXIT, "%s - %s", __func__, ct);
     return ct;
-}
-
-SmlDevInfProperty *_add_ctcap_property_by_name(
-				SmlDevInfCTCap *ctcap,
-				const char *name)
-{
-    osync_trace(TRACE_ENTRY, "%s (%s)", __func__, name);
-    g_assert(ctcap);
-    g_assert(name);
-
-    SmlError *error = NULL;
-
-    SmlDevInfProperty *prop = smlDevInfNewProperty(&error);
-    if (!prop) {
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(&error));
-	    return NULL;
-    }
-    smlDevInfPropertySetPropName(prop, name);
-    smlDevInfCTCapAddProperty(ctcap, prop);
-
-    osync_trace(TRACE_EXIT, "%s", __func__);
-    return prop;
-}
-
-SmlDevInfProperty *_add_ctcap_property_by_name_value(
-				SmlDevInfCTCap *ctcap,
-				const char*name,
-				const char *value)
-{
-    osync_trace(TRACE_ENTRY, "%s (%s ::= %s)", __func__, name, value);
-    g_assert(ctcap);
-    g_assert(name);
-    g_assert(value);
-
-    SmlDevInfProperty *prop = _add_ctcap_property_by_name(ctcap, name);
-    smlDevInfPropertyAddValEnum(prop, value);
-
-    osync_trace(TRACE_EXIT, "%s", __func__);
-    return prop;
-}
-
-SmlDevInfPropParam *_add_property_param(SmlDevInfProperty *prop, const char *name)
-{
-    osync_trace(TRACE_ENTRY, "%s (%s)", __func__, name);
-    g_assert(prop);
-    g_assert(name);
-
-    SmlError *error = NULL;
-
-    SmlDevInfPropParam *param = smlDevInfNewPropParam(&error);
-    if (!param) {
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(&error));
-	    return NULL;
-    }
-
-    smlDevInfPropParamSetParamName(param, name);
-    smlDevInfPropertyAddPropParam(prop, param);
-
-    osync_trace(TRACE_EXIT, "%s", __func__);
-    return param;
-}
-
-// FIXME: this function is too static
-// FIXME: the properties should be load from the format plugin
-osync_bool add_devinf_ctcap(SmlDevInf *devinf, const char* cttype, const char *verct)
-{
-    osync_trace(TRACE_ENTRY, "%s (%s %s)", __func__, cttype, verct);
-    g_assert(devinf);
-    g_assert(cttype);
-    g_assert(verct);
-
-    SmlError *error = NULL;
-
-    // first we check for an already configure CTCap
-    SmlDevInfContentType *ct = smlDevInfNewContentType(cttype, verct, &error);
-    if (!ct)
-	    goto error;
-
-    if (smlDevInfGetCTCap(devinf, ct) != NULL)
-    {
-        smlDevInfFreeContentType(ct);
-        osync_trace(TRACE_EXIT, "%s - content type already present in devinf", __func__);
-        return TRUE;
-    } else {
-        smlDevInfFreeContentType(ct);
-        osync_trace(TRACE_INTERNAL, "new content type detected");
-    }
-
-    SmlDevInfCTCap *ctcap;
-    SmlDevInfProperty *prop;
-    SmlDevInfPropParam *param;
-    if (!strcmp(cttype, SML_ELEMENT_TEXT_VCARD) &&
-        !strcmp(verct, "2.1"))
-    {
-        osync_trace(TRACE_INTERNAL, "vCard 2.1 detected");
-        ctcap = smlDevInfNewCTCap(&error);
-	if (!ctcap)
-		goto error;
-
-        smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD);
-        smlDevInfCTCapSetVerCT(ctcap, "2.1");
-        prop = _add_ctcap_property_by_name(ctcap, "ADR");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "HOME");
-        smlDevInfPropParamAddValEnum(param, "WORK");
-        smlDevInfPropParamAddValEnum(param, "PARCEL");
-        smlDevInfPropParamAddValEnum(param, "POSTAL");
-        smlDevInfPropParamAddValEnum(param, "INTL");
-        smlDevInfPropParamAddValEnum(param, "DOM");
-        _add_ctcap_property_by_name(ctcap, "AGENT");
-        _add_ctcap_property_by_name(ctcap, "BDAY");
-        _add_ctcap_property_by_name_value(ctcap, "BEGIN", "VCARD");
-        _add_ctcap_property_by_name_value(ctcap, "END", "VCARD");
-        prop = _add_ctcap_property_by_name(ctcap, "EMAIL");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "INTERNET");
-        _add_ctcap_property_by_name(ctcap, "FN");
-        _add_ctcap_property_by_name(ctcap, "GEO");
-        prop = _add_ctcap_property_by_name(ctcap, "KEY");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "X509");
-        smlDevInfPropParamAddValEnum(param, "PGP");
-        prop = _add_ctcap_property_by_name(ctcap, "LABEL");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "HOME");
-        smlDevInfPropParamAddValEnum(param, "WORK");
-        smlDevInfPropParamAddValEnum(param, "PARCEL");
-        smlDevInfPropParamAddValEnum(param, "POSTAL");
-        smlDevInfPropParamAddValEnum(param, "INTL");
-        smlDevInfPropParamAddValEnum(param, "DOM");
-        prop = _add_ctcap_property_by_name(ctcap, "LOGO");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "JPEG");
-        _add_ctcap_property_by_name(ctcap, "MAILER");
-        _add_ctcap_property_by_name(ctcap, "N");
-        _add_ctcap_property_by_name(ctcap, "NOTE");
-        _add_ctcap_property_by_name(ctcap, "ORG");
-        prop = _add_ctcap_property_by_name(ctcap, "PHOTO");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "JPEG");
-        _add_ctcap_property_by_name(ctcap, "REV");
-        _add_ctcap_property_by_name(ctcap, "ROLE");
-        prop = _add_ctcap_property_by_name(ctcap, "SOUND");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "AIFF");
-        smlDevInfPropParamAddValEnum(param, "PCM");
-        smlDevInfPropParamAddValEnum(param, "WAVE");
-        prop = _add_ctcap_property_by_name(ctcap, "TEL");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "WORK");
-        smlDevInfPropParamAddValEnum(param, "VOICE");
-        smlDevInfPropParamAddValEnum(param, "PREF");
-        smlDevInfPropParamAddValEnum(param, "PAGER");
-        smlDevInfPropParamAddValEnum(param, "MSG");
-        smlDevInfPropParamAddValEnum(param, "MODEM");
-        smlDevInfPropParamAddValEnum(param, "ISDN");
-        smlDevInfPropParamAddValEnum(param, "HOME");
-        smlDevInfPropParamAddValEnum(param, "FAX");
-        smlDevInfPropParamAddValEnum(param, "CELL");
-        smlDevInfPropParamAddValEnum(param, "CAR");
-        smlDevInfPropParamAddValEnum(param, "BBS");
-        _add_ctcap_property_by_name(ctcap, "TITLE");
-        smlDevInfPropertyAddValEnum(prop, "TZ");
-        smlDevInfPropertyAddValEnum(prop, "UID");
-        prop = _add_ctcap_property_by_name(ctcap, "URL");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "WORK");
-        smlDevInfPropParamAddValEnum(param, "HOME");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.1");
-        smlDevInfAppendCTCap(devinf, ctcap);
-    }
-    else if (!strcmp(cttype, SML_ELEMENT_TEXT_VCARD_30) &&
-             !strcmp(verct, "3.0"))
-    {
-	// FIXME: this is no vCard 3.0 spec
-	// FIXME: this is in terms of vCard 3.0 a bug
-        osync_trace(TRACE_INTERNAL, "vCard 3.0 detected");
-        ctcap = smlDevInfNewCTCap(&error);
-	if (!ctcap)
-		goto error;
-
-        smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCARD_30);
-        smlDevInfCTCapSetVerCT(ctcap, "3.0");
-        _add_ctcap_property_by_name_value(ctcap, "BEGIN", "VCARD");
-        _add_ctcap_property_by_name_value(ctcap, "END", "VCARD");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "3.0");
-        _add_ctcap_property_by_name(ctcap, "REV");
-        _add_ctcap_property_by_name(ctcap, "N");
-        _add_ctcap_property_by_name(ctcap, "TITLE");
-        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
-        _add_ctcap_property_by_name(ctcap, "CLASS");
-        _add_ctcap_property_by_name(ctcap, "ORG");
-        _add_ctcap_property_by_name(ctcap, "EMAIL");
-        _add_ctcap_property_by_name(ctcap, "URL");
-        prop = _add_ctcap_property_by_name(ctcap, "TEL");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "CELL");
-        smlDevInfPropParamAddValEnum(param, "HOME");
-        smlDevInfPropParamAddValEnum(param, "WORK");
-        smlDevInfPropParamAddValEnum(param, "FAX");
-        smlDevInfPropParamAddValEnum(param, "MODEM");
-        smlDevInfPropParamAddValEnum(param, "VOICE");
-        prop = _add_ctcap_property_by_name(ctcap, "ADR");
-        param = _add_property_param(prop, "TYPE");
-        smlDevInfPropParamAddValEnum(param, "HOME");
-        smlDevInfPropParamAddValEnum(param, "WORK");
-        _add_ctcap_property_by_name(ctcap, "BDAY");
-        _add_ctcap_property_by_name(ctcap, "NOTE");
-        prop = _add_ctcap_property_by_name(ctcap, "PHOTO");
-        _add_property_param(prop, "TYPE");
-        smlDevInfAppendCTCap(devinf, ctcap);
-    }
-    /* Oracle collaboration Suite uses the content type to distinguish */
-    /* the versions of vCalendar (and iCalendar)                       */
-    /* text/x-vcalendar --> VERSION 1.0 (vCalendar)                    */
-    /* text/calendar    --> VERSION 2.0 (iCalendar)                    */
-    /* So be VERY VERY CAREFUL if you change something here.           */
-    else if (!strcmp(cttype, SML_ELEMENT_TEXT_VCAL) &&
-             !strcmp(verct, "1.0"))
-    {
-        osync_trace(TRACE_INTERNAL, "vCalendar 1.0 detected");
-        ctcap = smlDevInfNewCTCap(&error);
-	if (!ctcap)
-		goto error;
-
-        smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_VCAL);
-        smlDevInfCTCapSetVerCT(ctcap, "1.0");
-        _add_ctcap_property_by_name(ctcap, "AALARM");
-        _add_ctcap_property_by_name(ctcap, "ATTACH");
-        prop = _add_ctcap_property_by_name(ctcap, "ATTENDEE");
-	_add_property_param(prop, "EXCEPT");
-	_add_property_param(prop, "RSVP");
-	_add_property_param(prop, "STATUS");
-	_add_property_param(prop, "ROLE");
-        prop = _add_ctcap_property_by_name(ctcap, "BEGIN");
-        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-        smlDevInfPropertyAddValEnum(prop, "VEVENT");
-        smlDevInfPropertyAddValEnum(prop, "VTODO");
-        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
-        _add_ctcap_property_by_name(ctcap, "COMPLETED");
-        prop = _add_ctcap_property_by_name(ctcap, "CLASS");
-        smlDevInfPropertyAddValEnum(prop, "PUBLIC");
-        smlDevInfPropertyAddValEnum(prop, "PRIVATE");
-        smlDevInfPropertyAddValEnum(prop, "CONFIDENTIAL");
-        _add_ctcap_property_by_name(ctcap, "DALARM");
-        _add_ctcap_property_by_name(ctcap, "DAYLIGHT");
-        _add_ctcap_property_by_name(ctcap, "DCREATED");
-        _add_ctcap_property_by_name(ctcap, "DESCRIPTION");
-        _add_ctcap_property_by_name(ctcap, "DTSTART");
-        _add_ctcap_property_by_name(ctcap, "DTEND");
-        _add_ctcap_property_by_name(ctcap, "DUE");
-        prop = _add_ctcap_property_by_name(ctcap, "END");
-        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-        smlDevInfPropertyAddValEnum(prop, "VEVENT");
-        smlDevInfPropertyAddValEnum(prop, "VTODO");
-        _add_ctcap_property_by_name(ctcap, "EXDATE");
-        _add_ctcap_property_by_name(ctcap, "LAST-MODIFIED");
-        _add_ctcap_property_by_name(ctcap, "LOCATION");
-        _add_ctcap_property_by_name(ctcap, "PRIORITY");
-        _add_ctcap_property_by_name(ctcap, "RRULE");
-        _add_ctcap_property_by_name(ctcap, "STATUS");
-        _add_ctcap_property_by_name(ctcap, "SUMMARY");
-        _add_ctcap_property_by_name(ctcap, "UID");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "1.0");
-        smlDevInfAppendCTCap(devinf, ctcap);
-    }
-    else if (!strcmp(cttype, SML_ELEMENT_TEXT_ICAL) &&
-             !strcmp(verct, "2.0"))
-    {
-        // FIXME: this is no iCal spec !!!
-        // FIXME: this is nearly a direct copy&paste from vCal
-        // FIXME: this is a bug in terms of iCal
-        osync_trace(TRACE_INTERNAL, "iCalendar (vCalendar 2.0) detected");
-        ctcap = smlDevInfNewCTCap(&error);
-	if (!ctcap)
-		goto error;
-
-        smlDevInfCTCapSetCTType(ctcap, SML_ELEMENT_TEXT_ICAL);
-        smlDevInfCTCapSetVerCT(ctcap, "2.0");
-        _add_ctcap_property_by_name(ctcap, "AALARM");
-        _add_ctcap_property_by_name(ctcap, "ATTACH");
-        prop = _add_ctcap_property_by_name(ctcap, "ATTENDEE");
-	_add_property_param(prop, "RSVP");
-	_add_property_param(prop, "PARTSTAT");
-	_add_property_param(prop, "ROLE");
-        prop = _add_ctcap_property_by_name(ctcap, "BEGIN");
-        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-        smlDevInfPropertyAddValEnum(prop, "VEVENT");
-        smlDevInfPropertyAddValEnum(prop, "VTODO");
-        _add_ctcap_property_by_name(ctcap, "CATEGORIES");
-        _add_ctcap_property_by_name(ctcap, "COMPLETED");
-        prop = _add_ctcap_property_by_name(ctcap, "CLASS");
-        smlDevInfPropertyAddValEnum(prop, "PUBLIC");
-        smlDevInfPropertyAddValEnum(prop, "PRIVATE");
-        smlDevInfPropertyAddValEnum(prop, "CONFIDENTIAL");
-        _add_ctcap_property_by_name(ctcap, "DALARM");
-        _add_ctcap_property_by_name(ctcap, "DAYLIGHT");
-        _add_ctcap_property_by_name(ctcap, "DCREATED");
-        _add_ctcap_property_by_name(ctcap, "DESCRIPTION");
-        _add_ctcap_property_by_name(ctcap, "DTSTART");
-        _add_ctcap_property_by_name(ctcap, "DTEND");
-        _add_ctcap_property_by_name(ctcap, "DUE");
-        prop = _add_ctcap_property_by_name(ctcap, "END");
-        smlDevInfPropertyAddValEnum(prop, "VCALENDAR");
-        smlDevInfPropertyAddValEnum(prop, "VEVENT");
-        smlDevInfPropertyAddValEnum(prop, "VTODO");
-        _add_ctcap_property_by_name(ctcap, "EXDATE");
-        _add_ctcap_property_by_name(ctcap, "LAST-MODIFIED");
-        _add_ctcap_property_by_name(ctcap, "LOCATION");
-        _add_ctcap_property_by_name(ctcap, "PRIORITY");
-        _add_ctcap_property_by_name(ctcap, "RRULE");
-        _add_ctcap_property_by_name(ctcap, "STATUS");
-        _add_ctcap_property_by_name(ctcap, "SUMMARY");
-        _add_ctcap_property_by_name(ctcap, "UID");
-        _add_ctcap_property_by_name_value(ctcap, "VERSION", "2.0");
-        smlDevInfAppendCTCap(devinf, ctcap);
-    }
-    else
-    {
-        /* trace the missing stuff and create a minimal CTCap */
-        osync_trace(TRACE_INTERNAL, "unknown content type - %s %s", cttype, verct);
-        ctcap = smlDevInfNewCTCap(&error);
-	if (!ctcap)
-		goto error;
-        smlDevInfCTCapSetCTType(ctcap, cttype);
-        smlDevInfCTCapSetVerCT(ctcap, verct);
-    }
- 
-    osync_trace(TRACE_EXIT, "%s - content type newly added to devinf", __func__);
-    return TRUE;
-
-error:    
-    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(&error));
-    return FALSE;
-}
-
-SmlDevInfDataStore *add_devinf_datastore(SmlDevInf *devinf, SmlDatabase *database, OSyncError **error)
-{
-    osync_trace(TRACE_ENTRY, "%s (%p, %p)", __func__, devinf, database);
-    g_assert(database);
-    g_assert(database->objformat);
-    g_assert(database->url);
-
-    SmlError *serror = NULL;
-    SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(database->url, &serror);
-    if (!datastore) goto error;
-
-    const char *ct = get_database_pref_content_type(database, error);
-    if (!ct)
-	goto error;
-
-    SmlDevInfContentType *ctype;
-
-    if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD))
-    {
-        // we prefer actually vCard 2.1
-        // because the most cellphones support it
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "3.0", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddRx(datastore, ctype);
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "3.0", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddTx(datastore, ctype);
-        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1"))
-		goto error;
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0"))
-		goto error;
-    }
-    else if (!strcmp(ct, SML_ELEMENT_TEXT_VCARD_30))
-    {
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "2.1", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddRx(datastore, ctype);
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_VCARD_30, "2.1", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddTx(datastore, ctype);
-        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
-        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD_30, "3.0");
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD, "2.1"))
-		goto error;
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCARD_30, "3.0"))
-		goto error;
-    }
-    else if (!strcmp(ct, SML_ELEMENT_TEXT_VCAL))
-    {
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "2.0", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddRx(datastore, ctype);
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "2.0", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddTx(datastore, ctype);
-        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0"))
-		goto error;
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_ICAL, "2.0"))
-		goto error;
-    }
-    else if (!strcmp(ct, SML_ELEMENT_TEXT_ICAL))
-    {
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "1.0", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddRx(datastore, ctype);
-        ctype = smlDevInfNewContentType(SML_ELEMENT_TEXT_ICAL, "1.0", &serror);
-	if (!ctype)
-		goto error;
-        smlDevInfDataStoreAddTx(datastore, ctype);
-        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
-        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_ICAL, "2.0");
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_VCAL, "1.0"))
-		goto error;
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_ICAL, "2.0"))
-		goto error;
-    }
-    else if (!strcmp(ct, SML_ELEMENT_TEXT_PLAIN))
-    {
-        smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-        smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
-        if (!add_devinf_ctcap(devinf, SML_ELEMENT_TEXT_PLAIN, "1.0"))
-		goto error;
-    }
-    else
-    {
-        osync_trace(TRACE_INTERNAL, "%s - unknown content type detected (%s)",
-                    __func__, ct);
-        if (ct != NULL)
-            osync_error_set(error, OSYNC_ERROR_GENERIC,
-                            "content-type unknown (%s)",
-                            ct);
-        goto error;
-    }
-
-    // configure supported sync modes
-    smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
-    smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
-    // server alerted sync means that the client has to interpret alerts !!!
-    // FIXME: we receive alerts but we do nothing with it
-    if (smlDsServerGetServerType(database->server) == SML_DS_CLIENT)
-        // smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_ONE_WAY_FROM_CLIENT, TRUE);
-        osync_trace(TRACE_INTERNAL, "SyncML clients only support SLOW and TWO WAY SYNC");
-    else
-        smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
-
-    smlDevInfAddDataStore(devinf, datastore);
-    osync_trace(TRACE_EXIT, "%s - content type newly added to devinf", __func__);
-    return datastore;
-error:
-    if (serror)
-    {
-        osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&serror));
-        smlErrorDeref(&serror);
-    }
-    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-    return NULL;
 }
 
 /* ************************ */
@@ -656,19 +191,20 @@ error:
     return FALSE;
 }
 
-SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerror)
+SmlBool store_devinf(SmlDevInf *devinf, const char *filename, SmlError **error)
 {
     osync_trace(TRACE_ENTRY, "%s - %s", __func__, filename);
     g_assert(devinf);
     g_assert(filename);
-    g_assert(oerror);
+    g_assert(error);
+    OSyncError *oerror;
     SmlBool success = TRUE;
 
     /* init database stuff */
-    OSyncDB *db = osync_db_new(oerror);
+    OSyncDB *db = osync_db_new(&oerror);
     if (!db) goto oerror;
-    if (!osync_db_open(db, filename, oerror)) goto oerror;
-    if (!init_devinf_database_schema(db, oerror)) goto oerror;
+    if (!osync_db_open(db, filename, &oerror)) goto oerror;
+    if (!init_devinf_database_schema(db, &oerror)) goto oerror;
 
     /* create basic device info */
     char *esc_devid  = osync_db_sql_escape(smlDevInfGetDeviceID(devinf));
@@ -689,7 +225,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                     smlDevInfSupportsUTC(devinf),
                                     smlDevInfSupportsLargeObjs(devinf),
                                     smlDevInfSupportsNumberOfChanges(devinf));
-        success = osync_db_query(db, replace, oerror);
+        success = osync_db_query(db, replace, &oerror);
         if (esc_vendor) safe_cfree(&esc_vendor);
         if (esc_model)  safe_cfree(&esc_model);
         if (esc_oem)    safe_cfree(&esc_oem);
@@ -740,7 +276,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                   esc_rx_pref_ct, esc_rx_pref_version,
                                   esc_tx_pref_ct, esc_tx_pref_version,
                                   sync_cap);
-        success = osync_db_query(db, replace, oerror);
+        success = osync_db_query(db, replace, &oerror);
         safe_cfree(&esc_rx_pref_ct);
         safe_cfree(&esc_rx_pref_version);
         safe_cfree(&esc_tx_pref_ct);
@@ -765,7 +301,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             replace = g_strdup_printf(
                                       rx_query, esc_devid, esc_datastore,
                                       esc_rx_ct, esc_rx_version);
-            success = osync_db_query(db, replace, oerror);
+            success = osync_db_query(db, replace, &oerror);
             safe_cfree(&esc_rx_ct);
             safe_cfree(&esc_rx_version);
 	    safe_cfree(&replace);
@@ -789,7 +325,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
             replace = g_strdup_printf(
                                       tx_query, esc_devid, esc_datastore,
                                       esc_tx_ct, esc_tx_version);
-            success = osync_db_query(db, replace, oerror);
+            success = osync_db_query(db, replace, &oerror);
             safe_cfree(&esc_tx_ct);
             safe_cfree(&esc_tx_version);
 	    safe_cfree(&replace);
@@ -818,7 +354,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
         const char *ctcaps_query = "REPLACE INTO content_type_capabilities (\"device_id\", \"content_type\", \"version\") VALUES ('%s', '%s', '%s')";
         replace = g_strdup_printf(ctcaps_query, esc_devid, esc_ct, esc_version);
         // FIXME: unclean error handling
-        success = osync_db_query(db, replace, oerror);
+        success = osync_db_query(db, replace, &oerror);
 	safe_cfree(&replace);
 
         /* adding properties */
@@ -848,7 +384,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                       max_occur, max_size, no_truncate,
                                       esc_display_name);
             // FIXME: unclean error handling
-            success = osync_db_query(db, replace, oerror);
+            success = osync_db_query(db, replace, &oerror);
 	    safe_cfree(&replace);
             if (esc_data_type)    safe_cfree(&esc_data_type);
             if (esc_display_name) safe_cfree(&esc_display_name);
@@ -867,7 +403,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                 replace = g_strdup_printf(prop_value_query, esc_devid, esc_ct, esc_version,
                                       esc_prop_name, esc_value);
                 // FIXME: unclean error handling
-                success = osync_db_query(db, replace, oerror);
+                success = osync_db_query(db, replace, &oerror);
 	        safe_cfree(&replace);
                 safe_cfree(&esc_value);
 	        osync_trace(TRACE_INTERNAL, "%s: adding property value %d", __func__, l);
@@ -894,7 +430,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                       esc_prop_name, esc_param_name,
                                       esc_data_type, esc_display_name);
                 // FIXME: unclean error handling
-                success = osync_db_query(db, replace, oerror);
+                success = osync_db_query(db, replace, &oerror);
 	        safe_cfree(&replace);
                 if (esc_data_type)    safe_cfree(&esc_data_type);
                 if (esc_display_name) safe_cfree(&esc_display_name);
@@ -914,7 +450,7 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
                                       esc_prop_name, esc_param_name,
                                       esc_value);
                      // FIXME: unclean error handling
-                     success = osync_db_query(db, replace, oerror);
+                     success = osync_db_query(db, replace, &oerror);
 	             safe_cfree(&replace);
                      safe_cfree(&esc_value);
 	             osync_trace(TRACE_INTERNAL, "%s: adding property parameter value %d", __func__, m);
@@ -941,80 +477,40 @@ SmlBool store_devinf(SmlDevInf *devinf, const char *filename, OSyncError **oerro
 
     /* finalize database */
     safe_cfree(&esc_devid);
-    if (!osync_db_close(db, oerror)) goto oerror;
+    if (!osync_db_close(db, &oerror)) goto oerror;
     // FIXME: I cannot unref OSyncDB !?
     // FIXME: Is this an API bug?
 
     osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
     return TRUE;
 oerror:
-    osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
+    smlErrorSet(error, SML_ERROR_GENERIC, "%s", osync_error_print(&oerror));
+    osync_error_unref(&oerror);
+    osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, smlErrorPrint(error));
     return FALSE;
 }
 
-void _update_session_config_from_devinf(SmlPluginEnv *env)
-{
-	osync_trace(TRACE_ENTRY, "%s called", __func__); 
-	SmlDevInf *devinf = env->remote_devinf;
-	SmlSession *session = env->session;
-
-	smlSessionUseNumberOfChanges(session, smlDevInfSupportsNumberOfChanges(devinf));
-	smlSessionUseLargeObjects(session, smlDevInfSupportsLargeObjs(devinf));
-
-	osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
-}
-
-SmlBool load_remote_devinf(SmlPluginEnv *env, OSyncError **error)
-{
-	env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
-	if (env->remote_devinf)
-	{
-		osync_trace(TRACE_INTERNAL, "%s: DevInf was sent.", __func__);
-		_update_session_config_from_devinf(env);
-		return store_devinf(env->remote_devinf,
-			env->devinf_path, error);
-	} else {
-		osync_trace(TRACE_INTERNAL, "%s: No DevInf was sent.", __func__);
-		if (!load_devinf(
-				env->agent,
-				smlLocationGetURI(smlSessionGetTarget(env->session)),
-				env->devinf_path, error))
-		{
-			SmlError *serror = NULL;
-       			smlDevInfAgentRequestDevInf(
-				env->agent,
-				env->session,
-				&serror);
-			return FALSE;
-		}
-		env->remote_devinf = smlDevInfAgentGetDevInf(env->agent);
-		_update_session_config_from_devinf(env);
-	}
-	return TRUE;
-}
-
-SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filename, OSyncError **oerror)
+SmlDevInf *load_devinf(const char *devid, const char *filename, SmlError **error)
 {
     osync_trace(TRACE_ENTRY, "%s - %s from %s", __func__, devid, filename);
-    g_assert(agent);
     g_assert(devid);
     g_assert(filename);
-    g_assert(oerror);
-    SmlError *error = NULL;
+    g_assert(error);
+    OSyncError *oerror = NULL;
     SmlDevInf *devinf = NULL;
 
     /* init database stuff */
-    OSyncDB *db = osync_db_new(oerror);
+    OSyncDB *db = osync_db_new(&oerror);
     if (!db) goto oerror;
-    if (!osync_db_open(db, filename, oerror)) goto oerror;
-    if (!init_devinf_database_schema(db, oerror)) goto oerror;
+    if (!osync_db_open(db, filename, &oerror)) goto oerror;
+    if (!init_devinf_database_schema(db, &oerror)) goto oerror;
 
     /* read basic device info */
     char *esc_devid  = osync_db_sql_escape(devid);
     const char *device_query = "SELECT \"device_type\", \"manufacturer\", \"model\", \"oem\", \"sw_version\", \"hw_version\", \"fw_version\", \"utc\", \"large_objects\", \"number_of_changes\" FROM devices WHERE \"device_id\"='%s'";
     char *query = g_strdup_printf(device_query, esc_devid);
     // FIXME: unclean error handling
-    OSyncList *result = osync_db_query_table(db, query, oerror);
+    OSyncList *result = osync_db_query_table(db, query, &oerror);
     safe_cfree(&query);
     unsigned int count = 0;
     OSyncList *row;
@@ -1024,7 +520,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         g_assert(count == 1);
         OSyncList *columns = row->data;
 
-        devinf = smlDevInfNew(devid, atoi(osync_list_nth_data(columns, 0)), &error);
+        devinf = smlDevInfNew(devid, atoi(osync_list_nth_data(columns, 0)), error);
         smlDevInfSetManufacturer(devinf, osync_list_nth_data(columns, 1));
         smlDevInfSetModel(devinf, osync_list_nth_data(columns, 2));
         smlDevInfSetOEM(devinf, osync_list_nth_data(columns, 3));
@@ -1049,7 +545,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     const char*datastore_query = "SELECT \"datastore\", \"rx_pref_content_type\", \"rx_pref_version\", \"tx_pref_content_type\", \"tx_pref_version\", \"sync_cap\" FROM datastores WHERE \"device_id\"='%s'";
     query = g_strdup_printf(datastore_query, esc_devid);
     // FIXME: unclean error handling
-    result = osync_db_query_table(db, query, oerror);
+    result = osync_db_query_table(db, query, &oerror);
     safe_cfree(&query);
     for (row = result; row; row = row->next)
     {
@@ -1057,7 +553,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
 
         // FIXME: unclean error handling
         char *esc_datastore  = osync_db_sql_escape(osync_list_nth_data(columns, 0));
-        SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(osync_list_nth_data(columns, 0), &error);
+        SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(osync_list_nth_data(columns, 0), error);
         if (osync_list_nth_data(columns, 1))
             smlDevInfDataStoreSetRxPref(
                 datastore,
@@ -1079,7 +575,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         const char *rx_query = "SELECT \"content_type\", \"version\" FROM datastore_rx WHERE \"device_id\"='%s' AND \"datastore\"='%s'";
         query = g_strdup_printf(rx_query, esc_devid, esc_datastore);
         // FIXME: unclean error handling
-        OSyncList *rx_result = osync_db_query_table(db, query, oerror);
+        OSyncList *rx_result = osync_db_query_table(db, query, &oerror);
         safe_cfree(&query);
 	OSyncList *rx_row;
         for (rx_row = rx_result; rx_row; rx_row = rx_row->next)
@@ -1088,7 +584,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
             SmlDevInfContentType *ctype = smlDevInfNewContentType(
                                               osync_list_nth_data(columns, 0),
                                               osync_list_nth_data(columns, 1),
-                                              &error);
+                                              error);
             smlDevInfDataStoreAddRx(datastore, ctype);
         }
         osync_db_free_list(rx_result);
@@ -1097,7 +593,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         const char *tx_query = "SELECT \"content_type\", \"version\" FROM datastore_tx WHERE \"device_id\"='%s' AND \"datastore\"='%s'";
         query = g_strdup_printf(tx_query, esc_devid, esc_datastore);
         // FIXME: unclean error handling
-        OSyncList *tx_result = osync_db_query_table(db, query, oerror);
+        OSyncList *tx_result = osync_db_query_table(db, query, &oerror);
         safe_cfree(&query);
 	OSyncList *tx_row;
         for (tx_row = tx_result; tx_row; tx_row = tx_row->next)
@@ -1106,7 +602,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
             SmlDevInfContentType *ctype = smlDevInfNewContentType(
                                               osync_list_nth_data(columns, 0),
                                               osync_list_nth_data(columns, 1),
-                                              &error);
+                                              error);
             smlDevInfDataStoreAddTx(datastore, ctype);
         }
         osync_db_free_list(tx_result);
@@ -1121,7 +617,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
     const char *ctcaps_query = "SELECT \"content_type\", \"version\" FROM content_type_capabilities WHERE  \"device_id\"='%s'";
     query = g_strdup_printf(ctcaps_query, esc_devid);
     // FIXME: unclean error handling
-    result = osync_db_query_table(db, query, oerror);
+    result = osync_db_query_table(db, query, &oerror);
     safe_cfree(&query);
     count = 0;
     for (row = result; row; row = row->next)
@@ -1129,7 +625,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         count++;
         OSyncList *columns = row->data;
 
-        SmlDevInfCTCap *ctcap = smlDevInfNewCTCap(&error);
+        SmlDevInfCTCap *ctcap = smlDevInfNewCTCap(error);
 	if (!ctcap)
 		goto error;
 
@@ -1145,7 +641,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
         const char *property_query = "SELECT \"property\", \"datatype\", \"max_occur\", \"max_size\", \"no_truncate\", \"display_name\" FROM properties WHERE \"device_id\"='%s' AND \"content_type\"='%s' AND \"version\"='%s'";
         query = g_strdup_printf(property_query, esc_devid, esc_ct, esc_version);
         // FIXME: unclean error handling
-        OSyncList *prop_result = osync_db_query_table(db, query, oerror);
+        OSyncList *prop_result = osync_db_query_table(db, query, &oerror);
         safe_cfree(&query);
         unsigned int prop_count = 0;
         OSyncList *prop_row;
@@ -1154,7 +650,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
             prop_count++;
             OSyncList *prop_columns = prop_row->data;
 
-            SmlDevInfProperty *property = smlDevInfNewProperty(&error);
+            SmlDevInfProperty *property = smlDevInfNewProperty(error);
 	    if (!property)
 		    goto error;
 
@@ -1174,7 +670,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                          prop_value_query, esc_devid,
                          esc_ct, esc_version, esc_prop_name);
             // FIXME: unclean error handling
-            OSyncList *prop_value_result = osync_db_query_table(db, query, oerror);
+            OSyncList *prop_value_result = osync_db_query_table(db, query, &oerror);
             safe_cfree(&query);
             unsigned int prop_value_count = 0;
             OSyncList *prop_value_row;
@@ -1195,7 +691,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                          prop_param_query, esc_devid,
                          esc_ct, esc_version, esc_prop_name);
             // FIXME: unclean error handling
-            OSyncList *prop_param_result = osync_db_query_table(db, query, oerror);
+            OSyncList *prop_param_result = osync_db_query_table(db, query, &oerror);
             safe_cfree(&query);
             unsigned int prop_param_count = 0;
             OSyncList *prop_param_row;
@@ -1204,7 +700,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                 prop_param_count++;
                 OSyncList *prop_param_columns = prop_param_row->data;
 
-                SmlDevInfPropParam *prop_param = smlDevInfNewPropParam(&error);
+                SmlDevInfPropParam *prop_param = smlDevInfNewPropParam(error);
 		if (!prop_param)
 			goto error;
 
@@ -1221,7 +717,7 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
                              esc_ct, esc_version, esc_prop_name,
                              esc_param_name);
                 // FIXME: unclean error handling
-                OSyncList *param_value_result = osync_db_query_table(db, query, oerror);
+                OSyncList *param_value_result = osync_db_query_table(db, query, &oerror);
                 safe_cfree(&query);
                 unsigned int param_value_count = 0;
                 OSyncList *param_value_row;
@@ -1246,84 +742,41 @@ SmlBool load_devinf(SmlDevInfAgent *agent, const char *devid, const char *filena
 
     /* finalize database */
     safe_cfree(&esc_devid);
-    if (!osync_db_close(db, oerror)) goto oerror;
+    if (!osync_db_close(db, &oerror)) goto oerror;
     // FIXME: I cannot unref OSyncDB !?
     // FIXME: Is this an API bug?
 
-    // the device info is published because it is now complete
-    smlDevInfAgentSetDevInf(agent, devinf);
     osync_trace(TRACE_EXIT, "%s succeeded", __func__); 
-    return TRUE;
-error:
-    osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-    smlErrorDeref(&error);
+    return devinf;
 oerror:
-    osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
-    return FALSE;
-}
-
-char *get_devinf_identifier()
-{
-    osync_trace(TRACE_ENTRY, "%s", __func__);
-    const char *user = g_get_user_name();
-    const char *host = g_get_host_name();
-    char *id = g_strjoin("@", user, host, NULL);
-    osync_trace(TRACE_EXIT, "%s - %s", __func__, id);
-    return id;
-    // osync_trace(TRACE_INTERNAL, "%s - %s", __func__, id);
-    // char *b64 = g_base64_encode(id, strlen(id));
-    // safe_cfree(&id);
-    // osync_trace(TRACE_EXIT, "%s - %s", __func__, b64);
-    // return b64;
-}
-
-SmlBool init_env_devinf (SmlPluginEnv *env, SmlDevInfDevTyp type, SmlError **serror)
-{
-    SmlDevInf *devinf;
-
-    /* fix missing identifier */
-    if (!env->identifier)
-        env->identifier = get_devinf_identifier();
-
-    if (env->fakeDevice)
-    {
-        osync_trace(TRACE_INTERNAL, "%s: faking devinf", __func__);
-        devinf = smlDevInfNew(env->identifier, SML_DEVINF_DEVTYPE_SMARTPHONE, serror);
-	if (!devinf)
-		goto error;
-
-        smlDevInfSetManufacturer(devinf, env->fakeManufacturer);
-        smlDevInfSetModel(devinf, env->fakeModel);
-        smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
-    } else {
-        osync_trace(TRACE_INTERNAL, "%s: not faking devinf", __func__);
-        devinf = smlDevInfNew(env->identifier, type, serror);
-	if (!devinf)
-		goto error;
-
-        smlDevInfSetSoftwareVersion(devinf, env->fakeSoftwareVersion);
-    }
-
-    smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
-    smlDevInfSetSupportsLargeObjs(devinf, TRUE);
-    if (!env->onlyLocaltime)
-        smlDevInfSetSupportsUTC(devinf, TRUE);
-    g_assert(env->maxMsgSize);
-    g_assert(env->maxObjSize);
-
-    env->devinf = devinf;
-
-    env->agent = smlDevInfAgentNew(env->devinf, serror);
-    if (!env->agent) goto error;
-	
-    if (!smlDevInfAgentRegister(env->agent, env->manager, serror))
-        goto error;
-
-    return TRUE;
+    smlErrorSet(error, SML_ERROR_GENERIC, "%s", osync_error_print(&oerror));
+    osync_error_unref(&oerror);
 error:
-    if (devinf) smlDevInfUnref(devinf);
-    if (env->agent) smlDevInfAgentFree(env->agent);
-    env->devinf = NULL;
-    env->agent = NULL;
-    return FALSE;
+    osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, smlErrorPrint(error));
+    return NULL;
 }
+
+/* ************************************************ */
+/* *****     Device Information Callbacks     ***** */
+/* ************************************************ */
+
+SmlBool _write_devinf(
+		SmlDataSyncObject *dsObject,
+		SmlDevInf *devinf,
+		void *userdata,
+		SmlError **error)
+{
+	SmlPluginEnv *env = userdata;
+	return store_devinf(devinf, env->devinf_path, error);
+}
+
+SmlDevInf *_read_devinf(
+		SmlDataSyncObject *dsObject,
+		const char *devid,
+		void *userdata,
+		SmlError **error)
+{
+	SmlPluginEnv *env = userdata;
+	return load_devinf(devid, env->devinf_path, error);
+}
+

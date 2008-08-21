@@ -1,156 +1,252 @@
 <?xml version="1.0"?>
-<config>
-  <!-- authentication type to use. Leave empty to not require an authentication -->
-  <!-- supported values are:                                  -->
-  <!--   BASIC - unsecure but widely supported                -->
-  <!--   MD5   - more secure but not supported by all servers -->
-  <auth>NONE</auth>
-
-  <!-- username to use. Leave empty to not require a username -->
-  <username></username>
-  
-  <!-- the password for the username -->
-  <password></password>
-  
-  <!-- The url that you want the server to listen on. This has to be set on the mobile as well. example: "/" -->
-  <url>http://127.0.0.1:8080</url>
-
-  <!-- if you have a proxy (e.g. froma firewall) then you can enter it here -->
-  <!-- <proxy>http://127.0.0.1:8080</proxy> -->
-
-  <!-- if you use https then it is strongly recommend to use a -->
-  <!-- file with all trusted certification authorities inside  -->
-  <!-- libsoup is the http library behind libsyncml            -->
-  <!-- libsoup actually only supports a cafile and no explicit -->
-  <!-- peer certificates                                       -->
-  <!-- <cafile>/etc/calist.pem</cafile>                       -->
+<config version="1.0">
+  <AdvancedOptions>
+   <AdvancedOption>
+     <DisplayName>SyncML Version</DisplayName>
+     <Name>SANVersion</Name>
+     <Type>string</Type>
+     <ValEnum>1.2</ValEnum>
+     <ValEnum>1.1</ValEnum>
+     <ValEnum>1.0</ValEnum>
+     <Value>1.1</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>Authentication Type (e.g. syncml:auth-md5)</DisplayName>
+     <Name>AuthType</Name>
+     <Type>string</Type>
+     <ValEnum>MD5</ValEnum>
+     <ValEnum>BASIC</ValEnum>
+     <ValEnum>NONE</ValEnum>
+     <Value>NONE</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>URL fo the remote server</DisplayName>
+     <Name>URL</Name>
+     <Type>string</Type>
+     <Value>http://127.0.0.1:8080</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- if you have a proxy (e.g. from a firewall) then you can enter it here -->
+     <DisplayName>Proxy</DisplayName>
+     <Name>Proxy</Name>
+     <Type>string</Type>
+     <Value></Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- if you use https then it is strongly recommend to use a -->
+     <!-- file with all trusted certification authorities inside  -->
+     <!-- libsoup is the http library behind libsyncml            -->
+     <!-- libsoup actually only supports a cafile and no explicit -->
+     <!-- peer certificates                                       -->
+     <DisplayName>CA file</DisplayName>
+     <Name>CaFile</Name>
+     <Type>string</Type>
+     <Value></Value>
+     <!-- <Value>/etc/calist.pem</Value> -->
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Workaround around for mobile phones which only use local timestamps 
+          and _no_ UTC timestamps! -->
+     <DisplayName>Only local time</DisplayName>
+     <Name>OnlyLocaltime</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Sets the maximum allowed size in bytes of incoming messages (some 
+          device need this option set). Example: 10000 -->
+     <DisplayName>Max Message Size (SyncML: MaxMsgSize)</DisplayName>
+     <Name>MaxMsgSize</Name>
+     <Type>uint</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Sets the maximum allowed size in bytes of incoming messages (some 
+          device need this option set). Example: 10000 -->
+     <DisplayName>Max Object Size (SyncML: MaxObjSize)</DisplayName>
+     <Name>MaxObjSize</Name>
+     <Type>uint</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- The old default behavior of OpenSync was to use the same      -->
+     <!-- format like the connecting client. Some clients which were    -->
+     <!-- connected with another software expect always the anchor      -->
+     <!-- format of this software. Therefore it is possible to          -->
+     <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
+     <!--                                                               -->
+     <!--     0 ==> number format beginning with 1                      -->
+     <!--     1 ==> timestamp format                                    -->
+     <!--                                                               -->
+     <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
+     <!-- behavior is determined from the cached Last anchor.           -->
+     <DisplayName>Use Timestamp Anchor</DisplayName>
+     <Name>UseTimeAnchor</Name>
+     <Type>bool</Type>
+     <Value>1</Value>
+   </AdvancedOption>
  
-  <!-- Workaround around for servers use local timestamps and _no_ UTC timestamps! -->
-  <onlyLocaltime>0</onlyLocaltime>
-  
-  <!-- WARNING: some servers require maxMsgSize and maxObjSize                   -->
-  <!-- The SyncML specification only requires the meta information               -->
-  <!-- if large objects are enabled.                                             -->
-  <!-- Nevertheless the most mobiles send it because of their limited resources. -->
+   <!-- Faking devices is necessary for some servers                         -->
+   <!--  because they work with profiles                                     -->
+   <!-- Oracle Collaboration Suite does such things                          -->
+   <!-- so if somebody denies your client (e.g. uncertifiedclients=disallow) -->
+   <!-- then simply fake such a superious client ;-D                         -->
 
-  <maxMsgSize>40000</maxMsgSize>
-  
-  <maxObjSize>4000000</maxObjSize>
+   <!-- ========================== -->
+   <!-- Examples for faking phones -->
+   <!-- ========================== -->
 
-  <!-- The old default behavior of OpenSync was to use the same      -->
-  <!-- format like the connecting client. Some clients which were    -->
-  <!-- connected with another software expect always the anchor      -->
-  <!-- format of this software. Therefore it is possible to          -->
-  <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
-  <!--                                                               -->
-  <!--     0 ==> number format beginning with 1                      -->
-  <!--     1 ==> timestamp format                                    -->
-  <!--                                                               -->
-  <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
-  <!-- behavior is determined from the cached Last anchor.           -->
+   <!--
+        Nokia Series 40
+            SyncML Version:   1.1
+            Manufacturer:     NOKIA
+            Model:            6800
+            Software Version: 1.0
+        Nokia Series 60
+            SyncML Version:   1.1
+            Manufacturer:     NOKIA
+            Model:            6600
+            Software Version: 1.0
+        Nokia Series 80
+            SyncML Version:   1.1
+            Manufacturer:     NOKIA
+            Model:            9300
+            Software Version: 1.0
+        Nokia E-Series
+            SyncML Version:   1.1 or 1.2
+            Manufacturer:     NOKIA
+            Model:            E60
+            Software Version: 1.0
+     -->
 
-  <useTimestampAnchor>1</useTimestampAnchor>
-  
-  <!-- Contact database -->
-  <database>
-     <name>Contacts</name>
-     <objtype>contact</objtype>
-     <objformat>vcard30</objformat>
-  </database>
-  
-  <!-- Calendar database -->
-  <database>
-     <name>Calendar</name>
-     <objtype>event</objtype>
-     <objformat>vevent20</objformat>
-  </database>
+   <AdvancedOption>
+     <DisplayName>Fake Device</DisplayName>
+     <Name>FakeDevice</Name>
+     <Type>bool</Type>
+     <Value>1</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>Fake Manufacturer</DisplayName>
+     <Name>FakeManufacturer</Name>
+     <Type>string</Type>
+     <Value>NOKIA</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>Fake Model</DisplayName>
+     <Name>FakeModel</Name>
+     <Type>string</Type>
+     <Value>E60</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <DisplayName>Fake Software Version</DisplayName>
+     <Name>FakeSoftwareVersion</Name>
+     <Type>string</Type>
+     <Value>1.0</Value>
+   </AdvancedOption>
+  </AdvancedOptions>
+  <Authentication>
+    <Username></Username>
+    <Password></Password>
+  </Authentication>
 
-  <!-- Note database -->
-  <database>
-     <name>Notes</name>
-     <objtype>note</objtype>
-     <objformat>vnote11</objformat>
-  </database>
+  <!-- To be filed by UI or hand:
+  <Resources>
+    <Resource>
+     <Enabled>1</Enabled>
+     <Formats>
+       <Format>
+         <Name>vcard21</Name>
+       </Format>
+     </Formats>
+     <Name>Contacts</Name>
+     <ObjType>contact</ObjType>
+    </Resource>
+  </Resources>
 
-  <!-- Example: Oracle Collaboration Suite SyncML component -->
-  <!--
+    -->
 
-  <database>
-     <name>./Contacts</name>
-     <objtype>contact</objtype>
-     <objformat>vcard30</objformat>
-  </database>
-  <database>
-     <name>./Calendar/Events</name>
-     <objtype>event</objtype>
-     <objformat>vevent20</objformat>
-  </database>
-  <database>
-     <name>./Calendar/Tasks</name>
-     <objtype>todo</objtype>
-     <objformat>vevent20</objformat>
-  </database>
+  <Resources>
+    <Resource>
+      <Name>Contacts</Name>
+      <ObjType>contact</ObjType>
+      <Formats>
+        <Format>
+          <Name>vcard30</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+    <Resource>
+      <Name>Calendar</Name>
+      <ObjType>event</ObjType>
+      <Formats>
+        <Format>
+          <Name>vevent20</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+    <Resource>
+      <Name>Notes</Name>
+      <ObjType>note</ObjType>
+      <Formats>
+        <Format>
+          <Name>vnote11</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
 
+    <!-- Example: Oracle Collaboration Suite SyncML component -->
+    <!--
+    <Resource>
+      <Name>./Contacts</Name>
+      <ObjType>contact</ObjType>
+      <Formats>
+        <Format>
+          <Name>vcard30</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+    <Resource>
+      <Name>./Calendar/Events</Name>
+      <ObjType>event</ObjType>
+      <Formats>
+        <Format>
+          <Name>vevent20</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+    <Resource>
+      <Name>./Calendar/Tasks</Name>
+      <ObjType>todo</ObjType>
+      <Formats>
+        <Format>
+          <Name>vevent20</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+
+    -->
+
+    <!-- This is the global calendar object of Oracle -->
+    <!-- I think we can ignore it. -->
+    <!--
+    <Resource>
+      <Name>./Calendar</Name>
+      <ObjType>event</ObjType>
+      <Formats>
+        <Format>
+          <Name>vevent20</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
    -->
 
-  <!-- This is the global calendar object of Oracle -->
-  <!-- I think we can ignore it. -->
-  <!--
-  <database>
-     <name>./Calendar</name>
-     <objtype>event</objtype>
-     <objformat>vevent20</objformat>
-  </database>
-
-   -->
-
-  <!-- this is necessary for some servers because they work with profiles   -->
-  <!-- Oracle Collaboration Suite does such things                          -->
-  <!-- so if somebody denies your client (e.g. uncertifiedclients=disallow) -->
-  <!-- then simply fake such a superious client ;-D                         -->
-  <fake_device>1</fake_device>
-  <syncml_version>1.1</syncml_version>
-  <fake_manufacturer>NOKIA</fake_manufacturer>
-  <fake_model>E60</fake_model>
-  <fake_software_version>1.0</fake_software_version>
-
-  <!-- ========================== -->
-  <!-- Examples for faking phones -->
-  <!-- ========================== -->
-
-  <!-- Nokia Series 40 -->
-  <!--
-  <syncml_version>1.1</syncml_version>
-  <fake_manufacturer>NOKIA</fake_manufacturer>
-  <fake_model>6800</fake_model>
-  <fake_software_version>1.0</fake_software_version>
-  -->
-  <!-- Nokia Series 60 -->
-  <!--
-  <syncml_version>1.1</syncml_version>
-  <fake_manufacturer>NOKIA</fake_manufacturer>
-  <fake_model>6600</fake_model>
-  <fake_software_version>1.0</fake_software_version>
-  -->
-  <!-- Nokia Series 80 -->
-  <!--
-  <syncml_version>1.1</syncml_version>
-  <fake_manufacturer>NOKIA</fake_manufacturer>
-  <fake_model>9300</fake_model>
-  <fake_software_version>1.0</fake_software_version>
-  -->
-  <!-- Nokia E-Series (supports SyncML 1.1 and 1.2 -->
-  <!--
-  <syncml_version>1.1</syncml_version>
-  <fake_manufacturer>NOKIA</fake_manufacturer>
-  <fake_model>E60</fake_model>
-  <fake_software_version>1.0</fake_software_version>
-  -->
-  <!--
-  <syncml_version>1.2</syncml_version>
-  <fake_manufacturer>NOKIA</fake_manufacturer>
-  <fake_model>E60</fake_model>
-  <fake_software_version>1.0</fake_software_version>
-  -->
+  </Resources>
 
 </config>

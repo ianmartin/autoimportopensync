@@ -2,7 +2,7 @@
 #include "syncml_vformat.h"
 #include "syncml_common.h"
 
-GHashTable* get_vcard_hash()
+static GHashTable* get_vcard_hash()
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
     GHashTable *hash = g_hash_table_new(g_str_hash, g_str_equal);
@@ -41,7 +41,7 @@ GHashTable* get_vcard_hash()
     return hash;
 }
 
-GHashTable* get_ical_hash()
+static GHashTable* get_ical_hash()
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
     GHashTable *hash = g_hash_table_new(g_str_hash, g_str_equal);
@@ -76,29 +76,37 @@ GHashTable* get_ical_hash()
     return hash;
 }
 
-SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error)
+SmlBool _handle_remote_devinf(
+			SmlDataSyncObject *dsObject,
+			SmlDevInf *devinf,
+			void *userdata,
+			SmlError **error)
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
+    SmlPluginEnv *env = userdata;
+    OSyncError *oerror;
 
     /*check the requirements */
-    g_assert(env->remote_devinf);
+    g_assert(devinf);
     g_assert(env->pluginInfo);
     osync_trace(TRACE_INTERNAL, "%s: assertions ok", __func__);
 
     /* create fresh capabilties */
-    OSyncCapabilities *caps = osync_capabilities_new(error);
+    OSyncCapabilities *caps = osync_capabilities_new(&oerror);
     if (!caps)
     {
+	smlErrorSet(error, SML_ERROR_GENERIC, "%s", osync_error_print(&oerror));
+	osync_error_unref(&oerror);
         osync_trace(TRACE_EXIT_ERROR, "%s - cannot instantiate capabilties", __func__);
         return FALSE;
     }
 
     /* now manage all content type capabilities */
-    unsigned int capCount = smlDevInfNumCTCaps(env->remote_devinf);
+    unsigned int capCount = smlDevInfNumCTCaps(devinf);
     unsigned int i;
     for (i=0; i < capCount; i++)
     {
-        const SmlDevInfCTCap *ctcap = smlDevInfGetNthCTCap(env->remote_devinf, i);
+        const SmlDevInfCTCap *ctcap = smlDevInfGetNthCTCap(devinf, i);
 
         /* define objtype */
         char *objtype = NULL;
@@ -144,9 +152,11 @@ SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error)
                     /* Good news - OpenSync knows the field. */
                     if (strlen(value))
                     {
-                        OSyncCapability *cap = osync_capability_new(caps, objtype, g_strdup(value), error);
+                        OSyncCapability *cap = osync_capability_new(caps, objtype, g_strdup(value), &oerror);
                         if (!cap)
                         {
+                            smlErrorSet(error, SML_ERROR_GENERIC, "%s", osync_error_print(&oerror));
+                            osync_error_unref(&oerror);
                             osync_trace(TRACE_INTERNAL, "%s: cannot create new capabilitity", __func__);
                             safe_cfree(&name);
                             return FALSE;

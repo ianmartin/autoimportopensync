@@ -4,9 +4,10 @@
 
 #include"syncml_common.h"
 
-GHashTable* get_vcard_hash();
-GHashTable* get_ical_hash();
-
-SmlBool set_capabilities(SmlPluginEnv *env, OSyncError **error);
+SmlBool _handle_remote_devinf(
+			SmlDataSyncObject *dsObject,
+			SmlDevInf *devinf,
+			void *userdata,
+			SmlError **error);
 
 #endif // SYNCML_VFORMAT_H

@@ -24,24 +24,6 @@
 
 #include <opensync/plugin/opensync_sink.h>
 
-void set_session_user(SmlPluginEnv *env, const char* user)
-{
-    g_assert(user);
-
-    if (env->sessionUser == NULL ||
-        strcmp(env->sessionUser, user))
-    {
-        // the session user (function called by OpenSync) changed
-        // so we have to cleanup the environment
-        g_list_free(env->ignoredDatabases);
-        env->ignoredDatabases = NULL;
-    }
-
-    if (env->sessionUser)
-        safe_cfree(&(env->sessionUser));
-    env->sessionUser = g_strdup(user);
-}
-
 GList *g_list_add(GList *databases, void *database)
 {
     osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -62,97 +44,9 @@ GList *g_list_add(GList *databases, void *database)
     return result;
 }
 
-/* General notice about libsyncml usage:
- *
- * Clients are the active part in a SyncML session. They initiate all
- * actions. They send/request DevInf, send alerts for synchronization,
- * starts sync and send maps. So it is a good idea to flush actively
- * during these actions.
- *
- * Servers have a more passive way of communication. They usually react
- * on actions of the client. So it is not necessary to flush actively.
- * libsyncml flushes automatically after it manages the complete
- * received body of a SyncML message.
- *
- * NumberOfChanges is supported by some mobiles but we cannot rely on it
- * because some mobiles like SE M600i say that they support it but they
- * do not send it :(
- *
- * If this is a client then flush should be executed after:
- *     - DevInf preparation
- *     - alerting sync for all databases
- *     - called sync for all databases
- *     - sent modifications for all databases
- *     - sent map for all databases
- *
- * If this is a server then flush should be executed after:
- *     - alerting sync for all databases
- *     - sent modifications for all databases
- *
- * The logic behind this is simple. If we do something as a response to
- * a request then the response is automatically flushed from libsyncml.
- * If we do something on our own which is not a direct response then a
- * flush is required.
- *
- * Please note that sometimes we have to wait for the final event to
- * start the next phase. The final event will be send on a per DsSession
- * base (Data Synchronization Session not SyncML session).
- *
- */
-SmlBool flush_session_for_all_databases(
-			SmlPluginEnv *env,
-			SmlBool activeDatabase,
-			SmlError **error)
-{
-    // avoid flushing to early
-
-    osync_trace(TRACE_ENTRY, "%s", __func__);
-    g_assert(env);
-
-    if (activeDatabase) env->num++;
-    osync_trace(TRACE_INTERNAL, "%s - flush: %i, ignore: %i",
-                __func__, env->num, g_list_length(env->ignoredDatabases));
-    if ( (
-          env->num != 0 ||
-          smlDsServerGetServerType(((SmlDatabase *) env->databases->data)->server) == SML_DS_SERVER
-         )
-        &&
-        env->num + g_list_length(env->ignoredDatabases) >= g_list_length(env->databases))
-    {
-	/* reset the flush database counter */
-        env->num = 0;
-
-	/* perform the flush */
-        if (!smlSessionFlush(env->session, TRUE, error))
-        {
-            osync_trace(TRACE_EXIT_ERROR, "%s - session flush failed", __func__);
-            return FALSE;
-        }
-        else
-        {
-            osync_trace(TRACE_EXIT, "%s - session flush succeeded", __func__);
-            return TRUE;
-        }
-    }
-    osync_trace(TRACE_EXIT, "%s - session flush delayed", __func__);
-    return TRUE;
-}
-
 void syncml_free_database(SmlDatabase *database)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, database);
-
-	// cleanup libsyncml stuff
-
-	if (database->session) {
-		smlDsSessionUnref(database->session);
-		database->session = NULL;
-	}
-	if (database->server) {
-		smlDsServerFree(database->server);
-		database->server = NULL;
-	}
-	osync_trace(TRACE_INTERNAL, "%s - libsyncml cleaned", __func__);
 
 	// cleanup configuration stuff
 
@@ -288,44 +182,6 @@ OSyncChangeType _to_osync_changetype(SmlChangeType type)
 	return OSYNC_CHANGE_TYPE_UNKNOWN;
 }
 
-gboolean _sessions_prepare(GSource *source, gint *timeout_)
-{
-	*timeout_ = 50;
-	return FALSE;
-}
-
-gboolean _sessions_check(GSource *source)
-{
-	SmlPluginEnv *env = *((SmlPluginEnv **)(source + 1));
-
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-		SmlDatabase *database = o->data;
-		if (database->session && smlDsSessionCheck(database->session))
-			return TRUE;
-	}
-		
-	if (smlManagerCheck(env->manager))
-		return TRUE;
-		
-	return FALSE;
-}
-
-gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
-{
-	SmlPluginEnv *env = user_data;
-	
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-		SmlDatabase *database = o->data;
-		if (database->session)
-			smlDsSessionDispatch(database->session);
-	}
-
-	smlManagerDispatch(env->manager);
-	return TRUE;
-}
-
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_context_report_success(ctx);
@@ -340,22 +196,17 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
 	
-	if (env->gotDisconnect || !env->session)
+	if ((env->state1 >= SML_DATA_SYNC_EVENT_DISCONNECT &&
+	     (!env->dsObject2 || env->state2 >= SML_DATA_SYNC_EVENT_DISCONNECT)
+	    ) ||
+	    env->state1 < SML_DATA_SYNC_EVENT_CONNECT)
 	{
 		/* The disconnect already happened or
 		 * the session never existed (connect error). */
 		report_success_on_context(&ctx);
 	} else {
-		/* It is necessary to place the context at the right position before
-		 * calling a function of libsyncml because the library can send signals
-		 * very fast if there is nothing to do (e.g. no status/command is
-		 * waiting for a flush).
-		 */
 		env->disconnectCtx = ctx;
 		osync_context_ref(env->disconnectCtx);
-
-		if (!smlSessionEnd(env->session, &error))
-			goto error;
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -391,64 +242,14 @@ void finalize(void *data)
 		g_main_context_unref(env->context);
 		env->context = NULL;
 	}
-	if (env->managerMutex) {
-		g_mutex_free(env->managerMutex);
-		env->managerMutex = NULL;
-	}
 	osync_trace(TRACE_INTERNAL, "%s - glib cleaned", __func__);
-
-	/* Stop the manager */
-
-	if (env->manager)
-		smlManagerStop(env->manager);
-	osync_trace(TRACE_INTERNAL, "%s - manager stopped", __func__);
 
 	/* Cleanup the libsyncml library */
 
-	if (env->tsp) {
-		if (!smlTransportFinalize(env->tsp, &error)) {
-			g_warning("%s: smlTransportFinalize failed. %s",
-				__func__, smlErrorPrint(&error));
-			smlErrorDeref(&error);
-		}
-		env->tsp = NULL;
-	
-	}
-	if (env->manager) {
-		/* The manager needs a transport.
-		 * So never free the transport before the manager.
-		 */
-		smlManagerFree(env->manager);
-		env->manager = NULL;
-	}
-	if (env->tsp) {
-		smlTransportFree(env->tsp);
-		env->tsp = NULL;
-	}
-	if (env->san) {
-		smlNotificationFree(env->san);
-		env->san = NULL;
-	}
-	if (env->devinf) {
-		smlDevInfUnref(env->devinf);
-		env->devinf = NULL;
-	}
-	if (env->remote_devinf) {
-		smlDevInfUnref(env->remote_devinf);
-		env->remote_devinf = NULL;
-	}
-	if (env->session) {
-		smlSessionUnref(env->session);
-		env->session = NULL;
-	}
-	if (env->agent) {
-		smlDevInfAgentFree(env->agent);
-		env->agent = NULL;
-	}
-	if (env->auth) {
-		smlAuthFree(env->auth);
-		env->auth = NULL;
-	}
+	if (env->dsObject1)
+		smlDataSyncObjectUnref(&(env->dsObject1));
+	if (env->dsObject2)
+		smlDataSyncObjectUnref(&(env->dsObject2));
 	while (env->databases) {
 		SmlDatabase *db = env->databases->data;
 		syncml_free_database(db);
@@ -456,38 +257,12 @@ void finalize(void *data)
 	}
 	osync_trace(TRACE_INTERNAL, "%s - libsyncml cleaned", __func__);
 
-	/* cleanup the configuration */
-
-	if (env->bluetoothChannel)
-		safe_cfree(&(env->bluetoothChannel));
-	if (env->url)
-		safe_cfree(&(env->url));
-	if (env->port)
-		safe_cfree(&(env->port));
-	if (env->proxy)
-		safe_cfree(&(env->proxy));
-	if (env->cafile)
-		safe_cfree(&(env->cafile));
-	if (env->fakeManufacturer)
-		safe_cfree(&(env->fakeManufacturer));
-	if (env->fakeModel)
-		safe_cfree(&(env->fakeModel));
-	if (env->fakeSoftwareVersion)
-		safe_cfree(&(env->fakeSoftwareVersion));
-	osync_trace(TRACE_INTERNAL, "%s - libsyncml configuration cleaned", __func__);
-
 	/* plugin config */
 
 	if (env->anchor_path)
 		safe_cfree(&(env->anchor_path));
 	if (env->devinf_path)
 		safe_cfree(&(env->devinf_path));
-	if (env->sessionUser)
-		safe_cfree(&(env->sessionUser));
-	if (env->ignoredDatabases) {
-		g_list_free(env->ignoredDatabases);
-		env->ignoredDatabases = NULL;
-	}
 	osync_trace(TRACE_INTERNAL, "%s - plugin configuration cleaned", __func__);
 
 	/* Signal forgotten contexts */
@@ -537,94 +312,6 @@ unsigned int get_num_changes(OSyncChange **changes)
 
     osync_trace(TRACE_EXIT, "%s (%d)", __func__, num);
     return num;
-}
-
-SmlBool send_sync_message(
-                SmlDatabase *database,
-                void *func_ptr, OSyncError **oserror)
-{
-    osync_trace(TRACE_ENTRY, "%s(%p)", __func__, database);
-    g_assert(database);
-    g_assert(database->session);
-
-    SmlError *error = NULL;
-    int num = get_num_changes(database->syncChanges);
-
-    if (!smlDsSessionSendSync(database->session, num, func_ptr, database, &error))
-        goto error;
-
-    int i = 0;
-    for (i = 0; i < num; i++) {
-        osync_trace(TRACE_INTERNAL, "%s: handling change %i", __func__, i);
-        OSyncChange *change = database->syncChanges[i];
-        OSyncContext *context = database->syncContexts[i];
-        g_assert(change);
-        g_assert(context);
-        osync_trace(TRACE_INTERNAL, "%s: params checked (%p, %p)", __func__, change, context);
-		
-        osync_trace(TRACE_INTERNAL,
-                    "%s: Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"",
-                    __func__,
-                    osync_change_get_uid(change),
-                    osync_change_get_objtype(change),
-                    osync_change_get_changetype(change));
-
-        // prepare change/commit context
-        struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), oserror);
-        if (!tracer)
-            goto oserror;
-        tracer->change = change;
-        tracer->context = context;
-        tracer->database = database;
-
-        // prepare data
-        OSyncData *data = osync_change_get_data(change);
-        char *buf = NULL;
-        unsigned int size = 0;
-        osync_data_get_data(data, &buf, &size);
-	
-        osync_trace(TRACE_INTERNAL, "%s: Committing entry \"%s\": \"%s\"",
-                    __func__, osync_change_get_uid(change), buf);
-        if (!smlDsSessionQueueChange(
-                 database->session,
-                 _get_changetype(change),
-                 osync_change_get_uid(change),
-                 buf, size,
-                 get_database_pref_content_type(database, oserror),
-                 _recv_change_reply, tracer, &error))
-            goto error;
-
-	// DO NOT unref change and context here because they are used by the tracer
-	// osync_change_unref(change);
-	// osync_context_unref(context);
-        database->syncChanges[i] = NULL;
-        database->syncContexts[i] = NULL;
-    }
-    if (num || smlDsServerGetServerType(database->server) == SML_DS_SERVER)
-    {
-        /* If this is an OMA DS server then the arrays are
-         * always configured and must be freed.
-         */
-        safe_free((gpointer *) &(database->syncChanges));
-        safe_free((gpointer *) &(database->syncContexts));
-    }
-	
-    if (!smlDsSessionCloseSync(database->session, &error))
-        goto error;
-
-    if (!flush_session_for_all_databases(database->env, TRUE, &error))
-        goto error;
-
-    osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
-
-error:
-    osync_error_set(oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-    smlErrorDeref(&error);
-oserror:
-    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(oserror));
-    report_error_on_context(&(database->commitCtx), oserror, FALSE);
-    return FALSE;
 }
 
 SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info)
@@ -677,48 +364,265 @@ void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool 
     }
 }
 
-char *get_next_anchor(SmlDatabase *database, const char *last)
+SmlDatabase *get_database_from_source(
+			SmlPluginEnv *env,
+			const char *source,
+			SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s - %s", __func__, last);
-	SmlBool use_timestamp = TRUE;
-	char *next = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, source, error);
 
-	/* determine the used format */
-	if (last == NULL || strlen(last) < 1)
-	{
-		/* last is not set until now */
-		use_timestamp = database->env->useTimestampAnchor;
-		if (! use_timestamp)
-			next = "1";
-	} else {
-		/* last is set in the anchro database */
-		if (strstr(last, "Z"))
-		{
-			/* last is a timestamp */
-			use_timestamp = TRUE;
+	/* find database */
+	SmlDatabase *database = NULL;
+	GList *o = env->databases;
+	while (o) {
+		database = o->data;
+		if (!strcmp(database->url, source)) {
+			/* abort the scan */
+			o = NULL;
 		} else {
-			/* last is a number */
-			use_timestamp = FALSE;
+			database = NULL;
 		}
+		if (o) o = o->next;
 	}
-	osync_trace(TRACE_INTERNAL, "%s - use timestamp is %d", __func__, use_timestamp);
-
-	if (use_timestamp)
-	{
-		next = malloc(sizeof(char)*17);
-		time_t htime = time(NULL);
-		if (database->env->onlyLocaltime)
-			strftime(next, 17, "%Y%m%dT%H%M%SZ", localtime(&htime));
-		else
-			strftime(next, 17, "%Y%m%dT%H%M%SZ", gmtime(&htime));
-	} else {
-		if (next == NULL)
-		{
-			unsigned long count = strtoul(last, NULL, 10);
-			count++;
-			next = g_strdup_printf("%lu", count);
-		}
+	if (!database) {
+		smlErrorSet(error, SML_ERROR_GENERIC,
+			"Cannot found datastore %s.",
+			source);
+		goto error;
 	}
-	osync_trace(TRACE_ENTRY, "%s - %s", __func__, next);
-	return next;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return database;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s -%s", __func__, smlErrorPrint(error));
+	return NULL;
 }
+
+void syncml_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+
+	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	SmlError *error = NULL;
+	OSyncError *oserror = NULL;
+
+	/* The context is preserved in the environment.
+	 * If the event callback receives the got all alerts event
+	 * then the connect context is signalled.
+	 */
+
+	env->connectCtx = ctx;
+	osync_context_ref(env->connectCtx);
+
+	if (!smlDataSyncInit(env->dsObject1, &error))
+		goto error;
+	if (!smlDataSyncRun(env->dsObject1, &error))
+		goto error;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+	report_error_on_context(&(env->connectCtx), &oserror, TRUE);
+}
+
+osync_bool discover(const char *name, void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+        
+        SmlPluginEnv *env = (SmlPluginEnv *)data;
+        GList *o = env->databases;
+        for (; o; o = o->next) {
+                SmlDatabase *database = o->data;
+                osync_objtype_sink_set_available(database->sink, TRUE);
+        }
+        
+        OSyncVersion *version = osync_version_new(error);
+        osync_version_set_plugin(version, name);
+        //osync_version_set_modelversion(version, "version");
+        //osync_version_set_firmwareversion(version, "firmwareversion");
+        //osync_version_set_softwareversion(version, "softwareversion");
+        //osync_version_set_hardwareversion(version, "hardwareversion");
+        osync_plugin_info_set_version(info, version);
+        osync_version_unref(version);
+
+        osync_trace(TRACE_EXIT, "%s", __func__);
+        return TRUE;
+}
+
+osync_bool parse_config(
+		SmlTransportType tsp,
+		SmlDataSyncObject *dsObject,
+		OSyncPluginConfig *config,
+		OSyncError **oerror)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, dsObject, config, oerror);
+	OSyncPluginConnection *conn;
+	SmlError *error = NULL;
+
+	if (!smlDataSyncSetOption(dsObject, "USE_TIMESTAMP_ANCHOR", "1", &error))
+		goto error;
+	if (!smlDataSyncSetOption(
+			dsObject,
+			"MAX_MSG_SIZE",
+			OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE,
+			&error))
+		goto error;
+	if (!smlDataSyncSetOption(
+			dsObject,
+			"MAX_OBJ_SIZE",
+			OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE,
+			&error))
+		goto error;
+
+	conn = osync_plugin_config_get_connection(config);
+	if (!conn) {
+		osync_error_set(oerror, OSYNC_ERROR_MISCONFIGURATION, "No configuration of connection available.");
+		goto oerror;
+	}
+
+	switch(osync_plugin_connection_get_type(conn)) {
+		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
+			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "BLUETOOTH", &error))
+				goto error;
+			if (!smlDataSyncSetOption(
+					dsObject,
+					"BLUETOOTH_ADDRESS",
+					osync_plugin_connection_bt_get_addr(conn),
+					&error))
+				goto error;
+			if (osync_plugin_connection_bt_get_channel(conn))
+			{
+				char *channel = g_strdup_printf("%u", osync_plugin_connection_bt_get_channel(conn));
+				if (!smlDataSyncSetOption(dsObject, "BLUETOOTH_CHANNEL", channel, &error))
+				{
+					smlSafeCFree(&channel);
+					goto error;
+				}
+				smlSafeCFree(&channel);
+			}
+			break;
+		case OSYNC_PLUGIN_CONNECTION_USB:
+			/* TODO: osync_plugin_connection_usb_get_interface(conn); */
+			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "USB", &error))
+				goto error;
+			break;
+		case OSYNC_PLUGIN_CONNECTION_SERIAL:
+			/* TODO serial */
+			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "SERIAL", &error))
+				goto error;
+			break;
+		case OSYNC_PLUGIN_CONNECTION_IRDA:
+			/* TODO IRDA */
+			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "IRDA", &error))
+				goto error;
+			break;
+		case OSYNC_PLUGIN_CONNECTION_NETWORK:
+			/* TODO Network */
+			if (tsp == SML_TRANSPORT_OBEX_CLIENT &&
+			    !smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "NET", &error))
+				goto error;
+			char *port = g_strdup_printf("%u", osync_plugin_connection_net_get_port(conn));
+			if (!smlDataSyncSetOption(dsObject, "PORT", port, &error))
+			{
+				smlSafeCFree(&port);
+				goto error;
+			}
+			smlSafeCFree(&port);
+			break;
+		case OSYNC_PLUGIN_CONNECTION_UNKNOWN:
+		default:
+			osync_error_set(oerror, OSYNC_ERROR_MISCONFIGURATION, "Unsupported connection type configured.");
+			goto oerror;
+			break;
+	}
+
+	OSyncPluginAuthentication *auth = osync_plugin_config_get_authentication(config);
+	if (auth) {
+		const char *value = NULL;
+		osync_plugin_authentication_get_username(auth);
+		if (value != NULL && strlen(value) == 0)
+			value = NULL;
+		if (value &&
+		    !smlDataSyncSetOption(dsObject, "USERNAME", value, &error))
+			goto error;
+		value = osync_plugin_authentication_get_password(auth);
+		if (value != NULL && strlen(value) == 0)
+			value = NULL;
+		if (value &&
+		    !smlDataSyncSetOption(dsObject, "PASSWORD", value, &error))
+			goto error;
+	}
+
+	OSyncList *optslist = osync_plugin_config_get_advancedoptions(config);
+	for (; optslist; optslist = optslist->next) {
+		OSyncPluginAdvancedOption *option = optslist->data;
+
+		const char *val = osync_plugin_advancedoption_get_value(option);
+		const char *name = osync_plugin_advancedoption_get_name(option);
+		g_assert(name);
+		g_assert(val);
+		const char *key = NULL;
+
+		if (!strcmp(SYNCML_PLUGIN_CONFIG_SANVERSION, name)) {
+			key = "VERSION";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_WBXML, name)) {
+			key = "USE_WBXML";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATCOMMAND, name)) {
+			key = "AT_COMMAND";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMANUFACTURER, name)) {
+			key = "AT_MANUFACTURER";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMODEL, name)) {
+			key = "AT_MODEL";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_IDENTIFIER, name)) {
+			key = "IDENTIFIER";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USESTRINGTABLE, name)) {
+			key = "USE_STRING_TABLE";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USETIMEANCHOR, name)) {
+			key = "USE_TIMESTAMP_ANCHOR";
+		/* TODO: Dead option? */
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYREPLACE, name)) {
+			key = "ONLY_REPLACE";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXMSGSIZE, name)) {
+			if (atoi(val))
+				key = "MAX_MSG_SIZE";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXOBJSIZE, name)) {
+			if (atoi(val))
+				key = "MAX_OBJ_SIZE";
+		/* XXX Workaround for mobiles which only handle localtime! */
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYLOCALTIME, name)) {
+			key = "ONLY_LOCALTIME";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_PROXY, name)) {
+			key = "PROXY";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_URL, name)) {
+			key = "URL";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_CAFILE, name)) {
+			key = "CAFILE";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_AUTH_TYPE, name)) {
+			key = "AUTH_TYPE";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_DEVICE, name)) {
+			key = "FAKE_DEVICE";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_MANUFACTURER, name)) {
+			key = "FAKE_MANUFACTURER";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_MODEL, name)) {
+			key = "FAKE_MODEL";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_SOFTWARE_VERSION, name)) {
+			key = "FAKE_SOFTWARE_VERSION";
+		}
+
+		if (key &&
+		    !smlDataSyncSetOption(dsObject, key, val, &error))
+			goto error;
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+error:
+	osync_error_set(oerror, OSYNC_ERROR_MISCONFIGURATION, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+oerror:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(oerror));
+	return FALSE;
+}
+

@@ -42,11 +42,7 @@
 
 #include <glib.h>
 
-#include <libsyncml/syncml.h>
-
-#include <libsyncml/sml_auth.h>
-#include <libsyncml/sml_devinf_obj.h>
-#include <libsyncml/sml_ds_server.h>
+#include <libsyncml/standard.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -56,8 +52,8 @@
  * MaxMsgSize => 10kB
  * MaxObjSize => 10MB
  */
-#define OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE 10240
-#define OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE 10240000
+#define OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE "10240"
+#define OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE "10240000"
 
 #define SYNCML_PLUGIN_CONFIG_SANVERSION "SANVersion"
 #define SYNCML_PLUGIN_CONFIG_WBXML "WBXML"
@@ -65,12 +61,25 @@
 #define SYNCML_PLUGIN_CONFIG_ATMANUFACTURER "ATManufacturer"
 #define SYNCML_PLUGIN_CONFIG_ATMODEL "ATModel"
 #define SYNCML_PLUGIN_CONFIG_IDENTIFIER "Identifier"
+
 #define SYNCML_PLUGIN_CONFIG_USESTRINGTABLE "UseStringTable"
 #define SYNCML_PLUGIN_CONFIG_USETIMEANCHOR "UseTimeAnchor"
 #define SYNCML_PLUGIN_CONFIG_ONLYREPLACE "OnlyReplace"
 #define SYNCML_PLUGIN_CONFIG_MAXMSGSIZE "MaxMsgSize"
 #define SYNCML_PLUGIN_CONFIG_MAXOBJSIZE "MaxObjSize"
 #define SYNCML_PLUGIN_CONFIG_ONLYLOCALTIME "OnlyLocaltime"
+
+#define SYNCML_PLUGIN_CONFIG_URL "Url"
+#define SYNCML_PLUGIN_CONFIG_PORT "Port"
+#define SYNCML_PLUGIN_CONFIG_CAFILE "CaFile"
+#define SYNCML_PLUGIN_CONFIG_PROXY "Proxy"
+
+#define SYNCML_PLUGIN_CONFIG_FAKE_DEVICE "FakeDevice"
+#define SYNCML_PLUGIN_CONFIG_FAKE_MANUFACTURER "FakeManufacturer"
+#define SYNCML_PLUGIN_CONFIG_FAKE_MODEL "FakeModel"
+#define SYNCML_PLUGIN_CONFIG_FAKE_SOFTWARE_VERSION "FakeSoftwareVersion"
+
+#define SYNCML_PLUGIN_CONFIG_AUTH_TYPE "AuthType"
 
 typedef enum {
 	OSYNC_PLUGIN_SYNCML_COMMAND_UNKNOWN,
@@ -80,33 +89,23 @@ typedef enum {
 } OSyncPluginSyncmlDatastoreCommand;
 
 typedef struct SmlPluginEnv {
-	const char *bluetoothAddress;
-	char *bluetoothChannel;
-	const char *atCommand;
-	const char *atManufacturer;
-	const char *atModel;
-	const char *identifier;
-	SmlNotificationVersion version;
-	osync_bool useWbxml;
-	const char *username;
-	const char *password;
-	SmlBool useStringtable;
-	SmlBool onlyReplace;
-	SmlBool onlyLocaltime;
-	SmlTransportConnectionType type;
-	char *port;
-	char *url;
-	char *proxy;
-	char *cafile;
-	SmlBool useTimestampAnchor;
-	
-	unsigned int maxMsgSize;
-	unsigned int maxObjSize;
+	SmlDataSyncObject *dsObject1;
+	SmlDataSyncObject *dsObject2;
+	SmlSessionType sessionType;
 
-	SmlBool gotDisconnect;
-	SmlBool tryDisconnect;
-	SmlBool doReconnect;
-	
+	/* libsyncml state management */
+
+	SmlDataSyncEventType state1;
+	SmlDataSyncEventType state2;
+
+	/* opensync state management */
+
+	OSyncContext *connectCtx;
+	OSyncContext *disconnectCtx;
+	GList *databases;
+
+	/* environment data */
+
 	OSyncPluginInfo *pluginInfo;
 	char *anchor_path;
 	char *devinf_path;
@@ -115,47 +114,11 @@ typedef struct SmlPluginEnv {
 	GSourceFuncs *source_functions;
 
 	GMainContext *context;
-	
-	SmlTransport *tsp;
-	SmlAuthenticator *auth;
-	SmlDevInf *devinf;
-	SmlDevInf *remote_devinf;
-	SmlDevInfAgent *agent;
-	SmlManager *manager;
-	SmlSession *session;
-	
-	SmlNotification *san;
 
-	GList *databases;
-	GList *ignoredDatabases;
-	char *sessionUser;
-
-	int num;
-
-	SmlAuthType authType;
-	osync_bool fakeDevice;
-	SmlProtocolVersion syncmlVersion;
-        char *fakeManufacturer;
-        char *fakeModel;
-        char *fakeSoftwareVersion;
-
-	osync_bool isConnected;
-	OSyncContext *connectCtx;
-	OSyncContext *disconnectCtx;
-	GMutex *connectMutex;
-
-	/* This function pointer is necessary to start the second OMA DS session
-	 * if the synchronization uses an OMA DS client.
-	 */
-	OSyncSinkConnectFn connectFunction;
-
-	GMutex *managerMutex;
 } SmlPluginEnv;
 
 typedef struct SmlDatabase {
 	SmlPluginEnv *env;
-	SmlDsSession *session;
-	SmlDsServer *server;
 	OSyncObjFormat *objformat;
 	const char *objformat_name;
 	OSyncObjTypeSink *sink;
@@ -163,8 +126,6 @@ typedef struct SmlDatabase {
 	const char *url;
 	char *remoteNext;
 	char *localNext;
-
-	SmlDsSessionAlertCb dsSessionCallback;
 
 	OSyncChange **syncChanges;
 	OSyncContext **syncContexts;
@@ -184,33 +145,26 @@ struct commitContext {
 	SmlDatabase *database;
 };
 
-gboolean _sessions_prepare(GSource *source, gint *timeout_);
-
-gboolean _sessions_check(GSource *source);
-
-gboolean _sessions_dispatch(
-			GSource *source, 
-			GSourceFunc callback, 
-			gpointer user_data);
-
 void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
 void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void syncml_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+osync_bool discover(
+		const char *name,
+		void *data,
+		OSyncPluginInfo *info,
+		OSyncError **error);
 
-SmlBool send_sync_message(
-                        SmlDatabase *database,
-                        void *func_ptr,
-                        OSyncError **oserror);
+osync_bool parse_config(
+		SmlTransportType tsp,
+		SmlDataSyncObject *dsObject,
+		OSyncPluginConfig *config,
+		OSyncError **oerror);
 
 SmlDatabase *syncml_config_parse_database(
 			SmlPluginEnv *env,
 			OSyncPluginResource *res,
 			OSyncError **error);
-
-SmlBool flush_session_for_all_databases(
-			SmlPluginEnv *env,
-			SmlBool activeDatabase,
-			SmlError **error);
 
 SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info);
 
@@ -218,8 +172,6 @@ SmlDatabase *get_database_from_plugin_info(OSyncPluginInfo *info);
 /* the function guarantees that an object exists only once in */
 /* this GList. No double entrees. */
 GList *g_list_add(GList *databases, void *database);
-
-void initEnv(SmlPluginEnv *env);
 
 void finalize(void *data);
 
@@ -232,9 +184,11 @@ void report_error_on_context(OSyncContext **ctx, OSyncError **error, osync_bool 
 // FIXME: This is only a fast fix for SuSE.
 // FIXME: Perhaps the functions should be renamed.
 OSyncChangeType _to_osync_changetype(SmlChangeType type);
-void set_session_user(SmlPluginEnv *env, const char* user);
 unsigned int get_num_changes(OSyncChange **changes);
 
-char *get_next_anchor(SmlDatabase *database, const char *last);
+SmlDatabase *get_database_from_source(
+			SmlPluginEnv *env,
+			const char *source,
+			SmlError **error);
 
 #endif //_SYNCML_COMMON_H

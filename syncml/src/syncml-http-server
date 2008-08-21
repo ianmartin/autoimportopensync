@@ -1,64 +1,132 @@
 <?xml version="1.0"?>
-<config>
-  <!-- username to use. Leave empty to not require a username -->
-  <username></username>
+<config version="1.0">
+  <AdvancedOptions>
+   <AdvancedOption>
+     <!-- The url that you want the server to listen on. 
+          This has to be set on the mobile as well. example: "/" -->
+     <DisplayName>URL fo the remote server</DisplayName>
+     <Name>URL</Name>
+     <Type>string</Type>
+     <Value></Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- If wbxml is enabled, defines wether the wbxml should use string 
+          tables -->
+     <DisplayName>Use String Tables</DisplayName>
+     <Name>UseStringTable</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Workaround around for mobile phones which only use local timestamps 
+          and _no_ UTC timestamps! -->
+     <DisplayName>Only local time</DisplayName>
+     <Name>OnlyLocaltime</Name>
+     <Type>bool</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Sets the maximum allowed size in bytes of incoming messages (some 
+          device need this option set). Example: 10000 -->
+     <DisplayName>Max Message Size (SyncML: MaxMsgSize)</DisplayName>
+     <Name>MaxMsgSize</Name>
+     <Type>uint</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- Sets the maximum allowed size in bytes of incoming messages (some 
+          device need this option set). Example: 10000 -->
+     <DisplayName>Max Object Size (SyncML: MaxObjSize)</DisplayName>
+     <Name>MaxObjSize</Name>
+     <Type>uint</Type>
+     <Value>0</Value>
+   </AdvancedOption>
+   <AdvancedOption>
+     <!-- The old default behavior of OpenSync was to use the same      -->
+     <!-- format like the connecting client. Some clients which were    -->
+     <!-- connected with another software expect always the anchor      -->
+     <!-- format of this software. Therefore it is possible to          -->
+     <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
+     <!--                                                               -->
+     <!--     0 ==> number format beginning with 1                      -->
+     <!--     1 ==> timestamp format                                    -->
+     <!--                                                               -->
+     <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
+     <!-- behavior is determined from the cached Last anchor.           -->
+     <DisplayName>Use Timestamp Anchor</DisplayName>
+     <Name>UseTimeAnchor</Name>
+     <Type>bool</Type>
+     <Value>1</Value>
+   </AdvancedOption>
   
-  <!-- the password for the username -->
-  <password></password>
-  
-  <!-- The url that you want the server to listen on. This has to be set on the mobile as well. example: "/" -->
-  <url></url>
-  
-  <!-- The port where to listen. This has to be set on the mobile as well. -->
-  <port>8080</port>
-  
-  <!-- If wbxml is enabled, defines wether the wbxml should use string tables -->
-  <usestringtable>0</usestringtable>
-  
-  <!-- Never send ADD command, but send REPLACE (not needed normally) -->
-  <onlyreplace>0</onlyreplace>
-  
-  <!-- Workaround around for mobile phones which only use local timestamps and _no_ UTC timestamps! -->
-  <onlyLocaltime>0</onlyLocaltime>
+   <AdvancedOption>
+     <DisplayName>Authentication Type (e.g. syncml:auth-md5)</DisplayName>
+     <Name>AuthType</Name>
+     <Type>string</Type>
+     <ValEnum>MD5</ValEnum>
+     <ValEnum>BASIC</ValEnum>
+     <ValEnum>NONE</ValEnum>
+     <Value>NONE</Value>
+   </AdvancedOption>
+  </AdvancedOptions>
+  <Connection>
+   <Network>
+     <!-- The port where to listen. This has to be set on the mobile as well. -->
+     <Port>8080</Port>
+   </Network>
+  </Connection>
+  <Authentication>
+    <Username></Username>
+    <Password></Password>
+  </Authentication>
 
-  <!-- Sets the maximum allowed size in bytes of incoming messages (some device need this option set). Example: 10000 -->
-  <maxMsgSize>0</maxMsgSize>
-  
-  <maxObjSize>0</maxObjSize>
-  
-  <!-- The old default behavior of OpenSync was to use the same      -->
-  <!-- format like the connecting client. Some clients which were    -->
-  <!-- connected with another software expect always the anchor      -->
-  <!-- format of this software. Therefore it is possible to          -->
-  <!-- configure the behaviour of OpenSync's SyncML plugin.          -->
-  <!--                                                               -->
-  <!--     0 ==> number format beginning with 1                      -->
-  <!--     1 ==> timestamp format                                    -->
-  <!--                                                               -->
-  <!-- If it is not a SLOW-SYNC then this option is ignored and the  -->
-  <!-- behavior is determined from the cached Last anchor.           -->
+  <!-- To be filed by UI or hand:
+  <Resources>
+    <Resource>
+     <Enabled>1</Enabled>
+     <Formats>
+       <Format>
+         <Name>vcard21</Name>
+       </Format>
+     </Formats>
+     <Name>Contacts</Name>
+     <ObjType>contact</ObjType>
+    </Resource>
+  </Resources>
 
-  <useTimestampAnchor>1</useTimestampAnchor>
-  
-  <!-- Contact database -->
-  <database>
-     <name>Contacts</name>
-     <objtype>contact</objtype>
-     <objformat>vcard21</objformat>
-  </database>
-  
-  <!-- Calendar database -->
-  <database>
-     <name>Calendar</name>
-     <objtype>event</objtype>
-     <objformat>vevent20</objformat>
-  </database>
+    -->
 
-  <!-- Note database -->
-  <database>
-     <name>Notes</name>
-     <objtype>note</objtype>
-     <objformat>vnote11</objformat>
-  </database>
+  <Resources>
+    <Resource>
+      <Name>Contacts</Name>
+      <ObjType>contact</ObjType>
+      <Formats>
+        <Format>
+          <Name>vcard21</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+    <Resource>
+      <Name>Calendar</Name>
+      <ObjType>event</ObjType>
+      <Formats>
+        <Format>
+          <Name>vevent20</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+    <Resource>
+      <Name>Notes</Name>
+      <ObjType>note</ObjType>
+      <Formats>
+        <Format>
+          <Name>vnote11</Name>
+        </Format>
+      </Formats>
+      <Enabled>1</Enabled>
+    </Resource>
+  </Resources>
 
 </config>
