@@ -145,15 +145,20 @@ struct commitContext {
 	SmlDatabase *database;
 };
 
-void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
-
-void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
-void syncml_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 osync_bool discover(
 		const char *name,
 		void *data,
 		OSyncPluginInfo *info,
 		OSyncError **error);
+void *syncml_init(
+		SmlSessionType sessionType,
+		SmlTransportType tspType,
+		OSyncPlugin *plugin,
+		OSyncPluginInfo *info,
+		OSyncError **oerror);
+void syncml_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 
 osync_bool parse_config(
 		SmlTransportType tsp,

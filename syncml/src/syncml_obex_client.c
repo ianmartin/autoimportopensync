@@ -19,73 +19,20 @@
  */
 
 #include "syncml_common.h"
-#include "syncml_callbacks.h"
-#include "syncml_devinf.h"
-#include "syncml_vformat.h"
-#include "syncml_ds_server.h"
-#include <libsyncml/standard.h>
 
 void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **oerror)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, oerror);
-	SmlError *error = NULL;
-	
-	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), oerror);
-	if (!env)
-		goto error;
-	env->sessionType = SML_SESSION_TYPE_SERVER;
-	env->pluginInfo = info;
-	osync_plugin_info_ref(env->pluginInfo);
 
-	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
-        osync_trace(TRACE_INTERNAL, "The config: %p", config);
-
-	/* create data sync object */
-	env->dsObject1 = smlDataSyncNew(
+	SmlPluginEnv *env = syncml_init(
 				SML_SESSION_TYPE_SERVER,
 				SML_TRANSPORT_OBEX_CLIENT,
-				&error);
-	if (!env->dsObject1)
+				plugin, info, oerror);
+	if (!env)
 		goto error;
 
-	/* configure the instance */
-	if (!parse_config(SML_TRANSPORT_OBEX_CLIENT, env->dsObject1, config, oerror))
-		goto error_free_env;
-
-	/* prepare the function list for OpenSync */
-	OSyncObjTypeSinkFunctions main_functions;
-	memset(&main_functions, 0, sizeof(main_functions));
-	main_functions.connect = syncml_connect;
-	main_functions.disconnect = disconnect;
-
-	/* Register main sink for connect and disconnect functions */
-	OSyncObjTypeSink *mainsink = osync_objtype_main_sink_new(oerror);
-	if (!mainsink)
-		goto error_free_env;
-
-	osync_objtype_sink_set_functions(mainsink, main_functions, env);
-	osync_plugin_info_set_main_sink(info, mainsink);
-	osync_objtype_sink_unref(mainsink);
-
-	/* prepare paths for callbacks */
-	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-	env->devinf_path = g_strdup_printf("%s/devinf.db", osync_plugin_info_get_configdir(info));
-
-	/* set callbacks */
-	smlDataSyncRegisterEventCallback(env->dsObject1, _recv_event, env);
-	smlDataSyncRegisterGetAlertTypeCallback(env->dsObject1, _get_alert_type, env);
-	smlDataSyncRegisterGetAnchorCallback(env->dsObject1, _get_anchor, env);
-	smlDataSyncRegisterSetAnchorCallback(env->dsObject1, _set_anchor, env);
-	smlDataSyncRegisterWriteDevInfCallback(env->dsObject1, _write_devinf, env);
-	smlDataSyncRegisterReadDevInfCallback(env->dsObject1, _read_devinf, env);
-	smlDataSyncRegisterHandleRemoteDevInfCallback(env->dsObject1, _handle_remote_devinf, env);
-	smlDataSyncRegisterChangeStatusCallback(env->dsObject1, _recv_change_status);
-
-	/* configure databases */
-	if (!ds_server_init_databases(env, info, oerror))
-		goto error_free_env;
-
 	/* add the datastores */
+	SmlError *error = NULL;
 	GList *o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
