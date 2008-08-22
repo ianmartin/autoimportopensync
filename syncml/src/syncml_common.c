@@ -198,7 +198,9 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlError *error = NULL;
 	
 	if ((env->state1 >= SML_DATA_SYNC_EVENT_DISCONNECT &&
-	     (!env->dsObject2 || env->state2 >= SML_DATA_SYNC_EVENT_DISCONNECT)
+	     (!env->dsObject2 ||
+	      env->state2 >= SML_DATA_SYNC_EVENT_DISCONNECT ||
+	      env->state2 < SML_DATA_SYNC_EVENT_CONNECT)
 	    ) ||
 	    env->state1 < SML_DATA_SYNC_EVENT_CONNECT)
 	{
