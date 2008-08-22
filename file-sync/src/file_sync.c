@@ -170,7 +170,11 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 
 			osync_data_get_data(odata, &buffer, &size);
 			g_assert(buffer);
-			g_assert(size == sizeof(OSyncFileFormat));
+			if (size != sizeof(OSyncFileFormat)) {
+				osync_error_set(&error, OSYNC_ERROR_MISCONFIGURATION,
+					"The plugin file-sync only supports file format. Please re-configure and discover the plugin again.");
+				goto error;
+			}
 			
 			OSyncFileFormat *file = (OSyncFileFormat *)buffer;
 			
