@@ -49,7 +49,8 @@ void _recv_event(
 	
 	switch (type) {
 		case SML_DATA_SYNC_EVENT_ERROR:
-			smlErrorDuplicate(&error, &locerror);
+			env->abort =TRUE;
+			smlErrorDuplicate(&locerror, &error);
 			smlErrorDeref(&error);
 			goto error;
 			break;
@@ -58,28 +59,31 @@ void _recv_event(
 		case SML_DATA_SYNC_EVENT_DISCONNECT:
 			break;
 		case SML_DATA_SYNC_EVENT_FINISHED:
-			if (dsObject == env->dsObject1 && env->dsObject2) {
-				if (!smlDataSyncInit(env->dsObject2, &locerror))
-					goto error;
-				if (!smlDataSyncRun(env->dsObject2, &locerror))
-					goto error;
-			} else {
-				/* This is the real end of the sync process and
-				 * so it is a good idea to commit the changes here
-				 * and not earlier because now the remote peer
-				 * commits too.
-				 */
-				o = env->databases;
-				for (; o; o = o->next) {
-					SmlDatabase *database = o->data;
-					g_assert(database->commitCtx);
-					report_success_on_context(&(database->commitCtx));
+			if (!env->abort)
+			{
+				if (dsObject == env->dsObject1 && env->dsObject2) {
+					if (!smlDataSyncInit(env->dsObject2, &locerror))
+						goto error;
+					if (!smlDataSyncRun(env->dsObject2, &locerror))
+						goto error;
+				} else {
+					/* This is the real end of the sync process and
+					 * so it is a good idea to commit the changes here
+					 * and not earlier because now the remote peer
+					 * commits too.
+					 */
+					o = env->databases;
+					for (; o; o = o->next) {
+						SmlDatabase *database = o->data;
+						g_assert(database->commitCtx);
+						report_success_on_context(&(database->commitCtx));
+					}
 				}
-
-				/* a real disconnet happens */
-				if (env->disconnectCtx)
-					report_success_on_context(&(env->disconnectCtx));
 			}
+
+			/* a real disconnet happens */
+			if (env->disconnectCtx)
+				report_success_on_context(&(env->disconnectCtx));
 			break;
 		case SML_DATA_SYNC_EVENT_GOT_ALL_ALERTS:
 			if (dsObject == env->dsObject1)
@@ -115,7 +119,7 @@ void _recv_event(
 error:
 	osync_trace(TRACE_INTERNAL, "%s: Cleaning up because of an error ...", __func__);
 	OSyncError *oserror = NULL;
-	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&locerror));
 
 	if (env->connectCtx)
 		report_error_on_context(&(env->connectCtx), &oserror, FALSE);

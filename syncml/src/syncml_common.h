@@ -94,6 +94,7 @@ typedef struct SmlPluginEnv {
 
 	/* libsyncml state management */
 
+	SmlBool abort;
 	SmlDataSyncEventType state1;
 	SmlDataSyncEventType state2;
 
