@@ -61,12 +61,7 @@ void _recv_event(
 		case SML_DATA_SYNC_EVENT_FINISHED:
 			if (!env->abort)
 			{
-				if (dsObject == env->dsObject1 && env->dsObject2) {
-					if (!smlDataSyncInit(env->dsObject2, &locerror))
-						goto error;
-					if (!smlDataSyncRun(env->dsObject2, &locerror))
-						goto error;
-				} else {
+				if (!env->dsObject2 || dsObject == env->dsObject2) {
 					/* This is the real end of the sync process and
 					 * so it is a good idea to commit the changes here
 					 * and not earlier because now the remote peer
@@ -91,6 +86,14 @@ void _recv_event(
 				osync_trace(TRACE_INTERNAL, "session established");
 				if (env->connectCtx)
 					report_success_on_context(&(env->connectCtx));
+				if (env->dsObject2)
+				{
+					/* If this is the first connection of an
+					 * OMA DS client then we send an empty sync.
+					 */
+					if (!smlDataSyncSendChanges(env->dsObject1, &locerror))
+						goto error;
+				}
 			} else {
 				if (!smlDataSyncSendChanges(env->dsObject2, &locerror))
 					goto error;
@@ -159,15 +162,25 @@ SmlAlertType _get_alert_type(
 	osync_trace(TRACE_ENTRY, "%s - %s: %d", __func__, source, type);
 
 	SmlPluginEnv *env = userdata;
-	SmlDatabase *database = get_database_from_source(env, source, error);
-	if (!database)
-		goto error;
 
-	/* locate alert type of sink */
-	if (osync_objtype_sink_get_slowsync(database->sink))
-		type = SML_ALERT_SLOW_SYNC;
-	else
+	if (env->dsObject2 && env->dsObject2 == dsObject)
+	{
+		/* If this is the second connection of an OMA DS client
+		 * then first connection should be successful and so the
+		 * second connection should be no SLOW-SYNC.
+		 */
 		type = SML_ALERT_TWO_WAY;
+	} else {
+		SmlDatabase *database = get_database_from_source(env, source, error);
+		if (!database)
+			goto error;
+
+		/* locate alert type of sink */
+		if (osync_objtype_sink_get_slowsync(database->sink))
+			type = SML_ALERT_SLOW_SYNC;
+		else
+			type = SML_ALERT_TWO_WAY;
+	}
 
 	osync_trace(TRACE_EXIT, "%s - %d", __func__, type);
 	return type;
