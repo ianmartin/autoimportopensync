@@ -83,8 +83,12 @@ void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *c
         SmlDatabase *database = get_database_from_plugin_info(info);
 	SmlPluginEnv *env = database->env;
 
-        database->getChangesCtx = ctx;
-        osync_context_ref(database->getChangesCtx);
+	if (env->state1 >= SML_DATA_SYNC_EVENT_GOT_ALL_CHANGES) {
+		report_success_on_context(&(ctx));
+	} else {
+		database->getChangesCtx = ctx;
+		osync_context_ref(database->getChangesCtx);
+	}
 
 	smlDataSyncRegisterChangeCallback(env->dsObject1, _recv_change, env);
 	smlDataSyncRegisterChangeCallback(env->dsObject2, _recv_unwanted_change, env);
