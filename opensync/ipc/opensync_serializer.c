@@ -558,6 +558,7 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 
 	unsigned int usb_vendorid, usb_productid, usb_interface; 
 
+	unsigned int net_port;
 	char *net_address, *net_protocol, *net_dnssd;
 
 	unsigned int serial_speed;
@@ -598,6 +599,9 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 		case OSYNC_PLUGIN_CONNECTION_NETWORK:
 			osync_message_read_string(message, &net_address);
 			osync_plugin_connection_net_set_address(*conn, net_address);
+
+			osync_message_read_uint(message, &net_port);
+			osync_plugin_connection_net_set_port(*conn, net_port);
 
 			osync_message_read_string(message, &net_protocol);
 			osync_plugin_connection_net_set_address(*conn, net_protocol);
