@@ -20,10 +20,10 @@
      <Value>NONE</Value>
    </AdvancedOption>
    <AdvancedOption>
-     <DisplayName>URL fo the remote server</DisplayName>
-     <Name>URL</Name>
+     <DisplayName>Path for the remote server</DisplayName>
+     <Name>Path</Name>
      <Type>string</Type>
-     <Value>http://127.0.0.1:8080</Value>
+     <Value></Value>
    </AdvancedOption>
    <AdvancedOption>
      <!-- if you have a proxy (e.g. from a firewall) then you can enter it here -->
@@ -148,6 +148,13 @@
     <Username></Username>
     <Password></Password>
   </Authentication>
+  <Connection>
+    <Network>
+      <Address>127.0.0.1</Address>
+      <Port>8080</Port>
+      <Protocol>http</Protocol>
+    </Network>
+  </Connection>
 
   <!-- To be filed by UI or hand:
   <Resources>

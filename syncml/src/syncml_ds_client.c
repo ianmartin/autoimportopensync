@@ -4,28 +4,52 @@
 
 SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **oerror)
 {
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, oerror);
 	SmlDatabase *database = NULL;
 	SmlError *error = NULL;
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	unsigned int i, num_objtypes = osync_plugin_info_num_objtypes(info);
+	osync_trace(TRACE_INTERNAL, "%s: %d objtypes", __func__, num_objtypes);
+
 
 	for (i=0; i < num_objtypes; i++) {
 		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
-		const char *objtype = osync_objtype_sink_get_name(sink);
+		osync_bool sinkEnabled = osync_objtype_sink_is_enabled(sink);
+		osync_trace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
+		if (!sinkEnabled)
+			continue;
 
-                database->sink = sink;
-                
+
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
                 functions.get_changes = ds_client_get_changeinfo;
                 functions.sync_done = sync_done;
 		functions.batch_commit = ds_client_batch_commit;
 
+		const char *objtype = osync_objtype_sink_get_name(sink);
 		OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype);
 		if (!(database = syncml_config_parse_database(env, res, oerror)))
 			goto oerror;
                 
+                database->sink = sink;
+
+		/* TODO: Handle all available format sinks! */
+		OSyncList *fs = osync_plugin_resource_get_objformat_sinks(res);
+		OSyncObjFormatSink *fmtsink = osync_list_nth_data(fs, 0);
+		const char *objformat = osync_objformat_sink_get_objformat(fmtsink);
+
+		database->objformat = osync_format_env_find_objformat(formatenv, objformat);
+
+		/* TODO: Handle error about missing objformat in a nice way. */
+		g_assert(database->objformat);
+
+		osync_objformat_ref(database->objformat);
+
                 osync_objtype_sink_set_functions(sink, functions, database);
+
+		env->databases = g_list_append(env->databases, database);
 
 		if (!smlDataSyncAddDatastore(
                                         env->dsObject1,
@@ -34,15 +58,24 @@ SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
                                         database->url,
                                         &error))
                                 goto error;
+		if (!smlDataSyncAddDatastore(
+                                        env->dsObject2,
+					get_database_pref_content_type(database, oerror),
+                                        NULL,
+                                        database->url,
+                                        &error))
+                                goto error;
 	}
+	osync_trace(TRACE_EXIT, "%s - TRUE", __func__);
 	return TRUE;
 error:
 	osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
 oerror:
+	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
 	return FALSE;
 }
-	
+
 void ds_client_get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);

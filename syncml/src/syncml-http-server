@@ -98,34 +98,34 @@
 
   <Resources>
     <Resource>
-      <Name>Contacts</Name>
-      <ObjType>contact</ObjType>
+      <Enabled>1</Enabled>
       <Formats>
         <Format>
           <Name>vcard21</Name>
         </Format>
       </Formats>
-      <Enabled>1</Enabled>
+      <Name>Contacts</Name>
+      <ObjType>contact</ObjType>
     </Resource>
     <Resource>
-      <Name>Calendar</Name>
-      <ObjType>event</ObjType>
+      <Enabled>1</Enabled>
       <Formats>
         <Format>
           <Name>vevent20</Name>
         </Format>
       </Formats>
-      <Enabled>1</Enabled>
+      <Name>Calendar</Name>
+      <ObjType>event</ObjType>
     </Resource>
     <Resource>
-      <Name>Notes</Name>
-      <ObjType>note</ObjType>
+      <Enabled>1</Enabled>
       <Formats>
         <Format>
           <Name>vnote11</Name>
         </Format>
       </Formats>
-      <Enabled>1</Enabled>
+      <Name>Notes</Name>
+      <ObjType>note</ObjType>
     </Resource>
   </Resources>
 

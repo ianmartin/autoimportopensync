@@ -31,6 +31,8 @@ void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	if (!env)
 		goto error;
 
+	osync_trace(TRACE_EXIT, "%s - %p", __func__, env);
+	return env;
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(oerror));
 	return NULL;

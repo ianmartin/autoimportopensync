@@ -430,7 +430,7 @@ error:
 
 osync_bool discover(const char *name, void *data, OSyncPluginInfo *info, OSyncError **error)
 {
-        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+        osync_trace(TRACE_ENTRY, "%s(%s, %p, %p, %p)", __func__, name, data, info, error);
         
         SmlPluginEnv *env = (SmlPluginEnv *)data;
         GList *o = env->databases;
@@ -458,8 +458,10 @@ osync_bool parse_config(
 		OSyncPluginConfig *config,
 		OSyncError **oerror)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, dsObject, config, oerror);
+	osync_trace(TRACE_ENTRY, "%s(%d, %p, %p, %p)",
+		__func__, tsp, dsObject, config, oerror);
 	OSyncPluginConnection *conn;
+	char *url = NULL;
 	SmlError *error = NULL;
 
 	if (!smlDataSyncSetOption(dsObject, "USE_TIMESTAMP_ANCHOR", "1", &error))
@@ -524,13 +526,21 @@ osync_bool parse_config(
 			if (tsp == SML_TRANSPORT_OBEX_CLIENT &&
 			    !smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "NET", &error))
 				goto error;
-			char *port = g_strdup_printf("%u", osync_plugin_connection_net_get_port(conn));
-			if (!smlDataSyncSetOption(dsObject, "PORT", port, &error))
+			if (tsp == SML_TRANSPORT_HTTP_CLIENT)
 			{
+				url = g_strdup_printf("%s://%s:%d",
+						osync_plugin_connection_net_get_protocol(conn),
+						osync_plugin_connection_net_get_address(conn),
+						osync_plugin_connection_net_get_port(conn));
+			} else {
+				char *port = g_strdup_printf("%u", osync_plugin_connection_net_get_port(conn));
+				if (!smlDataSyncSetOption(dsObject, "PORT", port, &error))
+				{
+					smlSafeCFree(&port);
+					goto error;
+				}
 				smlSafeCFree(&port);
-				goto error;
 			}
-			smlSafeCFree(&port);
 			break;
 		case OSYNC_PLUGIN_CONNECTION_UNKNOWN:
 		default:
@@ -596,10 +606,17 @@ osync_bool parse_config(
 			key = "ONLY_LOCALTIME";
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_PROXY, name)) {
 			key = "PROXY";
-		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_URL, name)) {
-			key = "URL";
+		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_PATH, name)) {
+			/* build URL together with connection config */
+			char *value = g_strdup_printf("%s%s", url, val);
+			safe_cfree(&url);
+			if (!smlDataSyncSetOption(dsObject, "URL", value, &error)) {
+				safe_cfree(&value);
+				goto error;
+			}
+			safe_cfree(&value);
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_CAFILE, name)) {
-			key = "CAFILE";
+			key = "SSL_CA_FILE";
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_AUTH_TYPE, name)) {
 			key = "AUTH_TYPE";
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_DEVICE, name)) {
@@ -617,7 +634,7 @@ osync_bool parse_config(
 			goto error;
 	}
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s - TRUE", __func__);
 	return TRUE;
 error:
 	osync_error_set(oerror, OSYNC_ERROR_MISCONFIGURATION, "%s", smlErrorPrint(&error));
@@ -650,12 +667,12 @@ void *syncml_init(
 	/* create data sync object */
 	env->dsObject1 = smlDataSyncNew(sessionType, tspType, &error);
 	if (!env->dsObject1)
-		goto error;
+		goto error_free_env;
 	if (sessionType == SML_SESSION_TYPE_CLIENT)
 	{
 		env->dsObject2 = smlDataSyncNew(sessionType, tspType, &error);
 		if (!env->dsObject2)
-			goto error;
+			goto error_free_env;
 	}
 
 	/* configure the instance */
@@ -706,6 +723,7 @@ void *syncml_init(
 		smlDataSyncRegisterHandleRemoteDevInfCallback(env->dsObject2, _handle_remote_devinf, env);
 		smlDataSyncRegisterChangeStatusCallback(env->dsObject2, _recv_change_status);
 	}
+	osync_trace(TRACE_INTERNAL, "%s: config loaded", __func__);
 
 	/* configure databases */
 	if (sessionType == SML_SESSION_TYPE_SERVER &&

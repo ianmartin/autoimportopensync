@@ -48,7 +48,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
-
 error_free_env:
 	finalize(env);
 error:

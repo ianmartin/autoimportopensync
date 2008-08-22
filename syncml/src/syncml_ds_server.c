@@ -4,18 +4,18 @@
 
 SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **oerror)
 {
-	smlTrace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, oerror);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, oerror);
 	SmlDatabase *database = NULL;
 	SmlError *error = NULL;
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	unsigned int i, num_objtypes = osync_plugin_info_num_objtypes(info);
-	smlTrace(TRACE_INTERNAL, "%s: %d objtypes", __func__, num_objtypes);
+	osync_trace(TRACE_INTERNAL, "%s: %d objtypes", __func__, num_objtypes);
 
 	for (i=0; i < num_objtypes; i++) {
 		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
 		osync_bool sinkEnabled = osync_objtype_sink_is_enabled(sink);
-		smlTrace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
+		osync_trace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
 		if (!sinkEnabled)
 			continue;
 
@@ -56,13 +56,13 @@ SmlBool ds_server_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSync
                                         &error))
                                 goto error;
 	}
-	smlTrace(TRACE_EXIT, "%s - TRUE", __func__);
+	osync_trace(TRACE_EXIT, "%s - TRUE", __func__);
 	return TRUE;
 error:
 	osync_error_set(oerror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
 oerror:
-	smlTrace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
+	osync_trace(TRACE_EXIT_ERROR, "%s - %s", __func__, osync_error_print(oerror));
 	return FALSE;
 }
 
