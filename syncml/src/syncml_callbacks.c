@@ -105,8 +105,8 @@ void _recv_event(
 				o = env->databases;
 				for (; o; o = o->next) {
 					SmlDatabase *database = o->data;
-					g_assert(database->getChangesCtx);
-					report_success_on_context(&(database->getChangesCtx));
+					if (database->getChangesCtx)
+						report_success_on_context(&(database->getChangesCtx));
 				}
 			}
 			break;
