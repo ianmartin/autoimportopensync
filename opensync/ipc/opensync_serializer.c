@@ -604,10 +604,10 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 			osync_plugin_connection_net_set_port(*conn, net_port);
 
 			osync_message_read_string(message, &net_protocol);
-			osync_plugin_connection_net_set_address(*conn, net_protocol);
+			osync_plugin_connection_net_set_protocol(*conn, net_protocol);
 
 			osync_message_read_string(message, &net_dnssd);
-			osync_plugin_connection_net_set_address(*conn, net_dnssd);
+			osync_plugin_connection_net_set_dnssd(*conn, net_dnssd);
 			
 			g_free(net_address);
 			g_free(net_protocol);
