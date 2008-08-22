@@ -1383,6 +1383,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
 			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)));
+			/* Fall through! - To emit disconnect commands for clean connection termination, in error condition */
 		case OSYNC_ENGINE_EVENT_SYNC_DONE:
 			/* Lets disconnect */
 			for (o = engine->object_engines; o; o = o->next) {
