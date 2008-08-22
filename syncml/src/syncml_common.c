@@ -552,7 +552,7 @@ osync_bool parse_config(
 	OSyncPluginAuthentication *auth = osync_plugin_config_get_authentication(config);
 	if (auth) {
 		const char *value = NULL;
-		osync_plugin_authentication_get_username(auth);
+		value = osync_plugin_authentication_get_username(auth);
 		if (value != NULL && strlen(value) == 0)
 			value = NULL;
 		if (value &&
