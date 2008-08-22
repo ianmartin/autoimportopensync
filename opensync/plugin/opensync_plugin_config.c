@@ -1330,10 +1330,15 @@ OSyncPluginAuthentication *osync_plugin_config_get_authentication(OSyncPluginCon
 void osync_plugin_config_set_authentication(OSyncPluginConfig *config, OSyncPluginAuthentication *authentication)
 {
 	osync_assert(config);
-	if (config->authentication)
+	
+	if (config->authentication) {
 		osync_plugin_authentication_unref(config->authentication);
-
-	config->authentication = osync_plugin_authentication_ref(authentication);
+		config->authentication = NULL;
+	}
+	
+	if (authentication) {
+		config->authentication = osync_plugin_authentication_ref(authentication);
+	}
 }
 
 /* Localization */
@@ -1346,10 +1351,14 @@ OSyncPluginLocalization *osync_plugin_config_get_localization(OSyncPluginConfig 
 void osync_plugin_config_set_localization(OSyncPluginConfig *config, OSyncPluginLocalization *localization)
 {
 	osync_assert(config);
-	if (config->localization)
+	
+	if (config->localization) {
 		osync_plugin_localization_unref(config->localization);
-
-	config->localization = osync_plugin_localization_ref(localization);
+		config->localization = NULL;
+	}
+	if (localization) {
+		config->localization = osync_plugin_localization_ref(localization);
+	}
 }
 
 /* Resources */
@@ -1415,11 +1424,13 @@ OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *con
 void osync_plugin_config_set_connection(OSyncPluginConfig *config, OSyncPluginConnection *connection)
 {
 	osync_assert(config);
-	osync_assert(connection);
 
-	if (config->connection)
+	if (config->connection) {
 		osync_plugin_connection_unref(config->connection);
-
-	config->connection = osync_plugin_connection_ref(connection);
+		config->connection = NULL;
+	}
+	if (connection) {
+		config->connection = osync_plugin_connection_ref(connection);
+	}
 }
 
