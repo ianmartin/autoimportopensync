@@ -272,7 +272,7 @@ OSyncObjFormat *conv_run_detection(OSyncFormatEnv *env, OSyncChange *change, con
 		goto out;
 	}
 
-	fprintf(stderr, "Cannot convert objtype %s. Unable to find a converter\n", osync_objformat_get_name(sourceformat));
+	fprintf(stderr, "Cannot convert format \"%s\". Unable to find a converter\n", osync_objformat_get_name(sourceformat));
 out:
 	return targetformat;
 }
@@ -360,15 +360,13 @@ int main (int argc, char *argv[])
 	osync_change_set_uid(change, filename);
 
 	// just setup a dummyformat to complete data for osync_data_new
-	OSyncObjFormat *dummyformat = osync_objformat_new("plain", "data", &error);
+	OSyncObjFormat *dummyformat = osync_format_env_find_objformat(format_env, "plain");
 
 	if (!(data = osync_data_new(buffer, size, dummyformat, &error))) {
 		goto error;
 	}
 
 	osync_change_set_data(change, data);
-
-	osync_objformat_unref(dummyformat);	
 
 	// detect source and target xmlformat
 	targetformat = conv_run_detection(format_env, change, type);
