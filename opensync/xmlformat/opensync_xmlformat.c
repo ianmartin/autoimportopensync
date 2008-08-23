@@ -280,29 +280,24 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 		osync_xmlformat_sort(xmlformat);
 
 	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new(error);
-	if(!xmlfieldlist) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
+	if (!xmlfieldlist)
+		goto error;
 
 	void **liste = osync_try_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count, error);
-	if(!liste) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
+	if (!liste)
+		goto error;
 
 	index = 0;
 	cur = osync_xmlformat_get_first_field(xmlformat);
-	for(; cur != NULL; cur = osync_xmlfield_get_next(cur)) {
+	for (; cur != NULL; cur = osync_xmlfield_get_next(cur)) {
 		liste[index] = cur;
 		index++;
 	}
 
 	key = osync_try_malloc0(sizeof(OSyncXMLField), error);
-	if(!key) {
+	if (!key) {
 		g_free(liste);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
+		goto error;
 	}
 
 	key->node = xmlNewNode(NULL, BAD_CAST name);
@@ -317,10 +312,10 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	res = *(OSyncXMLField **) ret;
 
 	/* we set the cur ptr to the first field from the fields with name name because -> bsearch -> more than one field with the same name*/
-	for(cur = res; cur->prev != NULL && !strcmp(osync_xmlfield_get_name(cur->prev), name); cur = cur->prev) ;
+	for (cur = res; cur->prev != NULL && !strcmp(osync_xmlfield_get_name(cur->prev), name); cur = cur->prev) ;
 
 	osync_bool all_attr_equal;
-	for(; cur != NULL && !strcmp(osync_xmlfield_get_name(cur), name); cur = cur->next) {
+	for (; cur != NULL && !strcmp(osync_xmlfield_get_name(cur), name); cur = cur->next) {
 		const char *attr, *value;
 		all_attr_equal = TRUE;
 		va_list args;
@@ -328,18 +323,17 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 		do {
 			attr = va_arg(args, char *);
 			value = va_arg(args, char *);
-			if(	attr == NULL || value == NULL)
+			if (attr == NULL || value == NULL)
 				break;
-			if(strcmp(value, osync_xmlfield_get_attr(cur, attr)) != 0)
+
+			if (strcmp(value, osync_xmlfield_get_attr(cur, attr)) != 0)
 				all_attr_equal = FALSE;
-			
-		}while(1);
+		} while (1);
 		va_end(args);
+
 		if(all_attr_equal)
 			_osync_xmlfieldlist_add(xmlfieldlist, cur);
 	}
-
-
 
 end:	
 	/* free lists here (later) - bsearch result is still pointing in liste array */
@@ -349,6 +343,10 @@ end:
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfieldlist);
 	return xmlfieldlist;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+	return NULL;
 }
 
 /**
