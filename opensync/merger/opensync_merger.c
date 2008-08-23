@@ -249,9 +249,10 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 		g_assert_not_reached();
 	 }
 
-	 /* FIXME: Merger is broken! After merging xmlformat is not sorted. Sorting is very expensive! Avoid it! */
-	 xmlformat->sorted = FALSE;
-	 osync_xmlformat_sort(xmlformat);
+	 /* FIXME: Merger is broken! 
+	    After merging xmlformat is not sorted. Sorting is very expensive!
+	    Avoid it! Ticket: #754 */
+	 osync_assert(osync_xmlformat_is_sorted(xmlformat));
 
 #ifndef NDEBUG
 	 /* XXX Debugging only. Fix Merger and remove osync_xmlformat_assemble() */
