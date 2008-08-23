@@ -51,6 +51,7 @@ OSYNC_EXPORT osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char
 OSYNC_EXPORT osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat, OSyncError **error);
 
 OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
+OSYNC_EXPORT osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat);
 
 OSYNC_EXPORT OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold);
 

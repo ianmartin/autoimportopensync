@@ -104,6 +104,7 @@ void _osync_xmlfield_unlink(OSyncXMLField *xmlfield)
  * @brief Compare the names of two xmlfields  
  * @param xmlfield1 The pointer to a xmlfield object
  * @param xmlfield2 The pointer to a xmlfield object
+ * @returns same as strcmp(), 0 is equal
  */
 int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 {
@@ -114,6 +115,7 @@ int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
  * @brief Compare the key names of two xmlfield key nodes
  * @param key1 The pointer to a xmlNodePtr
  * @param key2 The pointer to a xmlNodePtr
+ * @returns same as strcmp(), 0 is equal
  */
 int _osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
 {

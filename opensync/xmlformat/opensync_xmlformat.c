@@ -440,6 +440,35 @@ end:
 }
 
 /**
+ * @brief Check if all xmlfields of the xmlformat are sorted.
+ * @param xmlformat The pointer to a xmlformat object
+ * @returns TRUE if sorted, FALSE otherwise
+ */
+osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
+	osync_assert(xmlformat);
+	
+	OSyncXMLField *cur, *prev = NULL;
+	
+	/* No need to check if sorted when 1 or less xmlfields */
+	if (xmlformat->child_count <= 1)
+		return TRUE;
+	
+	cur = osync_xmlformat_get_first_field(xmlformat);
+	for(; cur != NULL; cur = osync_xmlfield_get_next(cur)) {
+
+		/* Equal when returns 0, like strcmp() */
+		if (prev && _osync_xmlfield_compare_stdlib(&prev, &cur) > 0)
+			return FALSE;
+
+		prev = cur;
+	}
+
+	return TRUE;
+}
+
+/**
  * @brief Compares two xmlformat objects with each other
  * @param xmlformat1 The pointer to a xmlformat object
  * @param xmlformat2 The pointer to a xmlformat object

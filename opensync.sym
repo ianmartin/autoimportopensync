@@ -865,6 +865,7 @@ osync_xmlformat_assemble
 osync_xmlformat_compare
 osync_xmlformat_get_first_field
 osync_xmlformat_get_objtype
+osync_xmlformat_is_sorted
 osync_xmlformat_new
 osync_xmlformat_parse
 osync_xmlformat_ref

@@ -66,6 +66,34 @@ START_TEST (xmlformat_sort)
 }
 END_TEST
 
+START_TEST (xmlformat_is_sorted)
+{
+	char *testbed = setup_testbed("xmlformats");
+	
+	OSyncError *error = NULL;
+	char* buffer;
+	unsigned int size;
+	fail_unless(osync_file_read("xmlfield_unsorted.xml", &buffer, &size, &error), NULL);
+
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_xmlformat_is_sorted(xmlformat) == FALSE, NULL);
+
+	osync_xmlformat_sort(xmlformat);
+
+	fail_unless(osync_xmlformat_is_sorted(xmlformat) == TRUE, NULL);
+	
+	osync_xmlformat_unref(xmlformat);
+
+	g_free(buffer);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+
 START_TEST (xmlformat_search_field)
 {
 	char *testbed = setup_testbed("merger");
@@ -409,6 +437,7 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlformat_new", xmlformat_new);
 	create_case(s, "xmlformat_parse", xmlformat_parse);
 	create_case(s, "xmlformat_sort", xmlformat_sort);
+	create_case(s, "xmlformat_is_sorted", xmlformat_is_sorted);
 	create_case(s, "xmlformat_search_field", xmlformat_search_field);
 	create_case(s, "xmlformat_compare", xmlformat_compare);
 	create_case(s, "xmlformat_compare_field2null", xmlformat_compare_field2null);
