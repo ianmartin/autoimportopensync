@@ -274,10 +274,13 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	void *ret;
 	OSyncXMLField *cur, *key, *res;
 
-	/* Searching breaks if the xmlformat is not sorted (bsearch!)
-	   FIXME: get rid of to many search */
-	if (!xmlformat->sorted)
-		osync_xmlformat_sort(xmlformat);
+	/* Searching breaks if the xmlformat is not sorted (bsearch!).
+	   ASSERT in development builds (when NDEBUG is not defined) - see ticket #754. */
+	osync_assert(xmlformat->sorted);
+	if (!xmlformat->sorted) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "XMLFormat is unsorted. Search result would be not valid.");
+		goto error;
+	}
 
 	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new(error);
 	if (!xmlfieldlist)
