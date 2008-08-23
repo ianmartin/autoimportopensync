@@ -253,6 +253,7 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	 xmlformat->sorted = FALSE;
 	 osync_xmlformat_sort(xmlformat);
 
+#ifndef NDEBUG
 	 /* XXX Debugging only. Fix Merger and remove osync_xmlformat_assemble() */
 	 unsigned int size;
 	 char *buffer = NULL;
@@ -261,6 +262,10 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	 osync_trace(TRACE_EXIT, "%s:\nXML:\n%s ", __func__, buffer);
 
 	 g_free(buffer);
+#else
+	 osync_trace(TRACE_EXIT, "%s", __func__);
+#endif /* NDEBUG */
+
 }
 
 /**
