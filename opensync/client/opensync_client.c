@@ -558,6 +558,10 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 		OSyncPluginResource *res = r->data;
 		OSyncObjTypeSink *sink;
 
+		/* Don't add disabled Resources to PluginInfo objtypes list: #817 */
+		if (!osync_plugin_resource_is_enabled(res))
+			continue;
+
 		const char *objtype = osync_plugin_resource_get_objtype(res); 
 		/* Check for ObjType sink */
 		if (!(sink = osync_plugin_info_find_objtype(client->plugin_info, objtype))) {
