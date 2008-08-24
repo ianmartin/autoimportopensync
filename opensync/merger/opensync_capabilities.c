@@ -404,6 +404,9 @@ OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *membe
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
+
+	/* Sort capabilities, to avoid user modified unsorted capalities: #813 */
+	osync_capabilities_sort(capabilities);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
 	return capabilities;
