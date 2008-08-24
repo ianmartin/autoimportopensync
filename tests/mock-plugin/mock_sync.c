@@ -52,19 +52,8 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	MockDir *dir = osync_objtype_sink_get_userdata(sink);
-	mock_env *env = data;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-
-	if (!dir) {
-		GList *o = env->directories;
-		for (; o; o = o->next) {
-			MockDir *sink_dir = o->data;
-			sink_dir->committed_all = TRUE;
-		}
-	} else {
-		dir->committed_all = TRUE;
-	}
 	
 	if (mock_get_error(info->memberid, "CONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering CONNECT_ERROR error");
@@ -84,6 +73,11 @@ static void mock_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	/* Skip Objtype related stuff like hashtable and anchor */
 	if (mock_get_error(info->memberid, "MAINSINK_CONNECT"))
 		goto end;
+
+
+	/* From this line MockDir *dir is required, for ObjTypeSink specific stuff: #821 */
+	osync_assert(dir);
+	dir->committed_all = TRUE;
 
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
