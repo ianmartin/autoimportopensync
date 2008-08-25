@@ -68,6 +68,8 @@ typedef struct vertice {
 	unsigned objtype_changes;
 	unsigned conversions;
 
+	int ref_count;
+
 } vertice;
 
 #endif //_OPENSYNC_FORMAT_ENV_INTERNALS_H_

@@ -192,22 +192,44 @@ static osync_bool _target_fn_simple(const void *data, OSyncObjFormat *fmt)
 	return osync_objformat_is_equal(target, fmt);
 }
 
-/** Increment a vertice reference count */
-/*static void ref_vertice(vertice *v)
+static vertice *_vertice_new(OSyncError **error)
 {
-	v->references++;
-}*/
+	vertice *v = osync_try_malloc0(sizeof(vertice), error);
+	if (!v)
+		return NULL;
+
+	v->ref_count = 1;
+
+	return v;
+}
+
+/** Increment a vertice reference count */
+static vertice *_vertice_ref(vertice *vertice)
+{
+	osync_assert(vertice);
+	
+	g_atomic_int_inc(&(vertice->ref_count));
+
+	return vertice;
+}
 
 /** Dereference a vertice
  */
-static void _free_vertice(vertice *vertice)
+static void _vertice_unref(vertice *vertice)
 {
-	g_list_free(vertice->path);
+	osync_assert(vertice);
+		
+	if (g_atomic_int_dec_and_test(&(vertice->ref_count))) {
 
-	g_free(vertice);
+		g_list_free(vertice->path);
+
+		osync_data_unref(vertice->data);
+
+		g_free(vertice);
+	}
 }
 
-static osync_bool _validate_path_with_detector(struct vertice *ve, OSyncFormatEnv *env, OSyncFormatConverter *converter) {
+static osync_bool _validate_path_with_detector(vertice *ve, OSyncFormatEnv *env, OSyncFormatConverter *converter) {
 
 		// check if a detector validate this path
                 OSyncList *cs = NULL;
@@ -302,7 +324,7 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 		tree->unused = g_list_remove(tree->unused, converter);
 
 		/* Allocate the new neighbour */
-		neigh = osync_try_malloc0(sizeof(vertice), error);
+		neigh = _vertice_new(error);
 		if (!neigh)
 			goto error;
 		
@@ -343,7 +365,7 @@ error:
 static void _free_tree(conv_tree *tree)
 {
 	/* Remove the remaining references on the search queue */
-	g_list_foreach(tree->search, (GFunc)_free_vertice, NULL);
+	g_list_foreach(tree->search, (GFunc)_vertice_unref, NULL);
 	
 	g_list_free(tree->unused);
 	g_list_free(tree->search);
@@ -411,7 +433,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	
 	/* We make our starting point (which is the current format of the 
 	 * change of course */
-	begin = osync_try_malloc0(sizeof(vertice), error);
+	begin = _vertice_new(error);
 	if (!begin)
 		goto error_free_tree;
 	
@@ -419,6 +441,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	begin->path = NULL;
 	
 	tree->search = g_list_append(NULL, begin);
+	_vertice_ref(begin);
 	
 	/* While there are still vertices in our
 	 * search queue */
@@ -472,6 +495,8 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format));
 			tree->search = g_list_insert_sorted(tree->search, neighbour, _compare_vertice_distance);
 
+			_vertice_ref(neighbour);
+
 			/* Optimization:
 			 * We found a possible target. Save it. */
 			if (target_fn(fndata, neighbour->format)) {
@@ -482,7 +507,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			goto error_free_tree;
 		
 		/* Done, drop the reference to the vertice */
-		_free_vertice(current);
+		_vertice_unref(current);
 	}
 			
 	if (!result) {
@@ -501,7 +526,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	}
 	
 	/* Drop the reference to the result vertice */
-	_free_vertice(result);
+	_vertice_unref(result);
 	
 	/* Free the tree */
 	_free_tree(tree);
