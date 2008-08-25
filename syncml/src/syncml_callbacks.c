@@ -70,8 +70,12 @@ void _recv_event(
 					o = env->databases;
 					for (; o; o = o->next) {
 						SmlDatabase *database = o->data;
-						g_assert(database->commitCtx);
-						report_success_on_context(&(database->commitCtx));
+						/* If the connection finished after an error
+						 * then it can happen that the commitCtx was
+						 * already signaled.
+						 */
+						if(database->commitCtx)
+							report_success_on_context(&(database->commitCtx));
 					}
 				}
 			}
