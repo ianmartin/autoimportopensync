@@ -91,6 +91,7 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
     OSyncError  *oserror = NULL;
     SmlDatabase *database = get_database_from_plugin_info(info);
 
+    database->env->gotDatabaseCommits++;
     database->pendingCommits = get_num_changes(changes);
     osync_trace(TRACE_INTERNAL, "%s - %i changes present to send",
 	__func__, database->pendingCommits);
@@ -132,7 +133,8 @@ void ds_server_batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 
     }
 
-    if (!smlDataSyncSendChanges(database->env->dsObject1, &error))
+    if (g_list_length(database->env->databases) == database->env->gotDatabaseCommits &&
+        !smlDataSyncSendChanges(database->env->dsObject1, &error))
 		goto error;
 
     osync_trace(TRACE_EXIT, "%s", __func__);

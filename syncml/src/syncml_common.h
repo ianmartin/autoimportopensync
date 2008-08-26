@@ -103,6 +103,7 @@ typedef struct SmlPluginEnv {
 	OSyncContext *connectCtx;
 	OSyncContext *disconnectCtx;
 	GList *databases;
+	unsigned int gotDatabaseCommits; /* only for OMA DS server */
 
 	/* environment data */
 

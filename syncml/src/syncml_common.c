@@ -661,6 +661,7 @@ void *syncml_init(
 		goto error;
 	env->sessionType = sessionType;
 	env->pluginInfo = info;
+	env->gotDatabaseCommits = 0;
 	osync_plugin_info_ref(env->pluginInfo);
 
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
