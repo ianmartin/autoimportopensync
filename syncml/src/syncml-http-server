@@ -69,16 +69,16 @@
      <Value>NONE</Value>
    </AdvancedOption>
   </AdvancedOptions>
+  <Authentication>
+    <Username></Username>
+    <Password></Password>
+  </Authentication>
   <Connection>
    <Network>
      <!-- The port where to listen. This has to be set on the mobile as well. -->
      <Port>8080</Port>
    </Network>
   </Connection>
-  <Authentication>
-    <Username></Username>
-    <Password></Password>
-  </Authentication>
 
   <!-- To be filed by UI or hand:
   <Resources>
