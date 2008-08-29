@@ -36,7 +36,11 @@
      <Value></Value>
    </AdvancedOption>
    <AdvancedOption>
-     <!-- Some Nokia Series60 need as Identifer "PC Suite: -->
+     <!-- Some mobiles need special identifiers.          -->
+     <!-- Mobile                     | Identifier         -->
+     <!-- ---------------------------+------------------- -->
+     <!-- Nokia                      | PC Suite           -->
+     <!-- Nokia Series40 3rd Edition | PC Suite Data Sync -->
      <DisplayName>Identifier</DisplayName>
      <Name>Identifier</Name>
      <Type>string</Type>
