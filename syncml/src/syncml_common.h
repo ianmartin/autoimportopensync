@@ -42,7 +42,7 @@
 
 #include <glib.h>
 
-#include <libsyncml/standard.h>
+#include <libsyncml/data_sync_api.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
