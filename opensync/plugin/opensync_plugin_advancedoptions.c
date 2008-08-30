@@ -111,6 +111,9 @@ OSyncPluginAdvancedOption *osync_plugin_advancedoption_new(OSyncError **error)
 		return NULL;
 
 	option->ref_count = 1;
+	option->minsize = 0;
+	option->maxsize = UINT_MAX;
+	option->maxoccurs = UINT_MAX;
 
 	return option;
 }
