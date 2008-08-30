@@ -7,6 +7,7 @@
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
 # Copyright (c) 2007 Alban Browaeys <prahal@yahoo.com>
+# Copyright (c) 2008 Bjoern Ricks <bjoern.ricks@googlemail.com>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -37,10 +38,13 @@ ENDIF ( PKGCONFIG_EXECUTABLE )
 
 FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATHS "${_opensync_data_DIR}" PATH_SUFFIXES "cmake/modules" NO_DEFAULT_PATH) 
 FIND_PATH( OPENSYNC_CMAKE_MODULES "OpenSyncInternal.cmake" PATH_SUFFIXES "cmake/modules" ) 
+
 IF ( OPENSYNC_CMAKE_MODULES )
-        SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${OPENSYNC_CMAKE_MODULES}" )
+	SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${OPENSYNC_CMAKE_MODULES}" )
 ELSE ( OPENSYNC_CMAKE_MODULES )
-        MESSAGE( FATAL_ERROR "OpenSync cmake modules not found. Have you installed opensync core or did you set your PKG_CONFIG_PATH if installing in a non system directory ?" )
+	IF ( OpenSync_FIND_REQUIRED )
+		MESSAGE( FATAL_ERROR "OpenSync cmake modules not found. Have you installed opensync core or did you set your PKG_CONFIG_PATH if installing in a non system directory ?" )
+	ENDIF ( OpenSync_FIND_REQUIRED )
 ENDIF ( OPENSYNC_CMAKE_MODULES )
 
 
