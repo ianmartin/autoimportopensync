@@ -219,6 +219,18 @@ void osync_plugin_advancedoption_set_maxsize(OSyncPluginAdvancedOption *option, 
 	option->maxsize = maxsize;
 }
 
+unsigned int osync_plugin_advancedoption_get_minsize(OSyncPluginAdvancedOption *option)
+{
+	osync_assert(option);
+	return option->minsize;
+}
+
+void osync_plugin_advancedoption_set_minsize(OSyncPluginAdvancedOption *option, unsigned int minsize)
+{
+	osync_assert(option);
+	option->minsize = minsize;
+}
+
 const char *osync_plugin_advancedoption_get_name(OSyncPluginAdvancedOption *option)
 {
 	osync_assert(option);

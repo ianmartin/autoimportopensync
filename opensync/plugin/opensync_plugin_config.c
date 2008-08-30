@@ -92,6 +92,8 @@ static OSyncPluginAdvancedOption *_osync_plugin_config_parse_advancedoption(OSyn
 			osync_plugin_advancedoption_set_maxoccurs(option, atoi(str));
 		else if (!xmlStrcmp(cur->name, BAD_CAST "MaxSize"))
 			osync_plugin_advancedoption_set_maxsize(option, atoi(str));
+		else if (!xmlStrcmp(cur->name, BAD_CAST "MinSize"))
+			osync_plugin_advancedoption_set_minsize(option, atoi(str));
 		else if (!xmlStrcmp(cur->name, BAD_CAST "Name"))
 			osync_plugin_advancedoption_set_name(option, str);
 		else if (!xmlStrcmp(cur->name, BAD_CAST "Parameter")) {
@@ -1077,6 +1079,13 @@ static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSy
 	if (osync_plugin_advancedoption_get_maxsize(option)) {
 		char *str = g_strdup_printf("%u", osync_plugin_advancedoption_get_maxsize(option));
 		xmlNewChild(node, NULL, BAD_CAST "MaxSize", BAD_CAST str);
+		g_free(str);
+	}
+
+	/* MinSize */
+	if (osync_plugin_advancedoption_get_minsize(option)) {
+		char *str = g_strdup_printf("%u", osync_plugin_advancedoption_get_minsize(option));
+		xmlNewChild(node, NULL, BAD_CAST "MinSize", BAD_CAST str);
 		g_free(str);
 	}
 

@@ -50,6 +50,9 @@ OSYNC_EXPORT void osync_plugin_advancedoption_remove_parameter(OSyncPluginAdvanc
 OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_maxsize(OSyncPluginAdvancedOption *option);
 OSYNC_EXPORT void osync_plugin_advancedoption_set_maxsize(OSyncPluginAdvancedOption *option, unsigned int maxsize);
 
+OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_minsize(OSyncPluginAdvancedOption *option);
+OSYNC_EXPORT void osync_plugin_advancedoption_set_minsize(OSyncPluginAdvancedOption *option, unsigned int minsize);
+
 OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_maxoccurs(OSyncPluginAdvancedOption *option);
 OSYNC_EXPORT void osync_plugin_advancedoption_set_maxoccurs(OSyncPluginAdvancedOption *option, unsigned int maxoccurs);
 

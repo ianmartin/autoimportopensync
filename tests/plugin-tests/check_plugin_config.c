@@ -185,6 +185,9 @@ START_TEST (plugin_config_advancedoption)
 	osync_plugin_advancedoption_set_maxsize(option, 2323);
 	fail_unless(osync_plugin_advancedoption_get_maxsize(option) == 2323, NULL);
 
+	osync_plugin_advancedoption_set_minsize(option, 0);
+	fail_unless(osync_plugin_advancedoption_get_minsize(option) == 0, NULL);
+
 	osync_plugin_advancedoption_set_maxoccurs(option, 3232);
 	fail_unless(osync_plugin_advancedoption_get_maxoccurs(option) == 3232, NULL);
 
@@ -637,6 +640,7 @@ START_TEST (plugin_config_save_and_load)
 	fail_unless(option != NULL, NULL);
 
 	osync_plugin_advancedoption_set_maxsize(option, 1);
+	osync_plugin_advancedoption_set_minsize(option, 1);
 	osync_plugin_advancedoption_set_maxoccurs(option, 1);
 	osync_plugin_advancedoption_set_displayname(option, "foobar1");
 	osync_plugin_advancedoption_set_name(option, "foobar1");
@@ -780,6 +784,7 @@ START_TEST (plugin_config_save_and_load)
 		fail_unless(!strcmp(osync_plugin_advancedoption_get_name(r->data), value), NULL);
 		fail_unless(!strcmp(osync_plugin_advancedoption_get_displayname(r->data), value), NULL);
 		fail_unless(osync_plugin_advancedoption_get_maxsize(r->data) == i, NULL);
+		fail_unless(osync_plugin_advancedoption_get_minsize(r->data) == i, NULL);
 		fail_unless(osync_plugin_advancedoption_get_maxoccurs(r->data) == i, NULL);
 		fail_unless(osync_plugin_advancedoption_get_type(r->data) == OSYNC_PLUGIN_ADVANCEDOPTION_TYPE_CHAR, NULL);
 		g_free(value);

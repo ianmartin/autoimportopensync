@@ -37,6 +37,9 @@ struct OSyncPluginAdvancedOption {
 	/** Max Size */
 	unsigned int maxsize;
 
+	/** Min Size */
+	unsigned int minsize;
+
 	/** Option Name - kind of ID for the option. Internal use. Should not appear any UI. */
 	char *name;
 
