@@ -33,7 +33,7 @@ struct OSyncMember {
 	char *name;
 	char *pluginname;
 	
-	GList *objtypes;
+	GList *objtypes; /* OSyncObjTypeSink */
 	OSyncObjTypeSink *main_sink;
 
 	//For the filters
