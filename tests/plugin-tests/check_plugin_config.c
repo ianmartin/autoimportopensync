@@ -65,7 +65,7 @@ START_TEST (plugin_config_subcomponents)
 
 	/* Adding Subcomponents: */
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 	osync_plugin_config_set_connection(config, conn);
@@ -97,7 +97,7 @@ START_TEST (plugin_config_subcomponents)
 
 	/* Overwrite Subcomponents */
 	/* Connection */
-	OSyncPluginConnection *conn2 = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
+	OSyncPluginConnection *conn2 = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn2 != NULL, NULL);
 	osync_plugin_config_set_connection(config, conn2);
@@ -139,7 +139,7 @@ START_TEST (plugin_config_subcomponents_nomemory)
 
 	/* Adding Subcomponents (without memory -> booooooom!): */
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error != NULL, NULL);
 	fail_unless(conn == NULL, NULL);
 	osync_error_unref(&error);
@@ -347,7 +347,7 @@ START_TEST (plugin_config_connection)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_UNKNOWN, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
@@ -839,9 +839,11 @@ START_TEST (plugin_config_save_and_load_connection_bluetooth)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_BLUETOOTH, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
+
+	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
 
 	/* Bluetooth Address */
 	osync_plugin_connection_bt_set_addr(conn, "FF:FF:FF:FF:FF:FF");
@@ -890,9 +892,11 @@ START_TEST (plugin_config_save_and_load_connection_irda)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_IRDA, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
+
+	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
 
 	osync_plugin_connection_irda_set_service(conn, "FancyIR Mobile");
 
@@ -931,9 +935,11 @@ START_TEST (plugin_config_save_and_load_connection_usb)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_USB, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
+
+	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
 
 	/* USB Vendor ID */
 	osync_plugin_connection_usb_set_vendorid(conn, 0xaffe);
@@ -980,9 +986,11 @@ START_TEST (plugin_config_save_and_load_connection_network)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_NETWORK, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
+
+	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
 
 
 	/* Network Address */
@@ -1034,9 +1042,11 @@ START_TEST (plugin_config_save_and_load_connection_serial)
 	fail_unless(config != NULL, NULL);
 
 	/* Connection */
-	OSyncPluginConnection *conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_SERIAL, &error);
+	OSyncPluginConnection *conn = osync_plugin_connection_new(&error);
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
+
+	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
 
 	/* Serial Speed */
 	osync_plugin_connection_serial_set_speed(conn, 1234);

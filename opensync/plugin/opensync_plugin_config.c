@@ -388,33 +388,24 @@ static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *confi
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
-			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_BLUETOOTH, error)))
-				goto error;
+		if (!(conn = osync_plugin_connection_new(error)))
+			goto error;
 
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
+			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
 			ret = _osync_plugin_config_parse_connection_bluetooth(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"USB")) {
-			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_USB, error)))
-				goto error;
-
+			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
 			ret = _osync_plugin_config_parse_connection_usb(conn, cur->xmlChildrenNode, error);
-
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"IrDA")) {
-			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_IRDA, error)))
-				goto error;
-
+			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
 			ret = _osync_plugin_config_parse_connection_irda(conn, cur->xmlChildrenNode, error);
-
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Network")) {
-			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_NETWORK, error)))
-				goto error;
-
+			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
 			ret = _osync_plugin_config_parse_connection_network(conn, cur->xmlChildrenNode, error);
-
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Serial")) {
-			if (!(conn = osync_plugin_connection_new(OSYNC_PLUGIN_CONNECTION_SERIAL, error)))
-				goto error;
-
+			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
 			ret = _osync_plugin_config_parse_connection_serial(conn, cur->xmlChildrenNode, error);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);

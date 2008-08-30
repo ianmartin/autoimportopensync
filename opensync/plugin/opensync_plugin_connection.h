@@ -40,11 +40,12 @@ typedef enum {
 	OSYNC_PLUGIN_CONNECTION_IRDA
 } OSyncPluginConnectionType;
 
-OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_new(OSyncPluginConnectionType type, OSyncError **error);
+OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_connection_unref(OSyncPluginConnection *connection);
 OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_ref(OSyncPluginConnection *connection);
 
 OSYNC_EXPORT OSyncPluginConnectionType osync_plugin_connection_get_type(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_set_type(OSyncPluginConnection *connection, OSyncPluginConnectionType type);
 
 /* Bluetooth */
 OSYNC_EXPORT const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection);

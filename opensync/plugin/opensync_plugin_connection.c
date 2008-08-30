@@ -24,14 +24,14 @@
 #include "opensync-plugin.h"
 #include "opensync_plugin_connection_internals.h"
 
-OSyncPluginConnection *osync_plugin_connection_new(OSyncPluginConnectionType type, OSyncError **error)
+OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error)
 {
 	OSyncPluginConnection *connection = osync_try_malloc0(sizeof(OSyncPluginConnection), error);
 	if (!connection)
 		return NULL;
 
 	connection->ref_count = 1;
-	connection->type = type;
+	connection->type = OSYNC_PLUGIN_CONNECTION_UNKNOWN;
 
 	return connection;
 }
@@ -80,6 +80,13 @@ OSyncPluginConnectionType osync_plugin_connection_get_type(OSyncPluginConnection
 	osync_assert(connection);
 
 	return connection->type;
+}
+
+void osync_plugin_connection_set_type(OSyncPluginConnection *connection, OSyncPluginConnectionType type)
+{
+	osync_assert(connection);
+
+	connection->type = type;
 }
 
 const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection)

@@ -568,9 +568,11 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 
 	osync_message_read_int(message, &type);
 
-	*conn = osync_plugin_connection_new(type, error);
+	*conn = osync_plugin_connection_new(error);
 	if (!*conn)
 		goto error;
+
+	osync_plugin_connection_set_type(*conn, type);
 
 	switch(type) {
 		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
