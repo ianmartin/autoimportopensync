@@ -24,6 +24,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, oerror);
 
+	SmlError *error = NULL;
 	SmlPluginEnv *env = syncml_init(
 				SML_SESSION_TYPE_SERVER,
 				SML_TRANSPORT_OBEX_CLIENT,
@@ -32,7 +33,6 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		goto error;
 
 	/* add the datastores */
-	SmlError *error = NULL;
 	GList *o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
