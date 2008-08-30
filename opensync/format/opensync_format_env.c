@@ -223,7 +223,8 @@ static void _vertice_unref(vertice *vertice)
 
 		g_list_free(vertice->path);
 
-		osync_data_unref(vertice->data);
+		if(vertice->data)
+			osync_data_unref(vertice->data);
 
 		g_free(vertice);
 	}
@@ -315,7 +316,7 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 			continue;
 
 		/* Only validate with the help of detectors, if data is
-		   availablet to run a detector on it. */
+		   available to run a detector on it. */
 		if (osync_data_has_data(ve->data) 
 			&& !_validate_path_with_detector(ve, env, converter))
 			continue;
@@ -331,7 +332,6 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 		neigh->format = fmt_target;
 		neigh->path = g_list_copy(ve->path);
 		neigh->path = g_list_append(neigh->path, converter);
-		neigh->data = ve->data;
 	
 		/* Distance calculation */
 		neigh->conversions = ve->conversions + 1;
@@ -441,7 +441,6 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	begin->path = NULL;
 	
 	tree->search = g_list_append(NULL, begin);
-	_vertice_ref(begin);
 	
 	/* While there are still vertices in our
 	 * search queue */
@@ -476,6 +475,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		/* If we dont have reached a target, we look at our neighbours */
 		osync_trace(TRACE_INTERNAL, "Looking at %s's neighbours.", osync_objformat_get_name(current->format));
 	        current->data = osync_data_clone(sourcedata, error);
+
 		OSyncFormatConverterPath *path_tmp = osync_converter_path_new(error);
 		if (!path_tmp)
 			goto error;
@@ -488,14 +488,12 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			osync_trace(TRACE_INTERNAL, "osync format env convert on this path failed - skipping the conversion");
 			continue;
 		}
-
+		osync_converter_path_unref(path_tmp);
 
 		while ((neighbour = _get_next_vertice_neighbour(env, tree, current, error))) {
 			/* We found a neighbour and insert it sorted in our search queue */
 			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format));
 			tree->search = g_list_insert_sorted(tree->search, neighbour, _compare_vertice_distance);
-
-			_vertice_ref(neighbour);
 
 			/* Optimization:
 			 * We found a possible target. Save it. */
