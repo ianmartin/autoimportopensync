@@ -89,6 +89,37 @@ void osync_plugin_connection_set_type(OSyncPluginConnection *connection, OSyncPl
 	connection->type = type;
 }
 
+osync_bool osync_plugin_connection_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlag flag)
+{
+	osync_assert(connection);
+	if (connection->supported & flag)
+		return TRUE;
+
+	return FALSE;
+}
+
+void osync_plugin_connection_set_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlags flags)
+{
+	osync_assert(connection);
+	connection->supported = flags;
+}
+
+osync_bool osync_plugin_connection_option_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionOptionSupportedFlag flag)
+{
+	osync_assert(connection);
+	if (connection->supported_options & flag)
+		return TRUE;
+
+	return FALSE;
+}
+
+void osync_plugin_connection_option_set_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlags flags)
+{
+	osync_assert(connection);
+	connection->supported_options = flags;
+}
+
+
 const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection)
 {
 	osync_assert(connection);

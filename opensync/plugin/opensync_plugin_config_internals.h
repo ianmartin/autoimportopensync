@@ -39,6 +39,9 @@ struct OSyncPluginConfig {
 	/** List of resource configurations */
 	OSyncList *resources;
 
+	/** Flags to store supported config options */
+	OSyncPluginConfigSupportedFlags supported;
+
 	/** Object reference counting */
 	int ref_count;
 };

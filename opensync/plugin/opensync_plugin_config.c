@@ -1269,6 +1269,21 @@ error:
 	return FALSE;
 }
 
+osync_bool osync_plugin_config_is_supported(OSyncPluginConfig *config, OSyncPluginConfigSupportedFlag flag)
+{
+	osync_assert(config);
+
+	if (config->supported & flag)
+		return TRUE;
+
+	return FALSE;
+}
+
+void osync_plugin_config_set_supported(OSyncPluginConfig *config, OSyncPluginConfigSupportedFlags flags)
+{
+	osync_assert(config);
+	config->supported = flags;
+}
 
 /* Advanced Options */
 OSyncList *osync_plugin_config_get_advancedoptions(OSyncPluginConfig *config)

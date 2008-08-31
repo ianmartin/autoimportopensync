@@ -60,6 +60,12 @@ struct OSyncPluginConnection {
 	/** IrDA Identifier (Service) String */
 	char *irda_service;
 
+	/** Supported connections */
+	OSyncPluginConnectionSupportedFlags supported;
+
+	/** Supported connection options */
+	OSyncPluginConnectionOptionSupportedFlags supported_options;
+
 	/** Object reference counting */
 	int ref_count;
 };

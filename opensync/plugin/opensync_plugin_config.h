@@ -23,12 +23,25 @@
 
 #include <opensync/opensync_list.h>
 
+typedef enum {
+	OPENSYNC_PLUGIN_CONFIG_ADVANCEDOPTION	= (1 << 0),
+	OPENSYNC_PLUGIN_CONFIG_AUTHENTICATION	= (1 << 1),
+	OPENSYNC_PLUGIN_CONFIG_LOCALIZATION	= (1 << 2),
+	OPENSYNC_PLUGIN_CONFIG_RESOURCES	= (1 << 3),
+	OPENSYNC_PLUGIN_CONFIG_CONNECTION	= (1 << 4)
+} OSyncPluginConfigSupportedFlag;
+
+typedef unsigned int OSyncPluginConfigSupportedFlags;
+
 OSYNC_EXPORT OSyncPluginConfig *osync_plugin_config_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_config_unref(OSyncPluginConfig *config);
 OSYNC_EXPORT OSyncPluginConfig *osync_plugin_config_ref(OSyncPluginConfig *config);
 
 OSYNC_EXPORT osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *path, OSyncError **error);
+
+OSYNC_EXPORT osync_bool osync_plugin_config_is_supported(OSyncPluginConfig *config, OSyncPluginConfigSupportedFlag flag);
+OSYNC_EXPORT void osync_plugin_config_set_supported(OSyncPluginConfig *config, OSyncPluginConfigSupportedFlags flags);
 
 /* Advanced Options */
 OSYNC_EXPORT OSyncList *osync_plugin_config_get_advancedoptions(OSyncPluginConfig *config);

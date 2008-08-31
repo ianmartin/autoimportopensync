@@ -27,18 +27,44 @@
  **/
 typedef enum {
 	/** Unknown */
-	OSYNC_PLUGIN_CONNECTION_UNKNOWN = 0,
+	OSYNC_PLUGIN_CONNECTION_UNKNOWN		= 0,
 	/** Bluetooth */
-	OSYNC_PLUGIN_CONNECTION_BLUETOOTH,
+	OSYNC_PLUGIN_CONNECTION_BLUETOOTH	= (1 << 0),
 	/** USB */
-	OSYNC_PLUGIN_CONNECTION_USB,
+	OSYNC_PLUGIN_CONNECTION_USB		= (1 << 1),
 	/** Network */ 
-	OSYNC_PLUGIN_CONNECTION_NETWORK, 
+	OSYNC_PLUGIN_CONNECTION_NETWORK		= (1 << 2), 
 	/** Serial */
-	OSYNC_PLUGIN_CONNECTION_SERIAL,
+	OSYNC_PLUGIN_CONNECTION_SERIAL		= (1 << 3),
 	/** IrDA */
-	OSYNC_PLUGIN_CONNECTION_IRDA
+	OSYNC_PLUGIN_CONNECTION_IRDA		= (1 << 4)
 } OSyncPluginConnectionType;
+
+typedef OSyncPluginConnectionType OSyncPluginConnectionSupportedFlag;
+typedef unsigned int OSyncPluginConnectionSupportedFlags;
+
+typedef enum {
+	/* Bluetooth */
+	OSYNC_PLUGIN_CONNECTION_BLUETOOTH_ADDRESS	= (1 << 0),
+	OSYNC_PLUGIN_CONNECTION_BLUETOOTH_RFCOMM	= (1 << 1),
+	OSYNC_PLUGIN_CONNECTION_BLUETOOTH_SDPUUID	= (1 << 2),
+	/* USB */
+	OSYNC_PLUGIN_CONNECTION_USB_VENDORID		= (1 << 3),
+	OSYNC_PLUGIN_CONNECTION_USB_PRODUCTID		= (1 << 4),
+	OSYNC_PLUGIN_CONNECTION_USB_INTERFACE		= (1 << 5),
+	/* Network */
+	OSYNC_PLUGIN_CONNECTION_NETWORK_ADDRESS		= (1 << 6),
+	OSYNC_PLUGIN_CONNECTION_NETWORK_PORT		= (1 << 7),
+	OSYNC_PLUGIN_CONNECTION_NETWORK_PROTOCOL	= (1 << 8),
+	OSYNC_PLUGIN_CONNECTION_NETWORK_DNSSD		= (1 << 9),
+	/* Serial */
+	OSYNC_PLUGIN_CONNECTION_SERIAL_SPEED		= (1 << 10),
+	OSYNC_PLUGIN_CONNECTION_SERIAL_DEVICENODE	= (1 << 11),
+	/* IrDA */
+	OSYNC_PLUGIN_CONNECTION_IRDA_SERVICE		= (1 << 12)
+} OSyncPluginConnectionOptionSupportedFlag;
+
+typedef unsigned int OSyncPluginConnectionOptionSupportedFlags;
 
 OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_connection_unref(OSyncPluginConnection *connection);
@@ -46,6 +72,12 @@ OSYNC_EXPORT OSyncPluginConnection *osync_plugin_connection_ref(OSyncPluginConne
 
 OSYNC_EXPORT OSyncPluginConnectionType osync_plugin_connection_get_type(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_set_type(OSyncPluginConnection *connection, OSyncPluginConnectionType type);
+
+OSYNC_EXPORT osync_bool osync_plugin_connection_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlag flag);
+OSYNC_EXPORT void osync_plugin_connection_set_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlags flags);
+
+OSYNC_EXPORT osync_bool osync_plugin_connection_option_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionOptionSupportedFlag flag);
+OSYNC_EXPORT void osync_plugin_connection_option_set_supported(OSyncPluginConnection *connection, OSyncPluginConnectionOptionSupportedFlags flags);
 
 /* Bluetooth */
 OSYNC_EXPORT const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection);
