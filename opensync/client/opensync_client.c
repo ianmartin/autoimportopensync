@@ -679,6 +679,8 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 {
 	OSyncMessage *reply = NULL;
 	unsigned int i = 0;
+	OSyncPluginConfig *config = osync_plugin_info_get_config(client->plugin_info);
+	OSyncList *res = osync_plugin_config_get_resources(config);
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
@@ -727,6 +729,7 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 	}else
 		osync_message_write_int(reply, 0);
 	
+	/* Report detected capabilities */
 	OSyncCapabilities *capabilities = osync_plugin_info_get_capabilities(client->plugin_info);
 	if (capabilities) {
 		char* buffer;
@@ -738,6 +741,17 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 		g_free(buffer);
 	}else
 		osync_message_write_int(reply, 0);
+
+	/* Report, detected Resources */
+	res = osync_plugin_config_get_resources(config);
+	unsigned int num_res = osync_list_length(res);
+
+	osync_message_write_uint(reply, num_res);
+	for (; res; res = res->next) {
+		OSyncPluginResource *resource = res->data;
+		if (!osync_marshal_pluginresource(reply, resource, error))
+			goto error_free_message;
+	}
 
 	if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
 		goto error_free_message;

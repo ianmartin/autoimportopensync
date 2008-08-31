@@ -399,15 +399,38 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
  			if (capabilities) {
 				if (!osync_member_set_capabilities(member, capabilities, &locerror))
 					goto error_free_capabilities; 
- 				if (!osync_member_save(member, &locerror)) /* TODO: Merger we have to save? */
- 					goto error_free_capabilities;
 
 				osync_capabilities_unref(capabilities);
  			}
  		}
+
 		if (version)
 			osync_version_unref(version);
-		
+
+ 
+		/* Store stuff in member configuration */
+		if (member) {
+
+			/* Demarshal discovered resources */
+			unsigned int num_res;
+			OSyncPluginConfig *config = osync_member_get_config(member, &locerror);
+			if (!config)
+				goto error;
+
+			osync_message_read_uint(message, &num_res);
+			for (i=0; i < num_res; i++) {
+				OSyncPluginResource *resource;
+				if (!osync_demarshal_pluginresource(message, &resource, &locerror))
+					goto error;
+
+				osync_plugin_config_add_resource(config, resource);
+				osync_plugin_resource_unref(resource);
+			}
+
+ 			if (!osync_member_save(member, &locerror))
+ 				goto error;
+		}
+
 		ctx->discover_callback(proxy, ctx->discover_callback_data, NULL);
 	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
 		osync_demarshal_error(message, &error);
