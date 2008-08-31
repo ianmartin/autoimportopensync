@@ -977,7 +977,7 @@ osync_bool osync_demarshal_pluginadvancedoption(OSyncMessage *message, OSyncPlug
 	g_free(name);
 
 	osync_message_read_uint(message, &type);
-	osync_plugin_advancedoption_set_maxsize(*opt, type);
+	osync_plugin_advancedoption_set_type(*opt, type);
 
 	osync_message_read_string(message, &value);
 	osync_plugin_advancedoption_set_value(*opt, value);
