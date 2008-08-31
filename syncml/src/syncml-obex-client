@@ -38,7 +38,7 @@
    <AdvancedOption>
      <!-- Some mobiles need special identifiers.          -->
      <!-- Mobile                     | Identifier         -->
-     <!-- ---------------------------+------------------- -->
+     <!-- ...........................|................... -->
      <!-- Nokia                      | PC Suite           -->
      <!-- Nokia Series40 3rd Edition | PC Suite Data Sync -->
      <DisplayName>Identifier</DisplayName>
