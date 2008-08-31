@@ -678,8 +678,6 @@ osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *
 	if (!osync_xml_open_file(&doc, &cur, path, "config", error))
 		goto error;
 
-	osync_assert(cur);
-
 	/* Validate plugin configuration file */
 	schemafile = g_strdup_printf("%s%c%s", schemapath, G_DIR_SEPARATOR, OSYNC_PLUGIN_CONFING_SCHEMA);
 	if (!osync_xml_validate_document(doc, schemafile)) {
@@ -689,7 +687,7 @@ osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *
 	}
 	g_free(schemafile);
 
-	if (!_osync_plugin_config_parse(config, cur, error))
+	if (cur && !_osync_plugin_config_parse(config, cur, error))
 		goto error;
 
 	xmlFreeDoc(doc);
