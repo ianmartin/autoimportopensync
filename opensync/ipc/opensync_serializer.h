@@ -39,4 +39,7 @@ OSYNC_EXPORT osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyn
 OSYNC_EXPORT osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_demarshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig **config, OSyncError **error);
 
+OSYNC_EXPORT osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResource *res, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_demarshal_pluginresource(OSyncMessage *message, OSyncPluginResource **res, OSyncError **error);
+
 #endif
