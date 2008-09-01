@@ -27,22 +27,12 @@
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
 #include <sys/stat.h>
-#include <stdlib.h>
 
 #include "config.h"
 
 #include <errno.h>
 extern int errno;
 
-#ifndef NDEBUG
-#define osync_assert(x) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: Assertion \"" #x "\" failed\n", __FILE__, __LINE__, __func__); abort();}
-#define osync_assert_msg(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __func__, msg); abort();}
-#define segfault_me char **blablabla = NULL; *blablabla = "test";
-#else
-#define osync_assert(x)
-#define osync_assert_msg(x, msg)
-#define segfault_me
-#endif
 
 #define osync_return_if_fail(condition) do {                                            \
   if (!(condition)) {                                                                   \

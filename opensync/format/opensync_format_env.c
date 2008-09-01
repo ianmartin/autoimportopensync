@@ -232,25 +232,25 @@ static void _vertice_unref(vertice *vertice)
 
 static osync_bool _validate_path_with_detector(vertice *ve, OSyncFormatEnv *env, OSyncFormatConverter *converter) {
 
-		// check if a detector validate this path
-                OSyncList *cs = NULL;
-                OSyncList *cd = NULL;
-                osync_bool has_detector = FALSE;
-		osync_bool has_nondetector = FALSE;
-                osync_bool detector_success = FALSE;
-                osync_trace(TRACE_INTERNAL, "Converter %s to %s type %i", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_converter_get_type(converter));
+	// check if a detector validate this path
+	OSyncList *cs = NULL;
+	OSyncList *cd = NULL;
+	osync_bool has_detector = FALSE;
+	osync_bool has_nondetector = FALSE;
+	osync_bool detector_success = FALSE;
+	osync_trace(TRACE_INTERNAL, "Converter %s to %s type %i", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_converter_get_type(converter));
 
-                // Looking after detector without adhoc converter
-		OSyncList *converters_seekdetectors = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
-                for(cd = converters_seekdetectors; cd ; cd = cd->next) {
-                        OSyncFormatConverter *converter_seekdetectors = cd->data;
-                        if ( converter_seekdetectors && (osync_converter_get_type(converter_seekdetectors) != OSYNC_CONVERTER_DETECTOR) ) {
+	// Looking after detector without adhoc converter
+	OSyncList *converters_seekdetectors = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
+	for(cd = converters_seekdetectors; cd ; cd = cd->next) {
+		OSyncFormatConverter *converter_seekdetectors = cd->data;
+		if ( converter_seekdetectors && (osync_converter_get_type(converter_seekdetectors) != OSYNC_CONVERTER_DETECTOR) ) {
 				osync_trace(TRACE_INTERNAL, "Found non detector adhoc converter . Pairing detector with the non detector converter.");
 				has_nondetector = TRUE;
 				break;
 			}
 		}
-                if (has_nondetector) {
+		if (has_nondetector) {
 			// Skip the detector : it will be handled later on when processing the non detector converter
 			if ( osync_converter_get_type(converter) == OSYNC_CONVERTER_DETECTOR )
 				return FALSE;
@@ -474,7 +474,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 
 		/* If we dont have reached a target, we look at our neighbours */
 		osync_trace(TRACE_INTERNAL, "Looking at %s's neighbours.", osync_objformat_get_name(current->format));
-	        current->data = osync_data_clone(sourcedata, error);
+		current->data = osync_data_clone(sourcedata, error);
 
 		OSyncFormatConverterPath *path_tmp = osync_converter_path_new(error);
 		if (!path_tmp)
@@ -785,25 +785,25 @@ OSyncFormatConverter *osync_format_env_find_converter(OSyncFormatEnv *env, OSync
  */
 OSyncList *osync_format_env_find_converters(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat)
 {
-        OSyncList *r = NULL;
-        GList *c = NULL;
-        
-        osync_assert(env);
-        osync_assert(sourceformat);
-        osync_assert(targetformat);
-        
-        for (c = env->converters; c; c = c->next) {
-                OSyncFormatConverter *converter = c->data;
-                if (!osync_objformat_is_equal(sourceformat, osync_converter_get_sourceformat(converter)))
-                        continue;
-                        
-                if (!osync_objformat_is_equal(targetformat, osync_converter_get_targetformat(converter)))
-                        continue;
-                
-                 r = osync_list_append(r, converter);
-        }
-        
-        return r;
+	OSyncList *r = NULL;
+	GList *c = NULL;
+
+	osync_assert(env);
+	osync_assert(sourceformat);
+	osync_assert(targetformat);
+
+	for (c = env->converters; c; c = c->next) {
+		OSyncFormatConverter *converter = c->data;
+		if (!osync_objformat_is_equal(sourceformat, osync_converter_get_sourceformat(converter)))
+			continue;
+
+		if (!osync_objformat_is_equal(targetformat, osync_converter_get_targetformat(converter)))
+			continue;
+
+		r = osync_list_append(r, converter);
+	}
+
+	return r;
 }
 
 /*! @brief Returns the number of available converters

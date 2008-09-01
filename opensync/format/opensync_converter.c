@@ -232,6 +232,9 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 	unsigned int output_size = 0;
 	osync_bool free_input = FALSE;
 	
+	osync_assert(converter);
+	osync_assert(data);
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, __NULLSTR(config), error);
 	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format), converter->target_format, osync_objformat_get_name(converter->target_format));
 	
