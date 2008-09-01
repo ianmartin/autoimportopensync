@@ -21,6 +21,11 @@
 #include "tomboy_note.h"
 #include "tomboy_note_internal.h"
 
+#include <string.h>
+#include <assert.h>
+
+#define osync_assert(x) assert(x)
+
 osync_bool tomboynote_validate(xmlDocPtr doc) {
 	osync_assert(doc);
 	osync_trace(TRACE_ENTRY, "%s (%p)", __func__, doc);
@@ -77,7 +82,7 @@ const char * tomboynote_parse_node(xmlDocPtr doc, const char * nodename) {
 
 void tomboynote_parse_content_node(xmlNodePtr node, GString * output) {
 	osync_assert(node);
-	osync_assert(output)
+	osync_assert(output);
 
 	xmlNodePtr cur;
 	if ( node != NULL ) {
