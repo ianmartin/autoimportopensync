@@ -24,6 +24,7 @@
 #include "opensync-plugin.h"
 #include "opensync-format.h"
 #include "opensync_plugin_config_internals.h"
+#include "opensync_plugin_connection_internals.h"
 #include "opensync_plugin_advancedoptions_internals.h"
 
 #include "opensync_xml.h"
@@ -206,10 +207,13 @@ static osync_bool _osync_plugin_config_parse_connection_bluetooth(OSyncPluginCon
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"MAC")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_BLUETOOTH_ADDRESS;
 			osync_plugin_connection_bt_set_addr(conn, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"RFCommChannel")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_BLUETOOTH_RFCOMM;
 			osync_plugin_connection_bt_set_channel(conn, atoi(str));
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"SDPUUID")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_BLUETOOTH_SDPUUID;
 			osync_plugin_connection_bt_set_sdpuuid(conn, str);
 		} else {
 //			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", __NULLSTR(cur->name));
@@ -245,12 +249,15 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"VendorID")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_USB_VENDORID;
 			sscanf(str, "0x%x", &usbid);
 			osync_plugin_connection_usb_set_vendorid(conn, usbid);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"ProductID")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_USB_PRODUCTID;
 			sscanf(str, "0x%x", &usbid);
 			osync_plugin_connection_usb_set_productid(conn, usbid);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Interface")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_USB_INTERFACE;
 			osync_plugin_connection_usb_set_interface(conn, atoi(str));
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
@@ -284,6 +291,7 @@ static osync_bool _osync_plugin_config_parse_connection_irda(OSyncPluginConnecti
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Service")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_IRDA_SERVICE;
 			osync_plugin_connection_irda_set_service(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
@@ -316,12 +324,16 @@ static osync_bool _osync_plugin_config_parse_connection_network(OSyncPluginConne
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Address")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_NETWORK_ADDRESS;
 			osync_plugin_connection_net_set_address(conn, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Port")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_NETWORK_PORT;
 			osync_plugin_connection_net_set_port(conn, atoi(str));
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Protocol")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_NETWORK_PROTOCOL;
 			osync_plugin_connection_net_set_protocol(conn, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"DNSSD")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_NETWORK_DNSSD;
 			osync_plugin_connection_net_set_dnssd(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
@@ -354,8 +366,10 @@ static osync_bool _osync_plugin_config_parse_connection_serial(OSyncPluginConnec
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Speed")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_SERIAL_SPEED;
 			osync_plugin_connection_serial_set_speed(conn, atoi(str));
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"DeviceNode")) {
+			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_SERIAL_DEVICENODE;
 			osync_plugin_connection_serial_set_devicenode(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
@@ -383,28 +397,32 @@ static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *confi
 
 	OSyncPluginConnection *conn = NULL;
 
+	if (!(conn = osync_plugin_connection_new(error)))
+		goto error;
+
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		if (!(conn = osync_plugin_connection_new(error)))
-			goto error;
-
-
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
+			conn->supported |= OSYNC_PLUGIN_CONNECTION_BLUETOOTH;
 			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
 			ret = _osync_plugin_config_parse_connection_bluetooth(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"USB")) {
+			conn->supported |= OSYNC_PLUGIN_CONNECTION_USB;
 			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
 			ret = _osync_plugin_config_parse_connection_usb(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"IrDA")) {
+			conn->supported |= OSYNC_PLUGIN_CONNECTION_IRDA;
 			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
 			ret = _osync_plugin_config_parse_connection_irda(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Network")) {
+			conn->supported |= OSYNC_PLUGIN_CONNECTION_NETWORK;
 			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
 			ret = _osync_plugin_config_parse_connection_network(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Serial")) {
+			conn->supported |= OSYNC_PLUGIN_CONNECTION_SERIAL;
 			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
 			ret = _osync_plugin_config_parse_connection_serial(conn, cur->xmlChildrenNode, error);
 		} else {
@@ -634,20 +652,27 @@ static osync_bool _osync_plugin_config_parse(OSyncPluginConfig *config, xmlNode 
 
 	osync_bool ret = TRUE;
 
+	config->supported = 0;
+
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"AdvancedOptions")) {
+			config->supported |= OPENSYNC_PLUGIN_CONFIG_ADVANCEDOPTION;
 			ret = _osync_plugin_config_parse_advancedoptions(config, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Authentication")) {
+			config->supported |= OPENSYNC_PLUGIN_CONFIG_AUTHENTICATION;
 			ret = _osync_plugin_config_parse_authentication(config, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Connection")) {
+			config->supported |= OPENSYNC_PLUGIN_CONFIG_CONNECTION;
 			ret = _osync_plugin_config_parse_connection(config, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Localization")) {
+			config->supported |= OPENSYNC_PLUGIN_CONFIG_LOCALIZATION;
 			ret = _osync_plugin_config_parse_localization(config, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Resources")) {
+			config->supported |= OPENSYNC_PLUGIN_CONFIG_RESOURCES;
 			ret = _osync_plugin_config_parse_resources(config, cur->xmlChildrenNode, error);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
@@ -1290,7 +1315,6 @@ OSyncList *osync_plugin_config_get_advancedoptions(OSyncPluginConfig *config)
 {
 	osync_assert(config);
 	return config->advancedoptions;
-
 }
 
 OSyncPluginAdvancedOption *osync_plugin_config_get_advancedoption_value_by_name(OSyncPluginConfig *config, const char *name)
