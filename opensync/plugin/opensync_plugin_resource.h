@@ -21,9 +21,20 @@
 #ifndef _OPENSYNC_PLUGIN_RESOURCE_H_
 #define _OPENSYNC_PLUGIN_RESOURCE_H_
 
+typedef enum {
+	OSYNC_PLUGIN_RESOURCE_NAME	= (1 << 0),
+	OSYNC_PLUGIN_RESOURCE_PATH	= (1 << 1),
+	OSYNC_PLUGIN_RESOURCE_URL	= (1 << 2),
+} OSyncPluginResourceOptionSupportedFlag;
+
+typedef unsigned int OSyncPluginResourceOptionSupportedFlags;
+
 OSYNC_EXPORT OSyncPluginResource *osync_plugin_resource_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_resource_unref(OSyncPluginResource *resource);
 OSYNC_EXPORT OSyncPluginResource *osync_plugin_resource_ref(OSyncPluginResource *resource);
+
+OSYNC_EXPORT osync_bool osync_plugin_resource_option_is_supported(OSyncPluginResource *resource, OSyncPluginResourceOptionSupportedFlag flag);
+OSYNC_EXPORT void osync_plugin_resource_option_set_supported(OSyncPluginResource *resource, OSyncPluginResourceOptionSupportedFlags flags);
 
 OSYNC_EXPORT osync_bool osync_plugin_resource_is_enabled(OSyncPluginResource *resource);
 OSYNC_EXPORT void osync_plugin_resource_enable(OSyncPluginResource *resource, osync_bool enable);

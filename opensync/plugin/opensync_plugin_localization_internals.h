@@ -33,6 +33,9 @@ struct OSyncPluginLocalization {
 	/** Language of device/service/application (e.g. en_US, de_DE, ...) */
 	char *language;
 
+	/** Supported localization options */
+	OSyncPluginLocalizationOptionSupportedFlags supported_options;
+
 	/** Object reference counting */
 	int ref_count;
 };

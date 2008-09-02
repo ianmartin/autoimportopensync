@@ -74,6 +74,21 @@ void osync_plugin_resource_unref(OSyncPluginResource *resource)
 	}
 }
 
+osync_bool osync_plugin_resource_option_is_supported(OSyncPluginResource *resource, OSyncPluginResourceOptionSupportedFlag flag)
+{
+	osync_assert(resource);
+	if (resource->supported_options & flag)
+		return TRUE;
+
+	return FALSE;
+}
+
+void osync_plugin_resource_option_set_supported(OSyncPluginResource *resource, OSyncPluginResourceOptionSupportedFlags flags)
+{
+	osync_assert(resource);
+	resource->supported_options = flags;
+}
+
 osync_bool osync_plugin_resource_is_enabled(OSyncPluginResource *resource)
 {
 	osync_assert(resource);

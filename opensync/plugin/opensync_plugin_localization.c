@@ -62,6 +62,21 @@ void osync_plugin_localization_unref(OSyncPluginLocalization *local)
 	}
 }
 
+osync_bool osync_plugin_localization_option_is_supported(OSyncPluginLocalization *local, OSyncPluginLocalizationOptionSupportedFlag flag)
+{
+	osync_assert(local);
+	if (local->supported_options & flag)
+		return TRUE;
+
+	return FALSE;
+}
+
+void osync_plugin_localization_option_set_supported(OSyncPluginLocalization *local, OSyncPluginLocalizationOptionSupportedFlags flags)
+{
+	osync_assert(local);
+	local->supported_options = flags;
+}
+
 const char *osync_plugin_localization_get_encoding(OSyncPluginLocalization *local)
 {
 	osync_assert(local);

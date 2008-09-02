@@ -26,6 +26,9 @@
 #include "opensync_plugin_config_internals.h"
 #include "opensync_plugin_connection_internals.h"
 #include "opensync_plugin_advancedoptions_internals.h"
+#include "opensync_plugin_authentication_internals.h"
+#include "opensync_plugin_localization_internals.h"
+#include "opensync_plugin_resource_internals.h"
 
 #include "opensync_xml.h"
 
@@ -172,12 +175,16 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 		if (!str)
 			continue;
 
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"Username"))
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"Username")) {
+			auth->supported_options |= OSYNC_PLUGIN_AUTHENTICATION_USERNAME;
 			osync_plugin_authentication_set_username(auth, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Password"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Password")) {
+			auth->supported_options |= OSYNC_PLUGIN_AUTHENTICATION_PASSWORD;
 			osync_plugin_authentication_set_password(auth, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Reference"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Reference")) {
+			auth->supported_options |= OSYNC_PLUGIN_AUTHENTICATION_REFERENCE;
 			osync_plugin_authentication_set_reference(auth, str);
+		}
 
 		xmlFree(str);
 	}
@@ -464,12 +471,16 @@ static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *con
 		if (!str)
 			continue;
 
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"Encoding"))
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"Encoding")) {
+			local->supported_options |= OSYNC_PLUGIN_LOCALIZATION_ENCODING;
 			osync_plugin_localization_set_encoding(local, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Timezone"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Timezone")) {
+			local->supported_options |= OSYNC_PLUGIN_LOCALIZATION_TIMEZONE;
 			osync_plugin_localization_set_timezone(local, str);
-		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Language"))
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Language")) {
+			local->supported_options |= OSYNC_PLUGIN_LOCALIZATION_LANGUAGE;
 			osync_plugin_localization_set_language(local, str);
+		}
 
 		xmlFree(str);
 	}
@@ -590,14 +601,17 @@ static OSyncPluginResource *_osync_plugin_config_parse_resource(OSyncPluginConfi
 			if (!_osync_plugin_config_parse_resource_formats(res, cur->xmlChildrenNode, error))
 				goto error_free_str;
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Name")) {
+			res->supported_options |= OSYNC_PLUGIN_RESOURCE_NAME;
 			osync_plugin_resource_set_name(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"MIME")) {
 			osync_plugin_resource_set_mime(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"ObjType")) {
 			osync_plugin_resource_set_objtype(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Path")) {
+			res->supported_options |= OSYNC_PLUGIN_RESOURCE_PATH;
 			osync_plugin_resource_set_path(res, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Url")) {
+			res->supported_options |= OSYNC_PLUGIN_RESOURCE_URL;
 			osync_plugin_resource_set_url(res, str);
 		}
 

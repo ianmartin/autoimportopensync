@@ -21,9 +21,20 @@
 #ifndef _OPENSYNC_PLUGIN_LOCALIZATION_H_
 #define _OPENSYNC_PLUGIN_LOCALIZATION_H_
 
+typedef enum {
+	OSYNC_PLUGIN_LOCALIZATION_ENCODING	= (1 << 0),
+	OSYNC_PLUGIN_LOCALIZATION_TIMEZONE	= (1 << 1),
+	OSYNC_PLUGIN_LOCALIZATION_LANGUAGE	= (1 << 2),
+} OSyncPluginLocalizationOptionSupportedFlag;
+
+typedef unsigned int OSyncPluginLocalizationOptionSupportedFlags;
+
 OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_localization_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_localization_unref(OSyncPluginLocalization *local);
 OSYNC_EXPORT OSyncPluginLocalization *osync_plugin_localization_ref(OSyncPluginLocalization *local);
+
+OSYNC_EXPORT osync_bool osync_plugin_localization_option_is_supported(OSyncPluginLocalization *local, OSyncPluginLocalizationOptionSupportedFlag flag);
+OSYNC_EXPORT void osync_plugin_localization_option_set_supported(OSyncPluginLocalization *local, OSyncPluginLocalizationOptionSupportedFlags flags);
 
 OSYNC_EXPORT const char *osync_plugin_localization_get_encoding(OSyncPluginLocalization *local);
 OSYNC_EXPORT void osync_plugin_localization_set_encoding(OSyncPluginLocalization *local, const char *encoding);

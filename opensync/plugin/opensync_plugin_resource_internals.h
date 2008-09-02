@@ -41,6 +41,9 @@ struct OSyncPluginResource {
 	/** URL */
 	char *url;
 
+	/** Supported resource options */
+	OSyncPluginResourceOptionSupportedFlags supported_options;
+
 	/** Object reference counting */
 	int ref_count;
 };

@@ -21,9 +21,20 @@
 #ifndef _OPENSYNC_PLUGIN_AUTHENTICATON_H_
 #define _OPENSYNC_PLUGIN_AUTHENTICATON_H_
 
+typedef enum {
+	OSYNC_PLUGIN_AUTHENTICATION_USERNAME	= (1 << 0),
+	OSYNC_PLUGIN_AUTHENTICATION_PASSWORD	= (1 << 1),
+	OSYNC_PLUGIN_AUTHENTICATION_REFERENCE	= (1 << 2),
+} OSyncPluginAuthenticationOptionSupportedFlag;
+
+typedef unsigned int OSyncPluginAuthenticationOptionSupportedFlags;
+
 OSYNC_EXPORT OSyncPluginAuthentication *osync_plugin_authentication_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_authentication_unref(OSyncPluginAuthentication *auth);
 OSYNC_EXPORT OSyncPluginAuthentication *osync_plugin_authentication_ref(OSyncPluginAuthentication *auth);
+
+OSYNC_EXPORT osync_bool osync_plugin_authentication_option_is_supported(OSyncPluginAuthentication *auth, OSyncPluginAuthenticationOptionSupportedFlag flag);
+OSYNC_EXPORT void osync_plugin_authentication_option_set_supported(OSyncPluginAuthentication *auth, OSyncPluginAuthenticationOptionSupportedFlags flags);
 
 OSYNC_EXPORT const char *osync_plugin_authentication_get_username(OSyncPluginAuthentication *auth);
 OSYNC_EXPORT void osync_plugin_authentication_set_username(OSyncPluginAuthentication *auth, const char *username);

@@ -62,6 +62,21 @@ void osync_plugin_authentication_unref(OSyncPluginAuthentication *auth)
 	}
 }
 
+osync_bool osync_plugin_authentication_option_is_supported(OSyncPluginAuthentication *auth, OSyncPluginAuthenticationOptionSupportedFlag flag)
+{
+	osync_assert(auth);
+	if (auth->supported_options & flag)
+		return TRUE;
+
+	return FALSE;
+}
+
+void osync_plugin_authentication_option_set_supported(OSyncPluginAuthentication *auth, OSyncPluginAuthenticationOptionSupportedFlags flags)
+{
+	osync_assert(auth);
+	auth->supported_options = flags;
+}
+
 const char *osync_plugin_authentication_get_username(OSyncPluginAuthentication *auth)
 {
 	osync_assert(auth);

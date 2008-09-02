@@ -33,6 +33,9 @@ struct OSyncPluginAuthentication {
 	/** Reference or Key for Password Managers which store the password in a safe way. */
 	char *reference; 
 
+	/** Supported authentication options */
+	OSyncPluginAuthenticationOptionSupportedFlags supported_options;
+
 	/** Object reference counting */
 	int ref_count;
 };
