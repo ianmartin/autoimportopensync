@@ -92,7 +92,7 @@ INSTALL( DIRECTORY
   plugin
   version
   xmlformat
-DESTINATION ${OPENSYNC_INCLUDE_DIR}
+DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync
 PATTERN "*/*_internals.h" EXCLUDE 
 PATTERN ".*" EXCLUDE 
 PATTERN "*.c*" EXCLUDE
@@ -120,7 +120,7 @@ INSTALL( FILES
    opensync-time.h
    opensync-version.h
    opensync-xmlformat.h
-DESTINATION ${OPENSYNC_INCLUDE_DIR} )
+DESTINATION ${OPENSYNC_INCLUDE_DIR}/opensync )
 
 
 ########### osplugin ##################
