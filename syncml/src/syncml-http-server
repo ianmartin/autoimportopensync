@@ -4,7 +4,7 @@
    <AdvancedOption>
      <!-- The url that you want the server to listen on. 
           This has to be set on the mobile as well. example: "/" -->
-     <DisplayName>URL fo the remote server</DisplayName>
+     <DisplayName>URL of the remote server</DisplayName>
      <Name>URL</Name>
      <Type>string</Type>
      <Value></Value>
