@@ -476,20 +476,6 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		osync_trace(TRACE_INTERNAL, "Looking at %s's neighbours.", osync_objformat_get_name(current->format));
 		current->data = osync_data_clone(sourcedata, error);
 
-		OSyncFormatConverterPath *path_tmp = osync_converter_path_new(error);
-		if (!path_tmp)
-			goto error;
-		
-		for (e = current->path; e; e = e->next) {
-			OSyncFormatConverter *edge = e->data;
-			osync_converter_path_add_edge(path_tmp, edge);
-		}
-		if (!(osync_format_env_convert(env, path_tmp, current->data, error))) {
-			osync_trace(TRACE_INTERNAL, "osync format env convert on this path failed - skipping the conversion");
-			continue;
-		}
-		osync_converter_path_unref(path_tmp);
-
 		while ((neighbour = _get_next_vertice_neighbour(env, tree, current, error))) {
 			/* We found a neighbour and insert it sorted in our search queue */
 			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format));
