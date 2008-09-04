@@ -62,6 +62,7 @@ OSYNC_EXPORT OSyncList *osync_plugin_config_get_resources(OSyncPluginConfig *plu
 OSYNC_EXPORT OSyncPluginResource *osync_plugin_config_find_active_resource(OSyncPluginConfig *config, const char *objtype);
 OSYNC_EXPORT void osync_plugin_config_add_resource(OSyncPluginConfig *plugin, OSyncPluginResource *resource);
 OSYNC_EXPORT void osync_plugin_config_remove_resource(OSyncPluginConfig *plugin, OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_config_flush_resources(OSyncPluginConfig *plugin);
 
 /* Connection */
 OSYNC_EXPORT OSyncPluginConnection *osync_plugin_config_get_connection(OSyncPluginConfig *config);

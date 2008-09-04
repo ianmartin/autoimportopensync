@@ -417,6 +417,7 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			if (!config)
 				goto error;
 
+			osync_plugin_config_flush_resources(config);
 			osync_message_read_uint(message, &num_res);
 			for (i=0; i < num_res; i++) {
 				OSyncPluginResource *resource;
