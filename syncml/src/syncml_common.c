@@ -466,17 +466,20 @@ osync_bool parse_config(
 	char *url = NULL;
 	SmlError *error = NULL;
 
-	if (!smlDataSyncSetOption(dsObject, "USE_TIMESTAMP_ANCHOR", "1", &error))
+	if (!smlDataSyncSetOption(
+			dsObject,
+			SML_DATA_SYNC_CONFIG_USE_TIMESTAMP_ANCHOR,
+			"1", &error))
 		goto error;
 	if (!smlDataSyncSetOption(
 			dsObject,
-			"MAX_MSG_SIZE",
+			SML_DATA_SYNC_CONFIG_MAX_MSG_SIZE,
 			OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE,
 			&error))
 		goto error;
 	if (!smlDataSyncSetOption(
 			dsObject,
-			"MAX_OBJ_SIZE",
+			SML_DATA_SYNC_CONFIG_MAX_OBJ_SIZE,
 			OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE,
 			&error))
 		goto error;
@@ -489,18 +492,25 @@ osync_bool parse_config(
 
 	switch(osync_plugin_connection_get_type(conn)) {
 		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
-			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "BLUETOOTH", &error))
+			if (!smlDataSyncSetOption(
+					dsObject,
+					SML_DATA_SYNC_CONFIG_CONNECTION_TYPE,
+					SML_DATA_SYNC_CONFIG_CONNECTION_BLUETOOTH,
+					&error))
 				goto error;
 			if (!smlDataSyncSetOption(
 					dsObject,
-					"BLUETOOTH_ADDRESS",
+					SML_TRANSPORT_CONFIG_BLUETOOTH_ADDRESS,
 					osync_plugin_connection_bt_get_addr(conn),
 					&error))
 				goto error;
 			if (osync_plugin_connection_bt_get_channel(conn))
 			{
 				char *channel = g_strdup_printf("%u", osync_plugin_connection_bt_get_channel(conn));
-				if (!smlDataSyncSetOption(dsObject, "BLUETOOTH_CHANNEL", channel, &error))
+				if (!smlDataSyncSetOption(
+						dsObject,
+						SML_TRANSPORT_CONFIG_BLUETOOTH_CHANNEL,
+						channel, &error))
 				{
 					smlSafeCFree(&channel);
 					goto error;
@@ -510,23 +520,39 @@ osync_bool parse_config(
 			break;
 		case OSYNC_PLUGIN_CONNECTION_USB:
 			/* TODO: osync_plugin_connection_usb_get_interface(conn); */
-			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "USB", &error))
+			if (!smlDataSyncSetOption(
+					dsObject,
+					SML_DATA_SYNC_CONFIG_CONNECTION_TYPE,
+					SML_DATA_SYNC_CONFIG_CONNECTION_USB,
+					&error))
 				goto error;
 			break;
 		case OSYNC_PLUGIN_CONNECTION_SERIAL:
 			/* TODO serial */
-			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "SERIAL", &error))
+			if (!smlDataSyncSetOption(
+					dsObject,
+					SML_DATA_SYNC_CONFIG_CONNECTION_TYPE,
+					SML_DATA_SYNC_CONFIG_CONNECTION_SERIAL,
+					&error))
 				goto error;
 			break;
 		case OSYNC_PLUGIN_CONNECTION_IRDA:
 			/* TODO IRDA */
-			if (!smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "IRDA", &error))
+			if (!smlDataSyncSetOption(
+					dsObject,
+					SML_DATA_SYNC_CONFIG_CONNECTION_TYPE,
+					SML_DATA_SYNC_CONFIG_CONNECTION_IRDA,
+					&error))
 				goto error;
 			break;
 		case OSYNC_PLUGIN_CONNECTION_NETWORK:
 			/* TODO Network */
 			if (tsp == SML_TRANSPORT_OBEX_CLIENT &&
-			    !smlDataSyncSetOption(dsObject, "CONNECTION_TYPE", "NET", &error))
+			    !smlDataSyncSetOption(
+					dsObject,
+					SML_DATA_SYNC_CONFIG_CONNECTION_TYPE,
+					SML_DATA_SYNC_CONFIG_CONNECTION_NET,
+					&error))
 				goto error;
 			if (tsp == SML_TRANSPORT_HTTP_CLIENT)
 			{
@@ -536,7 +562,10 @@ osync_bool parse_config(
 						osync_plugin_connection_net_get_port(conn));
 			} else {
 				char *port = g_strdup_printf("%u", osync_plugin_connection_net_get_port(conn));
-				if (!smlDataSyncSetOption(dsObject, "PORT", port, &error))
+				if (!smlDataSyncSetOption(
+						dsObject,
+						SML_TRANSPORT_CONFIG_PORT,
+						port, &error))
 				{
 					smlSafeCFree(&port);
 					goto error;
@@ -558,13 +587,19 @@ osync_bool parse_config(
 		if (value != NULL && strlen(value) == 0)
 			value = NULL;
 		if (value &&
-		    !smlDataSyncSetOption(dsObject, "USERNAME", value, &error))
+		    !smlDataSyncSetOption(
+				dsObject,
+				SML_DATA_SYNC_CONFIG_AUTH_USERNAME,
+				value, &error))
 			goto error;
 		value = osync_plugin_authentication_get_password(auth);
 		if (value != NULL && strlen(value) == 0)
 			value = NULL;
 		if (value &&
-		    !smlDataSyncSetOption(dsObject, "PASSWORD", value, &error))
+		    !smlDataSyncSetOption(
+				dsObject,
+				SML_DATA_SYNC_CONFIG_AUTH_PASSWORD,
+				value, &error))
 			goto error;
 	}
 
@@ -579,56 +614,59 @@ osync_bool parse_config(
 		const char *key = NULL;
 
 		if (!strcmp(SYNCML_PLUGIN_CONFIG_SANVERSION, name)) {
-			key = "VERSION";
+			key = SML_DATA_SYNC_CONFIG_VERSION;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_WBXML, name)) {
-			key = "USE_WBXML";
+			key = SML_DATA_SYNC_CONFIG_USE_WBXML;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATCOMMAND, name)) {
-			key = "AT_COMMAND";
+			key = SML_TRANSPORT_CONFIG_AT_COMMAND;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMANUFACTURER, name)) {
-			key = "AT_MANUFACTURER";
+			key = SML_TRANSPORT_CONFIG_AT_MANUFACTURER;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ATMODEL, name)) {
-			key = "AT_MODEL";
+			key = SML_TRANSPORT_CONFIG_AT_MODEL;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_IDENTIFIER, name)) {
-			key = "IDENTIFIER";
+			key = SML_DATA_SYNC_CONFIG_IDENTIFIER;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USESTRINGTABLE, name)) {
-			key = "USE_STRING_TABLE";
+			key = SML_DATA_SYNC_CONFIG_USE_STRING_TABLE;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_USETIMEANCHOR, name)) {
-			key = "USE_TIMESTAMP_ANCHOR";
+			key = SML_DATA_SYNC_CONFIG_USE_TIMESTAMP_ANCHOR;
 		/* TODO: Dead option? */
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYREPLACE, name)) {
-			key = "ONLY_REPLACE";
+			key = SML_DATA_SYNC_CONFIG_ONLY_REPLACE;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXMSGSIZE, name)) {
 			if (atoi(val))
-				key = "MAX_MSG_SIZE";
+				key = SML_DATA_SYNC_CONFIG_MAX_MSG_SIZE;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_MAXOBJSIZE, name)) {
 			if (atoi(val))
-				key = "MAX_OBJ_SIZE";
+				key = SML_DATA_SYNC_CONFIG_MAX_OBJ_SIZE;
 		/* XXX Workaround for mobiles which only handle localtime! */
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_ONLYLOCALTIME, name)) {
-			key = "ONLY_LOCALTIME";
+			key = SML_DATA_SYNC_CONFIG_USE_LOCALTIME;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_PROXY, name)) {
-			key = "PROXY";
+			key = SML_TRANSPORT_CONFIG_PROXY;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_PATH, name)) {
 			/* build URL together with connection config */
 			char *value = g_strdup_printf("%s%s", url, val);
 			safe_cfree(&url);
-			if (!smlDataSyncSetOption(dsObject, "URL", value, &error)) {
+			if (!smlDataSyncSetOption(
+					dsObject,
+					SML_TRANSPORT_CONFIG_URL,
+					value, &error)) {
 				safe_cfree(&value);
 				goto error;
 			}
 			safe_cfree(&value);
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_CAFILE, name)) {
-			key = "SSL_CA_FILE";
+			key = SML_TRANSPORT_CONFIG_SSL_CA_FILE;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_AUTH_TYPE, name)) {
-			key = "AUTH_TYPE";
+			key = SML_DATA_SYNC_CONFIG_AUTH_TYPE;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_DEVICE, name)) {
-			key = "FAKE_DEVICE";
+			key = SML_DATA_SYNC_CONFIG_FAKE_DEVICE;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_MANUFACTURER, name)) {
-			key = "FAKE_MANUFACTURER";
+			key = SML_DATA_SYNC_CONFIG_FAKE_MANUFACTURER;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_MODEL, name)) {
-			key = "FAKE_MODEL";
+			key = SML_DATA_SYNC_CONFIG_FAKE_MODEL;
 		} else if (!strcmp(SYNCML_PLUGIN_CONFIG_FAKE_SOFTWARE_VERSION, name)) {
-			key = "FAKE_SOFTWARE_VERSION";
+			key = SML_DATA_SYNC_CONFIG_FAKE_SOFTWARE_VERSION;
 		}
 
 		if (key &&

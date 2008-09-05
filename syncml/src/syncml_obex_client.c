@@ -38,7 +38,7 @@ void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 		SmlDatabase *database = o->data;
 
 		char *objtype = g_ascii_strup(osync_objformat_get_objtype(database->objformat), -1);
-		if (!smlDataSyncSetOption(env->dsObject1, "DATASTORE", objtype, &error))
+		if (!smlDataSyncSetOption(env->dsObject1, SML_TRANSPORT_CONFIG_DATASTORE, objtype, &error))
 		{
 			safe_cfree(&objtype);
 			goto error_free_env;

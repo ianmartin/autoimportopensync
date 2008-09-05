@@ -42,18 +42,15 @@
 
 #include <glib.h>
 
+#include <libsyncml/data_sync_api/defines.h>
 #include <libsyncml/data_sync_api/standard.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-/* Define limits for large object support:
- *
- * MaxMsgSize => 10kB
- * MaxObjSize => 10MB
- */
-#define OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE "10240"
-#define OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE "10240000"
+/* The default limits are taken from libsyncml. */
+#define OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE "SML_DEFAULT_MAX_MSG_SIZE"
+#define OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE "SML_DEFAULT_MAX_OBJ_SIZE"
 
 #define SYNCML_PLUGIN_CONFIG_SANVERSION "SANVersion"
 #define SYNCML_PLUGIN_CONFIG_WBXML "WBXML"
