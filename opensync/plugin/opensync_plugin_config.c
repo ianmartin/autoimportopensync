@@ -1444,11 +1444,10 @@ void osync_plugin_config_remove_resource(OSyncPluginConfig *config, OSyncPluginR
 void osync_plugin_config_flush_resources(OSyncPluginConfig *config)
 {
 	osync_assert(config);
-	OSyncList *r;
-	for (r = config->resources; r; r = r->next) {
-		OSyncPluginResource *resource = r->data;
-		osync_plugin_resource_unref(resource);
+	while (config->resources) {
+		OSyncPluginResource *resource = config->resources->data;
 		config->resources = osync_list_remove(config->resources, resource);
+		osync_plugin_resource_unref(resource);
 	}
 
 }
