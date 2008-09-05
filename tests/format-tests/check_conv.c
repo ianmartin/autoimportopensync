@@ -956,6 +956,101 @@ START_TEST (conv_find_multi_target2)
 }
 END_TEST
 
+START_TEST (conv_find_multi_path_multi_target)
+{
+	char *testbed = setup_testbed(NULL);
+	
+	OSyncError *error = NULL;
+	OSyncFormatEnv *env = osync_format_env_new(&error);
+	fail_unless(env != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncObjFormat *format1 = osync_objformat_new("format1", "objtype", &error);
+	fail_unless(format1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_objformat(env, format1);
+	
+	OSyncObjFormat *format2 = osync_objformat_new("format2", "objtype", &error);
+	fail_unless(format2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_objformat(env, format2);
+	
+	OSyncObjFormat *format3 = osync_objformat_new("format3", "objtype", &error);
+	fail_unless(format3 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_objformat(env, format3);
+	
+	OSyncObjFormat *format4 = osync_objformat_new("format4", "objtype", &error);
+	fail_unless(format4 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_objformat(env, format4);
+
+	OSyncObjFormat *format5 = osync_objformat_new("format5", "objtype", &error);
+	fail_unless(format5 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_objformat(env, format5);
+	
+	OSyncFormatConverter *converter1 = osync_converter_new(OSYNC_CONVERTER_CONV, format1, format2, convert_func, &error);
+	fail_unless(converter1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_converter(env, converter1);
+	osync_converter_unref(converter1);
+	
+	OSyncFormatConverter *converter2 = osync_converter_new(OSYNC_CONVERTER_CONV, format2, format4, convert_func, &error);
+	fail_unless(converter2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_converter(env, converter2);
+	osync_converter_unref(converter2);
+	
+	OSyncFormatConverter *converter3 = osync_converter_new(OSYNC_CONVERTER_CONV, format1, format3, convert_func, &error);
+	fail_unless(converter3 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_converter(env, converter3);
+	osync_converter_unref(converter3);
+	
+	OSyncFormatConverter *converter4 = osync_converter_new(OSYNC_CONVERTER_CONV, format3, format4, convert_func, &error);
+	fail_unless(converter4 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_converter(env, converter4);
+	osync_converter_unref(converter4);
+
+	OSyncFormatConverter *converter5 = osync_converter_new(OSYNC_CONVERTER_CONV, format3, format5, convert_func, &error);
+	fail_unless(converter5 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_format_env_register_converter(env, converter5);
+	osync_converter_unref(converter5);
+
+	OSyncList *targets = NULL; 
+	targets = osync_list_prepend(targets, format4);
+	targets = osync_list_prepend(targets, format5);
+
+	OSyncData *data1 = osync_data_new("data", 5, format1, &error);
+	fail_unless(data1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+ 
+	OSyncFormatConverterPath *path = osync_format_env_find_path_formats_with_detectors(env, data1, targets, &error);
+	fail_unless(path != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_converter_path_num_edges(path) == 2, NULL);
+	fail_unless(osync_converter_path_nth_edge(path, 0) == converter1, NULL);
+	fail_unless(osync_converter_path_nth_edge(path, 1) == converter2, NULL);
+	
+	osync_converter_path_unref(path);
+	
+	osync_format_env_free(env);
+	
+	osync_data_unref(data1);
+	osync_objformat_unref(format1);
+	osync_objformat_unref(format2);
+	osync_objformat_unref(format3);
+	osync_objformat_unref(format4);
+	osync_objformat_unref(format5);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 static osync_bool convert_addtest(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	*free_input = TRUE;
@@ -2117,6 +2212,7 @@ Suite *format_env_suite(void)
 	create_case(s, "conv_find_multi_target", conv_find_multi_target);
 	create_case(s, "conv_find_multi_target2", conv_find_multi_target2);
 	
+	create_case(s, "conv_find_multi_path_multi_target", conv_find_multi_path_multi_target);
 
 	// Gone?
 	//create_case(s, "conv_env_osp_circular_false", conv_env_osp_circular_false);
