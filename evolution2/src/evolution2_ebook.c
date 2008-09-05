@@ -42,7 +42,7 @@ static void evo2_ebook_connect(void *data, OSyncPluginInfo *info, OSyncContext *
 	  		goto error;
 		}
 		
-		if (!(source = evo2_find_source(sources, env->addressbook_path))) {
+		if (!(source = evo2_find_source(sources, g_strdup(env->addressbook_path)))) {
 			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->addressbook_path);
 	  		goto error;
 		}
@@ -301,25 +301,17 @@ error:
 	osync_error_unref(&error);
 }
 
+
 osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	env->contact_format = osync_format_env_find_objformat(formatenv, "vcard30");
-	if (!env->contact_format) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard30 object format. vformat plugin installed?");
+	OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, "contact");
+	if (!sink)
 		return FALSE;
-	}
-	osync_objformat_set_config(env->contact_format, "VCARD_EXTENSION=Evolution");
-	
-	
-	env->contact_sink = osync_objtype_sink_new("contact", error);
-	if (!env->contact_sink)
+	osync_bool sinkEnabled = osync_objtype_sink_is_enabled(sink);
+        osync_trace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
+	if (!sinkEnabled)
 		return FALSE;
 	
-	osync_objtype_sink_add_objformat_with_config(env->contact_sink, "vcard30", "VCARD_EXTENSION=Evolution");
-	osync_objtype_sink_add_objformat_with_config(env->contact_sink, "vcard21", "VCARD_EXTENSION=Evolution");
-	
-	/* All sinks have the same functions of course */
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = evo2_ebook_connect;
@@ -327,10 +319,32 @@ osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
 	functions.get_changes = evo2_ebook_get_changes;
 	functions.commit = evo2_ebook_modify;
 	functions.sync_done = evo2_ebook_sync_done;
-	
-	/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
-	 * again once the functions are called */
-	osync_objtype_sink_set_functions(env->contact_sink, functions, NULL);
-	osync_plugin_info_add_objtype(info, env->contact_sink);
+
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	OSyncPluginResource *resource = osync_plugin_config_find_active_resource(config, "contact");
+	env->addressbook_path = osync_plugin_resource_get_url(resource);
+	if(!env->addressbook_path) {
+		osync_error_set(error,OSYNC_ERROR_GENERIC, "Addressbook url not set");
+		return FALSE;
+	}
+	OSyncList *objformatsinks = osync_plugin_resource_get_objformat_sinks(resource);
+	osync_bool hasObjFormat = FALSE;
+	OSyncList *r;
+	for(r = objformatsinks;r;r = r->next) {
+		OSyncObjFormatSink *objformatsink = r->data;
+		if(!strcmp("vcard30", osync_objformat_sink_get_objformat(objformatsink))) { hasObjFormat = TRUE; break;}
+	}
+        if (!hasObjFormat) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Format vcard30 not set.");
+		return FALSE;
+	}
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	env->contact_format = osync_format_env_find_objformat(formatenv, "vcard30");
+
+	env->contact_sink = sink;
+
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	return TRUE;
 }
+

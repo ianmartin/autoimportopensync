@@ -42,7 +42,7 @@ static void evo2_memo_connect(void *data, OSyncPluginInfo *info, OSyncContext *c
                         goto error;
                 }
                 
-                if (!(source = evo2_find_source(sources, env->memos_path))) {
+                if (!(source = evo2_find_source(sources, g_strdup(env->memos_path)))) {
                         osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->memos_path);
                         goto error;
                 }
@@ -310,24 +310,14 @@ error:
 
 osync_bool evo2_memo_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-        OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-        env->memos_format = osync_format_env_find_objformat(formatenv, "vjournal");
-
-        if (!env->memos_format) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vjournal object format. vformat plugin installed?");
+        OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, "note");
+        if (!sink)
                 return FALSE;
-        }
-
-
-        env->memos_sink = osync_objtype_sink_new("note", error);
-        if (!env->memos_sink){
-		printf("memos sink failed to initialize\n");
+        osync_bool sinkEnabled = osync_objtype_sink_is_enabled(sink);
+        osync_trace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
+        if (!sinkEnabled)
                 return FALSE;
-	}
 
-        osync_objtype_sink_add_objformat(env->memos_sink, "vjournal");
-
-        /* All sinks have the same functions of course */
         OSyncObjTypeSinkFunctions functions;
         memset(&functions, 0, sizeof(functions));
         functions.connect = evo2_memo_connect;
@@ -336,10 +326,31 @@ osync_bool evo2_memo_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncEr
         functions.commit = evo2_memo_modify;
         functions.sync_done = evo2_memo_sync_done;
 
-        /* We pass the OSyncFileDir object to the sink, so we dont have to look it up
-         * again once the functions are called */
+        OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+        OSyncPluginResource *resource = osync_plugin_config_find_active_resource(config, "note");
+        env->memos_path = osync_plugin_resource_get_url(resource);
+        if(!env->memos_path) {
+                osync_error_set(error,OSYNC_ERROR_GENERIC, "Memo url not set");
+                return FALSE;
+        }
+        OSyncList *objformatsinks = osync_plugin_resource_get_objformat_sinks(resource);
+        osync_bool hasObjFormat = FALSE;
+        OSyncList *r;
+        for(r = objformatsinks;r;r = r->next) {
+                OSyncObjFormatSink *objformatsink = r->data;
+                if(!strcmp("vjournal", osync_objformat_sink_get_objformat(objformatsink))) { hasObjFormat = TRUE; break;}
+        }
+        if (!hasObjFormat) {
+                osync_error_set(error, OSYNC_ERROR_GENERIC, "Format vjournal not set.");
+                return FALSE;
+        }
+
+        OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+        env->memos_format = osync_format_env_find_objformat(formatenv, "vjournal");
+
+        env->memos_sink = sink;
+
         osync_objtype_sink_set_functions(env->memos_sink, functions, NULL);
-        osync_plugin_info_add_objtype(info, env->memos_sink);
 	return TRUE;
 }
 

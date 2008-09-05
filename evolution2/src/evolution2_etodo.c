@@ -42,7 +42,7 @@ static void evo2_etodo_connect(void *data, OSyncPluginInfo *info, OSyncContext *
                         goto error;
                 }
                 
-                if (!(source = evo2_find_source(sources, env->tasks_path))) {
+                if (!(source = evo2_find_source(sources, g_strdup(env->tasks_path)))) {
                         osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->tasks_path);
                         goto error;
                 }
@@ -310,24 +310,14 @@ error:
 
 osync_bool evo2_etodo_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-        OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-        env->tasks_format = osync_format_env_find_objformat(formatenv, "vtodo20");
-
-        if (!env->tasks_format) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vtodo20 object format. vformat plugin installed?");
+        OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, "todo");
+        if (!sink)
                 return FALSE;
-        }
-
-
-        env->tasks_sink = osync_objtype_sink_new("todo", error);
-        if (!env->tasks_sink){
-		printf("tasks sink failed to initialize\n");
+        osync_bool sinkEnabled = osync_objtype_sink_is_enabled(sink);
+        osync_trace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
+        if (!sinkEnabled)
                 return FALSE;
-	}
 
-        osync_objtype_sink_add_objformat(env->tasks_sink, "vtodo20");
-
-        /* All sinks have the same functions of course */
         OSyncObjTypeSinkFunctions functions;
         memset(&functions, 0, sizeof(functions));
         functions.connect = evo2_etodo_connect;
@@ -336,10 +326,31 @@ osync_bool evo2_etodo_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
         functions.commit = evo2_etodo_modify;
         functions.sync_done = evo2_etodo_sync_done;
 
-        /* We pass the OSyncFileDir object to the sink, so we dont have to look it up
-         * again once the functions are called */
+        OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+        OSyncPluginResource *resource = osync_plugin_config_find_active_resource(config, "todo");
+        env->tasks_path = osync_plugin_resource_get_url(resource);
+        if(!env->tasks_path) {
+                osync_error_set(error,OSYNC_ERROR_GENERIC, "Tasks url not set");
+                return FALSE;
+        }
+        OSyncList *objformatsinks = osync_plugin_resource_get_objformat_sinks(resource);
+        osync_bool hasObjFormat = FALSE;
+        OSyncList *r;
+        for(r = objformatsinks;r;r = r->next) {
+                OSyncObjFormatSink *objformatsink = r->data;
+                if(!strcmp("vtodo20", osync_objformat_sink_get_objformat(objformatsink))) { hasObjFormat = TRUE; break;}
+        }
+        if (!hasObjFormat) {
+                osync_error_set(error, OSYNC_ERROR_GENERIC, "Format vtodo20 not set.");
+                return FALSE;
+        }
+
+        OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+        env->tasks_format = osync_format_env_find_objformat(formatenv, "vtodo20");
+
+        env->tasks_sink = sink;
+
         osync_objtype_sink_set_functions(env->tasks_sink, functions, NULL);
-        osync_plugin_info_add_objtype(info, env->tasks_sink);
 	return TRUE;
 }
 

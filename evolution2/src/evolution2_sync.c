@@ -23,15 +23,6 @@
 
 static void free_env(OSyncEvoEnv *env)
 {
-	if (env->addressbook_path)
-		g_free(env->addressbook_path);
-		
-	if (env->calendar_path)
-		g_free(env->calendar_path);
-		
-	if (env->tasks_path)
-		g_free(env->tasks_path);
-
 	if (env->contact_sink)
 		osync_objtype_sink_unref(env->contact_sink);
 		
@@ -196,62 +187,6 @@ ESource *evo2_find_source(ESourceList *list, char *uri)
 	return NULL;
 }
 
-/*Load the state from a xml file and return it in the conn struct*/
-static osync_bool evo2_parse_settings(OSyncEvoEnv *env, const char *data, OSyncError **error)
-{
-	xmlDocPtr doc;
-	xmlNodePtr cur;
-
-	//set defaults
-	env->addressbook_path = NULL;
-	env->calendar_path = NULL;
-	env->memos_path = NULL;
-	env->tasks_path = NULL;
-
-	doc = xmlParseMemory(data, strlen(data));
-
-	if (!doc) 
-		return FALSE;
-	
-
-	cur = xmlDocGetRootElement(doc);
-
-	if (!cur) {
-		xmlFreeDoc(doc);
-		return FALSE;
-	}
-
-	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
-		xmlFreeDoc(doc);
-		return FALSE;
-	}
-
-	cur = cur->xmlChildrenNode;
-
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"address_path")) {
-				env->addressbook_path = g_strdup(str);
-			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_path")) {
-				env->calendar_path = g_strdup(str);
-			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"memos_path")) {
-				env->memos_path = g_strdup(str);	
-			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"tasks_path")) {
-				env->tasks_path = g_strdup(str);	
-			}
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-
-	xmlFreeDoc(doc);
-	return TRUE;
-}
-
 /* In initialize, we get the config for the plugin. Here we also must register
  * all _possible_ objtype sinks. */
 static void *evo2_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
@@ -261,19 +196,18 @@ static void *evo2_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	OSyncEvoEnv *env = osync_try_malloc0(sizeof(OSyncEvoEnv), error);
 	if (!env)
 		goto error;
+
+	env->pluginInfo = info;
 		
 	osync_trace(TRACE_INTERNAL, "Setting change id: %s", osync_plugin_info_get_groupname(info));
 	
 	env->change_id = g_strdup(osync_plugin_info_get_groupname(info));
 	
-	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
-	
-	if (!evo2_parse_settings(env, osync_plugin_info_get_config(info), error))
-		goto error_free_env;
+	osync_trace(TRACE_INTERNAL, "The config: %p", osync_plugin_info_get_config(info));
 	
 	if (!evo2_ebook_initialize(env, info, error))
 		goto error_free_env;
-	
+
 	if (!evo2_ecal_initialize(env, info, error))
 		goto error_free_env;
 
@@ -298,18 +232,14 @@ static void evo2_finalize(void *data)
         osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	OSyncEvoEnv *env = data;
 
-	if (env->contact_sink)
-		osync_objtype_sink_unref(env->contact_sink);
+	/* cleanup OpenSync stuff */
+        if (env->pluginInfo) {
+                osync_plugin_info_unref(env->pluginInfo);
+                env->pluginInfo = NULL;
+        }
+        osync_trace(TRACE_INTERNAL, "%s - plugin info cleaned", __func__);
 
-	if (env->calendar_sink)
-		osync_objtype_sink_unref(env->calendar_sink);
-
-	if (env->memos_sink)
-		osync_objtype_sink_unref(env->memos_sink);
-
-	if (env->tasks_sink)
-		osync_objtype_sink_unref(env->tasks_sink);
-
+	/* Final cleanup */
 	free_env(env);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -320,22 +250,19 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
+/*
 	GError* gerror = NULL;
 	GList* fields = NULL;
 	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
-	
-	if (env->addressbook_path)
-		osync_objtype_sink_set_available(env->contact_sink, TRUE);
-	
-	if (env->calendar_path)
-		osync_objtype_sink_set_available(env->calendar_sink, TRUE);
-	
-	if (env->memos_path)
-		osync_objtype_sink_set_available(env->memos_sink, TRUE);
-	
-	if (env->tasks_path)
-		osync_objtype_sink_set_available(env->tasks_sink, TRUE);
-	
+*/	
+        int i, numobjs = osync_plugin_info_num_objtypes(info);
+        for (i = 0; i < numobjs; i++) {
+                OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
+                g_assert(sink);
+
+                osync_objtype_sink_set_available(sink, TRUE);
+        }
+
 	OSyncVersion *version = osync_version_new(error);
 	osync_version_set_plugin(version, "Evolution");
 	osync_version_set_modelversion(version, "2");
@@ -381,8 +308,10 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
+/*
 error_free_book:
 		g_object_unref(env->addressbook);
+*/
 error:
 	osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -397,14 +326,6 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	osync_plugin_set_name(plugin, "evo2-sync");
 	osync_plugin_set_longname(plugin, "Evolution 2.x");
 	osync_plugin_set_description(plugin, "Address book, calendar and task list of Evolution 2");
-	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_OPTIONAL_CONFIGURATION);
-	/**
-	 * Bug 477227 – libebook isn't designed to be loaded and unloaded
-	 * see: http://bugzilla.gnome.org/show_bug.cgi?id=477227
-	 * see: http://mail.gnome.org/archives/evolution-hackers/2007-September/msg00027.html
-	 * also the other EDS client libraries; so we start the plugin in a own process.
-	 */
-	osync_plugin_set_start_type(plugin, OSYNC_START_TYPE_PROCESS);
 	
 	osync_plugin_set_initialize(plugin, evo2_initialize);
 	osync_plugin_set_finalize(plugin, evo2_finalize);
@@ -422,6 +343,19 @@ error:
 }
 
 int get_version(void)
+{
+	return 1;
+}
+
+/**
+ * Bug 477227 – libebook isn't designed to be loaded and unloaded
+ * see: http://bugzilla.gnome.org/show_bug.cgi?id=477227
+ * see: http://mail.gnome.org/archives/evolution-hackers/2007-September/msg00027.html
+ * also the other EDS client libraries; so prevent unloading this module as the api provides 
+ * this facility which is the same as would be the g_module_make_resident that is :
+ * "Any future g_module_close() calls on the module will be ignored.".
+ */
+int dont_free(void)
 {
 	return 1;
 }

@@ -33,26 +33,27 @@ typedef struct evo2_location {
 typedef struct OSyncEvoEnv {
 	char *change_id;
 	
-	char *addressbook_path;
+	const char *addressbook_path;
 	EBook *addressbook;
 	OSyncObjTypeSink *contact_sink;
 	OSyncObjFormat *contact_format;
 	
-	char *calendar_path;
+	const char *calendar_path;
 	ECal *calendar;
 	OSyncObjTypeSink *calendar_sink;
 	OSyncObjFormat *calendar_format;
 	
-	char *memos_path;
+	const char *memos_path;
 	ECal *memos;
 	OSyncObjTypeSink *memos_sink;
 	OSyncObjFormat *memos_format;
 	
-	char *tasks_path;
+	const char *tasks_path;
 	ECal *tasks;
 	OSyncObjTypeSink *tasks_sink;
 	OSyncObjFormat *tasks_format;
-	
+
+	OSyncPluginInfo *pluginInfo;	
 } OSyncEvoEnv;
 
 ESource *evo2_find_source(ESourceList *list, char *uri);

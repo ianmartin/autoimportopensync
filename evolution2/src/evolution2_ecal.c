@@ -42,7 +42,7 @@ static void evo2_ecal_connect(void *data, OSyncPluginInfo *info, OSyncContext *c
                         goto error;
                 }
                 
-                if (!(source = evo2_find_source(sources, env->calendar_path))) {
+                if (!(source = evo2_find_source(sources, g_strdup(env->calendar_path)))) {
                         osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->calendar_path);
                         goto error;
                 }
@@ -310,24 +310,14 @@ error:
 
 osync_bool evo2_ecal_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-        OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-        env->calendar_format = osync_format_env_find_objformat(formatenv, "vevent20");
-
-        if (!env->calendar_format) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vevent20 object format. vformat plugin installed?");
+	OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, "event");
+        if (!sink)
                 return FALSE;
-        }
-
-
-        env->calendar_sink = osync_objtype_sink_new("event", error);
-        if (!env->calendar_sink){
-		printf("calendar sink failed to initialize\n");
+        osync_bool sinkEnabled = osync_objtype_sink_is_enabled(sink);
+        osync_trace(TRACE_INTERNAL, "%s: enabled => %d", __func__, sinkEnabled);
+        if (!sinkEnabled)
                 return FALSE;
-	}
 
-        osync_objtype_sink_add_objformat(env->calendar_sink, "vevent20");
-
-        /* All sinks have the same functions of course */
         OSyncObjTypeSinkFunctions functions;
         memset(&functions, 0, sizeof(functions));
         functions.connect = evo2_ecal_connect;
@@ -336,10 +326,31 @@ osync_bool evo2_ecal_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncEr
         functions.commit = evo2_ecal_modify;
         functions.sync_done = evo2_ecal_sync_done;
 
-        /* We pass the OSyncFileDir object to the sink, so we dont have to look it up
-         * again once the functions are called */
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+        OSyncPluginResource *resource = osync_plugin_config_find_active_resource(config, "event");
+        env->calendar_path = osync_plugin_resource_get_url(resource);
+        if(!env->calendar_path) {
+                osync_error_set(error,OSYNC_ERROR_GENERIC, "Calendar url not set");
+                return FALSE;
+        }
+        OSyncList *objformatsinks = osync_plugin_resource_get_objformat_sinks(resource);
+        osync_bool hasObjFormat = FALSE;
+        OSyncList *r;
+        for(r = objformatsinks;r;r = r->next) {
+                OSyncObjFormatSink *objformatsink = r->data;
+                if(!strcmp("vevent20", osync_objformat_sink_get_objformat(objformatsink))) { hasObjFormat = TRUE; break;}
+        }
+        if (!hasObjFormat) {
+                osync_error_set(error, OSYNC_ERROR_GENERIC, "Format vevent20 not set.");
+                return FALSE;
+        }
+
+        OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+        env->calendar_format = osync_format_env_find_objformat(formatenv, "vevent20");
+
+        env->calendar_sink = sink;
+
         osync_objtype_sink_set_functions(env->calendar_sink, functions, NULL);
-        osync_plugin_info_add_objtype(info, env->calendar_sink);
 	return TRUE;
 }
 
