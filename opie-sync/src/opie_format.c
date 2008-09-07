@@ -26,11 +26,14 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_xml_utils.h"
 #include "opie_format.h"
 
+#include <string.h>
+
 #include <opensync/opensync.h>
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-merger.h>
+#include <opensync/opensync-xmlformat.h>
 
 enum OpieTodoState {
 	OPIE_TODO_STATE_STARTED     = 0,
@@ -295,10 +298,8 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
-	if (osync_xmlformat_validate(out_xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: VALID");
+	if (!osync_xmlformat_validate(out_xmlformat, error))
+		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -699,16 +700,14 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
-	if (osync_xmlformat_validate(out_xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: VALID");
+	if (!osync_xmlformat_validate(out_xmlformat, error))
+		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1042,10 +1041,8 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
-	if (osync_xmlformat_validate(out_xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VALID");
+	if (!osync_xmlformat_validate(out_xmlformat, error))
+		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1207,10 +1204,8 @@ static osync_bool conv_opie_xml_note_to_xml_note(char *input, unsigned int inpsi
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
 	g_free(str);
 
-	if (osync_xmlformat_validate(out_xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT NOTE: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT NOTE: VALID");
+	if (!osync_xmlformat_validate(out_xmlformat, error))
+		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
