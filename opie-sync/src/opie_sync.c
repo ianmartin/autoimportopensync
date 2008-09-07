@@ -1,6 +1,6 @@
 /*
 
-   Copyright 2005 Paul Eggleton & Holger Hans Peter Freyther
+   Copyright 2008 Paul Eggleton & Holger Hans Peter Freyther
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,11 +44,9 @@ void sync_cancelled(void)
 	/*user_cancelled_sync = TRUE;*/
 }
 
-static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *config, OSyncError **error)
+static osync_bool opie_sync_read_config(OpiePluginEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
-	xmlDoc *doc = NULL;
-	xmlNode *cur = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, error);
 
 	/* Set defaults */
 	env->username = g_strdup("root");
@@ -62,94 +60,94 @@ static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *confi
 	env->localdir = g_strdup("/tmp");
 	env->notes_type = NOTES_TYPE_BASIC;
 
-	doc = xmlParseMemory(config, strlen(config));
-
-	if (!doc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
+	if (!config) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get configuration");
 		goto error;
 	}
 
-	cur = xmlDocGetRootElement(doc);
-
-	if (!cur) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get configuration XML root element");
-		goto error_free_doc;
-	}
-
-	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Configuration file root node name is invalid");
-		goto error_free_doc;
-	}
-
-	cur = cur->xmlChildrenNode;
-
-	while (cur != NULL) {
-		if(cur->type == XML_ELEMENT_NODE) {
-			char *str = (char *)xmlNodeGetContent(cur);
-			if (str) {
-				if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
-					g_free(env->username);
-					env->username = g_strdup(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
-					g_free(env->password);
-					env->password = g_strdup(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"hostname")) {
-					g_free(env->host);
-					env->host = g_strdup(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {
-					osync_trace(TRACE_INTERNAL, "The 'url' configuration parameter is deprecated - please use 'hostname' instead");
-					g_free(env->host);
-					env->host = g_strdup(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
-					env->device_port = atoi(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"device")) {
-					if (!strcasecmp(str, "qtopia2"))
-						env->device_type = OPIE_SYNC_QTOPIA_2;
-					else
-						env->device_type = OPIE_SYNC_OPIE;
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"conntype")) {
-					if (!strcasecmp(str, "scp"))
-						env->conn_type = OPIE_CONN_SCP;
-					else if ( strcasecmp(str, "none") == 0 )
-						env->conn_type = OPIE_CONN_NONE;
-					else
-						env->conn_type = OPIE_CONN_FTP;
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"use_qcop")) {
-					if ( strcasecmp(str, "false") == 0 )
-						env->use_qcop = FALSE;
-					else 
-						env->use_qcop = TRUE;
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
-					if(strlen(str) > 0)
-						env->backupdir = g_strdup(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"localdir")) {
-					g_free(env->localdir);
-					env->localdir = g_strdup(str);
-				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"notestype")) {
-					if ( (!strcasecmp(str, "opie-notes")) || (!strcasecmp(str, "opie_notes")) )
-						env->notes_type = NOTES_TYPE_OPIE_NOTES;
-					else if ( strcasecmp(str, "basic") == 0 )
-						env->notes_type = NOTES_TYPE_BASIC;
-					else {
-						osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid value \"%s\" for configuration option \"%s\"", str, cur->name);
-						goto error_free_doc;
-					}
-				} else {
-					osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file option \"%s\"", cur->name);
-					goto error_free_doc;
-				}
-				xmlFree(str);
-			}
+	OSyncPluginConnection *conn = osync_plugin_config_get_connection(config);
+	if(conn) {
+		const char *addr = osync_plugin_connection_net_get_address(conn);
+		if(addr) {
+			g_free(env->host);
+			env->host = g_strdup(addr);
 		}
-		cur = cur->next;
+		unsigned int port = osync_plugin_connection_net_get_port(conn);
+		if(port > 0)
+			env->device_port = port;
 	}
 
-	xmlFreeDoc(doc);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	OSyncPluginAuthentication *auth = osync_plugin_config_get_authentication(config);
+	if(auth) {
+		const char *username = osync_plugin_authentication_get_username(auth);
+		if(username) {
+			g_free(env->username);
+			env->username = g_strdup(username);
+		}
+		const char *password = osync_plugin_authentication_get_password(auth);
+		if(password) {
+			g_free(env->password);
+			env->password = g_strdup(password);
+		}
+	}
 	
-error_free_doc:
-	xmlFreeDoc(doc);
+	OSyncList *advoptions = osync_plugin_config_get_advancedoptions(config);
+	for (; advoptions; advoptions = advoptions->next) {
+		OSyncPluginAdvancedOption *option = advoptions->data;
+
+		const char *val = osync_plugin_advancedoption_get_value(option);
+		const char *name = osync_plugin_advancedoption_get_name(option);
+		g_assert(name);
+		g_assert(val);
+		const char *key = NULL;
+
+		if (!strcmp(name, "ClientType")) {
+			if (!strcasecmp(val, "qtopia2"))
+				env->device_type = OPIE_SYNC_QTOPIA_2;
+			else
+				env->device_type = OPIE_SYNC_OPIE;
+		} 
+		else if (!strcmp(name, "ConnType")) {
+			if (!strcasecmp(val, "scp"))
+				env->conn_type = OPIE_CONN_SCP;
+			else if ( strcasecmp(val, "none") == 0 )
+				env->conn_type = OPIE_CONN_NONE;
+			else
+				env->conn_type = OPIE_CONN_FTP;
+		} 
+		else if (!strcmp(name, "NotesType")) {
+			if ( (!strcasecmp(val, "opie-notes")) || (!strcasecmp(val, "opie_notes")) )
+				env->notes_type = NOTES_TYPE_OPIE_NOTES;
+			else if ( strcasecmp(val, "basic") == 0 )
+				env->notes_type = NOTES_TYPE_BASIC;
+			else {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid value \"%s\" for configuration option \"%s\"", val, name);
+				goto error;
+			}
+		} 
+		else if (!strcmp(name, "BackupDir")) {
+			if(strlen(val) > 0)
+				env->backupdir = g_strdup(val);
+		} 
+		else if (!strcmp(name, "LocalDir")) {
+			if(strlen(val) > 0) {
+				g_free(env->localdir);
+				env->localdir = g_strdup(val);
+			}
+		} 
+		else if (!strcmp(name, "DisableQcop")) {
+			if(atoi(val))
+				env->use_qcop = FALSE;
+			else
+				env->use_qcop = TRUE;
+		} 
+		else {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file advanced option \"%s\"", name);
+			goto error;
+		}
+	}
+	
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -643,15 +641,7 @@ static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, O
 	if (!env)
 		goto error;
 	
-	const char *configdata = osync_plugin_info_get_config(info);
-	if (!configdata) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get config data.");
-		goto error_free_env;
-	}
-
-	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
-	
-	if (!opie_sync_settings_parse(env, configdata, error))
+	if (!opie_sync_read_config(env, info, error))
 		goto error_free_env;
 	
 	env->backuppath = NULL;

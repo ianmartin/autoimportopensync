@@ -1,10 +1,60 @@
 <?xml version="1.0"?>
 <config>
-  <username>root</username>
-  <password>Qtopia</password>
-  <hostname>192.168.0.202</hostname>
-  <device>opie</device>
-  <port>4242</port>
-  <conntype>ftp</conntype>
-  <notestype>basic</notestype>
+  <AdvancedOptions>
+    <AdvancedOption>
+      <DisplayName>Client Type</DisplayName>
+      <Name>ClientType</Name>
+      <ValEnum>opie</ValEnum>
+      <ValEnum>qtopia2</ValEnum>
+      <Type>string</Type>
+      <Value>opie</Value>
+    </AdvancedOption>
+    <AdvancedOption>
+      <DisplayName>Connection Type</DisplayName>
+      <Name>ConnType</Name>
+      <ValEnum>ftp</ValEnum>
+      <ValEnum>scp</ValEnum>
+      <ValEnum>none</ValEnum>
+      <Type>string</Type>
+      <Value>ftp</Value>
+    </AdvancedOption>
+    <AdvancedOption>
+      <DisplayName>Notes Type</DisplayName>
+      <Name>NotesType</Name>
+      <ValEnum>basic</ValEnum>
+      <ValEnum>opie-notes</ValEnum>
+      <Type>string</Type>
+      <Value>basic</Value>
+    </AdvancedOption>
+    <AdvancedOption>
+      <DisplayName>Backup Location (optional)</DisplayName>
+      <Name>BackupDir</Name>
+      <Type>string</Type>
+      <Value></Value>
+    </AdvancedOption>
+    <AdvancedOption>
+      <DisplayName>Local directory (debug only)</DisplayName>
+      <Name>LocalDir</Name>
+      <Type>string</Type>
+      <Value></Value>
+    </AdvancedOption>
+    <AdvancedOption>
+      <DisplayName>Disable QCop (debug only)</DisplayName>
+      <Name>DisableQcop</Name>
+      <Type>bool</Type>
+      <Value>0</Value>
+    </AdvancedOption>
+  </AdvancedOptions>
+  <Authentication>
+    <Username>root</Username>
+    <Password>Qtopia</Password>
+  </Authentication>
+  <Connection>
+    <Network>
+      <Address>192.168.0.202</Address>
+      <Port>4242</Port>
+    </Network>
+  </Connection>
+  <Resources>
+  </Resources>
 </config>
