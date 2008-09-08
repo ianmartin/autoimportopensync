@@ -26,6 +26,14 @@
 #include <opensync/opensync-xmlformat.h>
 #include <opensync/opensync-format.h>
 
+osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+        *free_input = TRUE;
+        *output = g_strdup(input);
+        *outpsize = inpsize;
+        return TRUE;
+}
+
 static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *data, int size)
 {
 	osync_assert(objtype);
@@ -129,6 +137,7 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 
 	OSyncObjFormat *fromformat = osync_format_env_find_objformat(env, fromname);
 	OSyncObjFormat *toformat = osync_format_env_find_objformat(env, toname);
+	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
 
 	if (!fromformat || !toformat) {
 		osync_trace(TRACE_ERROR, "Unable to register converter for %s->%s, format not found\n", fromname, toname);
@@ -154,6 +163,16 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 
+
+	/* plain as xmlformat */
+	conv = osync_converter_new(OSYNC_CONVERTER_DECAP, plain, fromformat, convert_func, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return FALSE;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
 
 	return TRUE;
 }
