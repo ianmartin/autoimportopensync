@@ -14,10 +14,10 @@
      <DisplayName>Authentication Type (e.g. syncml:auth-md5)</DisplayName>
      <Name>AuthType</Name>
      <Type>string</Type>
-     <ValEnum>MD5</ValEnum>
-     <ValEnum>BASIC</ValEnum>
-     <ValEnum>NONE</ValEnum>
-     <Value>NONE</Value>
+     <ValEnum>AUTH_MD5</ValEnum>
+     <ValEnum>AUTH_BASIC</ValEnum>
+     <ValEnum>AUTH_NONE</ValEnum>
+     <Value>AUTH_NONE</Value>
    </AdvancedOption>
    <AdvancedOption>
      <DisplayName>Path for the remote server</DisplayName>
