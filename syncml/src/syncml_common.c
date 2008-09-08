@@ -474,13 +474,13 @@ osync_bool parse_config(
 	if (!smlDataSyncSetOption(
 			dsObject,
 			SML_DATA_SYNC_CONFIG_MAX_MSG_SIZE,
-			OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE,
+			g_strdup_printf("%d", OSYNC_PLUGIN_SYNCML_MAX_MSG_SIZE),
 			&error))
 		goto error;
 	if (!smlDataSyncSetOption(
 			dsObject,
 			SML_DATA_SYNC_CONFIG_MAX_OBJ_SIZE,
-			OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE,
+			g_strdup_printf("%d",OSYNC_PLUGIN_SYNCML_MAX_OBJ_SIZE),
 			&error))
 		goto error;
 
