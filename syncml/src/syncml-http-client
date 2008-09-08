@@ -47,8 +47,8 @@
    <AdvancedOption>
      <!-- Workaround around for mobile phones which only use local timestamps 
           and _no_ UTC timestamps! -->
-     <DisplayName>Only local time</DisplayName>
-     <Name>OnlyLocaltime</Name>
+     <DisplayName>Use local time</DisplayName>
+     <Name>UseLocaltime</Name>
      <Type>bool</Type>
      <Value>0</Value>
    </AdvancedOption>
