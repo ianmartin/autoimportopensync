@@ -54,24 +54,16 @@ static osync_bool duplicate_xmlformat(const char *uid, const char *input, unsign
 
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	/* TODO: we can do that faster with a osync_xmlformat_copy() function */
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, input, inpsize, output, outpsize, error);
 	OSyncXMLFormat *xmlformat = NULL;
 
-	char *buffer = NULL;
-	unsigned int size;
-	
-	osync_xmlformat_assemble((OSyncXMLFormat *) input, &buffer, &size);
-	xmlformat = osync_xmlformat_parse(buffer, size, error);
-	if (!xmlformat) {
+	if (!osync_xmlformat_copy((OSyncXMLFormat *) input, &xmlformat, error) || !xmlformat) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 
 	*output = (char *) xmlformat;
 	*outpsize = osync_xmlformat_size();
-
-	g_free(buffer);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;

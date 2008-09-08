@@ -687,6 +687,36 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
+
+/**
+ * @brief Returns true if the copy succedded, false otherwise
+ *
+ * @return Boolean status of the copy operation.
+ */ 
+osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, source, destination);
+
+        char *buffer = NULL;
+        unsigned int size;
+
+        osync_xmlformat_assemble(source, &buffer, &size);
+        *destination = osync_xmlformat_parse(buffer, size, error);
+        if (!(*destination)) {
+                osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+                return FALSE;
+        }
+
+	if (source->sorted) (*destination)->sorted = TRUE;
+
+
+
+        g_free(buffer);
+
+        osync_trace(TRACE_EXIT, "%s", __func__);
+        return TRUE;
+}
+
 /**
  * @brief Returns the size of the OSyncXMLFormat struct.
  *
