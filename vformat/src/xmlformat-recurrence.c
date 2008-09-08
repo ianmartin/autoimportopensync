@@ -237,20 +237,25 @@ static char *convert_rrule_vcal_frequency(OSyncXMLField *xmlfield, int frequency
 	frequency = osync_xmlfield_get_key_value(xmlfield, "Frequency");
 
 	/* get frequency: only D(1), W(2), MP(3), MD(4), YD(5) and YM(6) are allowed */
-	if (!strcmp(frequency, "DAILY")) {
-		frequency_id = "D";
-	} else if (!strcmp(frequency, "WEEKLY")) {
-		frequency_id = "W";
-	} else if (!strcmp(frequency, "MONTHLY") && frequency_state_id == 3) {
-		frequency_id = "MP";
-	} else if (!strcmp(frequency, "MONTHLY") && frequency_state_id == 4) {
-		frequency_id = "MD";
-	} else if (!strcmp(frequency, "YEARLY") && frequency_state_id == 5) {
-		frequency_id = "YD";
-	} else if (!strcmp(frequency, "YEARLY") && frequency_state_id == 6) {
-		frequency_id = "YM";
+	if (frequency) {
+		if (!strcmp(frequency, "DAILY")) {
+			frequency_id = "D";
+		} else if (!strcmp(frequency, "WEEKLY")) {
+			frequency_id = "W";
+		} else if (!strcmp(frequency, "MONTHLY") && frequency_state_id == 3) {
+			frequency_id = "MP";
+		} else if (!strcmp(frequency, "MONTHLY") && frequency_state_id == 4) {
+			frequency_id = "MD";
+		} else if (!strcmp(frequency, "YEARLY") && frequency_state_id == 5) {
+			frequency_id = "YD";
+		} else if (!strcmp(frequency, "YEARLY") && frequency_state_id == 6) {
+			frequency_id = "YM";
+		} else {
+			osync_trace(TRACE_ERROR, "invalid frequency");
+			return NULL;
+		}
 	} else {
-		osync_trace(TRACE_INTERNAL, "invalid or missing frequency");
+		osync_trace(TRACE_INTERNAL, "missing frequency");
 		return NULL;
 	}
 
