@@ -38,7 +38,11 @@ static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *dat
 {
 	osync_assert(objtype);
 
-	if (!g_pattern_match_simple("<?xml version=\"*\"?>*", data))
+	GString *string = g_string_new("<?xml version=\"*\"?>*");
+	g_string_append(string, "<");
+	g_string_append(string, objtype);
+	g_string_append(string, ">*");
+	if (!g_pattern_match_simple(g_string_free(string, FALSE), data))
 		return FALSE;
 
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(data, size, NULL);
