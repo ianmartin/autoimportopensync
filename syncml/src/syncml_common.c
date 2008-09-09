@@ -526,6 +526,19 @@ osync_bool parse_config(
 					SML_DATA_SYNC_CONFIG_CONNECTION_USB,
 					&error))
 				goto error;
+			if (osync_plugin_connection_usb_get_interface(conn))
+			{
+				char *port = g_strdup_printf("%u", osync_plugin_connection_usb_get_interface(conn));
+				if (!smlDataSyncSetOption(
+						dsObject,
+						SML_TRANSPORT_CONFIG_PORT,
+						port, &error))
+				{
+					smlSafeCFree(&port);
+					goto error;
+				}
+				smlSafeCFree(&port);
+			}
 			break;
 		case OSYNC_PLUGIN_CONNECTION_SERIAL:
 			/* TODO serial */
