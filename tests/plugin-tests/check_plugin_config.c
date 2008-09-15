@@ -384,18 +384,24 @@ START_TEST (plugin_config_connection)
 	fail_unless(!strcmp(osync_plugin_connection_bt_get_sdpuuid(conn), "AAFFEE"), NULL);
 
 	/* USB Vendor ID */
-	osync_plugin_connection_usb_set_vendorid(conn, 0xffff);
-	fail_unless(osync_plugin_connection_usb_get_vendorid(conn) == 0xffff, NULL);
+	osync_plugin_connection_usb_set_vendorid(conn, "0xffff");
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_vendorid(conn), "0xffff"), NULL);
 
-	osync_plugin_connection_usb_set_vendorid(conn, 0xaffe);
-	fail_unless(osync_plugin_connection_usb_get_vendorid(conn) == 0xaffe, NULL);
+	osync_plugin_connection_usb_set_vendorid(conn, "0xaffe");
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_vendorid(conn), "0xaffe"), NULL);
+
+	osync_plugin_connection_usb_set_vendorid(conn, "0x0ffe");
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_vendorid(conn), "0x0ffe"), NULL);
 
 	/* USB Product ID */
-	osync_plugin_connection_usb_set_productid(conn, 0xffff);
-	fail_unless(osync_plugin_connection_usb_get_productid(conn) == 0xffff, NULL);
+	osync_plugin_connection_usb_set_productid(conn, "0xffff");
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_productid(conn), "0xffff"), NULL);
 
-	osync_plugin_connection_usb_set_productid(conn, 0xaffe);
-	fail_unless(osync_plugin_connection_usb_get_productid(conn) == 0xaffe, NULL);
+	osync_plugin_connection_usb_set_productid(conn, "0xaffe");
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_productid(conn), "0xaffe"), NULL);
+
+	osync_plugin_connection_usb_set_productid(conn, "0x0ffe");
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_productid(conn), "0x0ffe"), NULL);
 
 	/* USB Interface*/
 	osync_plugin_connection_usb_set_interface(conn, 2);
@@ -942,10 +948,10 @@ START_TEST (plugin_config_save_and_load_connection_usb)
 	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
 
 	/* USB Vendor ID */
-	osync_plugin_connection_usb_set_vendorid(conn, 0xaffe);
+	osync_plugin_connection_usb_set_vendorid(conn, "0xaffe");
 
 	/* USB Product ID */
-	osync_plugin_connection_usb_set_productid(conn, 0xffff);
+	osync_plugin_connection_usb_set_productid(conn, "0xffff");
 
 	/* USB Interface*/
 	osync_plugin_connection_usb_set_interface(conn, 2);
@@ -964,8 +970,8 @@ START_TEST (plugin_config_save_and_load_connection_usb)
 
 	fail_unless(reloaded_conn != NULL, NULL);
 
-	fail_unless(osync_plugin_connection_usb_get_vendorid(reloaded_conn) == 0xaffe, NULL);
-	fail_unless(osync_plugin_connection_usb_get_productid(reloaded_conn) == 0xffff, NULL);
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_vendorid(reloaded_conn), "0xaffe"), NULL);
+	fail_unless(!strcmp(osync_plugin_connection_usb_get_productid(reloaded_conn), "0xffff"), NULL);
 	fail_unless(osync_plugin_connection_usb_get_interface(reloaded_conn) == 2, NULL);
 
 	osync_plugin_config_unref(config);

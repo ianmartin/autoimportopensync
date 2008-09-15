@@ -475,8 +475,8 @@ osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConn
 	 * bt_sdpuuid (char*)
 	 * bt_channel (uint)
 	 *
-	 * usb_vendorid (uint)
-	 * usb_productid (uint)
+	 * usb_vendorid (char *)
+	 * usb_productid (char *)
 	 * usb_interface (uint)
 	 *
 	 * net_address (char*)
@@ -499,8 +499,8 @@ osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConn
 			osync_message_write_uint(message, osync_plugin_connection_bt_get_channel(conn));
 			break;
 		case OSYNC_PLUGIN_CONNECTION_USB:
-			osync_message_write_uint(message, osync_plugin_connection_usb_get_vendorid(conn));
-			osync_message_write_uint(message, osync_plugin_connection_usb_get_productid(conn));
+			osync_message_write_string(message, osync_plugin_connection_usb_get_vendorid(conn));
+			osync_message_write_string(message, osync_plugin_connection_usb_get_productid(conn));
 			osync_message_write_uint(message, osync_plugin_connection_usb_get_interface(conn));
 			break;
 		case OSYNC_PLUGIN_CONNECTION_NETWORK:
@@ -556,7 +556,8 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 	char *bt_address, *bt_sdpuuid;
 	unsigned int bt_channel;
 
-	unsigned int usb_vendorid, usb_productid, usb_interface; 
+	char  *usb_vendorid, *usb_productid;
+	unsigned int usb_interface; 
 
 	unsigned int net_port;
 	char *net_address, *net_protocol, *net_dnssd;
@@ -589,10 +590,10 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 			g_free(bt_sdpuuid);
 			break;
 		case OSYNC_PLUGIN_CONNECTION_USB:
-			osync_message_read_uint(message, &usb_vendorid);
+			osync_message_read_string(message, &usb_vendorid);
 			osync_plugin_connection_usb_set_vendorid(*conn, usb_vendorid);
 
-			osync_message_read_uint(message, &usb_productid);
+			osync_message_read_string(message, &usb_productid);
 			osync_plugin_connection_usb_set_productid(*conn, usb_productid);
 
 			osync_message_read_uint(message, &usb_interface);

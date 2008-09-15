@@ -90,11 +90,11 @@ OSYNC_EXPORT const char *osync_plugin_connection_bt_get_sdpuuid(OSyncPluginConne
 OSYNC_EXPORT void osync_plugin_connection_bt_set_sdpuuid(OSyncPluginConnection *connection, const char *sdpuuid);
 
 /* USB */
-OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, unsigned int vendorid);
+OSYNC_EXPORT const char *osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, const char *vendorid);
 
-OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, unsigned int productid);
+OSYNC_EXPORT const char *osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection);
+OSYNC_EXPORT void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, const char *productid);
 
 OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *connection);
 OSYNC_EXPORT void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interface);

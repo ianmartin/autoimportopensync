@@ -56,6 +56,12 @@ void osync_plugin_connection_unref(OSyncPluginConnection *connection)
 		if (connection->bt_sdpuuid)
 			g_free(connection->bt_sdpuuid);
 
+		if (connection->usb_vendorid)
+			g_free(connection->usb_vendorid);
+
+		if (connection->usb_productid)
+			g_free(connection->usb_productid);
+
 		if (connection->net_address)
 			g_free(connection->net_address);
 
@@ -170,32 +176,38 @@ void osync_plugin_connection_bt_set_sdpuuid(OSyncPluginConnection *connection, c
 }
 
 
-unsigned int osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection)
+const char *osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection)
 {
 	osync_assert(connection);
 
 	return connection->usb_vendorid;
 }
 
-void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, unsigned int vendorid)
+void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, const char *vendorid)
 {
 	osync_assert(connection);
 
-	connection->usb_vendorid = vendorid;
+	if (connection->usb_vendorid)
+		g_free(connection->usb_vendorid);
+
+	connection->usb_vendorid = g_strdup(vendorid);
 }
 
-unsigned int osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection)
+const char *osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection)
 {
 	osync_assert(connection);
 
 	return connection->usb_productid;
 }
 
-void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, unsigned int productid)
+void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, const char *productid)
 {
 	osync_assert(connection);
 
-	connection->usb_productid = productid;
+	if (connection->usb_productid)
+		g_free(connection->usb_productid);
+
+	connection->usb_productid = g_strdup(productid);
 }
 
 unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *connection)

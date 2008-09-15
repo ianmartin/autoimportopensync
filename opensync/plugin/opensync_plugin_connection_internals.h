@@ -37,9 +37,9 @@ struct OSyncPluginConnection {
 	unsigned int bt_channel;
 
 	/** USB Vendor ID */
-	unsigned int usb_vendorid;
+	char *usb_vendorid;
 	/** USB Product ID */
-	unsigned int usb_productid;
+	char *usb_productid;
 	/** USB Interface */
 	unsigned int usb_interface;
 	

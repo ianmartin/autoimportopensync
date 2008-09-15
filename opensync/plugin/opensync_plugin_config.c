@@ -244,8 +244,6 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
-	unsigned int usbid;
-
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
@@ -257,12 +255,10 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"VendorID")) {
 			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_USB_VENDORID;
-			sscanf(str, "0x%x", &usbid);
-			osync_plugin_connection_usb_set_vendorid(conn, usbid);
+			osync_plugin_connection_usb_set_vendorid(conn, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"ProductID")) {
 			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_USB_PRODUCTID;
-			sscanf(str, "0x%x", &usbid);
-			osync_plugin_connection_usb_set_productid(conn, usbid);
+			osync_plugin_connection_usb_set_productid(conn, str);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Interface")) {
 			conn->supported_options |= OSYNC_PLUGIN_CONNECTION_USB_INTERFACE;
 			osync_plugin_connection_usb_set_interface(conn, atoi(str));
@@ -773,8 +769,8 @@ static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPl
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, conn, error);
 
 	char *str;
-	const char *mac, *sdpuuid, *address, *protocol, *dnssd, *devicenode, *service;
-	unsigned int rfcomm_channel, vendorid, productid, interface, port, speed;
+	const char *mac, *sdpuuid, *address, *protocol, *dnssd, *devicenode, *service, *vendorid, *productid;
+	unsigned int rfcomm_channel, interface, port, speed;
 
 	xmlNode *typenode, *node = xmlNewChild(cur, NULL, (xmlChar*)"Connection", NULL);
 	if (!node)
@@ -811,14 +807,14 @@ static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPl
 
 			vendorid = osync_plugin_connection_usb_get_vendorid(conn);
 			if (vendorid) {
-				str = g_strdup_printf("0x%x", vendorid);
+				str = g_strdup(vendorid);
 				xmlNewChild(typenode, NULL, (xmlChar*)"VendorID", (xmlChar*)str);
 				g_free(str);
 			}
 
 			productid = osync_plugin_connection_usb_get_productid(conn);
 			if (productid) {
-				str = g_strdup_printf("0x%x", productid);
+				str = g_strdup(productid);
 				xmlNewChild(typenode, NULL, (xmlChar*)"ProductID", (xmlChar*)str);
 				g_free(str);
 			}
