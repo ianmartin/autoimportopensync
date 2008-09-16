@@ -570,6 +570,9 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 				goto error_finalize;
 
 			osync_plugin_info_add_objtype(client->plugin_info, sink);
+		} else {
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Duplicate sink objtype \"%s\" configured in plugin %s", objtype, pluginname);
+			goto error;
 		}
 
 		OSyncList *o = osync_plugin_resource_get_objformat_sinks(res);
