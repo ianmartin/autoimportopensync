@@ -482,6 +482,7 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 	assert(config);
 
 
+	GList *pathes = NULL;
 	int i, numobjs = osync_plugin_info_num_objtypes(info);
 	for (i = 0; i < numobjs; i++) {
 		OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
@@ -498,6 +499,11 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Path for object type \"%s\" is not configured.", objtype);
 			goto error_free_env;
 		}
+		if(g_list_find_custom(pathes, dir->path, (GCompareFunc)strcmp)) {
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Path for objtype \"%s\" defined for more than one objtype sink in configuration.", objtype);
+			goto error_free_env;
+		}
+		pathes = g_list_append(pathes, g_strdup(dir->path));
 
 		OSyncList *s = osync_plugin_resource_get_objformat_sinks(res);
 		for (; s; s = s->next) {
@@ -548,6 +554,11 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "%s is not a directory", dir->path);
 			goto error_free_env;
 		}
+	}
+
+	if (pathes) {
+		g_list_foreach(pathes, (GFunc)g_free, NULL);
+		g_list_free(pathes);
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
