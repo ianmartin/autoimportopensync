@@ -72,4 +72,5 @@ typedef struct vertice {
 
 } vertice;
 
+typedef osync_bool (*OSyncTargetLastConverterFn)(const void *data, conv_tree *tree);
 #endif //_OPENSYNC_FORMAT_ENV_INTERNALS_H_
