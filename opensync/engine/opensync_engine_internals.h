@@ -114,6 +114,8 @@ struct OSyncEngine {
 	
 	GHashTable *internalFormats;
 	GHashTable *internalSchemas;
+	/** converter_paths contains a hash of all OSyncFormatConverterPath objects **/
+	GHashTable *converterPathes;
 };
 
 #ifdef OPENSYNC_UNITTESTS

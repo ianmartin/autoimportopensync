@@ -929,6 +929,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					objtype_sink = osync_member_find_objtype_sink(member, "data");
 				/* TODO: Review if objtype_sink = NULL is valid at all. */
 
+				OSyncFormatConverterPath *path = NULL;
 				for (e = sinkengine->entries; e; e = e->next) {
 					OSyncMappingEntryEngine *entry_engine = e->data;
 					osync_assert(entry_engine);
@@ -992,8 +993,10 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 								osync_error_set(error, OSYNC_ERROR_GENERIC, "There are no available format sinks.");
 								goto error;
 							}
-							
-							OSyncFormatConverterPath *path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), format_sinks, error);
+						
+							/* We cache the converter path for each sink/member couple */
+							if (!path)
+								path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), format_sinks, error);
 							if (!path)
 								goto error;
 
@@ -1011,7 +1014,6 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							}
 							osync_trace(TRACE_INTERNAL, "converted to format %s", osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
 							
-							osync_converter_path_unref(path);
 							
 							osync_change_set_objtype(change, objtype);
 							g_free(objtype);
@@ -1043,7 +1045,10 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						}
 					}
 				}
-				
+			
+				if (path)
+					osync_converter_path_unref(path);
+
 				if (!osync_client_proxy_committed_all(sinkengine->proxy, _osync_obj_engine_written_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}

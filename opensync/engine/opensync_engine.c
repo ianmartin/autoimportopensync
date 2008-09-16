@@ -161,6 +161,25 @@ static void _osync_engine_set_internal_format(OSyncEngine *engine, const char *o
 	g_hash_table_insert(engine->internalFormats, g_strdup(objtype), g_strdup(osync_objformat_get_name(format)));
 }
 
+static OSyncFormatConverterPath *_osync_engine_get_converter_path(OSyncEngine *engine, const char *member_objtype)
+{
+	OSyncFormatConverterPath *converter_path = g_hash_table_lookup(engine->converterPathes, member_objtype);
+	return converter_path;
+}
+
+static void _osync_engine_set_converter_path(OSyncEngine *engine, const char *member_objtype, OSyncFormatConverterPath *converter_path)
+{
+	osync_trace(TRACE_INTERNAL, "Setting converter_path of %s to %p", member_objtype, converter_path);
+	if (!converter_path)
+		return;
+	g_hash_table_insert(engine->converterPathes, g_strdup(member_objtype), converter_path);
+}
+
+static void _osync_engine_converter_path_unref(gpointer data) {
+	OSyncFormatConverterPath * converter_path = data;
+	osync_converter_path_unref(converter_path);
+}
+
 static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
 {
 	OSyncEngine *engine = userdata;
@@ -179,7 +198,11 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype);
 
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
-	
+	GString *member_objtype_str = g_string_new(g_strdup_printf("%lli", memberid));
+	g_string_append(member_objtype_str,"_");
+	g_string_append(member_objtype_str, objtype);
+	const char *member_objtype = g_string_free(member_objtype_str, FALSE);
+
 	OSyncData *data = osync_change_get_data(change);
 
 	/* Convert the format to the internal format */
@@ -192,7 +215,11 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	if (internalFormat && osync_group_get_converter_enabled(engine->group) && (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED)) {
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 
-		OSyncFormatConverterPath *path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, &error);
+		OSyncFormatConverterPath *path = _osync_engine_get_converter_path(engine, member_objtype);
+		if(!path) {
+			path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, &error);
+			_osync_engine_set_converter_path(engine, member_objtype, path);
+		}
 
 		if (!path)
 			goto error;
@@ -204,11 +231,8 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		}
 
 		if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
-			osync_converter_path_unref(path);
 			goto error;
 		}
-		
-		osync_converter_path_unref(path);
 	}
 	
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
@@ -404,6 +428,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	
 	engine->internalFormats = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	engine->internalSchemas = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	engine->converterPathes = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, _osync_engine_converter_path_unref);
 	
 	engine->context = g_main_context_new();
 	engine->thread = osync_thread_new(engine->context, error);
@@ -493,6 +518,9 @@ void osync_engine_unref(OSyncEngine *engine)
 
 		if (engine->internalFormats)
 			g_hash_table_destroy(engine->internalFormats);
+
+		if (engine->converterPathes)
+			g_hash_table_destroy(engine->converterPathes);
 		
 		if (engine->group)
 			osync_group_unref(engine->group);
