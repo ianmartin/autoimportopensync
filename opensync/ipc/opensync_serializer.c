@@ -597,7 +597,7 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 			osync_plugin_connection_usb_set_productid(*conn, usb_productid);
 
 			osync_message_read_uint(message, &usb_interface);
-			osync_plugin_connection_usb_set_productid(*conn, usb_interface);
+			osync_plugin_connection_usb_set_interface(*conn, usb_interface);
 			break;
 		case OSYNC_PLUGIN_CONNECTION_NETWORK:
 			osync_message_read_string(message, &net_address);
