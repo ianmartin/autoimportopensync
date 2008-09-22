@@ -22,9 +22,6 @@
 #include "tomboy_note_internal.h"
 
 #include <string.h>
-#include <assert.h>
-
-#define osync_assert(x) assert(x)
 
 osync_bool tomboynote_validate(xmlDocPtr doc) {
 	osync_assert(doc);
@@ -251,6 +248,8 @@ osync_bool conv_tomboynote_to_xmlformat(char *data, unsigned int inpsize, char *
 	unsigned int size;
 	char *cstr;
 	osync_xmlformat_assemble(xmlformat, &cstr, &size);
+	//TODO xmlformat should be sorted automatically
+	osync_xmlformat_sort(xmlformat);
 	osync_trace(TRACE_SENSITIVE, "... Output XMLFormat is: \n%s", cstr);
 	g_free(cstr);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -284,7 +283,7 @@ osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char 
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
 	doc = xmlNewDoc(BAD_CAST "1.0");
-	ns = xmlNewNs(NULL, NULL, BAD_CAST "http://beatniksoftware.com/tomboy");
+	ns = xmlNewNs(NULL, BAD_CAST "http://beatniksoftware.com/tomboy", NULL);
 	
 	note = xmlNewNode(ns, BAD_CAST "note");
 	version = xmlNewProp(note, BAD_CAST "version", BAD_CAST "0.3" );
@@ -454,10 +453,12 @@ static void create_tomboynote(char **data, unsigned int *size) {
 	xmlFreeNs(ns);
 }
 
+/*
 static OSyncConvCmpResult compare_tomboynote(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize) {
 	//TODO
 	return OSYNC_CONV_DATA_MISMATCH;
-}
+} 
+*/
 
 osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
