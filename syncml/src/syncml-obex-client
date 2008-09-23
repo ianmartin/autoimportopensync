@@ -142,8 +142,6 @@
      <!-- SyncML UUID -->
      <SDPUUID>00000002-0000-1000-8000-0002ee000002</SDPUUID>
    </Bluetooth>
-   <USB>
-   </USB>
   </Connection>
 
     <!-- To be filed by UI or hand:
