@@ -113,6 +113,8 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
 				osync_objtype_sink_set_name(sink, str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"preferred_format")) {
+				osync_objtype_sink_set_preferred_format(sink, str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
 				osync_objtype_sink_set_enabled(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
@@ -634,6 +636,8 @@ static osync_bool _osync_member_save_sink(xmlDoc *doc, OSyncObjTypeSink *sink, O
 	/* Objtype specific settings */
 	xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
 
+	xmlNewChild(node, NULL, (xmlChar*)"preferred_format", (xmlChar*)osync_objtype_sink_get_preferred_format(sink));
+
 	for (i = 0; i < osync_objtype_sink_num_objformat_sinks(sink); i++) {
 		OSyncObjFormatSink *format_sink = osync_objtype_sink_nth_objformat_sink(sink, i);
 		const char *format = osync_objformat_sink_get_objformat(format_sink);
@@ -785,8 +789,9 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
 	GList *o;
 	for (o = member->objtypes; o; o = o->next) {
 		OSyncObjTypeSink *sink = o->data;
-		if (!strcmp(osync_objtype_sink_get_name(sink), objtype))
+		if (!strcmp(osync_objtype_sink_get_name(sink), objtype)) {
 			return sink;
+		}
 	}
 	return NULL;
 }

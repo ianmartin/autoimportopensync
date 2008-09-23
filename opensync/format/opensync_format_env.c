@@ -158,6 +158,18 @@ static int _compare_vertice_distance(const void *a, const void *b)
 		return -1;
 	else if (va->conversions > vb->conversions)
 		return 1;
+	else if (va->preferred)
+		return -1;
+	else if (vb->preferred)
+		return 1;
+  	else if (va->id < vb->id)
+		return -1;
+	else if (va->id > vb->id)
+		return 1;
+ 	else if (va->neighbour_id < vb->neighbour_id)
+		return -1;
+	else if (va->neighbour_id > vb->neighbour_id)
+		return 1;
 	else
 		return 0;
 }
@@ -450,7 +462,7 @@ static void _free_tree(conv_tree *tree)
  *      target_fn_simple(), target_fn_fmtname(),
  *      target_fn_membersink(), target_fn_no_any()
  */
-static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncPathTargetFn target_fn, OSyncTargetLastConverterFn last_converter_fn, const void *fndata, OSyncError **error)
+static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncPathTargetFn target_fn, OSyncTargetLastConverterFn last_converter_fn, const void *fndata, const char * preferred_format, OSyncError **error)
 {
 	vertice *result = NULL;
 	vertice *neighbour = NULL;
@@ -492,6 +504,8 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	
 	begin->format = osync_data_get_objformat(sourcedata);
 	begin->path = NULL;
+	begin->id = vertice_id;
+	begin->neighbour_id = 0;
 	
 	tree->search = g_list_append(NULL, begin);
 	
@@ -546,6 +560,8 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			if (size > 1 && count < size) g_string_append(string, " -> ");
 		}
 		osync_trace(TRACE_INTERNAL, "Next vertice : %s (%s).", osync_objformat_get_name(current->format), g_string_free(string, FALSE));
+		guint neighbour_id = 0;
+		current->neighbour_id = 0;
 		vertice_id++; // current vertice id for its neighbours
 
 		/* Check if we have reached a target format */
@@ -575,6 +591,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			}
 		}
 
+
 		/*
 		 * If we dont have reached a target, we look at our neighbours 
 		 */
@@ -597,6 +614,15 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 
 		/* Find all the neighboors or "current" at its current conversion point */
 		while ((neighbour = _get_next_vertice_neighbour(env, tree, current, error))) {
+			neighbour->id = vertice_id;
+			neighbour_id++;
+			neighbour->neighbour_id = neighbour_id;
+
+			neighbour->preferred = FALSE;
+			if (current->preferred)	  /* preferred is inherited by the neighbours */
+				neighbour->preferred = TRUE;
+			if(preferred_format && !strcmp(preferred_format, osync_objformat_get_name(neighbour->format)))
+				neighbour->preferred = TRUE;
 
 			/* log neighbour to be added to the tree search list */
 			GString *string = g_string_new("");
@@ -615,7 +641,8 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s (%s)", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format), g_string_free(string, FALSE));
 
 			/* We found a neighbour and insert it sorted in our search queue 
-			   If vertices are equals in losses, objtypes and conversions */ 
+			   If vertices are equals in losses, objtypes and conversions, first registered is inserted before the others 
+			   in the same vertice group (vertice_id) */
 			tree->search = g_list_insert_sorted(tree->search, neighbour, _compare_vertice_distance); 
 
 			/* Optimization:
@@ -1174,7 +1201,7 @@ OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv *env, OSyncO
 	if (!sourcedata)
 		goto error;
 
-	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_simple, _target_fn_simple_reached_lastconverter, targetformat, error);
+	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_simple, _target_fn_simple_reached_lastconverter, targetformat, NULL, error);
 
 	osync_data_unref(sourcedata);
 
@@ -1201,12 +1228,12 @@ error:
  * @returns The appropriate conversion path, or NULL if an error occurred.
  * 
  */
-OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat *targetformat, OSyncError **error)
+OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncObjFormat *targetformat, const char *preferred_format, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %p)", __func__, env, sourcedata, targetformat, targetformat ? osync_objformat_get_name(targetformat) : "NONE", error);
 	
-	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_simple, _target_fn_simple_reached_lastconverter, targetformat, error);
+	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_simple, _target_fn_simple_reached_lastconverter, targetformat, preferred_format, error);
 	if (!path) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -1234,7 +1261,7 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env
 	if (!sourcedata)
 		goto error;
 
-	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, _target_fn_format_sinks_reached_lastconverter, targets, error);
+	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, _target_fn_format_sinks_reached_lastconverter, targets, NULL, error);
 
 	osync_data_unref(sourcedata);
 
@@ -1258,7 +1285,7 @@ error:
  * @returns The appropriate conversion path, or NULL if an error occurred.
  * 
  */
-OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncList *targets, OSyncError **error)
+OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncList *targets, const char *preferred_format, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
 	GString *string = g_string_new("");
@@ -1272,9 +1299,9 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyn
 		if (size > 1 && count < size) g_string_append(string, " - ");
         }
 
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %p)", __func__, env, sourcedata, targets, g_string_free(string, FALSE), error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %s, %p)", __func__, env, sourcedata, targets, g_string_free(string, FALSE), preferred_format ? preferred_format:"NONE", error);
 	
-	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, _target_fn_format_sinks_reached_lastconverter, targets, error);
+	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, _target_fn_format_sinks_reached_lastconverter, targets, preferred_format, error);
 	if (!path) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;

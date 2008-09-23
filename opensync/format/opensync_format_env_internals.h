@@ -67,6 +67,9 @@ typedef struct vertice {
 	unsigned losses;
 	unsigned objtype_changes;
 	unsigned conversions;
+	guint id;
+	guint neighbour_id;
+	osync_bool preferred;
 
 	int ref_count;
 

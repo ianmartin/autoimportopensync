@@ -49,6 +49,8 @@ OSYNC_EXPORT void osync_plugin_resource_set_mime(OSyncPluginResource *resource, 
 OSYNC_EXPORT OSyncObjFormat *osync_plugin_resource_get_objformat(OSyncPluginResource *resource);
 OSYNC_EXPORT void osync_plugin_resource_set_objformat(OSyncPluginResource *resource, OSyncObjFormat *objformat);
 */
+OSYNC_EXPORT const char *osync_plugin_resource_get_preferred_format(OSyncPluginResource *resource);
+OSYNC_EXPORT void osync_plugin_resource_set_preferred_format(OSyncPluginResource *resource, const char *preferred_format);
 
 OSYNC_EXPORT OSyncList *osync_plugin_resource_get_objformat_sinks(OSyncPluginResource *resource);
 OSYNC_EXPORT void osync_plugin_resource_add_objformat_sink(OSyncPluginResource *resource, OSyncObjFormatSink *formatsink);

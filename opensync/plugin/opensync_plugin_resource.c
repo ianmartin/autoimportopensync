@@ -131,6 +131,21 @@ void osync_plugin_resource_set_mime(OSyncPluginResource *resource, const char *m
 	resource->mime = g_strdup(mime);
 }
 
+const char *osync_plugin_resource_get_preferred_format(OSyncPluginResource *resource)
+{
+	osync_assert(resource);
+	return resource->preferred_format;
+}
+
+void osync_plugin_resource_set_preferred_format(OSyncPluginResource *resource, const char *preferred_format)
+{
+	osync_assert(resource);
+	if (resource->preferred_format)
+		g_free(resource->preferred_format);
+
+	resource->preferred_format = g_strdup(preferred_format);
+}
+
 OSyncList *osync_plugin_resource_get_objformat_sinks(OSyncPluginResource *resource)
 {
 	osync_assert(resource);

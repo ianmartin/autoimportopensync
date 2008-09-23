@@ -995,8 +995,9 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							}
 						
 							/* We cache the converter path for each sink/member couple */
-							if (!path)
-								path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), format_sinks, error);
+							if (!path) {
+								path = osync_format_env_find_path_formats_with_detectors(engine->formatenv, osync_change_get_data(entry_engine->change), format_sinks, osync_objtype_sink_get_preferred_format(objtype_sink), error);
+							}
 							if (!path)
 								goto error;
 

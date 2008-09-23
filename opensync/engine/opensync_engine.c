@@ -217,7 +217,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 
 		OSyncFormatConverterPath *path = _osync_engine_get_converter_path(engine, member_objtype);
 		if(!path) {
-			path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, &error);
+			path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, NULL, &error);
 			_osync_engine_set_converter_path(engine, member_objtype, path);
 		}
 

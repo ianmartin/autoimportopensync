@@ -277,6 +277,7 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	 * read function (bool)
 	 * get_changes function (bool)
 	 * write function (bool)
+	 * preferred_format (string) 
 	 * number of format sinks 
 	 * format sink list (format sinks)
 	 * enabled (int)
@@ -299,6 +300,8 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	osync_message_write_int(message, osync_objtype_sink_get_function_read(sink));
 	osync_message_write_int(message, osync_objtype_sink_get_function_getchanges(sink));
 	osync_message_write_int(message, osync_objtype_sink_get_function_write(sink));
+
+	osync_message_write_string(message, osync_objtype_sink_get_preferred_format(sink));
 
 	osync_message_write_int(message, num);
 	for (i = 0; i < num; i++) {
@@ -340,6 +343,7 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	 * read function (bool)
 	 * get_changes function (bool)
 	 * write function (bool)
+	 * preferred_format (string) 
 	 * number of format sinks 
 	 * format sink list (format sinks)
 	 * enabled (int)
@@ -360,6 +364,7 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 		goto error;
 
 	char *name = NULL;
+	char *preferred_format = NULL;
 	int num_formats = 0;
 	int enabled = 0, timeout = 0;
 	int read = 0, get_changes = 0, write = 0;
@@ -377,7 +382,11 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	osync_message_read_int(message, &write);
 	osync_objtype_sink_set_function_write(*sink, write);
 
-	osync_message_read_int(message, &num_formats);
+ 	osync_message_read_string(message, &preferred_format);
+ 	osync_objtype_sink_set_preferred_format(*sink, preferred_format);
+ 	g_free(preferred_format);
+
+ 	osync_message_read_int(message, &num_formats);
 	int i = 0;
 	for (i = 0; i < num_formats; i++) {
 		OSyncObjFormatSink *formatsink;
@@ -1202,6 +1211,7 @@ error:
 #define MARSHAL_PLUGINRESOURCE_MIME (1 << 2)
 #define MARSHAL_PLUGINRESOURCE_PATH (1 << 3)
 #define MARSHAL_PLUGINRESOURCE_URL  (1 << 4)
+#define MARSHAL_PLUGINRESOURCE_PREFERRED_FORMAT  (1 << 5)
 
 osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResource *res, OSyncError **error)
 {
@@ -1226,6 +1236,7 @@ osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResour
 
 	unsigned int available_settings = 0;
 
+	const char *preferred_format = osync_plugin_resource_get_preferred_format(res);
 	const char *name = osync_plugin_resource_get_name(res);
 	const char *mime = osync_plugin_resource_get_mime(res);
 	const char *objtype = osync_plugin_resource_get_objtype(res);
@@ -1254,6 +1265,9 @@ osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResour
 
 	/** optional fields */
 
+	if (preferred_format)
+		available_settings |= MARSHAL_PLUGINRESOURCE_PREFERRED_FORMAT;
+
 	if (name)
 		available_settings |= MARSHAL_PLUGINRESOURCE_NAME;
 
@@ -1267,6 +1281,9 @@ osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResour
 		available_settings |= MARSHAL_PLUGINRESOURCE_URL;
 
 	osync_message_write_uint(message, available_settings);
+
+	if (preferred_format)
+		osync_message_write_string(message, preferred_format);
 
 	if (name)
 		osync_message_write_string(message, name);
@@ -1298,6 +1315,7 @@ osync_bool osync_demarshal_pluginresource(OSyncMessage *message, OSyncPluginReso
 	 * available_settings (uint)
 	 * 
 	 * (optional)
+	 * preferred_format (string)
 	 * name (string)
 	 * mime (string)
 	 * path (string)
@@ -1308,6 +1326,7 @@ osync_bool osync_demarshal_pluginresource(OSyncMessage *message, OSyncPluginReso
 	char *objtype = NULL;
 	unsigned int i, num_sinks;
 	unsigned int available_settings;
+	char *preferred_format = NULL;
 	char *name = NULL;
 	char *mime = NULL;
 	char *path = NULL;
@@ -1336,6 +1355,12 @@ osync_bool osync_demarshal_pluginresource(OSyncMessage *message, OSyncPluginReso
 	}
 
 	osync_message_read_uint(message, &available_settings);
+
+	if (available_settings & MARSHAL_PLUGINRESOURCE_PREFERRED_FORMAT) {
+		osync_message_read_string(message, &preferred_format);
+		osync_plugin_resource_set_preferred_format(*res, preferred_format);
+		g_free(preferred_format);
+	}
 
 	if (available_settings & MARSHAL_PLUGINRESOURCE_NAME) {
 		osync_message_read_string(message, &name);

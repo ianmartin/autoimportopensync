@@ -575,6 +575,8 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 			goto error;
 		}
 
+		const char *preferred_format = osync_plugin_resource_get_preferred_format(res);
+		osync_objtype_sink_set_preferred_format(sink, preferred_format); 
 		OSyncList *o = osync_plugin_resource_get_objformat_sinks(res);
 		for (; o; o = o->next) {
 			OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 

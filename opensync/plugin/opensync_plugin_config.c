@@ -553,14 +553,31 @@ static osync_bool _osync_plugin_config_parse_resource_formats(OSyncPluginResourc
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, res, cur, error);
 
+	const char *preferred_format = NULL;
+
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		if (!_osync_plugin_config_parse_resource_format(res, cur->xmlChildrenNode, error))
-			goto error;
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (!str)
+			continue;
 
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"Preferred"))
+			preferred_format = str;
+		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Format")) {
+			if (!_osync_plugin_config_parse_resource_format(res, cur->xmlChildrenNode, error))
+				goto error;
+			xmlFree(str);
+		} else
+			xmlFree(str);
+
+	}
+
+	if (preferred_format) {
+		osync_plugin_resource_set_preferred_format(res, preferred_format);
+		xmlFree((xmlChar *) preferred_format);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -958,7 +975,7 @@ static osync_bool _osync_plugin_config_assemble_resource(xmlNode *cur, OSyncPlug
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, res, error);
 
 	OSyncList *o;
-	const char *name, *mime, *objtype, *path, *url;
+	const char *preferred_format, *name, *mime, *objtype, *path, *url;
 
 	xmlNode *next, *node = xmlNewChild(cur, NULL, (xmlChar*)"Resource", NULL);
 	if (!node) {
@@ -975,6 +992,8 @@ static osync_bool _osync_plugin_config_assemble_resource(xmlNode *cur, OSyncPlug
 		if (!_osync_plugin_config_assemble_resource_format(next, format_sink, error))
 			goto error;
 	}
+	if ((preferred_format = osync_plugin_resource_get_preferred_format(res)))
+		xmlNewChild(next, NULL, (xmlChar*)"Preferred", (xmlChar*)preferred_format);
 
 	if ((name = osync_plugin_resource_get_name(res)))
 		xmlNewChild(node, NULL, (xmlChar*)"Name", (xmlChar*)name);

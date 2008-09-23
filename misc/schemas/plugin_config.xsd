@@ -87,6 +87,7 @@
   <xsd:complexType name="Formats">
     <xsd:sequence>
       <xsd:element maxOccurs="unbounded" minOccurs="1" name="Format" type="Format" />
+      <xsd:element maxOccurs="0" minOccurs="0" name="Preferred" type="xsd:string" />
     </xsd:sequence>
   </xsd:complexType>
 

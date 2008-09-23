@@ -67,6 +67,8 @@ OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error
 	
 	sink->objtype = g_strdup(objtype);
 	sink->ref_count = 1;
+
+	sink->preferred_format = NULL;
 	
 	sink->read = TRUE;
 	sink->getchanges = TRUE;
@@ -108,6 +110,9 @@ void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 			sink->objformatsinks = osync_list_remove(sink->objformatsinks, sink->objformatsinks->data);
 		}
 		
+		if (sink->preferred_format)
+			g_free(sink->preferred_format);
+
 		if (sink->objtype)
 			g_free(sink->objtype);
 		
@@ -139,6 +144,32 @@ void osync_objtype_sink_set_name(OSyncObjTypeSink *sink, const char *name)
 	if (sink->objtype)
 		g_free(sink->objtype);
 	sink->objtype = g_strdup(name);
+}
+
+/*! @brief Return the preferred format for the conversion 
+ * 
+ * @param sink Pointer to the sink
+ * @returns the name of the preferred format
+ * 
+ */
+const char *osync_objtype_sink_get_preferred_format(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->preferred_format;
+}
+
+/*! @brief Set the preferred format for the conversion
+ * 
+ * @param sink Pointer to the sink
+ * @param name the name of the preferred format to set
+ * 
+ */
+void osync_objtype_sink_set_preferred_format(OSyncObjTypeSink *sink, const char *preferred_format)
+{
+	osync_assert(sink);
+	if (sink->preferred_format)
+		g_free(sink->preferred_format);
+	sink->preferred_format = g_strdup(preferred_format);
 }
 
 /*! @brief Returns the number of object formats in the sink

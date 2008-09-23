@@ -34,6 +34,8 @@ struct OSyncPluginResource {
 	char *mime;
 	/** Objtype of the resource */
 	char *objtype;
+	/** Preferred objformat : step or target **/
+	char *preferred_format;
 	/** OSyncObjFormatSink List of this resource */
 	OSyncList *objformatsinks;
 	/** Filesystem path */
