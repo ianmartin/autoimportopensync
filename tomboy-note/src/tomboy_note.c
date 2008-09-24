@@ -243,7 +243,7 @@ osync_bool conv_tomboynote_to_xmlformat(char *data, unsigned int inpsize, char *
 	
 	*free_input = TRUE;
 	*output = (char *)xmlformat;
-	*outpsize = sizeof(xmlformat);
+	*outpsize = osync_xmlformat_size();
 	// debug output
 	unsigned int size;
 	char *cstr;
