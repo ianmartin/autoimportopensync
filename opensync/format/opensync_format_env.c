@@ -1082,7 +1082,10 @@ OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyn
 	new_data = osync_data_clone(input, error);
 	if (!new_data)
 		goto error;
-	
+
+	/* Detect the format while DECAP the change as far as possible.
+	   Each DECAP triggers a new detection.
+	 */
 	while (TRUE) {
 		if ((detected_format = osync_format_env_detect_objformat(env, new_data))) {
 			/* We detected the format. So we replace the original format. */
@@ -1091,7 +1094,7 @@ OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyn
 			detected_format = osync_data_get_objformat(new_data);
 		
 		OSyncFormatConverter *converter = NULL;
-		/* Try to decap the change as far as possible */
+		/* Try to decap the change */
 		for (d = env->converters; d; d = d->next) {
 			converter = d->data;
 			if (osync_converter_matches(converter, new_data) && osync_converter_get_type(converter) == OSYNC_CONVERTER_DECAP) {
