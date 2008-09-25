@@ -48,19 +48,19 @@ struct OSyncFormatEnv {
  */
 /*@{*/
 
-typedef struct conv_tree {
+typedef struct OSyncFormatConverterTree {
 	/* The converters that weren't reached yet */
 	GList *unused;
 	/* The search queue for the Breadth-first search */
 	GList *search;
-} conv_tree;
+} OSyncFormatConverterTree;
 
-typedef struct vertice {
-	/** The format associated with this vertice */
+typedef struct OSyncFormatConverterPathVertice {
+	/** The format associated with this OSyncFormatConverterPathVertice */
 	OSyncObjFormat *format;
 	OSyncData *data;
 
-	/** The path of converters taken to this vertice. If this vertice is a target, we will
+	/** The path of converters taken to this OSyncFormatConverterPathVertice. If this OSyncFormatConverterPathVertice is a target, we will
 	 * return this list as the result */
 	GList *path;
 
@@ -73,7 +73,7 @@ typedef struct vertice {
 
 	int ref_count;
 
-} vertice;
+} OSyncFormatConverterPathVertice;
 
-typedef osync_bool (*OSyncTargetLastConverterFn)(const void *data, conv_tree *tree);
+typedef osync_bool (*OSyncTargetLastConverterFn)(const void *data, OSyncFormatConverterTree *tree);
 #endif //_OPENSYNC_FORMAT_ENV_INTERNALS_H_

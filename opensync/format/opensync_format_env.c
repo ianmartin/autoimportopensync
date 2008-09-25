@@ -144,8 +144,8 @@ error:
  */
 static int _compare_vertice_distance(const void *a, const void *b)
 {
-	const vertice *va = a;
-	const vertice *vb = b;
+	const OSyncFormatConverterPathVertice *va = a;
+	const OSyncFormatConverterPathVertice *vb = b;
 	if (va->losses < vb->losses)
 		return -1;
 	else if (va->losses > vb->losses)
@@ -174,7 +174,7 @@ static int _compare_vertice_distance(const void *a, const void *b)
 		return 0;
 }
 
-/** Function used on a path search vertice objformat to check if it matches an OSyncList of OSyncObjFormatSinks 
+/** Function used on a path search OSyncFormatConverterPathVertice objformat to check if it matches an OSyncList of OSyncObjFormatSinks 
  *
  * @see osync_conv_find_path_fn(), osync_change_convert_fmtnames()
  */
@@ -194,7 +194,7 @@ static osync_bool _target_fn_format_sinks(const void *data, OSyncObjFormat *fmt)
 	return FALSE;
 }
 
-/** Function used on path search vertice objformat to check if it matches a single format
+/** Function used on path search OSyncFormatConverterPathVertice objformat to check if it matches a single format
  *
  * @see osync_conv_find_path_fn(), osync_change_convert()
  */
@@ -208,7 +208,7 @@ static osync_bool _target_fn_simple(const void *data, OSyncObjFormat *fmt)
  *
  * @see osync_conv_find_path_fn(), osync_change_convert_fmtnames()
  */
-static osync_bool _target_fn_format_sinks_reached_lastconverter(const void *data, conv_tree *tree)
+static osync_bool _target_fn_format_sinks_reached_lastconverter(const void *data, OSyncFormatConverterTree *tree)
 {
 	OSyncList *f, *formats = (OSyncList *) data;
 	GList *c;
@@ -228,7 +228,7 @@ static osync_bool _target_fn_format_sinks_reached_lastconverter(const void *data
  *
  * @see osync_conv_find_path_fn(), osync_change_convert()
  */
-static osync_bool _target_fn_simple_reached_lastconverter(const void *data, conv_tree *tree)
+static osync_bool _target_fn_simple_reached_lastconverter(const void *data, OSyncFormatConverterTree *tree)
 {
 	OSyncObjFormat *target = (OSyncObjFormat *)data;
 	GList *c;
@@ -240,9 +240,9 @@ static osync_bool _target_fn_simple_reached_lastconverter(const void *data, conv
 	return TRUE;
 }
 
-static vertice *_vertice_new(OSyncError **error)
+static OSyncFormatConverterPathVertice *_vertice_new(OSyncError **error)
 {
-	vertice *v = osync_try_malloc0(sizeof(vertice), error);
+	OSyncFormatConverterPathVertice *v = osync_try_malloc0(sizeof(OSyncFormatConverterPathVertice), error);
 	if (!v)
 		return NULL;
 
@@ -251,36 +251,36 @@ static vertice *_vertice_new(OSyncError **error)
 	return v;
 }
 
-/** Increment a vertice reference count */
-static vertice *_vertice_ref(vertice *vertice)
+/** Increment a OSyncFormatConverterPathVertice reference count */
+static OSyncFormatConverterPathVertice *_vertice_ref(OSyncFormatConverterPathVertice *OSyncFormatConverterPathVertice)
 {
-	osync_assert(vertice);
+	osync_assert(OSyncFormatConverterPathVertice);
 	
-	g_atomic_int_inc(&(vertice->ref_count));
+	g_atomic_int_inc(&(OSyncFormatConverterPathVertice->ref_count));
 
-	return vertice;
+	return OSyncFormatConverterPathVertice;
 }
 
-/** Dereference a vertice
+/** Dereference a OSyncFormatConverterPathVertice
  */
-static void _vertice_unref(vertice *vertice)
+static void _vertice_unref(OSyncFormatConverterPathVertice *OSyncFormatConverterPathVertice)
 {
-	osync_assert(vertice);
+	osync_assert(OSyncFormatConverterPathVertice);
 		
-	if (g_atomic_int_dec_and_test(&(vertice->ref_count))) {
+	if (g_atomic_int_dec_and_test(&(OSyncFormatConverterPathVertice->ref_count))) {
 
-		g_list_free(vertice->path);
+		g_list_free(OSyncFormatConverterPathVertice->path);
 
-		if(vertice->data)
-			osync_data_unref(vertice->data);
+		if(OSyncFormatConverterPathVertice->data)
+			osync_data_unref(OSyncFormatConverterPathVertice->data);
 
-		g_free(vertice);
+		g_free(OSyncFormatConverterPathVertice);
 	}
 }
 
 
 
-/** Returns a boolean telling if the current vertice can be converter with the provided converter
+/** Returns a boolean telling if the current OSyncFormatConverterPathVertice can be converter with the provided converter
  *
  * Concepts :
  * - "Detectors" are cheap converters in that all they do is merely check that the data conforms to a given detection function.
@@ -294,7 +294,7 @@ static void _vertice_unref(vertice *vertice)
  * non detector converter (though we always seek for a detector that provides the same conversion before telling this "non detector" 
  * converter is valid).
  */
-static osync_bool _validate_path_with_detector(vertice *ve, OSyncFormatEnv *env, OSyncFormatConverter *converter) {
+static osync_bool _validate_path_with_detector(OSyncFormatConverterPathVertice *ve, OSyncFormatEnv *env, OSyncFormatConverter *converter) {
 
 	OSyncList *cs = NULL;
 	OSyncList *cd = NULL;
@@ -351,23 +351,23 @@ static osync_bool _validate_path_with_detector(vertice *ve, OSyncFormatEnv *env,
 	return TRUE;
 }
 
-/** Returns a neighbour of the vertice ve
+/** Returns a neighbour of the OSyncFormatConverterPathVertice ve
  *
- * Returns a new reference to the vertice. The reference
+ * Returns a new reference to the OSyncFormatConverterPathVertice. The reference
  * should be dropped using deref_vertice(), later.
  */
-static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertice *ve, OSyncError **error)
+static OSyncFormatConverterPathVertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, OSyncFormatConverterTree *tree, OSyncFormatConverterPathVertice *ve, OSyncError **error)
 {
 	GList *c = NULL;
 	OSyncFormatConverter *converter = NULL;
 	OSyncObjFormat *fmt_target = NULL;
-	vertice *neigh = NULL;
+	OSyncFormatConverterPathVertice *neigh = NULL;
 	const char *source_objtype = NULL;
 	const char *target_objtype = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, tree, ve);
 	
-	/* Ok. we need to get the next valid neighbour to our input vertice.
+	/* Ok. we need to get the next valid neighbour to our input OSyncFormatConverterPathVertice.
 	 * Valid neighbours are the once that are reachable by a conversion. So
 	 * we now go through all converters and check if they are valid */
 	for (c = tree->unused; c; c = c->next) {
@@ -426,7 +426,7 @@ error:
 	return NULL;
 }
 
-static void _free_tree(conv_tree *tree)
+static void _free_tree(OSyncFormatConverterTree *tree)
 {
 	/* Remove the remaining references on the search queue */
 	g_list_foreach(tree->search, (GFunc)_vertice_unref, NULL);
@@ -441,7 +441,7 @@ static void _free_tree(conv_tree *tree)
  * This function search for the shortest path of conversions
  * that can be made to a change, considering possible detections
  * that may be necessary. The target is given by a function
- * that check if a given format is a 'target vertice' or not. The
+ * that check if a given format is a 'target OSyncFormatConverterPathVertice' or not. The
  * function is used to allow the search path code to be used
  * to search for 'objtype detection', search for the path
  * for an available sink for a format, and maybe other uses.
@@ -464,11 +464,11 @@ static void _free_tree(conv_tree *tree)
  */
 static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncPathTargetFn target_fn, OSyncTargetLastConverterFn last_converter_fn, const void *fndata, const char * preferred_format, OSyncError **error)
 {
-	vertice *result = NULL;
-	vertice *neighbour = NULL;
+	OSyncFormatConverterPathVertice *result = NULL;
+	OSyncFormatConverterPathVertice *neighbour = NULL;
 	OSyncFormatConverterPath *path = NULL;
-	conv_tree *tree = NULL;
-	vertice *begin = NULL;
+	OSyncFormatConverterTree *tree = NULL;
+	OSyncFormatConverterPathVertice *begin = NULL;
 	GList *e, *v;
 	guint vertice_id = 0;
 	
@@ -491,7 +491,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	}
 
 	/* Make a new search tree */
-	tree = osync_try_malloc0(sizeof(conv_tree), error);
+	tree = osync_try_malloc0(sizeof(OSyncFormatConverterTree), error);
 	if (!tree)
 		goto error;
 	tree->unused = g_list_copy(env->converters);
@@ -518,11 +518,11 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		guint count = 0;
 		for (v = tree->search; v; v = v->next) {
 			count ++;
-			vertice *vertice = v->data;
+			OSyncFormatConverterPathVertice *OSyncFormatConverterPathVertice = v->data;
 			GString *string2 = g_string_new("");
-			guint size2 = g_list_length(vertice->path);
+			guint size2 = g_list_length(OSyncFormatConverterPathVertice->path);
 			guint count2 = 0;
-			for (e = vertice->path; e; e = e->next) {
+			for (e = OSyncFormatConverterPathVertice->path; e; e = e->next) {
 				count2 ++;
 				OSyncFormatConverter *edge = e->data;
 				if (count2 == 1) {
@@ -532,7 +532,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 				g_string_append(string2, osync_objformat_get_name(osync_converter_get_targetformat(edge)));
 				if (size2 > 1 && count2 < size2) g_string_append(string2, " -> ");
 			}
-			g_string_append(string, osync_objformat_get_name(vertice->format));
+			g_string_append(string, osync_objformat_get_name(OSyncFormatConverterPathVertice->format));
 			g_string_append(string, " ( ");
 			g_string_append(string, g_string_free(string2, FALSE));
 			g_string_append(string, " ) ");
@@ -540,12 +540,12 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		}
 		osync_trace(TRACE_INTERNAL, "Tree : %s", g_string_free(string, FALSE));
 
-		/* Get the first vertice from the search queue
+		/* Get the first OSyncFormatConverterPathVertice from the search queue
 		 * and remove it from the queue */
-		vertice *current = tree->search->data;
+		OSyncFormatConverterPathVertice *current = tree->search->data;
 		tree->search = g_list_remove(tree->search, current);
 		
-		/* log current vertice */
+		/* log current OSyncFormatConverterPathVertice */
 		string = g_string_new("");
 		size = g_list_length(current->path);
 		count = 0;
@@ -562,7 +562,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		osync_trace(TRACE_INTERNAL, "Next vertice : %s (%s).", osync_objformat_get_name(current->format), g_string_free(string, FALSE));
 		guint neighbour_id = 0;
 		current->neighbour_id = 0;
-		vertice_id++; // current vertice id for its neighbours
+		vertice_id++; // current OSyncFormatConverterPathVertice id for its neighbours
 
 		/* Check if we have reached a target format */
 		if (target_fn(fndata, current->format)) {
@@ -642,7 +642,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 
 			/* We found a neighbour and insert it sorted in our search queue 
 			   If vertices are equals in losses, objtypes and conversions, first registered is inserted before the others 
-			   in the same vertice group (vertice_id) */
+			   in the same OSyncFormatConverterPathVertice group (vertice_id) */
 			tree->search = g_list_insert_sorted(tree->search, neighbour, _compare_vertice_distance); 
 
 			/* Optimization:
@@ -656,7 +656,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		if (osync_error_is_set(error))
 			goto error_free_tree;
 		
-		/* Done, drop the reference to the vertice */
+		/* Done, drop the reference to the OSyncFormatConverterPathVertice */
 		_vertice_unref(current);
 	}
 			
@@ -675,7 +675,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		osync_converter_path_add_edge(path, edge);
 	}
 	
-	/* Drop the reference to the result vertice */
+	/* Drop the reference to the result OSyncFormatConverterPathVertice */
 	_vertice_unref(result);
 	
 	/* Free the tree */
@@ -1292,12 +1292,13 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyn
 	OSyncList *t;
 	guint size = osync_list_length(targets);
 	guint count = 0;
-        for (t = targets; t; t = t->next) {
+	
+	for (t = targets; t; t = t->next) {
 		count ++;
-                OSyncObjFormatSink *format_sink = t->data;
-                g_string_append(string, osync_objformat_sink_get_objformat(format_sink));
+		OSyncObjFormatSink *format_sink = t->data;
+		g_string_append(string, osync_objformat_sink_get_objformat(format_sink));
 		if (size > 1 && count < size) g_string_append(string, " - ");
-        }
+	}
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %s, %p)", __func__, env, sourcedata, targets, g_string_free(string, FALSE), preferred_format ? preferred_format:"NONE", error);
 	
