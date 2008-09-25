@@ -48,6 +48,8 @@ struct OSyncFormatEnv {
  */
 /*@{*/
 
+/*! @brief search tree for format converters
+ */
 typedef struct OSyncFormatConverterTree {
 	/* The converters that weren't reached yet */
 	GList *unused;
