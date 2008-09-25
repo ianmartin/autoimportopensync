@@ -15,13 +15,13 @@ date > $TMPDIR/data/foo2
 cat <<EOF
 <?xml version="1.0"?>
 <config version="1.0">
-  <Ressources>
-    <Ressource>
+  <Resources>
+    <Resource>
       <Enabled>1</Enabled>
       <ObjType>data</ObjType>
       <Path>$TMPDIR/data</Path>
-    </Ressource>
-  </Ressources>
+    </Resource>
+  </Resources>
 </config>
 EOF
 ) > $TMPCFG
