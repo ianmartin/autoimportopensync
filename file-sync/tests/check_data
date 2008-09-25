@@ -41,13 +41,13 @@ osyncplugin --plugin file-sync --pluginpath $PLUGINPATH --config $TMPCFG --confi
 cat <<EOF
 <?xml version="1.0"?>
 <config version="1.0">
-  <Ressources>
-    <Ressource>
+  <Resources>
+    <Resource>
       <Enabled>1</Enabled>
       <ObjType>data</ObjType>
       <Path>$TMPDIR/data_new</Path>
-    </Ressource>
-  </Ressources>
+    </Resource>
+  </Resources>
 </config>
 EOF
 ) > $TMPCFG
