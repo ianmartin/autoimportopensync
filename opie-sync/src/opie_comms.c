@@ -35,7 +35,6 @@
 #include <glib/gstdio.h>
 
 #include <curl/curl.h>
-#include <curl/types.h>
 #include <curl/easy.h>
 
 #include <opensync/opensync.h>
@@ -94,7 +93,9 @@ TempFile *create_temp_file(void) {
 	
 	TempFile *tmpfile = g_malloc(sizeof(TempFile));
 	char *template = g_strdup("/tmp/opie-sync.XXXXXX");
+	mode_t current_mode = umask(S_IRWXG | S_IRWXO);
 	tmpfile->fd = mkstemp(template);
+	umask(current_mode);
 	if(tmpfile->fd == -1) {
 		osync_trace( TRACE_EXIT_ERROR, "failed to create temporary file" );
 		g_free(template);
