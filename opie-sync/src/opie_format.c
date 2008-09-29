@@ -31,7 +31,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <opensync/opensync.h>
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
-#include <opensync/opensync-data.h>
 #include <opensync/opensync-merger.h>
 #include <opensync/opensync-xmlformat.h>
 
@@ -1097,10 +1096,10 @@ static osync_bool conv_xml_event_to_opie_xml_event(char *input, unsigned int inp
 			xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "created");
 		}
 		else if(!strcmp("DateStarted", fieldname)) {
-			xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "start");
+			start_time = xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "start");
 		}
 		else if(!strcmp("DateEnd", fieldname)) {
-			xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "end");
+			end_time = xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "end");
 		}
 		else if(!strcmp("Categories", fieldname)) {
 			xmlfield_categories_to_attr(in_xmlfield, on_event, "Categories");
