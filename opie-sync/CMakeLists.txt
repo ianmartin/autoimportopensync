@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 2.6)
 PROJECT( libopensync-plugin-opie C )
 
 SET( VERSION "0.38" )
