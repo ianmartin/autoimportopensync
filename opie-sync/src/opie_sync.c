@@ -597,9 +597,11 @@ static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 
 OpieSinkEnv *opie_sync_create_sink_env(OpiePluginEnv *env, OSyncPluginInfo *info, const char *objtype, const char *objformat, OPIE_OBJECT_TYPE opie_objtype, const char *remotefile, const char *listelement, const char *itemelement, OSyncError **error)
 {
-	OSyncObjTypeSink *sink = osync_objtype_sink_new(objtype, error);
-	if (!sink)
+	OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, objtype);
+	if (!sink) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Couldn't find Object Type \"%s\".", objtype);
 		return NULL;
+	}
 	
 	OpieSinkEnv *sink_env = osync_try_malloc0(sizeof(OpieSinkEnv), error);
 	if (!sink_env)
@@ -613,8 +615,6 @@ OpieSinkEnv *opie_sync_create_sink_env(OpiePluginEnv *env, OSyncPluginInfo *info
 	
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	sink_env->objformat = osync_format_env_find_objformat(formatenv, objformat);
-
-	osync_objtype_sink_add_objformat(sink, objformat);
 
 	/* Every sink can have different functions ... */
 	OSyncObjTypeSinkFunctions functions;
