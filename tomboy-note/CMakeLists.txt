@@ -19,7 +19,12 @@ INCLUDE( OpenSyncInternal )
 
 ADD_SUBDIRECTORY( src )
 IF ( CHECK_FOUND )
-    ADD_SUBDIRECTORY( tests )
+   # ADD_SUBDIRECTORY( tests )
 ENDIF( CHECK_FOUND)
+
+# add uninstall target
+CONFIGURE_FILE(	"${CMAKE_SOURCE_DIR}/cmake/modules/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
 
 OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )

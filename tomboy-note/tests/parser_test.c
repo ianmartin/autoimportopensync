@@ -1,17 +1,17 @@
 /*
  * parser_test - test parsing of tomboy notes
  * Copyright (C) 2008  Bjoern Ricks <bjoern.ricks@gmail.com>
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
@@ -27,6 +27,7 @@
 
 #include "../src/tomboy_note.h"
 #include "../src/tomboy_note_internal.h"
+#include "../src/tomboy_note_doc.h"
 
 xmlDocPtr good_doc;
 xmlDocPtr bad_doc;
@@ -73,44 +74,44 @@ START_TEST (tomboynote_test_validate)
 {
 
 	xmlNodePtr rootnode;
-	
+
 	//xmlDocDump(stdout, doc);
 	rootnode = xmlDocGetRootElement(good_doc);
 	//xmlFreeNode(rootnode); // <-- crash
 	//printf( "rootnode: type %d name %s %d\n", rootnode->type,rootnode->name, xmlStrEqual(rootnode->name, BAD_CAST "note"));
-	fail_unless( tomboynote_validate(good_doc) );
-	fail_if( tomboynote_validate(bad_doc) );
+	fail_unless( tomboynote_validate_doc(good_doc) );
+	fail_if( tomboynote_validate_doc(bad_doc) );
 
 }
 END_TEST
 
-START_TEST (tomboynote_test_parse_content) 
+START_TEST (tomboynote_test_parse_content)
 {
 	GString *str;
-	
+
 	str = g_string_new("");
 	tomboynote_parse_content(good_doc, str);
 	//printf("Good: len %d %s\n", str->len, str->str );
-	
+
 	g_string_free(str,TRUE);
 	str = g_string_new("");
 	tomboynote_parse_content_node(xmlDocGetRootElement(good_doc),str);
 	//printf("Bad: len %d %s\n", str->len, str->str );
 	fail_unless( str->len == 0 );
-	
-	
+
+
 }
 END_TEST
 
 START_TEST (tomboynote_test_parse_nodes) {
 	const char * node_text;
-	
+
 	node_text = tomboynote_parse_node(good_doc, "title");
 	fail_if( node_text == NULL );
 	fail_if( strcmp(node_text, "Title Test") );
 	node_text = tomboynote_parse_node(bad_doc, "title");
 	fail_if( node_text != NULL );
-	
+
 }
 END_TEST
 
@@ -128,7 +129,7 @@ START_TEST (tomboynote_test_converter) {
 	OSyncError *error;
 	//unsigned int size;
 	//char *cstr;
-	
+
 	fail_unless( conv_tomboynote_to_xmlformat(good_content, strlen(good_content), &output, &outpsize, &free, NULL, NULL) );
 	OSyncXMLFormat * xmlformat = (OSyncXMLFormat*)output;
 	//osync_xmlformat_assemble(xmlformat, &cstr, &size);
@@ -138,8 +139,8 @@ START_TEST (tomboynote_test_converter) {
 END_TEST
 
 START_TEST (tomboynote_test_detector) {
-	fail_unless( detect_tomboynote(good_content, strlen(good_content)) );
-	fail_if( detect_tomboynote(bad_content, strlen(bad_content)));
+	fail_unless( detect_tomboynotedoc(good_content, strlen(good_content)) );
+	fail_if( detect_tomboynotedoc(bad_content, strlen(bad_content)));
 }
 END_TEST
 
@@ -150,7 +151,7 @@ Suite *  tomboynote_suite() {
 	tcase_add_test (tc_parser, tomboynote_test_validate);
 	tcase_add_test (tc_parser, tomboynote_test_parse_content);
 	tcase_add_test (tc_parser, tomboynote_test_parse_nodes);
-	tcase_add_test (tc_parser, tomboynote_test_parse_tags);	
+	tcase_add_test (tc_parser, tomboynote_test_parse_tags);
 	tcase_add_test (tc_parser, tomboynote_test_converter);
 	tcase_add_test (tc_parser, tomboynote_test_detector);
 	suite_add_tcase (s, tc_parser);
@@ -166,5 +167,5 @@ int main() {
 	number_failed = srunner_ntests_failed (sr);
 	srunner_free (sr);
 
-	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE; 
+	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
