@@ -4,26 +4,26 @@
     <AdvancedOption>
       <DisplayName>Client Type</DisplayName>
       <Name>ClientType</Name>
+      <Type>string</Type>
       <ValEnum>opie</ValEnum>
       <ValEnum>qtopia2</ValEnum>
-      <Type>string</Type>
       <Value>opie</Value>
     </AdvancedOption>
     <AdvancedOption>
       <DisplayName>Connection Type</DisplayName>
       <Name>ConnType</Name>
+      <Type>string</Type>
       <ValEnum>ftp</ValEnum>
       <ValEnum>scp</ValEnum>
       <ValEnum>none</ValEnum>
-      <Type>string</Type>
       <Value>ftp</Value>
     </AdvancedOption>
     <AdvancedOption>
       <DisplayName>Notes Type</DisplayName>
       <Name>NotesType</Name>
+      <Type>string</Type>
       <ValEnum>basic</ValEnum>
       <ValEnum>opie-notes</ValEnum>
-      <Type>string</Type>
       <Value>basic</Value>
     </AdvancedOption>
     <AdvancedOption>
@@ -55,6 +55,4 @@
       <Port>4242</Port>
     </Network>
   </Connection>
-  <Resources>
-  </Resources>
 </config>
