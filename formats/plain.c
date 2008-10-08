@@ -57,11 +57,15 @@ static osync_bool copy_plain(const char *input, unsigned int inpsize, char **out
 
 static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
+	const char *body = NULL;
 	*free_input = TRUE;
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
 	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Description", error, NULL);
 	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(xmlfieldlist, 0);
-	const char *body = osync_xmlfield_get_key_value(xmlfield, "Content");
+	body = osync_xmlfield_get_key_value(xmlfield, "Content");
+	if (!body) {
+		body == "";
+	}
 	*output = g_strdup(body);
 	*outpsize = strlen(body);
 	return TRUE; 
