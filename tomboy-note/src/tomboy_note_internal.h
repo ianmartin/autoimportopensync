@@ -32,4 +32,8 @@ void tomboynote_parse_content(xmlDocPtr doc, GString * output);
 const char * tomboynote_parse_node(xmlDocPtr doc, const char * nodename);
 GList * tomboynote_parse_tags(xmlDocPtr doc);
 
+void tomboynote_validate_and_set_datetime(xmlNodePtr node);
+char * tomboynote_create_datetime_now();
+osync_bool tomboynote_validate_datetime(const char *datetime);
+
 #endif /*TOMBOY_NOTE_INTERNAL_H_*/

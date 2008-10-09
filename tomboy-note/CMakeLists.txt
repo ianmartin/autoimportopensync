@@ -19,7 +19,7 @@ INCLUDE( OpenSyncInternal )
 
 ADD_SUBDIRECTORY( src )
 IF ( CHECK_FOUND )
-   # ADD_SUBDIRECTORY( tests )
+   ADD_SUBDIRECTORY( tests )
 ENDIF( CHECK_FOUND)
 
 # add uninstall target

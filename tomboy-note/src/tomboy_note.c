@@ -22,6 +22,10 @@
 #include "tomboy_note_internal.h"
 
 #include <string.h>
+#include <time.h>
+
+#define DATE_TIME_FORMAT "%Y-%m-%dT%H:%M:%S.0000000+00:00"
+#define DATE_TIME_SIZE 34
 
 osync_bool tomboynote_validate(xmlDocPtr doc) {
 	//TODO: use xml schema validation
@@ -42,6 +46,90 @@ osync_bool tomboynote_validate(xmlDocPtr doc) {
 	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return FALSE;
+}
+
+char * tomboynote_create_datetime_now() {
+	time_t rawtime;
+	struct tm * timeinfo;
+	char *retval;
+	
+	retval = g_malloc0(DATE_TIME_SIZE);
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	strftime(retval,DATE_TIME_SIZE, DATE_TIME_FORMAT, timeinfo);
+
+	osync_trace(TRACE_INTERNAL, "created new date \"%s\"", __NULLSTR(retval));
+	return retval;
+}
+
+osync_bool tomboynote_validate_datetime(const char *datetime) {
+	// Format: "2008-05-21T13:42:11.9863920+02:00"
+	if(!datetime) {
+		return FALSE;
+	}
+	if (strlen(datetime) != DATE_TIME_SIZE-1) {
+		return FALSE;
+	}
+	if( datetime[4] != '-' || datetime[7] != '-' || datetime[10] != 'T' || datetime[13] != ':' || datetime[16] != ':' 
+		|| datetime[19] != '.' || datetime[27] != '+' || datetime[30] != ':') {
+		return FALSE;
+	}
+	if( !g_regex_match_simple("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{7}\\+[0-9]{2}:[0-9]{2}", datetime, 0, 0 ) ) {
+		return FALSE;
+	}
+	return TRUE;
+	
+}
+
+void tomboynote_validate_and_set_datetime(xmlNodePtr node) {
+	
+	osync_assert(node);
+	
+	GDate *date;
+	char *date_text;
+	xmlChar *org_date;
+	
+	date = g_date_new();
+	org_date = xmlNodeGetContent(node);
+	if ( node->children ) {
+		if ( xmlIsBlankNode(node->children) ) {
+			date_text = tomboynote_create_datetime_now();
+			xmlNodeSetContent(node, BAD_CAST date_text);
+		}
+		else {
+			date_text = (char *)org_date;
+			if (!date_text) {
+				date_text = tomboynote_create_datetime_now();
+				xmlNodeSetContent(node, BAD_CAST date_text);
+			} 
+			else {
+				if (tomboynote_validate_datetime(date_text)) {
+					return;
+				}
+				// try to convert datetime format
+				// only a temporary solution because time information is lost
+				g_date_set_parse(date, date_text);
+				if (!g_date_valid(date)) {
+					date_text = tomboynote_create_datetime_now();
+					xmlNodeSetContent(node, BAD_CAST date_text);
+				} 
+				else {
+					date_text = g_malloc0(DATE_TIME_SIZE);
+					g_date_strftime(date_text, DATE_TIME_SIZE, DATE_TIME_FORMAT, date);
+					xmlNodeSetContent(node, BAD_CAST date_text);
+				}
+			}
+		}
+	}
+	else {
+		date_text = tomboynote_create_datetime_now();
+		xmlNodeSetContent(node, BAD_CAST date_text);	
+	}
+	g_date_free(date);
+	
+	osync_trace(TRACE_INTERNAL, "validate date \"%s\" created \"%s\"", __NULLSTR((char *)org_date), __NULLSTR(date_text));
+
+	return;
 }
 
 GList * tomboynote_parse_tags(xmlDocPtr doc) {
@@ -285,8 +373,8 @@ osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char 
 	xmlNodePtr tmp_node;
 	xmlAttrPtr version;
 	xmlAttrPtr xml_preserve;
-
-	const char * content_text;
+	
+	const char *content_text;
 
 	doc = xmlNewDoc(BAD_CAST "1.0");
 	ns = xmlNewNs(NULL, BAD_CAST "http://beatniksoftware.com/tomboy", NULL);
@@ -312,8 +400,10 @@ osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char 
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+//	osync_trace(TRACE_SENSITIVE, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
+	//TODO: always free old content_text 
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
 		if ( !strcmp(osync_xmlfield_get_name(xmlfield),"Categories") ) {
@@ -339,13 +429,23 @@ osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char 
 			xmlNodeSetContent(title, BAD_CAST content_text);
 		}
 	}
+	//TODO: test if last_change < create_date
+	// create new date if date is empty
+	tomboynote_validate_and_set_datetime(last_change_date);
+	tomboynote_validate_and_set_datetime(create_date);
+	// Date format yyyy-MM-ddTHH:mm:ss.fffffffzzz e.g.: 2008-05-21T13:42:11.9863920+02:00
 	// add <last-change-date>
+	// From Tomboy Comment:
+	// "Indicates the last time note content data changed. 
+	// Does not include tag/notebook changes (see MetadataChangeDate)"
 	xmlAddChild(note, last_change_date);
 	// add <last-metadata-change-date>
-	// don't know the difference between last-change-date and last-metadata-change-date
-	// it seems that always both are changed
+	// From Tomboy Comment:
+	// "Indicates the last time non-content note data changed.
+	// This currently only applies to tags/notebooks."
+	// OSyncXMLFormat doesn't provide such an information therefore set it to <last-change-date>
 	tmp_node = xmlNewNode(ns, BAD_CAST "last-metadata-change-date" );
-	xmlNodeSetContent(tmp_node, xmlStrdup(last_change_date->content));
+	xmlNodeSetContent(tmp_node, xmlStrdup(last_change_date->children->content));
 	xmlAddChild(note, tmp_node);
 	// add <create-date>
 	xmlAddChild(note, create_date);
@@ -375,18 +475,21 @@ osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char 
 	}
 	// add <open-on-startup>
 	tmp_node = xmlNewNode(ns, BAD_CAST "open-on-startup" );
-	xmlNodeSetContent(tmp_node, BAD_CAST "FALSE");
+	xmlNodeSetContent(tmp_node, BAD_CAST "False");
 	xmlAddChild(note, tmp_node);
 
 	*free_input = TRUE;
 	xmlDocDumpFormatMemory(doc, (xmlChar **)output, (int *)outpsize, 1);
 	if (!*output) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create tomboy-note", __func__);
-		return FALSE;
+		goto error;
 	}
-
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create tomboy-note", __func__);
+	return FALSE;
+
 }
 
 osync_bool detect_tomboynote(const char *data, int size) {

@@ -27,7 +27,6 @@
 
 #include "../src/tomboy_note.h"
 #include "../src/tomboy_note_internal.h"
-#include "../src/tomboy_note_doc.h"
 
 xmlDocPtr good_doc;
 xmlDocPtr bad_doc;
@@ -79,8 +78,8 @@ START_TEST (tomboynote_test_validate)
 	rootnode = xmlDocGetRootElement(good_doc);
 	//xmlFreeNode(rootnode); // <-- crash
 	//printf( "rootnode: type %d name %s %d\n", rootnode->type,rootnode->name, xmlStrEqual(rootnode->name, BAD_CAST "note"));
-	fail_unless( tomboynote_validate_doc(good_doc) );
-	fail_if( tomboynote_validate_doc(bad_doc) );
+	fail_unless( tomboynote_validate(good_doc) );
+	fail_if( tomboynote_validate(bad_doc) );
 
 }
 END_TEST
@@ -139,8 +138,55 @@ START_TEST (tomboynote_test_converter) {
 END_TEST
 
 START_TEST (tomboynote_test_detector) {
-	fail_unless( detect_tomboynotedoc(good_content, strlen(good_content)) );
-	fail_if( detect_tomboynotedoc(bad_content, strlen(bad_content)));
+	fail_unless( detect_tomboynote(good_content, strlen(good_content)) );
+	fail_if( detect_tomboynote(bad_content, strlen(bad_content)));
+}
+END_TEST
+
+START_TEST (tomboynote_test_datetime) {
+	char *datetime            = "2005-04-05";
+	char *datetime_result     = "2005-04-05T00:00:00.0000000+00:00";
+	char *datetime_valid      = "2008-05-21T13:42:11.9863920+02:00";
+	char* datetime_invalid_1  = "123456789123456789123456789123456";
+	char* datetime_invalid_2  = "1234567891234567891234567891234567";
+	char* datetime_invalid_3  = "abcd-ef-ghTjk:lm:no.pqrstuv+wx:yz";
+	char* datetime_invalid_4  = "1234-ef-ghTjk:lm:no.pqrstuv+wx:yz";
+	char* datetime_invalid_5  = "1234-56-ghTjk:lm:no.pqrstuv+wx:yz";
+	char* datetime_invalid_6  = "1234-56-78Tjk:lm:no.pqrstuv+wx:yz";
+	char* datetime_invalid_7  = "1234-56-78T91:lm:no.pqrstuv+wx:yz";
+	char* datetime_invalid_8  = "1234-56-78T91:23:no.pqrstuv+wx:yz";
+	char* datetime_invalid_9  = "1234-56-78T91:23:45.pqrstuv+wx:yz";
+	char* datetime_invalid_10 = "1234-56-78T91:23:45.6789123+wx:yz";
+	char* datetime_invalid_11 = "1234-56-78T91:23:45.6789123+45:yz";
+	char* datetime_invalid_12 = "1234-56-78T91:23:45.6789123+45:6z";
+	char* datetime_invalid_13 = "12a3-56-78T91:23:45.6789123+45:6z";
+	char *empty = "";
+	char *now;
+	char *datetime_text;
+	char *output;
+	const char *node_data;
+	unsigned int size;
+	osync_bool free_input;
+	
+	fail_if(tomboynote_validate_datetime(NULL));
+	fail_if(tomboynote_validate_datetime(datetime));
+	fail_if(tomboynote_validate_datetime(empty));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_1));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_2));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_3));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_4));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_5));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_6));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_7));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_8));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_9));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_10));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_11));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_12));
+	fail_if(tomboynote_validate_datetime(datetime_invalid_13));
+	fail_unless(tomboynote_validate_datetime(datetime_valid));
+	fail_unless(tomboynote_validate_datetime(datetime_result));
+
 }
 END_TEST
 
@@ -154,6 +200,7 @@ Suite *  tomboynote_suite() {
 	tcase_add_test (tc_parser, tomboynote_test_parse_tags);
 	tcase_add_test (tc_parser, tomboynote_test_converter);
 	tcase_add_test (tc_parser, tomboynote_test_detector);
+	tcase_add_test (tc_parser, tomboynote_test_datetime);
 	suite_add_tcase (s, tc_parser);
 	return s;
 }
