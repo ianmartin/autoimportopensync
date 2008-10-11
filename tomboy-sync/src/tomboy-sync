@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config version="1.0">
+  <Resources>
+    <Resource>
+     <Enabled>1</Enabled>
+     <Formats>
+       <Format>
+         <Name>tomboy-note</Name>
+       </Format>
+     </Formats>
+     <ObjType>note</ObjType>
+     <!-- home dir of the user where you can find the .tomboy directory to sync -->
+     <Path></Path>
+    </Resource>
+  </Resources>
+</config>

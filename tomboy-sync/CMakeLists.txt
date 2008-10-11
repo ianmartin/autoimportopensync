@@ -1,0 +1,28 @@
+PROJECT( libopensync-plugin-tomboy-sync C )
+
+SET( VERSION "0.38" )
+
+SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )
+
+SET( OPENSYNC_MIN_VERSION "0.37" )
+
+CMAKE_MINIMUM_REQUIRED( VERSION 2.4.4 )
+
+FIND_PACKAGE( OpenSync REQUIRED )
+FIND_PACKAGE( GLIB2 REQUIRED )
+FIND_PACKAGE( LibXml2 REQUIRED )
+FIND_PACKAGE( LibUuid REQUIRED )
+
+INCLUDE( OpenSyncInternal )
+INCLUDE( Testing )
+
+# add uninstall target
+CONFIGURE_FILE(	"${CMAKE_SOURCE_DIR}/cmake/modules/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+
+ADD_SUBDIRECTORY( src )
+#ADD_SUBDIRECTORY( tests )
+
+OPENSYNC_PACKAGE( ${PROJECT_NAME} ${VERSION} )
+
