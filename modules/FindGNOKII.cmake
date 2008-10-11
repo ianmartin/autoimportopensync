@@ -2,7 +2,7 @@
 # Find GNOKII headers, libraries and the answer to all questions.
 #
 #  GNOKII_FOUND               True if GNOKII got found
-#  GNOKII_INCLUDE_DIR         Location of GNOKII headers 
+#  GNOKII_INCLUDE_DIRS        Location of GNOKII headers 
 #  GNOKII_LIBRARIES           List of libaries to use GNOKII
 #  GNOKII_DEFINITIONS         Definitions to compile GNOKII 
 #

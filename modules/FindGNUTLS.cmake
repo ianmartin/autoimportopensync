@@ -2,7 +2,7 @@
 # Find GNUTLS headers, libraries and the answer to all questions.
 #
 #  GNUTLS_FOUND               True if gnutls got found
-#  GNUTLS_INCLUDEDIR          Location of gnutls headers 
+#  GNUTLS_INCLUDE_DIRS        Location of gnutls headers 
 #  GNUTLS_LIBRARIES           List of libaries to use gnutls 
 #
 # Copyright (c) 2007 Bjoern Ricks <b.ricks@fh-osnabrueck.de>

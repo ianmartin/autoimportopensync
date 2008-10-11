@@ -2,8 +2,8 @@
 # Find libxml2 headers, libraries and the answer to all questions.
 #
 #  LIBXML2_FOUND               True if libxml2 got found
-#  LIBXML2_INCLUDE_DIRS         Location of libxml2 headers 
-#  LIBXML2_LIBRARIES           List of libaries to use libxml2
+#  LIBXML2_INCLUDE_DIRS        Location of libxml2 headers 
+#  LIBXML2_LIBRARIES           List of libraries to use libxml2
 #  LIBXML2_DEFINITIONS         Definitions to compile libxml2 
 #
 # Copyright (c) 2006, Alexander Neundorf, <neundorf@kde.org>
