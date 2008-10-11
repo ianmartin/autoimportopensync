@@ -64,7 +64,7 @@ static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, 
 	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(xmlfieldlist, 0);
 	body = osync_xmlfield_get_key_value(xmlfield, "Content");
 	if (!body) {
-		body == "";
+		body = "";
 	}
 	*output = g_strdup(body);
 	*outpsize = strlen(body);
