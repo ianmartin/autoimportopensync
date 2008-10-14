@@ -147,7 +147,10 @@ static osync_bool opie_sync_read_config(OpiePluginEnv *env, OSyncPluginInfo *inf
 			goto error;
 		}
 	}
-	
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -718,10 +721,18 @@ static osync_bool opie_sync_discover(void *data, OSyncPluginInfo *info, OSyncErr
 	
 	OpiePluginEnv *env = (OpiePluginEnv *)data;
 	
-	osync_objtype_sink_set_available(env->contact_env->sink, TRUE);
+	int i, numobjs = osync_plugin_info_num_objtypes(info);
+	for (i = 0; i < numobjs; i++) {
+		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(info, i);
+		g_assert(sink);
+
+		osync_objtype_sink_set_available(sink, TRUE);
+	}
+
+/*    osync_objtype_sink_set_available(env->contact_env->sink, TRUE);
 	osync_objtype_sink_set_available(env->todo_env->sink, TRUE);
 	osync_objtype_sink_set_available(env->event_env->sink, TRUE);
-	osync_objtype_sink_set_available(env->note_env->sink, TRUE);
+	osync_objtype_sink_set_available(env->note_env->sink, TRUE);*/
 	
 	OSyncVersion *version = osync_version_new(error);
 	osync_version_set_plugin(version, "opie-sync");
