@@ -22,8 +22,11 @@
 #include "syncml_callbacks.h"
 #include "syncml_devinf.h"
 #include "syncml_vformat.h"
+#include "syncml_ds_client.h"
+#include "syncml_ds_server.h"
 
 #include <opensync/plugin/opensync_sink.h>
+#include <libsyncml/data_sync_api/callbacks.h>
 
 GList *g_list_add(GList *databases, void *database)
 {
@@ -194,9 +197,6 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 	g_assert(env);
 
-	OSyncError *oserror = NULL;
-	SmlError *error = NULL;
-	
 	if ((env->state1 >= SML_DATA_SYNC_EVENT_DISCONNECT &&
 	     (!env->dsObject2 ||
 	      env->state2 >= SML_DATA_SYNC_EVENT_DISCONNECT ||
@@ -214,20 +214,12 @@ void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-	
-error:
-	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-	smlErrorDeref(&error);
-	if (env->disconnectCtx)
-		report_error_on_context(&(env->disconnectCtx), &oserror, TRUE);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 void finalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
-	SmlError *error = NULL;
 
 	/* glib stuff */
 	/* It is necessary to stop the glib dispatching or
@@ -271,14 +263,14 @@ void finalize(void *data)
 	/* Signal forgotten contexts */
 
 	if (env->connectCtx) {
-		OSyncError *error = NULL;
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
-		report_error_on_context(&(env->connectCtx), &error, TRUE);
+		OSyncError *oerror = NULL;
+		osync_error_set(&oerror, OSYNC_ERROR_GENERIC, "%s - detected forgotten connect context", __func__);
+		report_error_on_context(&(env->connectCtx), &oerror, TRUE);
 	}
 	if (env->disconnectCtx) {
-		OSyncError *error = NULL;
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s - detected forgotten disconnect context", __func__);
-		report_error_on_context(&(env->disconnectCtx), &error, TRUE);
+		OSyncError *oerror = NULL;
+		osync_error_set(&oerror, OSYNC_ERROR_GENERIC, "%s - detected forgotten disconnect context", __func__);
+		report_error_on_context(&(env->disconnectCtx), &oerror, TRUE);
 	}
 	osync_trace(TRACE_INTERNAL, "%s - contexts cleaned", __func__);
 
@@ -512,10 +504,10 @@ osync_bool parse_config(
 						SML_TRANSPORT_CONFIG_BLUETOOTH_CHANNEL,
 						channel, &error))
 				{
-					smlSafeCFree(&channel);
+					safe_cfree(&channel);
 					goto error;
 				}
-				smlSafeCFree(&channel);
+				safe_cfree(&channel);
 			}
 			break;
 		case OSYNC_PLUGIN_CONNECTION_USB:
@@ -534,10 +526,10 @@ osync_bool parse_config(
 						SML_TRANSPORT_CONFIG_PORT,
 						port, &error))
 				{
-					smlSafeCFree(&port);
+					safe_cfree(&port);
 					goto error;
 				}
-				smlSafeCFree(&port);
+				safe_cfree(&port);
 			}
 			break;
 		case OSYNC_PLUGIN_CONNECTION_SERIAL:
@@ -580,10 +572,10 @@ osync_bool parse_config(
 						SML_TRANSPORT_CONFIG_PORT,
 						port, &error))
 				{
-					smlSafeCFree(&port);
+					safe_cfree(&port);
 					goto error;
 				}
-				smlSafeCFree(&port);
+				safe_cfree(&port);
 			}
 			break;
 		case OSYNC_PLUGIN_CONNECTION_UNKNOWN:

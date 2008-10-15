@@ -15,4 +15,9 @@ void ds_client_batch_commit(
          OSyncContext **contexts,
          OSyncChange **changes);
 
+SmlBool ds_client_init_databases(
+	SmlPluginEnv *env,
+	OSyncPluginInfo *info,
+	OSyncError **oerror);
+
 #endif //_SYNCML_PLUGIN_DS_CLIENT_H

@@ -36,7 +36,7 @@ void _recv_event(
 		void *userdata,
 		SmlError *error)
 {
-	smlTrace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, dsObject, type, userdata, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, dsObject, type, userdata, error);
 	SmlError *locerror = NULL;
 	SmlPluginEnv *env = userdata;
 	GList *o = NULL;
@@ -231,15 +231,17 @@ SmlBool _recv_change(
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsObject, type, uid, data, size, source, userdata, error);
 	SmlPluginEnv *env = userdata;
+	OSyncError *oerror = NULL;
+	OSyncChange *change = NULL;
+
 	SmlDatabase *database = get_database_from_source(env, source, error);
 	if (!database)
 		goto error;
-	OSyncError *oerror = NULL;
 
 	g_assert(database->getChangesCtx);
 	g_assert(type);
 
-	OSyncChange *change = osync_change_new(&oerror);
+	change = osync_change_new(&oerror);
 	if (!change) {
 		smlErrorSet(error, SML_ERROR_GENERIC, "No change created: %s", osync_error_print(&oerror));
 		osync_error_unref(&oerror);
@@ -324,6 +326,7 @@ SmlBool _recv_change_status(
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %d, %s, %p)", __func__, dsObject, code, newuid, userdata);
 	struct commitContext *ctx = userdata;
+	SmlBool result = TRUE;
 	
 	if (code < 200 || 299 < code) {
 		OSyncError *error = NULL;
@@ -332,6 +335,7 @@ SmlBool _recv_change_status(
 			"Unable to commit change. Error %i",
 			code);
 		report_error_on_context(&(ctx->context), &error, TRUE);
+		result = FALSE;
 	} else {
 		if (newuid)
 			osync_change_set_uid(ctx->change, newuid);
@@ -343,7 +347,8 @@ SmlBool _recv_change_status(
 	ctx->database = NULL;
 	safe_free((gpointer *)&ctx);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s - %d", __func__, result);
+	return result;
 }
 
 SmlBool _recv_unwanted_change(

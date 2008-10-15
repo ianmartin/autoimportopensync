@@ -194,4 +194,6 @@ SmlDatabase *get_database_from_source(
 			const char *source,
 			SmlError **error);
 
+SmlChangeType _get_changetype(OSyncChange *change);
+
 #endif //_SYNCML_COMMON_H

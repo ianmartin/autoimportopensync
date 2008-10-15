@@ -1,6 +1,7 @@
 #include "syncml_ds_client.h"
 #include "syncml_callbacks.h"
 #include "syncml_devinf.h"
+#include <libsyncml/data_sync_api/callbacks.h>
 
 SmlBool ds_client_init_databases(SmlPluginEnv *env, OSyncPluginInfo *info, OSyncError **oerror)
 {
