@@ -12,9 +12,17 @@ FIND_PACKAGE( OpenSync REQUIRED )
 FIND_PACKAGE( GLIB2 REQUIRED )
 FIND_PACKAGE( LibXml2 REQUIRED )
 FIND_PACKAGE( LibUuid REQUIRED )
+FIND_PACKAGE( LibDbus )
+FIND_PACKAGE( LibDbusGlib )
 
 INCLUDE( OpenSyncInternal )
 INCLUDE( Testing )
+
+IF ( LIBDBUSGLIB_FOUND AND LIBDBUS_FOUND)
+	OPTION( ENABLE_DBUS "Enable DBus" ON )
+ENDIF ( LIBDBUSGLIB_FOUND AND LIBDBUS_FOUND )
+
+CONFIGURE_FILE( "config.h.cmake" "config.h" )
 
 # add uninstall target
 CONFIGURE_FILE(	"${CMAKE_SOURCE_DIR}/cmake/modules/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)

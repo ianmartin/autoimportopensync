@@ -36,9 +36,12 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-typedef struct OSyncTomboyEnv {
-	int placeholder;
-} OSyncTomboyEnv;
+#ifdef ENABLE_DBUS
+
+#include <dbus/dbus.h>
+#include <dbus/dbus-glib.h>
+
+#endif /* ENABLE_DBUS */
 
 typedef struct OSyncTomboyDir {
 	OSyncObjFormat *objformat;
@@ -47,5 +50,17 @@ typedef struct OSyncTomboyDir {
 	OSyncHashTable *hashtable;
 	OSyncObjTypeSink *sink;
 } OSyncTomboyDir;
+
+typedef struct OSyncTomboyEnv {
+#ifdef ENABLE_DBUS
+	DBusGConnection *connection;
+	DBusGProxy *proxy;
+#endif /* ENABLE_DBUS */
+	OSyncTomboyDir *dir;
+} OSyncTomboyEnv;
+
+char *osync_tomboysync_generate_hash(char *data, int size);
+char *osync_tomboysync_generate_uuid();
+osync_bool osync_tomboysync_validate_uuid(char *uuid);
 
 #endif //_TOMBOY_SYNC_H
