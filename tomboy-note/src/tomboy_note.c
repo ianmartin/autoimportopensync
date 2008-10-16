@@ -501,26 +501,25 @@ osync_bool detect_tomboynote(const char *data, int size) {
 	if (!data) {
 		return FALSE;
 	}
-	/* TODO change xml check
-	 * The g_pattern_match* functions match a string against a pattern containing '*' and '?' wildcards with similar semantics as the standard glob() function: '*' matches an arbitrary, possibly empty, string, '?' matches an arbitrary character.
-	 * Note that in contrast to glob(), the '/' character can be matched by the wildcards, there are no '[...]' character ranges and '*' and '?' can not be escaped to include them literally in a pattern.
-	 */
-	if (!g_pattern_match_simple("?*<*xml version=\"1.0\"*?>*", data)) {
+	/* not complete correct xml header validation */
+	if (!g_regex_match_simple("\\s*<?\\s*xml\\sversion\\s*=\\s*\"1.0\"\\s*.*?\\s*>.*", data, 0, 0)) {
 		osync_trace(TRACE_EXIT, "%s not xml data", __func__);
 		return FALSE;
 	}
 
 	ctxt = xmlNewParserCtxt();
 	if (ctxt == NULL) {
-		osync_trace(TRACE_EXIT, "%s", __func__);
+		osync_trace(TRACE_EXIT, "%s could not create context", __func__);
 		return FALSE;
 	}
 	doc = xmlCtxtReadMemory(ctxt,data,size,NULL,NULL,0);
 	if (doc == NULL) {
+		osync_trace(TRACE_EXIT, "%s could not read memory", __func__);
 		goto FREE_CONTEXT;
 	}
 
 	if ( !tomboynote_validate(doc) ) {
+		osync_trace(TRACE_EXIT, "%s could not validate xml.", __func__);
 		goto FREE_DOC;
 	}
 	xmlFreeDoc(doc);
@@ -532,7 +531,6 @@ FREE_DOC:
 	xmlFreeDoc(doc);
 FREE_CONTEXT:
 	xmlFreeParserCtxt(ctxt);
-	osync_trace(TRACE_EXIT, "%s", __func__);
 	return FALSE;
 }
 
