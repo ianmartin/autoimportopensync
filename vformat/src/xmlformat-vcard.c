@@ -968,7 +968,7 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 //	return;
 //}
 
-osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
@@ -1926,12 +1926,12 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	return TRUE;
 }
 
-osync_bool conv_xmlformat_to_vcard30(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_vcard30(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	return conv_xmlformat_to_vcard(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_CARD_30);
 }
 
-osync_bool conv_xmlformat_to_vcard21(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_vcard21(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	return conv_xmlformat_to_vcard(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_CARD_21);
 }

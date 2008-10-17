@@ -129,7 +129,7 @@ START_TEST (tomboynote_test_converter) {
 	//unsigned int size;
 	//char *cstr;
 
-	fail_unless( conv_tomboynote_to_xmlformat(good_content, strlen(good_content), &output, &outpsize, &free, NULL, NULL) );
+	fail_unless( conv_tomboynote_to_xmlformat(good_content, strlen(good_content), &output, &outpsize, &free, NULL, NULL, NULL) );
 	OSyncXMLFormat * xmlformat = (OSyncXMLFormat*)output;
 	//osync_xmlformat_assemble(xmlformat, &cstr, &size);
 	//printf("Output: %s\n", cstr);
@@ -138,8 +138,8 @@ START_TEST (tomboynote_test_converter) {
 END_TEST
 
 START_TEST (tomboynote_test_detector) {
-	fail_unless( detect_tomboynote(good_content, strlen(good_content)) );
-	fail_if( detect_tomboynote(bad_content, strlen(bad_content)));
+	fail_unless( detect_tomboynote(good_content, strlen(good_content), NULL) );
+	fail_if( detect_tomboynote(bad_content, strlen(bad_content), NULL));
 }
 END_TEST
 

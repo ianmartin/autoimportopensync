@@ -53,7 +53,7 @@ static OSyncConvCmpResult compare_vevent(const char *leftdata, unsigned int left
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static osync_bool detect_plain_as_vevent10(const char *data, int size)
+static osync_bool detect_plain_as_vevent10(const char *data, int size, void *userdata)
 {
 	osync_trace(TRACE_INTERNAL, "start: %s", __func__);
 
@@ -63,7 +63,7 @@ static osync_bool detect_plain_as_vevent10(const char *data, int size)
 	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VEVENT*", data);
 }
 
-static osync_bool detect_plain_as_vevent20(const char *data, int size)
+static osync_bool detect_plain_as_vevent20(const char *data, int size, void *userdata)
 {
 	osync_trace(TRACE_INTERNAL, "start: %s", __func__);
 

@@ -74,11 +74,7 @@ osync_bool tomboynote_validate_datetime(const char *datetime) {
 		|| datetime[19] != '.' || datetime[27] != '+' || datetime[30] != ':') {
 		return FALSE;
 	}
-	if( !g_regex_match_simple("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{7}\\+[0-9]{2}:[0-9]{2}", datetime, 0, 0 ) ) {
-		return FALSE;
-	}
-	return TRUE;
-	
+	return !g_regex_match_simple("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{7}\\+[0-9]{2}:[0-9]{2}", datetime, 0, 0 );
 }
 
 void tomboynote_validate_and_set_datetime(xmlNodePtr node) {
@@ -264,7 +260,7 @@ void tomboynote_parse_content(xmlDocPtr doc, GString * output) {
 }
 
 // converter functions
-osync_bool conv_tomboynote_to_xmlformat(char *data, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error) {
+osync_bool conv_tomboynote_to_xmlformat(char *data, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error) {
 	osync_trace(TRACE_ENTRY, "start:%s", __func__);
 
 	xmlDocPtr doc;
@@ -356,7 +352,7 @@ FREE_CONTEXT:
 	return FALSE;
 }
 
-osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 
@@ -492,7 +488,7 @@ error:
 
 }
 
-osync_bool detect_tomboynote(const char *data, int size) {
+osync_bool detect_tomboynote(const char *data, int size, void *userdata) {
 	osync_trace(TRACE_ENTRY, "%s (%p,%d)", __func__, data, size);
 
 	xmlDocPtr doc;

@@ -44,7 +44,7 @@ static OSyncConvCmpResult compare_vcard(const char *leftdata, unsigned int lefts
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static osync_bool detect_plain_as_vcard21(const char *data, int size)
+static osync_bool detect_plain_as_vcard21(const char *data, int size, void *userdata)
 {
 	if (!data)
 		return FALSE;
@@ -52,7 +52,7 @@ static osync_bool detect_plain_as_vcard21(const char *data, int size)
 	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:2.1*", data);
 }
 
-static osync_bool detect_plain_as_vcard30(const char *data, int size)
+static osync_bool detect_plain_as_vcard30(const char *data, int size, void *userdata)
 {
 	if (!data)
 		return FALSE;
