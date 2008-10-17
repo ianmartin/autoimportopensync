@@ -323,9 +323,9 @@ osync_bool osync_tomboysync_file_write(void *data, OSyncPluginInfo *info, OSyncC
 		case OSYNC_CHANGE_TYPE_MODIFIED:
 //			g_print("modified file %s\n", filename);
 			odata = osync_change_get_data(change);
-			g_assert(odata);
+			osync_assert(odata);
 			osync_data_get_data(odata, &buffer, &size);
-			g_assert(buffer);
+			osync_assert(buffer);
 			if (!osync_file_write(filename, buffer, size, 0 , &error)) {
 				goto error;
 			}

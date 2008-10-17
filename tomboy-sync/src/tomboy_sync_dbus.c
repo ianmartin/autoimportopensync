@@ -303,10 +303,9 @@ osync_bool osync_tomboysync_dbus_write(void *userdata, OSyncPluginInfo *info, OS
 			/* No break. Continue below */
 		case OSYNC_CHANGE_TYPE_MODIFIED:
 			odata = osync_change_get_data(change);
-			g_assert(odata);
+			osync_assert(odata);
 			osync_data_get_data(odata, &buffer, &size);
-			g_assert(buffer);
-			osync_trace(TRACE_INTERNAL, "try to set content of uri %s with size %d to \"%s\"", noteuri, size, buffer);
+			osync_assert(buffer);
 			if (!dbus_g_proxy_call(tomboyenv->proxy, "SetNoteCompleteXml", &gerror,	G_TYPE_STRING, noteuri, G_TYPE_STRING, buffer, G_TYPE_INVALID, G_TYPE_BOOLEAN, &returnval, G_TYPE_INVALID)) {
 				if (gerror->domain == DBUS_GERROR && gerror->code == DBUS_GERROR_REMOTE_EXCEPTION) {
 					osync_error_set(&error, OSYNC_ERROR_IO_ERROR, "Caught remote method dbus exception %s: %s",	dbus_g_error_get_name(gerror), gerror->message);
