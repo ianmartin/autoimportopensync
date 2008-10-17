@@ -144,7 +144,7 @@
    </Bluetooth>
   </Connection>
 
-    <!-- To be filed by UI or hand:
+  <!-- this is an example ressource section, so users have it in their default config -->
   <Resources>
     <Resource>
      <Enabled>1</Enabled>
@@ -158,5 +158,4 @@
     </Resource>
   </Resources>
 
-    -->
 </config>
