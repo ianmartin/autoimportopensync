@@ -60,7 +60,7 @@ OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjForma
 	osync_objformat_ref(targetformat);
 	
 	converter->convert_func = convert_func;
-	converter->initalize_func = NULL;
+	converter->initialize_func = NULL;
 	converter->finalize_func = NULL;
 	converter->type = type;
 	converter->ref_count = 1;
@@ -400,10 +400,10 @@ void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char 
 	path->config = g_strdup(config);
 }
 
-void osync_converter_set_initalize_func(OSyncFormatConverter *converter, OSyncFormatConverterInitalizeFunc initalize_func)
+void osync_converter_set_initialize_func(OSyncFormatConverter *converter, OSyncFormatConverterInitializeFunc initialize_func)
 {
 	osync_assert(converter);
-	converter->initalize_func = initalize_func;
+	converter->initialize_func = initialize_func;
 	
 }
 
@@ -413,12 +413,12 @@ void osync_converter_set_finalize_func(OSyncFormatConverter *converter, OSyncFor
 	converter->finalize_func = finalize_func;
 }
 
-void osync_converter_initalize(OSyncFormatConverter *converter, OSyncError **error) {
+void osync_converter_initialize(OSyncFormatConverter *converter, OSyncError **error) {
 
 	osync_assert(converter);
 
-	if (converter->initalize_func) {
-		converter->userdata = converter->initalize_func(error);
+	if (converter->initialize_func) {
+		converter->userdata = converter->initialize_func(error);
 	}
 }
 

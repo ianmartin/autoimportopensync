@@ -34,7 +34,7 @@ typedef enum {
 
 typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size, void *userdata);
 typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error);
-typedef void * (* OSyncFormatConverterInitalizeFunc) (OSyncError **error);
+typedef void * (* OSyncFormatConverterInitializeFunc) (OSyncError **error);
 typedef void (* OSyncFormatConverterFinalizeFunc) (void *userdata);
 
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
@@ -60,9 +60,9 @@ OSYNC_EXPORT OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConv
 OSYNC_EXPORT const char *osync_converter_path_get_config(OSyncFormatConverterPath *path);
 OSYNC_EXPORT void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config);
 
-OSYNC_EXPORT void osync_converter_set_initalize_func(OSyncFormatConverter *converter, OSyncFormatConverterInitalizeFunc initalize_func);
+OSYNC_EXPORT void osync_converter_set_initialize_func(OSyncFormatConverter *converter, OSyncFormatConverterInitializeFunc initialize_func);
 OSYNC_EXPORT void osync_converter_set_finalize_func(OSyncFormatConverter *converter, OSyncFormatConverterFinalizeFunc finalize_func);
-OSYNC_EXPORT void osync_converter_initalize(OSyncFormatConverter *converter, OSyncError **error);
+OSYNC_EXPORT void osync_converter_initialize(OSyncFormatConverter *converter, OSyncError **error);
 OSYNC_EXPORT void osync_converter_finalize(OSyncFormatConverter *converter);
 
 #endif //_OPENSYNC_CONVERTER_H_

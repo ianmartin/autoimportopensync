@@ -102,7 +102,7 @@ osync_converter_finalize
 osync_converter_get_sourceformat
 osync_converter_get_targetformat
 osync_converter_get_type
-osync_converter_initalize
+osync_converter_initialize
 osync_converter_invoke
 osync_converter_matches
 osync_converter_new
@@ -117,7 +117,7 @@ osync_converter_path_set_config
 osync_converter_path_unref
 osync_converter_ref
 osync_converter_set_finalize_func
-osync_converter_set_initalize_func
+osync_converter_set_initialize_func
 osync_converter_unref
 osync_custom_filter_invoke
 osync_custom_filter_new

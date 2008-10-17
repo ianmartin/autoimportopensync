@@ -135,9 +135,9 @@ error:
 	return FALSE;
 }
 
-/** @brief Initalize all converters
+/** @brief Initialize all converters
  * 
- * Calls the initalize function of all converters
+ * Calls the initialize function of all converters
  * 
  * @param env Pointer to a OSyncFormatEnv environment
  * @param error Pointer to a error struct to return an error
@@ -155,7 +155,7 @@ static void _osync_format_env_converter_initialize(OSyncFormatEnv *env, OSyncErr
 	for (i = 0; i < numconverters; i++ ) {
 		converter = osync_format_env_nth_converter(env, i);
 		osync_assert(converter);
-		osync_converter_initalize(converter, error);
+		osync_converter_initialize(converter, error);
 	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
