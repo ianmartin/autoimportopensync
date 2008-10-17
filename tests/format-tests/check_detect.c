@@ -1,11 +1,11 @@
 #include "support.h"
 
-static osync_bool detect(const char *data, int size)
+static osync_bool detect(const char *data, int size, void *userdata)
 {
 	return TRUE;
 }
 
-static osync_bool detect_false(const char *data, int size)
+static osync_bool detect_false(const char *data, int size, void *userdata)
 {
 	return FALSE;
 }

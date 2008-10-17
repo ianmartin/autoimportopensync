@@ -60,6 +60,8 @@ OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjForma
 	osync_objformat_ref(targetformat);
 	
 	converter->convert_func = convert_func;
+	converter->initalize_func = NULL;
+	converter->finalize_func = NULL;
 	converter->type = type;
 	converter->ref_count = 1;
 	
@@ -205,7 +207,7 @@ OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *detector, OSyncData
 	}
 	
 	osync_data_get_data(data, &buffer, &size);
-	if (!detector->detect_func || detector->detect_func(buffer, size)) {
+	if (!detector->detect_func || detector->detect_func(buffer, size, detector->userdata)) {
 		/* Successfully detected the data */
 		osync_trace(TRACE_EXIT, "%s: %p", __func__, detector->target_format);
 		return detector->target_format;
@@ -245,7 +247,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 			osync_assert(converter->convert_func);
 		
 			/* Invoke the converter */
-			if (!converter->convert_func(input_data, input_size, &output_data, &output_size, &free_input, config, error))
+			if (!converter->convert_func(input_data, input_size, &output_data, &output_size, &free_input, config, converter->userdata, error))
 				goto error;
 			
 			/* Good. We now have some new data. Now we have to see what to do with the old data */
@@ -396,6 +398,37 @@ void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char 
 		g_free(path->config);
 
 	path->config = g_strdup(config);
+}
+
+void osync_converter_set_initalize_func(OSyncFormatConverter *converter, OSyncFormatConverterInitalizeFunc initalize_func)
+{
+	osync_assert(converter);
+	converter->initalize_func = initalize_func;
+	
+}
+
+void osync_converter_set_finalize_func(OSyncFormatConverter *converter, OSyncFormatConverterFinalizeFunc finalize_func)
+{
+	osync_assert(converter);
+	converter->finalize_func = finalize_func;
+}
+
+void osync_converter_initalize(OSyncFormatConverter *converter, OSyncError **error) {
+
+	osync_assert(converter);
+
+	if (converter->initalize_func) {
+		converter->userdata = converter->initalize_func(error);
+	}
+}
+
+void osync_converter_finalize(OSyncFormatConverter *converter)
+{
+	osync_assert(converter);
+
+	if (converter->finalize_func) {
+		converter->finalize_func(converter->userdata);
+	}
 }
 
 /*@}*/

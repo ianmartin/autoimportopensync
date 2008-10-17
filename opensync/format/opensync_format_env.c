@@ -135,6 +135,55 @@ error:
 	return FALSE;
 }
 
+/** @brief Initalize all converters
+ * 
+ * Calls the initalize function of all converters
+ * 
+ * @param env Pointer to a OSyncFormatEnv environment
+ * @param error Pointer to a error struct to return an error
+ */
+static void _osync_format_env_converter_initialize(OSyncFormatEnv *env, OSyncError **error)
+{
+	osync_assert(env);
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
+	
+	OSyncFormatConverter *converter = NULL;
+	int i,numconverters;
+	numconverters = osync_format_env_num_converters(env);
+	
+	for (i = 0; i < numconverters; i++ ) {
+		converter = osync_format_env_nth_converter(env, i);
+		osync_assert(converter);
+		osync_converter_initalize(converter, error);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+/** @brief Finalize all converters
+ * 
+ * Calls the finalize function of all converters to free converter specific data
+ * 
+ * @param env Pointer to a OSyncFormatEnv environment
+ */
+static void _osync_format_env_converter_finalize(OSyncFormatEnv *env)
+{
+	osync_assert(env);
+	
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	
+	OSyncFormatConverter *converter = NULL;
+	int i,numconverters;
+	numconverters = osync_format_env_num_converters(env);
+	
+	for (i = 0; i < numconverters; i++ ) {
+		converter = osync_format_env_nth_converter(env, i);
+		osync_assert(converter);
+		osync_converter_finalize(converter);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 /** Compare the distance of two vertices
  *
  * First, try to minimize the losses. Then,
@@ -758,6 +807,8 @@ void osync_format_env_free(OSyncFormatEnv *env)
 		env->objformats = g_list_remove(env->objformats, env->objformats->data);
 	}
 	
+	_osync_format_env_converter_finalize(env);
+	
 	/* Free the converters */
 	while (env->converters) {
 		osync_converter_unref(env->converters->data);
@@ -807,6 +858,8 @@ osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, 
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	
+	_osync_format_env_converter_initialize(env, error);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;

@@ -115,7 +115,7 @@ START_TEST (conv_env_objformat_find_false)
 }
 END_TEST
 
-osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void* userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = g_strdup("test");
@@ -1225,7 +1225,7 @@ START_TEST (conv_find_multi_path_multi_target_with_preferred)
 }
 END_TEST
 
-static osync_bool convert_addtest(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool convert_addtest(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = g_strdup_printf("%stest", input);
@@ -1233,7 +1233,7 @@ static osync_bool convert_addtest(char *input, unsigned int inpsize, char **outp
 	return TRUE;
 }
 
-static osync_bool convert_remtest(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool convert_remtest(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = strdup(input);
@@ -1249,7 +1249,7 @@ static osync_bool convert_remtest(char *input, unsigned int inpsize, char **outp
 	}
 }
 
-static osync_bool convert_addtest2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool convert_addtest2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*output = g_strdup_printf("%stest2", input);
 	*outpsize = inpsize + 5;
@@ -1257,7 +1257,7 @@ static osync_bool convert_addtest2(char *input, unsigned int inpsize, char **out
 	return TRUE;
 }
 
-static osync_bool convert_remtest2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool convert_remtest2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = strdup(input);
@@ -1504,12 +1504,12 @@ START_TEST (conv_env_convert_desenc)
 }
 END_TEST
 
-static osync_bool detect_true(const char *data, int size)
+static osync_bool detect_true(const char *data, int size, void *userdata)
 {
 	return TRUE;
 }
 
-static osync_bool detect_false(const char *data, int size)
+static osync_bool detect_false(const char *data, int size, void *userdata)
 {
 	return FALSE;
 }
@@ -2137,7 +2137,7 @@ START_TEST (conv_env_detect_false)
 }
 END_TEST
 
-static osync_bool detect_plain_as_f2(const char *data, int size)
+static osync_bool detect_plain_as_f2(const char *data, int size, void *userdata)
 {
 	return TRUE;
 }
@@ -2233,14 +2233,14 @@ START_TEST (conv_env_decap_and_detect)
 }
 END_TEST
 
-static osync_bool detect_f2(const char *data, int size)
+static osync_bool detect_f2(const char *data, int size, void *userdata)
 {
 	if (!strcmp(data, "F2"))
 		return TRUE;
 	return FALSE;
 }
 
-static osync_bool convert_f1_to_f2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool convert_f1_to_f2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	fail_unless(!strcmp(input, "F1"), NULL);
 	
@@ -2250,7 +2250,7 @@ static osync_bool convert_f1_to_f2(char *input, unsigned int inpsize, char **out
 	return TRUE;
 }
 
-static osync_bool convert_f2_to_f1(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool convert_f2_to_f1(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	fail_unless(!strcmp(input, "F2"), NULL);
 	

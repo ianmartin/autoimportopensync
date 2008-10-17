@@ -55,7 +55,7 @@ static osync_bool copy_plain(const char *input, unsigned int inpsize, char **out
 	return TRUE;
 }
 
-static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	const char *body = NULL;
 	*free_input = TRUE;
@@ -71,7 +71,7 @@ static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, 
 	return TRUE; 
 }
 
-static osync_bool conv_memo_to_xmlformatnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool conv_memo_to_xmlformatnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	GString *str;

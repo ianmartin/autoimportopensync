@@ -116,7 +116,7 @@ START_TEST (conv_env_objformat_find_false)
 }
 END_TEST
 
-osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	return TRUE;
 }

@@ -56,7 +56,7 @@ static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsi
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Converting file to plain");
 	
@@ -73,7 +73,7 @@ static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **o
 	return TRUE;
 }
 
-static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Converting plain to file");
 	

@@ -26,7 +26,7 @@
 #include <opensync/opensync-xmlformat.h>
 #include <opensync/opensync-format.h>
 
-osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
         *free_input = TRUE;
         *output = g_strdup(input);
@@ -60,33 +60,33 @@ static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *dat
 	return TRUE;
 }
 
-static osync_bool detect_plain_as_xmlformat_contact(const char *data, int size)
+static osync_bool detect_plain_as_xmlformat_contact(const char *data, int size, void *userdata)
 {
 	return detect_plain_as_xmlformat("contact", data, size);
 }
 
-static osync_bool detect_plain_as_xmlformat_event(const char *data, int size)
+static osync_bool detect_plain_as_xmlformat_event(const char *data, int size, void *userdata)
 {
 	return detect_plain_as_xmlformat("event", data, size);
 }
 
-static osync_bool detect_plain_as_xmlformat_todo(const char *data, int size)
+static osync_bool detect_plain_as_xmlformat_todo(const char *data, int size, void *userdata)
 {
 	return detect_plain_as_xmlformat("todo", data, size);
 }
 
-static osync_bool detect_plain_as_xmlformat_note(const char *data, int size)
+static osync_bool detect_plain_as_xmlformat_note(const char *data, int size, void *userdata)
 {
 	return detect_plain_as_xmlformat("note", data, size);
 }
 
-static osync_bool from_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool from_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	return osync_xmlformat_assemble((OSyncXMLFormat *)input, output, outpsize);
 }
 
-static osync_bool to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	*free_input = TRUE;
 	OSyncXMLFormat *ret = osync_xmlformat_parse(input, inpsize, error);

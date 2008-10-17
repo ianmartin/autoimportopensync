@@ -3,7 +3,7 @@
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-format.h>
 
-osync_bool converter_conv(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool converter_conv(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	return TRUE;
 }
@@ -25,7 +25,7 @@ void destroy_testdata(char *input, unsigned int size)
 	g_free(data);
 }
 
-osync_bool conv_format1_to_format2_const(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_format1_to_format2_const(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_assert(!strcmp(input, "format1"));
 	osync_assert(inpsize == 8);
@@ -40,7 +40,7 @@ osync_bool conv_format1_to_format2_const(char *input, unsigned int inpsize, char
 	return TRUE;
 }
 
-osync_bool decap_format1_to_format2_const(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool decap_format1_to_format2_const(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	testdata *data = (testdata *)input;
 	*output = data->string1;
@@ -51,7 +51,7 @@ osync_bool decap_format1_to_format2_const(char *input, unsigned int inpsize, cha
 	return TRUE;
 }
 
-osync_bool encap_format1_to_format2_const(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool encap_format1_to_format2_const(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_assert(!strcmp(input, "format1"));
 	osync_assert(inpsize == 8);
@@ -66,7 +66,7 @@ osync_bool encap_format1_to_format2_const(char *input, unsigned int inpsize, cha
 	return TRUE;
 }
 
-osync_bool conv_format1_to_format2_dup(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_format1_to_format2_dup(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_assert(!strcmp(input, "format1"));
 	osync_assert(inpsize == 8);
@@ -79,7 +79,7 @@ osync_bool conv_format1_to_format2_dup(char *input, unsigned int inpsize, char *
 	return TRUE;
 }
 
-osync_bool decap_format1_to_format2_dup(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool decap_format1_to_format2_dup(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_assert(!strncmp(input, "SHELL", 5));
 	
@@ -91,7 +91,7 @@ osync_bool decap_format1_to_format2_dup(char *input, unsigned int inpsize, char 
 	return TRUE;
 }
 
-osync_bool encap_format1_to_format2_dup(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool encap_format1_to_format2_dup(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	osync_assert(!strcmp(input, "format1"));
 	osync_assert(inpsize == 8);
@@ -104,7 +104,7 @@ osync_bool encap_format1_to_format2_dup(char *input, unsigned int inpsize, char 
 	return TRUE;
 }
 
-osync_bool conv_detect(const char *data, int size)
+osync_bool conv_detect(const char *data, int size, void *userdata)
 {
 	if (!strcmp(data, "format2"))
 		return TRUE;

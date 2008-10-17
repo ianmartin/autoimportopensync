@@ -32,8 +32,10 @@ typedef enum {
 	OSYNC_CONVERTER_DETECTOR = 4
 } OSyncConverterType;
 
-typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size);
-typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size, void *userdata);
+typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error);
+typedef void * (* OSyncFormatConverterInitalizeFunc) (OSyncError **error);
+typedef void (* OSyncFormatConverterFinalizeFunc) (void *userdata);
 
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error);
@@ -57,5 +59,10 @@ OSYNC_EXPORT unsigned int osync_converter_path_num_edges(OSyncFormatConverterPat
 OSYNC_EXPORT OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConverterPath *path, unsigned int nth);
 OSYNC_EXPORT const char *osync_converter_path_get_config(OSyncFormatConverterPath *path);
 OSYNC_EXPORT void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config);
+
+OSYNC_EXPORT void osync_converter_set_initalize_func(OSyncFormatConverter *converter, OSyncFormatConverterInitalizeFunc initalize_func);
+OSYNC_EXPORT void osync_converter_set_finalize_func(OSyncFormatConverter *converter, OSyncFormatConverterFinalizeFunc finalize_func);
+OSYNC_EXPORT void osync_converter_initalize(OSyncFormatConverter *converter, OSyncError **error);
+OSYNC_EXPORT void osync_converter_finalize(OSyncFormatConverter *converter);
 
 #endif //_OPENSYNC_CONVERTER_H_
