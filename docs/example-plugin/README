@@ -13,17 +13,17 @@ LICENSE
 
 and fill in the required information. Then edit:
 
-configure.in
+CMakeLists.txt
 
-and add any checks etc that you need for you plugin
+and add any checks, dependencies (FIND_PACKAGE(...) statements), etc that you need for you plugin
 to function.
 
 Then go to src/ and edit:
 
-Makefile.am
+CMakeLists.txt
 
-there to suit your needs. Afterwards take a look at the example
-source files of the plugin
+there to suit your needs and include the necessary library paths. Afterwards take a look at the example
+source files of the sync plugin
 
 plugin.c
 plugin.h
@@ -34,14 +34,17 @@ etc to your device.
 Then edit the default config file which must be the same name
 as your plugin:
 
-plugin
+plugin-name
 
 if you need to write a format plugin take a look at
 
 format.c
 
-Before running ./configure the first time you need to run
-./autogen.sh once.
+Afterwards create a build directory in any location you like and run:
+
+cmake -DCMAKE_BUILD_PREFIX=/path/to/the/install/dir /path/to/example_plugin
+make
+make install
 
 If you need help, feel free to ask on the opensync mailing lists:
 http://sourceforge.net/projects/opensync and go to "Lists"

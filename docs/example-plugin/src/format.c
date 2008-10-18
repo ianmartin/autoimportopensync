@@ -1,8 +1,9 @@
 /*
- * Here you can specify a plugin if you like.
+ * Here you can specify a format plugin if you like.
  * You should use a format plugin, if the format conversion
  * is rather difficult or if other plugins might be able to reuse
- * your conversion
+ * your conversion. A format plugin can create new formats in get_format_info
+ * and provide converters between different formats in get_conversion_info
  * 
  */
 #include <opensync/opensync.h>
@@ -41,7 +42,7 @@ static OSyncConvCmpResult compare_format1(const char *leftdata, unsigned int lef
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static osync_bool conv_format1_to_format2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool conv_format1_to_format2(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	/*
 	 * This function can be used to convert your format to another format.
@@ -81,7 +82,7 @@ static osync_bool conv_format1_to_format2(char *input, unsigned int inpsize, cha
 	return TRUE;
 }
 
-static osync_bool conv_format2_to_format1(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+static osync_bool conv_format2_to_format1(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	/*
 	 * This function can be used to convert another format to your format.
@@ -130,59 +131,88 @@ static char *print_format1(const char *data, unsigned int size)
 
 osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
-        OSyncObjFormat *format = osync_objformat_new("<your format name>", "<some object type>", error);
-        if (!format)
-                return FALSE;
+	/* 
+	 * this function is called to register a new format 
+	 */
+	OSyncObjFormat *format = osync_objformat_new("<your format name>", "<some object type>", error);
+	if (!format)
+		return FALSE;
 
 	osync_objformat_set_compare_func(format, compare_format1);
-        osync_objformat_set_destroy_func(format, destroy_format1);
+	osync_objformat_set_destroy_func(format, destroy_format1);
 	osync_objformat_set_duplicate_func(format, duplicate_format1);
 	osync_objformat_set_print_func(format, print_format1);
 
 
-        osync_format_env_register_objformat(env, format);
-        osync_objformat_unref(format);
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
 
 	return TRUE;
+}
+
+void *initialize(OSyncError **error)
+{
+	/*
+	 * Here you can create converter specific data.
+	 * If you return the converter specific data, it is passed
+	 * to the conversion and detector function as void *userdata
+	 */
+	format_data *userdata = osync_try_malloc0(sizeof(format_data), error);
+	return (void*)userdata;
+}
+
+void finalize(void *userdata)
+{
+	/*
+	 * Here you can free all your converter specific data.
+	 */
+	format_data *formatdata =(format_data*)userdata;
+	g_free(formatdata->data);
+	g_free(formatdata);
 }
 
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
 	/*
 	 * Here you have to give opensync some information about your format
-	 * This function will be called directly after the plugin has been loaded.
-	 * 
+	 * This function will be called directly after the plugin has been loaded
+	 * to get converters that convert between different formats
 	 */
 	
-        OSyncObjFormat *format1 = osync_format_env_find_objformat(env, "<your format name>");
-        if (!format1) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find <your format name> format");
-                return FALSE;
-        }
+	OSyncObjFormat *format1 = osync_format_env_find_objformat(env, "<your format name>");
+	if (!format1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find <your format name> format");
+		return FALSE;
+	}
 
-        OSyncObjFormat *format2 = osync_format_env_find_objformat(env, "xmlformat-contact");
-        if (!format2) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xmlformat-contact format");
-                return FALSE;
-        }
+	OSyncObjFormat *format2 = osync_format_env_find_objformat(env, "xmlformat-contact");
+	if (!format2) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xmlformat-contact format");
+		return FALSE;
+	}
 
-        OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_CONV, format1, format2, conv_format1_to_format2, error);
-        if (!conv)
-                return FALSE;
-
-        osync_format_env_register_converter(env, conv);
-        osync_converter_unref(conv);
-
-        conv = osync_converter_new(OSYNC_CONVERTER_CONV, format2, format1, conv_format2_to_format1, error);
-        if (!conv)
-                return FALSE;
-
-        osync_format_env_register_converter(env, conv);
-        osync_converter_unref(conv);
-        return TRUE;
+	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_CONV, format1, format2, conv_format1_to_format2, error);
+	if (!conv)
+		return FALSE;
+	/* set init and finalize functions */
+	osync_converter_set_initialize_func(conv, initialize);
+	osync_converter_set_finalize_func(conv, finalize);
+	/* register converter */
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, format2, format1, conv_format2_to_format1, error);
+	if (!conv)
+		return FALSE;
+	/* e.g. this converter doesn't need init and finalize functions therefore don't set them */
+	/* register converter */
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	return TRUE;
 }
 
 int get_version(void)
 {
+	/* always return 1 */
 	return 1;
 }
