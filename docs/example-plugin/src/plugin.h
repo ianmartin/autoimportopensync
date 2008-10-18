@@ -7,7 +7,6 @@ typedef struct plugin_environment {
 
 typedef struct sink_environment {
 	OSyncObjTypeSink *sink;
-	OSyncObjFormat *objformat;
 	//If you need a hashtable:
 	OSyncHashTable *hashtable;
 	//More stuff you need goes here
