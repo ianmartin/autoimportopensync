@@ -97,11 +97,11 @@ osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, 
  	fkt_b_plugenv_error fct_info = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
-	/* Load the get_info symbol */
-	fct_info = (fkt_b_plugenv_error) osync_module_get_function(module, "get_sync_info", NULL);
+	/* Load the get_sync_info symbol */
+	fct_info = (fkt_b_plugenv_error) osync_module_get_function(module, "get_sync_info", error);
 	if (!fct_info) {
-		osync_trace(TRACE_EXIT, "%s: Not get_sync_info function", __func__);
-		return TRUE;
+		osync_trace(TRACE_EXIT_ERROR, "%s: Not get_sync_info function", __func__);
+		return FALSE;
 	}
 	
 	/* Call the get_info function */
@@ -125,7 +125,7 @@ osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env
 	fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_format_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
-		return TRUE;
+		return FALSE;
 	}
 	
 	/* Call the get_info function */
@@ -149,7 +149,7 @@ osync_bool osync_module_get_conversion_info(OSyncModule *module, OSyncFormatEnv 
 	fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_conversion_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
-		return TRUE;
+		return FALSE;
 	}
 	
 	/* Call the get_info function */
@@ -194,7 +194,8 @@ osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
 	
 	version = osync_module_get_version(module);
 	if (!version) {
-		osync_trace(TRACE_EXIT, "%s: No version", __func__);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not load plugin \"%s\". Not a opensync library?", __NULLSTR(module->path));
+		osync_trace(TRACE_EXIT_ERROR, "%s: No version", __func__);
 		return FALSE;
 	}
 	

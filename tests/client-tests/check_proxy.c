@@ -87,6 +87,8 @@ static void disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncEr
 START_TEST (proxy_init)
 {
 	char *testbed = setup_testbed(NULL);
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
@@ -102,7 +104,7 @@ START_TEST (proxy_init)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockformat1", NULL);
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), formatdir, plugindir, "mock-sync", "test", testbed, config, &error), NULL);
 	osync_plugin_config_unref(config);
 
 	fail_unless(error == NULL, NULL);
@@ -119,6 +121,9 @@ START_TEST (proxy_init)
 	
 	osync_client_proxy_unref(proxy);
 	
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	osync_thread_stop(thread);
 	osync_thread_free(thread);
 	
@@ -129,6 +134,8 @@ END_TEST
 START_TEST (proxy_discover)
 {
 	char *testbed = setup_testbed(NULL);
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
@@ -144,7 +151,7 @@ START_TEST (proxy_discover)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockformat1", NULL);
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), formatdir, plugindir, "mock-sync", "test", testbed, config, &error), NULL);
 	osync_plugin_config_unref(config);
 
 	fail_unless(error == NULL, NULL);
@@ -178,6 +185,9 @@ START_TEST (proxy_discover)
 	
 	osync_client_proxy_unref(proxy);
 	
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	osync_thread_stop(thread);
 	osync_thread_free(thread);
 	
@@ -188,7 +198,9 @@ END_TEST
 START_TEST (proxy_connect)
 {
 	char *testbed = setup_testbed("sync");
-	
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
 	fail_unless(thread != NULL, NULL);
@@ -203,7 +215,7 @@ START_TEST (proxy_connect)
 	fail_unless(error == NULL, NULL);
 	
 	OSyncPluginConfig *config = simple_plugin_config(NULL, "data1", "mockobjtype1", "mockformat1", NULL);
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), formatdir, plugindir, "mock-sync", "test", testbed, config, &error), NULL);
 	osync_plugin_config_unref(config);
 	fail_unless(error == NULL, NULL);
 	
@@ -228,6 +240,9 @@ START_TEST (proxy_connect)
 	fail_unless(error == NULL, NULL);
 	
 	osync_client_proxy_unref(proxy);
+	
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	osync_thread_stop(thread);
 	osync_thread_free(thread);

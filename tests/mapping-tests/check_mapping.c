@@ -91,6 +91,7 @@ END_TEST
 START_TEST (mapping_compare)
 {
 	char *testbed = setup_testbed(NULL);
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	
@@ -98,7 +99,7 @@ START_TEST (mapping_compare)
 	fail_unless(formatenv != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_format_env_load_plugins(formatenv, testbed, &error), NULL);
+	fail_unless(osync_format_env_load_plugins(formatenv, formatdir, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
 	OSyncObjFormat *format = osync_format_env_find_objformat(formatenv, "mockformat1");
@@ -123,6 +124,8 @@ START_TEST (mapping_compare)
 	//osync_mapping_entry_update(entry, change);
 	
 	osync_format_env_free(formatenv);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }

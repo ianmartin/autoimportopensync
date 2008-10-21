@@ -82,7 +82,6 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 		
 		if (!osync_module_load(module, filename, error)) {
 			osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename, osync_error_print(error));
-			osync_error_unref(error);
 			osync_module_free(module);
 			g_free(filename);
 			continue;
@@ -91,18 +90,18 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 		if (!osync_module_check(module, error)) {
 			if (osync_error_is_set(error)) {
 				osync_trace(TRACE_INTERNAL, "Module check error for %s: %s", filename, osync_error_print(error));
-				osync_error_unref(error);
 			}
 			osync_module_free(module);
 			g_free(filename);
 			continue;
 		}
 	
-		if (!osync_module_get_format_info(module, env, error)) {
+		if (!osync_module_get_format_info(module, env, error) && !osync_module_get_function(module, "get_conversion_info", NULL)) {
 			if (osync_error_is_set(error)) {
-				osync_trace(TRACE_INTERNAL, "Module get format error for %s: %s", filename, osync_error_print(error));
-				osync_error_unref(error);
+				osync_trace(TRACE_ERROR, "Module load format plugin error for %s: %s", filename, osync_error_print(error));
 			}
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to load format plugin %s. Neither a converter nor a format could be initialized.", __NULLSTR(filename));
+			osync_trace(TRACE_ERROR, "%s", osync_error_print(error));
 			osync_module_free(module);
 			g_free(filename);
 			continue;

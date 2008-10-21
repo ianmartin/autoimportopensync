@@ -88,6 +88,8 @@ END_TEST
 START_TEST (dual_sync_engine_lock)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 	
 	OSyncGroup *group = osync_group_new(NULL);
 	osync_group_set_schemadir(group, testbed);
@@ -102,16 +104,16 @@ START_TEST (dual_sync_engine_lock)
 	fail_unless(error == NULL, osync_error_print(&error));
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	OSyncEngine *engine2 = osync_engine_new(group2, &error);
 	fail_unless(error == NULL, osync_error_print(&error));
 	osync_engine_set_enginestatus_callback(engine2, engine_status, NULL);
 
-	osync_engine_set_plugindir(engine2, testbed);
-	osync_engine_set_formatdir(engine2, testbed);
+	osync_engine_set_plugindir(engine2, plugindir);
+	osync_engine_set_formatdir(engine2, formatdir);
 	osync_engine_set_schemadir(engine2, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), osync_error_print(&error));
@@ -142,6 +144,10 @@ START_TEST (dual_sync_engine_lock)
 	
 	osync_group_unref(group);
 	osync_group_unref(group2);
+	
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -149,6 +155,8 @@ END_TEST
 START_TEST (dual_sync_engine_unclean)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 	
 	OSyncGroup *group = osync_group_new(NULL);
 	osync_group_set_schemadir(group, testbed);
@@ -159,8 +167,8 @@ START_TEST (dual_sync_engine_unclean)
 	fail_unless(error == NULL, osync_error_print(&error));
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
 	
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -203,8 +211,8 @@ START_TEST (dual_sync_engine_unclean)
 	engine = osync_engine_new(group, &error);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 	
 	num_engine_prev_unclean = 0;
@@ -229,8 +237,8 @@ START_TEST (dual_sync_engine_unclean)
 	engine = osync_engine_new(group, &error);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
 	
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 	
 	for (o = engine->object_engines; o; o = o->next) {
@@ -256,6 +264,9 @@ START_TEST (dual_sync_engine_unclean)
 	fail_unless(!osync_testing_diff("data1", "data3"));
 
 	osync_group_unref(group);
+	
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }

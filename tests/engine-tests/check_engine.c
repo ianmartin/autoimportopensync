@@ -67,6 +67,8 @@ START_TEST (engine_init)
 {
 	char *path = NULL;
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -100,8 +102,8 @@ START_TEST (engine_init)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -116,6 +118,9 @@ START_TEST (engine_init)
 	osync_member_unref(member2);
 
 	osync_group_unref(group);
+	
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -315,6 +320,7 @@ static void _engine_instrument_pluginenv(OSyncEngine *engine, OSyncDebugGroup *d
 START_TEST (engine_sync)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group(testbed);
@@ -324,7 +330,7 @@ START_TEST (engine_sync)
 
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	_engine_instrument_pluginenv(engine, debug);
 	
@@ -340,6 +346,8 @@ START_TEST (engine_sync)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }
@@ -622,6 +630,7 @@ static OSyncDebugGroup *_create_group2(char *testbed)
 START_TEST (engine_sync_multi_obj)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group2(testbed);
@@ -629,7 +638,7 @@ START_TEST (engine_sync_multi_obj)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
@@ -647,7 +656,10 @@ START_TEST (engine_sync_multi_obj)
 	
 	osync_engine_unref(engine);
 	
+	g_free(formatdir);
+	
 	destroy_testbed(testbed);
+
 }
 END_TEST
 
@@ -1015,6 +1027,7 @@ static OSyncDebugGroup *_create_group3(char *testbed)
 START_TEST (engine_sync_out_of_order)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group3(testbed);
@@ -1022,7 +1035,7 @@ START_TEST (engine_sync_out_of_order)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 	
 	_engine_instrument_pluginenv(engine, debug);
@@ -1039,6 +1052,8 @@ START_TEST (engine_sync_out_of_order)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }
@@ -1240,6 +1255,7 @@ static OSyncDebugGroup *_create_group4(char *testbed)
 START_TEST (engine_sync_reuse)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group4(testbed);
@@ -1247,7 +1263,7 @@ START_TEST (engine_sync_reuse)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
@@ -1271,6 +1287,8 @@ START_TEST (engine_sync_reuse)
 	
 	osync_engine_unref(engine);
 	
+	g_free(formatdir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -1281,6 +1299,7 @@ START_TEST (engine_sync_stress)
 	int i = 0;
 	
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group4(testbed);
@@ -1288,7 +1307,7 @@ START_TEST (engine_sync_stress)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 	
 	_engine_instrument_pluginenv(engine, debug);
@@ -1307,6 +1326,8 @@ START_TEST (engine_sync_stress)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }
@@ -1511,6 +1532,7 @@ static OSyncDebugGroup *_create_group5(char *testbed)
 START_TEST (engine_sync_read_write)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group5(testbed);
@@ -1518,7 +1540,7 @@ START_TEST (engine_sync_read_write)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
@@ -1535,6 +1557,8 @@ START_TEST (engine_sync_read_write)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }
@@ -1708,6 +1732,7 @@ static OSyncDebugGroup *_create_group6(char *testbed)
 START_TEST (engine_sync_read_write_stress)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group6(testbed);
@@ -1715,7 +1740,7 @@ START_TEST (engine_sync_read_write_stress)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 	
 	_engine_instrument_pluginenv(engine, debug);
@@ -1732,6 +1757,8 @@ START_TEST (engine_sync_read_write_stress)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }
@@ -1906,6 +1933,7 @@ static OSyncDebugGroup *_create_group7(char *testbed)
 START_TEST (engine_sync_read_write_stress2)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group7(testbed);
@@ -1913,7 +1941,7 @@ START_TEST (engine_sync_read_write_stress2)
 	OSyncEngine *engine = osync_engine_new(debug->group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	_engine_instrument_pluginenv(engine, debug);
@@ -1930,6 +1958,8 @@ START_TEST (engine_sync_read_write_stress2)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+	
+	g_free(formatdir);
 	
 	destroy_testbed(testbed);
 }

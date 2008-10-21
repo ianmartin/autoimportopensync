@@ -27,7 +27,7 @@ START_TEST (module_load)
 	fail_unless(error == NULL, NULL);
 	
 	char *curdir = g_get_current_dir();
-	char *path = g_strdup_printf("%s/mock-format.%s", curdir, G_MODULE_SUFFIX);
+	char *path = g_strdup_printf("%s/formats/mock-format.%s", curdir, G_MODULE_SUFFIX);
 	fail_unless(osync_module_load(module, path, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	g_free(path);
@@ -74,7 +74,7 @@ START_TEST (module_function)
 	fail_unless(error == NULL, NULL);
 	
 	char *curdir = g_get_current_dir();
-	char *path = g_strdup_printf("%s/mock-format.%s", curdir, G_MODULE_SUFFIX);
+	char *path = g_strdup_printf("%s/formats/mock-format.%s", curdir, G_MODULE_SUFFIX);
 	fail_unless(osync_module_load(module, path, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	g_free(path);
@@ -102,7 +102,7 @@ START_TEST (module_function_false)
 	fail_unless(error == NULL, NULL);
 	
 	char *curdir = g_get_current_dir();
-	char *path = g_strdup_printf("%s/mock-format.%s", curdir, G_MODULE_SUFFIX);
+	char *path = g_strdup_printf("%s/formats/mock-format.%s", curdir, G_MODULE_SUFFIX);
 	fail_unless(osync_module_load(module, path, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	g_free(path);
@@ -131,7 +131,7 @@ START_TEST (module_version)
 	fail_unless(error == NULL, NULL);
 	
 	char *curdir = g_get_current_dir();
-	char *path = g_strdup_printf("%s/mock-format.%s", curdir, G_MODULE_SUFFIX);
+	char *path = g_strdup_printf("%s/formats/mock-format.%s", curdir, G_MODULE_SUFFIX);
 	fail_unless(osync_module_load(module, path, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	g_free(path);
@@ -158,7 +158,7 @@ START_TEST (module_check)
 	fail_unless(error == NULL, NULL);
 	
 	char *curdir = g_get_current_dir();
-	char *path = g_strdup_printf("%s/mock-format.%s", curdir, G_MODULE_SUFFIX);
+	char *path = g_strdup_printf("%s/formats/mock-format.%s", curdir, G_MODULE_SUFFIX);
 	fail_unless(osync_module_load(module, path, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	g_free(path);

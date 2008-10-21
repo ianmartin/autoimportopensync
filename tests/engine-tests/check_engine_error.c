@@ -598,6 +598,8 @@ static void _engine_instrument_pluginenv(OSyncEngine *engine, OSyncDebugGroup *d
 START_TEST (single_init_error)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group(testbed);
@@ -607,8 +609,8 @@ START_TEST (single_init_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	_engine_instrument_pluginenv(engine, debug);
 	
@@ -624,6 +626,9 @@ START_TEST (single_init_error)
 	
 	osync_engine_unref(engine);
 	
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -631,6 +636,8 @@ END_TEST
 START_TEST (double_init_error)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group2(testbed);
@@ -640,8 +647,8 @@ START_TEST (double_init_error)
 	fail_unless(error == NULL, NULL);
 	
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -657,6 +664,9 @@ START_TEST (double_init_error)
 	
 	osync_engine_unref(engine);
 	
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -664,6 +674,8 @@ END_TEST
 START_TEST (no_config_error)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group3(testbed);
@@ -673,8 +685,8 @@ START_TEST (no_config_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	_engine_instrument_pluginenv(engine, debug);
 	
@@ -689,6 +701,9 @@ START_TEST (no_config_error)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -697,6 +712,8 @@ END_TEST
 START_TEST (no_objtype_error)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group4(testbed);
@@ -706,8 +723,8 @@ START_TEST (no_objtype_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -722,6 +739,9 @@ START_TEST (no_objtype_error)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -730,6 +750,8 @@ END_TEST
 START_TEST (dual_connect_error)
 {
 	char *testbed = setup_testbed("sync_setup");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	OSyncError *error = NULL;
 	OSyncDebugGroup *debug = _create_group5(testbed);
@@ -739,8 +761,8 @@ START_TEST (dual_connect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	
 	_engine_instrument_pluginenv(engine, debug);
 
@@ -806,6 +828,9 @@ START_TEST (dual_connect_error)
 	_free_group(debug);
 	
 	osync_engine_unref(engine);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -814,6 +839,9 @@ END_TEST
 START_TEST (one_of_two_connect_error)
 {
 	char *testbed = setup_testbed("sync");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
+	
 	system("cp testdata data1/testdata");
 	
 	setenv("CONNECT_ERROR", "1", TRUE);
@@ -829,8 +857,8 @@ START_TEST (one_of_two_connect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -856,6 +884,9 @@ START_TEST (one_of_two_connect_error)
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 
+	g_free(formatdir);
+	g_free(plugindir);
+
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -863,6 +894,8 @@ END_TEST
 START_TEST (two_of_three_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("CONNECT_ERROR", "5", TRUE);
 	
@@ -877,8 +910,8 @@ START_TEST (two_of_three_connect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -904,6 +937,9 @@ START_TEST (two_of_three_connect_error)
 	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -912,6 +948,8 @@ END_TEST
 START_TEST (two_of_three_connect_error2)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("CONNECT_ERROR", "6", TRUE);
 	
@@ -926,8 +964,8 @@ START_TEST (two_of_three_connect_error2)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -952,6 +990,9 @@ START_TEST (two_of_three_connect_error2)
 	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -960,6 +1001,8 @@ END_TEST
 START_TEST (three_of_three_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("CONNECT_ERROR", "7", TRUE);
 	
@@ -975,8 +1018,8 @@ START_TEST (three_of_three_connect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1000,6 +1043,9 @@ START_TEST (three_of_three_connect_error)
 	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1008,7 +1054,9 @@ END_TEST
 START_TEST (one_of_three_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
-
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
+	
 	setenv("CONNECT_ERROR", "2", TRUE);
 	
 	OSyncError *error = NULL;
@@ -1022,8 +1070,8 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1048,6 +1096,9 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(num_client_disconnected == 2, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1056,7 +1107,9 @@ END_TEST
 START_TEST (no_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
-
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
+	
 	setenv("CONNECT_ERROR", "0", TRUE);
 	
 	OSyncError *error = NULL;
@@ -1070,8 +1123,8 @@ START_TEST (no_connect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1098,6 +1151,9 @@ START_TEST (no_connect_error)
 
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1106,6 +1162,9 @@ END_TEST
 START_TEST (single_connect_timeout)
 {
 	char *testbed = setup_testbed("sync");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
+	
 	system("cp testdata data1/testdata");
 	
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
@@ -1121,8 +1180,8 @@ START_TEST (single_connect_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1150,6 +1209,9 @@ START_TEST (single_connect_timeout)
 	fail_unless(num_engine_successful == 0, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1158,6 +1220,9 @@ END_TEST
 START_TEST (dual_connect_timeout)
 {
 	char *testbed = setup_testbed("sync");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
+	
 	system("cp testdata data1/testdata");
 	
 	setenv("CONNECT_TIMEOUT", "3", TRUE);
@@ -1173,8 +1238,8 @@ START_TEST (dual_connect_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1202,6 +1267,9 @@ START_TEST (dual_connect_timeout)
 	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1210,6 +1278,8 @@ END_TEST
 START_TEST (one_of_three_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
@@ -1224,8 +1294,8 @@ START_TEST (one_of_three_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1253,6 +1323,9 @@ START_TEST (one_of_three_timeout)
 	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1261,6 +1334,8 @@ END_TEST
 START_TEST (timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	setenv("CONNECT_ERROR", "4", TRUE);
@@ -1276,8 +1351,8 @@ START_TEST (timeout_and_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1305,6 +1380,9 @@ START_TEST (timeout_and_error)
 	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1313,6 +1391,8 @@ END_TEST
 START_TEST (single_get_changes_error)
 {
 	char *testbed = setup_testbed("sync_easy_conflict");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("GET_CHANGES_ERROR", "2", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
@@ -1328,8 +1408,8 @@ START_TEST (single_get_changes_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1358,6 +1438,9 @@ START_TEST (single_get_changes_error)
 	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1366,6 +1449,8 @@ END_TEST
 START_TEST (dual_get_changes_error)
 {
 	char *testbed = setup_testbed("sync_easy_conflict");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	setenv("GET_CHANGES_ERROR", "3", TRUE);
@@ -1381,8 +1466,8 @@ START_TEST (dual_get_changes_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1413,6 +1498,9 @@ START_TEST (dual_get_changes_error)
 	fail_unless(num_engine_successful == 0, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1421,6 +1509,8 @@ END_TEST
 START_TEST (two_of_three_get_changes_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("GET_CHANGES_ERROR", "5", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
@@ -1436,8 +1526,8 @@ START_TEST (two_of_three_get_changes_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1466,6 +1556,9 @@ START_TEST (two_of_three_get_changes_error)
 	fail_unless(num_engine_successful == 0, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1474,6 +1567,8 @@ END_TEST
 START_TEST (one_of_three_get_changes_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("GET_CHANGES_ERROR", "1", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
@@ -1489,8 +1584,8 @@ START_TEST (one_of_three_get_changes_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1519,6 +1614,9 @@ START_TEST (one_of_three_get_changes_error)
 	fail_unless(num_engine_successful == 0, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1527,6 +1625,8 @@ END_TEST
 START_TEST (one_of_three_get_changes_timeout)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
@@ -1542,8 +1642,8 @@ START_TEST (one_of_three_get_changes_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1575,6 +1675,9 @@ START_TEST (one_of_three_get_changes_timeout)
 	fail_unless(num_engine_successful == 0, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1583,6 +1686,8 @@ END_TEST
 START_TEST (get_changes_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
@@ -1599,8 +1704,8 @@ START_TEST (get_changes_timeout_and_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1632,6 +1737,9 @@ START_TEST (get_changes_timeout_and_error)
 	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1642,6 +1750,8 @@ END_TEST
 START_TEST (get_changes_timeout_sleep)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
@@ -1657,8 +1767,8 @@ START_TEST (get_changes_timeout_sleep)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1693,6 +1803,9 @@ START_TEST (get_changes_timeout_sleep)
 	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1702,6 +1815,8 @@ END_TEST
 START_TEST (single_commit_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMIT_ERROR", "4", TRUE);
 
@@ -1716,8 +1831,8 @@ START_TEST (single_commit_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1754,6 +1869,9 @@ START_TEST (single_commit_error)
 
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1762,6 +1880,8 @@ END_TEST
 START_TEST (dual_commit_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMIT_ERROR", "6", TRUE);
 
@@ -1776,8 +1896,8 @@ START_TEST (dual_commit_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -1810,6 +1930,9 @@ START_TEST (dual_commit_error)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1818,6 +1941,8 @@ END_TEST
 START_TEST (single_commit_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMIT_TIMEOUT", "4", TRUE);
 
@@ -1832,8 +1957,8 @@ START_TEST (single_commit_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1868,6 +1993,9 @@ START_TEST (single_commit_timeout)
 
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1876,6 +2004,8 @@ END_TEST
 START_TEST (dual_commit_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMIT_TIMEOUT", "6", TRUE);
 	
@@ -1890,8 +2020,8 @@ START_TEST (dual_commit_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1926,6 +2056,9 @@ START_TEST (dual_commit_timeout)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1934,6 +2067,8 @@ END_TEST
 START_TEST (commit_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMIT_TIMEOUT", "4", TRUE);
 	setenv("COMMIT_ERROR", "2", TRUE);
@@ -1949,8 +2084,8 @@ START_TEST (commit_timeout_and_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -1985,6 +2120,9 @@ START_TEST (commit_timeout_and_error)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -1993,6 +2131,8 @@ END_TEST
 START_TEST (commit_timeout_and_error2)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMIT_TIMEOUT", "2", TRUE);
 	setenv("COMMIT_ERROR", "4", TRUE);
@@ -2008,8 +2148,8 @@ START_TEST (commit_timeout_and_error2)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2044,6 +2184,9 @@ START_TEST (commit_timeout_and_error2)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2053,6 +2196,8 @@ END_TEST
 START_TEST (commit_error_modify)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2065,8 +2210,8 @@ START_TEST (commit_error_modify)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2112,6 +2257,9 @@ START_TEST (commit_error_modify)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	fail_unless(!osync_testing_diff("data2", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2120,7 +2268,9 @@ END_TEST
 START_TEST (commit_error_delete)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
-
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
+	
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
@@ -2133,8 +2283,8 @@ START_TEST (commit_error_delete)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2180,6 +2330,9 @@ START_TEST (commit_error_delete)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	fail_unless(!osync_testing_diff("data2", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2188,6 +2341,8 @@ END_TEST
 START_TEST (committed_all_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
 
@@ -2203,8 +2358,8 @@ START_TEST (committed_all_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2236,6 +2391,9 @@ START_TEST (committed_all_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2244,6 +2402,8 @@ END_TEST
 START_TEST (committed_all_batch_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("BATCH_COMMIT", "7", TRUE);
 	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
@@ -2260,8 +2420,8 @@ START_TEST (committed_all_batch_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2293,6 +2453,9 @@ START_TEST (committed_all_batch_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2301,6 +2464,8 @@ END_TEST
 START_TEST (single_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("SYNC_DONE_ERROR", "4", TRUE);
 	
@@ -2316,8 +2481,8 @@ START_TEST (single_sync_done_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2349,6 +2514,9 @@ START_TEST (single_sync_done_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2357,6 +2525,8 @@ END_TEST
 START_TEST (dual_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("SYNC_DONE_ERROR", "6", TRUE);
 	
@@ -2372,8 +2542,8 @@ START_TEST (dual_sync_done_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2405,6 +2575,9 @@ START_TEST (dual_sync_done_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2413,6 +2586,8 @@ END_TEST
 START_TEST (triple_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("SYNC_DONE_ERROR", "7", TRUE);
 	
@@ -2428,8 +2603,8 @@ START_TEST (triple_sync_done_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2461,6 +2636,9 @@ START_TEST (triple_sync_done_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2469,6 +2647,8 @@ END_TEST
 START_TEST (single_sync_done_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("SYNC_DONE_TIMEOUT", "4", TRUE);
 	
@@ -2484,8 +2664,8 @@ START_TEST (single_sync_done_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2519,6 +2699,9 @@ START_TEST (single_sync_done_timeout)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2527,6 +2710,8 @@ END_TEST
 START_TEST (dual_sync_done_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("SYNC_DONE_TIMEOUT", "6", TRUE);
 	
@@ -2542,8 +2727,8 @@ START_TEST (dual_sync_done_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2577,6 +2762,9 @@ START_TEST (dual_sync_done_timeout)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2585,6 +2773,8 @@ END_TEST
 START_TEST (sync_done_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("SYNC_DONE_TIMEOUT", "5", TRUE);
 	setenv("SYNC_DONE_ERROR", "2", TRUE);
@@ -2601,8 +2791,8 @@ START_TEST (sync_done_timeout_and_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2636,6 +2826,9 @@ START_TEST (sync_done_timeout_and_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2644,6 +2837,8 @@ END_TEST
 START_TEST (single_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_ERROR", "4", TRUE);
 	
@@ -2659,8 +2854,8 @@ START_TEST (single_disconnect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2692,6 +2887,9 @@ START_TEST (single_disconnect_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2700,6 +2898,8 @@ END_TEST
 START_TEST (dual_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_ERROR", "6", TRUE);
 	
@@ -2715,8 +2915,8 @@ START_TEST (dual_disconnect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2748,6 +2948,9 @@ START_TEST (dual_disconnect_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2756,6 +2959,8 @@ END_TEST
 START_TEST (triple_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_ERROR", "7", TRUE);
 
@@ -2771,8 +2976,8 @@ START_TEST (triple_disconnect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
 	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
@@ -2804,6 +3009,9 @@ START_TEST (triple_disconnect_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2812,6 +3020,8 @@ END_TEST
 START_TEST (single_disconnect_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_TIMEOUT", "4", TRUE);
 	
@@ -2827,8 +3037,8 @@ START_TEST (single_disconnect_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2862,6 +3072,9 @@ START_TEST (single_disconnect_timeout)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2870,6 +3083,8 @@ END_TEST
 START_TEST (dual_disconnect_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_TIMEOUT", "6", TRUE);
 	
@@ -2885,8 +3100,8 @@ START_TEST (dual_disconnect_timeout)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2920,6 +3135,9 @@ START_TEST (dual_disconnect_timeout)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2928,6 +3146,8 @@ END_TEST
 START_TEST (disconnect_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_TIMEOUT", "5", TRUE);
 	setenv("DISCONNECT_ERROR", "2", TRUE);
@@ -2944,8 +3164,8 @@ START_TEST (disconnect_timeout_and_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -2979,6 +3199,9 @@ START_TEST (disconnect_timeout_and_error)
 	
 	fail_unless(!osync_testing_diff("data1", "data2"));
 	fail_unless(!osync_testing_diff("data1", "data3"));
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }
@@ -2987,6 +3210,8 @@ END_TEST
 START_TEST (get_changes_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
+	char *formatdir = g_strdup_printf("%s/formats", testbed);
+	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
 	setenv("DISCONNECT_TIMEOUT", "1", TRUE);
 	setenv("DISCONNECT_ERROR", "2", TRUE);
@@ -3005,8 +3230,8 @@ START_TEST (get_changes_disconnect_error)
 	fail_unless(error == NULL, NULL);
 
 	osync_engine_set_schemadir(engine, testbed);
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 
 	discover_all_once(engine, &error);
 
@@ -3028,6 +3253,9 @@ START_TEST (get_changes_disconnect_error)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 	
 	destroy_testbed(testbed);
 }

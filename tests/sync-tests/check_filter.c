@@ -80,6 +80,8 @@ END_TEST
 START_TEST (filter_sync_deny_all)
 {
 	char *testbed = setup_testbed("filter_sync_deny_all");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
@@ -106,8 +108,8 @@ START_TEST (filter_sync_deny_all)
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), osync_error_print(&error));
@@ -117,6 +119,9 @@ START_TEST (filter_sync_deny_all)
 	fail_unless(osync_testing_file_exists("data1/testdata"), NULL);
 	fail_unless(osync_testing_file_exists("data2/testdata2"), NULL);
 
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -124,6 +129,9 @@ END_TEST
 START_TEST (filter_sync_custom)
 {
 	char *testbed = setup_testbed("filter_sync_custom");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+	
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
@@ -152,8 +160,8 @@ START_TEST (filter_sync_custom)
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -162,6 +170,9 @@ START_TEST (filter_sync_custom)
 
 	fail_unless(!osync_testing_diff("data1", "data2"), NULL);
 
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -273,6 +284,9 @@ END_TEST
 START_TEST (filter_sync_vcard_only)
 {
 	char *testbed = setup_testbed("filter_sync_vcard_only");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+	
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
@@ -305,8 +319,8 @@ START_TEST (filter_sync_vcard_only)
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -322,6 +336,9 @@ START_TEST (filter_sync_vcard_only)
 	fail_unless(osync_testing_file_exists("data2/testdata3"), NULL);
 	fail_unless(osync_testing_file_exists("data2/vcard.vcf"), NULL);
 
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -332,6 +349,9 @@ START_TEST(filter_destobjtype_delete)
 	/* Check if the destobjtype of the changes is being
 	 * set when the change type os DELETE */
 	char *testbed = setup_testbed("destobjtype_delete");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+	
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
@@ -349,8 +369,8 @@ START_TEST(filter_destobjtype_delete)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -365,6 +385,9 @@ START_TEST(filter_destobjtype_delete)
 	mark_point();
 	osync_engine_finalize(engine, &error);
 
+	g_free(formatdir);
+	g_free(plugindir);
+	
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -374,6 +397,9 @@ END_TEST
 START_TEST (filter_sync_read_only)
 {
 	char *testbed = setup_testbed("filter_sync_deny_all");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+	
 	OSyncError *error = NULL;
 
 	OSyncGroup *group = osync_group_new(&error);
@@ -396,8 +422,8 @@ START_TEST (filter_sync_read_only)
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 
-	osync_engine_set_plugindir(engine, testbed);
-	osync_engine_set_formatdir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
 	osync_engine_set_schemadir(engine, testbed);
 
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
@@ -409,6 +435,9 @@ START_TEST (filter_sync_read_only)
 	fail_unless(osync_testing_file_exists("data1/testdata"), NULL);
 	fail_unless(osync_testing_file_exists("data1/testdata2"), NULL);
 	fail_unless(osync_testing_file_exists("data2/testdata2"), NULL);
+
+	g_free(formatdir);
+	g_free(plugindir);
 
 	destroy_testbed(testbed);
 }
