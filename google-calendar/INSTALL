@@ -1,0 +1,3 @@
+Same compiling instructions as opensync trunk (0.4x), has a requirement
+libgcal:
+http://libgcal.googlecode.com

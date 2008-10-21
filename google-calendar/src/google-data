@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<config version="1.0">
+  <AdvancedOptions>
+    <AdvancedOption>
+      <!-- Location of XSLT files used to make conversion -->
+      <DisplayName>Path to XSLT files</DisplayName>
+      <Name>xslt</Name>
+      <Type>string</Type>
+      <Value>/usr/local/share/libopensync1/defaults</Value>
+    </AdvancedOption>
+
+    <AdvancedOption>
+      <!-- to be implemented in libgcal: use other calendar than default -->
+      <DisplayName>Calendar title</DisplayName>
+      <Name>title</Name>
+      <Type>string</Type>
+      <Value>default</Value>
+    </AdvancedOption>
+
+    <AdvancedOption>
+      <!-- to be implemented in libgcal: proxy  -->
+      <DisplayName>Internet proxy</DisplayName>
+      <Name>proxy</Name>
+      <Type>string</Type>
+      <Value>http://localhost:8080</Value>
+    </AdvancedOption>
+  </AdvancedOptions>
+
+  <Authentication>
+    <Username>google_username</Username>
+    <Password>google_password</Password>
+  </Authentication>
+
+  <Resources>
+    <!-- google contacts -->
+    <Resource>
+      <Enabled>1</Enabled>
+      <Formats>
+	<Format>
+          <!-- <Name>google-contact</Name> -->
+	  <Name>xmlformat-contact</Name>
+	</Format>
+      </Formats>
+      <Name>My private google contacts</Name>
+      <ObjType>contact</ObjType>
+    </Resource>
+
+    <!-- google calendar -->
+    <Resource>
+      <Enabled>1</Enabled>
+      <Formats>
+	<Format>
+          <!-- <Name>google-event</Name> -->
+	  <Name>xmlformat-event</Name>
+	</Format>
+      </Formats>
+      <Name>My private google calendar</Name>
+      <ObjType>event</ObjType>
+    </Resource>
+
+  </Resources>
+
+</config>
