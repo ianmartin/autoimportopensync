@@ -1,13 +1,23 @@
 # - Try to find libsoup
 # Find libsoup headers, libraries and the answer to all questions.
 #
-#  LIBSOUP2_FOUND               True if libsoup got found
-#  LIBSOUP2_INCLUDE_DIRS        Location of libsoup headers 
-#  LIBSOUP2_LIBRARIES           List of libaries to use libsoup
-#  LIBSOUP2_LIBRARY_DIRS        Location of libsoup library
+#  LIBSOUP2_FOUND               True if libsoup2 got found
+#  LIBSOUP2_INCLUDE_DIRS        Location of libsoup2 headers 
+#  LIBSOUP2_LIBRARIES           List of libaries to use libsoup2
+#  LIBSOUP2_LIBRARY_DIRS        Location of libsoup2 library
+#
+#  LIBSOUP22_FOUND               True if libsoup2.2 got found
+#  LIBSOUP22_INCLUDE_DIRS        Location of libsoup2.2 headers 
+#  LIBSOUP22_LIBRARIES           List of libaries to use libsoup2.2
+#  LIBSOUP22_LIBRARY_DIRS        Location of libsoup2.2 library
+#
+#  LIBSOUP24_FOUND               True if libsoup2.4 got found
+#  LIBSOUP24_INCLUDE_DIRS        Location of libsoup2.4 headers 
+#  LIBSOUP24_LIBRARIES           List of libaries to use libsoup2.4
+#  LIBSOUP24_LIBRARY_DIRS        Location of libsoup2.4 library
 #
 # Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
-# Copyright (c) 2007 Bjoern Ricks  <b.ricks@fh-osnabrueck.de>
+# Copyright (c) 2008 Bjoern Ricks  <bjoern.ricks@gmail.com>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -60,7 +70,10 @@ ELSEIF ( LIBSOUP22_FOUND )
 ENDIF ( LIBSOUP24_FOUND )
 
 IF( NOT LIBSOUP2_FOUND AND NOT PKG_CONFIG_FOUND )
-
+	# WARNING:
+	# This case is executed if pkg-config isn't installed.
+	# Currently in this case it is only checked if libsoup2.2 is available.
+	# Therefore please don't use this cmake module without pkg-config!
 	FIND_PATH( _libsoup2_include_DIR libsoup/soup.h PATH_SUFFIXES libsoup libsoup-2.2 )
 	FIND_LIBRARY( _libsoup2_LIBRARY soup-2.2)
 
