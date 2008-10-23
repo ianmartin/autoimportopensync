@@ -1,10 +1,10 @@
 # - Try to find libsoup
 # Find libsoup headers, libraries and the answer to all questions.
 #
-#  LIBSOUP2_FOUND               True if libsoup2 got found
-#  LIBSOUP2_INCLUDE_DIRS        Location of libsoup2 headers 
-#  LIBSOUP2_LIBRARIES           List of libaries to use libsoup2
-#  LIBSOUP2_LIBRARY_DIRS        Location of libsoup2 library
+#  LIBSOUP2_FOUND                True if libsoup2 got found
+#  LIBSOUP2_INCLUDE_DIRS         Location of libsoup2 headers 
+#  LIBSOUP2_LIBRARIES            List of libaries to use libsoup2
+#  LIBSOUP2_LIBRARY_DIRS         Location of libsoup2 library
 #
 #  LIBSOUP22_FOUND               True if libsoup2.2 got found
 #  LIBSOUP22_INCLUDE_DIRS        Location of libsoup2.2 headers 
@@ -16,8 +16,26 @@
 #  LIBSOUP24_LIBRARIES           List of libaries to use libsoup2.4
 #  LIBSOUP24_LIBRARY_DIRS        Location of libsoup2.4 library
 #
-# Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
-# Copyright (c) 2008 Bjoern Ricks  <bjoern.ricks@gmail.com>
+#  Set LIBSOUP2_MIN_VERSION to find libsoup2.2 or libsoup2.4 if only 
+#  one of both libraries is supported
+#
+#  Don't use LIBSOUP2_MIN_VERSION if you want to support 
+#  libsoup2.2 and libsoup2.4. 
+#  Instead use LIBSPOUP22_MIN_VERSION and LIBSPOUP24_MIN_VERSION.
+#
+#  Set LIBSPOUP22_MIN_VERSION to find libsoup2.2 which version is
+#  greater than LIBSPOUP22_MIN_VERSION
+#
+#  Set LIBSPOUP24_MIN_VERSION to find libsoup2.4 which version is
+#  greater than LIBSPOUP24_MIN_VERSION
+#
+#  WARNING: It is not possible to set LIBSPOUP22_MIN_VERSION 
+#  and support any version of libsoup2.4 at the same time.
+#  In this situation you have to set LIBSPOUP24_MIN_VERSION also.
+#  The same applies to LIBSPOUP24_MIN_VERSION and libsoup2.2.
+#
+#  Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
+#  Copyright (c) 2008 Bjoern Ricks  <bjoern.ricks@gmail.com>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -50,11 +68,11 @@ IF ( LIBSOUP24_MIN_VERSION )
 ENDIF ( LIBSOUP24_MIN_VERSION )	
 
 IF ( NOT LIBSOUP24_FOUND AND NOT LIBSOUP22_MIN_VERSION )
-	PKG_SEARCH_MODULE( LIBSOUP24 ${_pkgconfig_REQUIRED} libsoup-2.4 libsoup2 )
+	PKG_SEARCH_MODULE( LIBSOUP24 libsoup-2.4 libsoup2 )
 ENDIF ( NOT LIBSOUP24_FOUND AND NOT LIBSOUP22_MIN_VERSION)
 
 IF ( NOT LIBSOUP22_FOUND AND NOT LIBSOUP24_MIN_VERSION )
-	PKG_SEARCH_MODULE( LIBSOUP22 ${_pkgconfig_REQUIRED} libsoup-2.2 libsoup2 )
+	PKG_SEARCH_MODULE( LIBSOUP22 libsoup-2.2 libsoup2 )
 ENDIF ( NOT LIBSOUP22_FOUND AND NOT LIBSOUP24_MIN_VERSION)
 
 IF ( LIBSOUP24_FOUND )
@@ -67,6 +85,8 @@ ELSEIF ( LIBSOUP22_FOUND )
 	SET( LIBSOUP2_INCLUDE_DIRS ${LIBSOUP22_INCLUDE_DIRS} )
 	SET( LIBSOUP2_LIBRARIES ${LIBSOUP22_LIBRARIES} )
 	SET( LIBSOUP2_LIBRARY_DIRS ${LIBSOUP22_LIBRARY_DIRS} )
+ELSEIF( PKG_CONFIG_FOUND AND LibSoup2_FIND_REQUIRED )
+	MESSAGE( SEND_ERROR "package libsoup2 not found" )
 ENDIF ( LIBSOUP24_FOUND )
 
 IF( NOT LIBSOUP2_FOUND AND NOT PKG_CONFIG_FOUND )
