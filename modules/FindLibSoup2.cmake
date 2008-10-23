@@ -97,8 +97,6 @@ ELSEIF( PKG_CONFIG_FOUND AND LibSoup2_FIND_REQUIRED )
 	MESSAGE( SEND_ERROR "package libsoup2 not found" )
 ENDIF ( LIBSOUP24_FOUND )
 
-MESSAGE ( STATUS "find libsoup2 ${LIBSOUP2_FOUND} " )
-
 IF( NOT LIBSOUP2_FOUND AND NOT PKG_CONFIG_FOUND )
 	# WARNING:
 	# This case is executed if pkg-config isn't installed.
