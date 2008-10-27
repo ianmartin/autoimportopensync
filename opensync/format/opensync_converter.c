@@ -62,6 +62,7 @@ OSyncFormatConverter *osync_converter_new(OSyncConverterType type, OSyncObjForma
 	converter->convert_func = convert_func;
 	converter->initialize_func = NULL;
 	converter->finalize_func = NULL;
+	converter->userdata = NULL;
 	converter->type = type;
 	converter->ref_count = 1;
 	
@@ -96,6 +97,9 @@ OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat,
 	osync_objformat_ref(targetformat);
 	
 	converter->detect_func = detect_func;
+	converter->initialize_func = NULL;
+	converter->finalize_func = NULL;
+	converter->userdata = NULL;
 	converter->type = OSYNC_CONVERTER_DETECTOR;
 	converter->ref_count = 1;
 	
