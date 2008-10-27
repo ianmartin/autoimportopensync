@@ -19,6 +19,7 @@
  */
 
 #include "file_sync.h"
+#include "filename_scape.h"
 #include <opensync/file.h>
 #include <opensync/opensync-version.h>
 #include <assert.h>
@@ -143,8 +144,16 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 	char *buffer = NULL;
 	unsigned int size = 0;
 	
-	char *filename = g_strdup_printf ("%s/%s", dir->path, osync_change_get_uid(change));
-			
+	char *filename = NULL, *tmp = NULL;
+	if (!(tmp = strdup(osync_change_get_uid(change)))) {
+		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
+		return;
+	}
+	filename_scape_characters(tmp);
+
+	filename = g_strdup_printf ("%s/%s", dir->path, tmp);
+	free(tmp);
+
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_DELETED:
 			if (!remove(filename) == 0) {
@@ -412,14 +421,20 @@ static void osync_filesync_commit_change(void *data, OSyncPluginInfo *info, OSyn
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 	
-	char *filename = NULL;
+	char *filename = NULL, *tmp;
 	
 	if (!osync_filesync_write(data, info, ctx, change)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
 		return;
 	}
-	
-	filename = g_strdup_printf ("%s/%s", dir->path, osync_change_get_uid(change));
+	if (!(tmp = strdup(osync_change_get_uid(change)))) {
+		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
+		return;
+	}
+	filename_scape_characters(tmp);
+
+	filename = g_strdup_printf ("%s/%s", dir->path, tmp);
+	free(tmp);
 	char *hash = NULL;
 	
 	if (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
