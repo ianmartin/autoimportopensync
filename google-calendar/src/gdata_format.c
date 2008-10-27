@@ -110,8 +110,6 @@ void finalize(void *userdata)
 	struct xslt_resources *converter = NULL;
 	if (!userdata)
 		return;
-	else
-		fprintf(stderr, "\n\nuserdata is not NULL: %x\n", userdata);
 
 	converter = (struct xslt_resources *)userdata;
 	xslt_delete(converter);

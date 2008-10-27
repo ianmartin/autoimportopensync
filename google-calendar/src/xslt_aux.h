@@ -64,6 +64,7 @@ struct xslt_resources {
 	xsltStylesheetPtr cur;
 	xmlChar *xml_str;
 	int length;
+	char init_flag;
 };
 
 struct xslt_resources *xslt_new(void)
@@ -95,6 +96,7 @@ int xslt_initialize(struct xslt_resources *ctx, const char *stylesheet_path)
 	}
 
 	result = 0;
+	ctx->init_flag = 1;
 exit:
 	return result;
 }
@@ -152,16 +154,32 @@ void xslt_delete(struct xslt_resources *ctx)
 	if (!ctx)
 		return;
 
+	/* TODO: 'output' is pointing to a non null value (probably an
+	 * overflow in some other place) even when not initialized.
+	 * It happens just after all clients are disconnected.
+	 * I must investigate it further, for while the flag is a work
+	 * around to stop msync to crash.
+	 */
+/* 	fprintf(stderr, "\ndoc: %x\tout: %x\txml: %x\tcur: %x\n\n", */
+/* 		ctx->doc, ctx->output, ctx->xml_str, ctx->cur); */
+
+	if (!ctx->init_flag)
+		goto exit;
+
+
 	if (ctx->doc)
 		xmlFreeDoc(ctx->doc);
 	if (ctx->output)
 		xmlFreeDoc(ctx->output);
 	if (ctx->xml_str)
 		xmlFree(ctx->xml_str);
+	if (ctx->cur) {
+		xsltFreeStylesheet(ctx->cur);
+		xsltCleanupGlobals();
+		xmlCleanupParser();
+	}
 
-	xsltFreeStylesheet(ctx->cur);
-        xsltCleanupGlobals();
-        xmlCleanupParser();
+exit:
 
 	free(ctx);
 }
