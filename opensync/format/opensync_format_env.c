@@ -154,7 +154,7 @@ static void _osync_format_env_converter_initialize(OSyncFormatEnv *env, OSyncErr
 	for (i = 0; i < numconverters; i++ ) {
 		converter = osync_format_env_nth_converter(env, i);
 		osync_assert(converter);
-		osync_converter_initialize(converter, error);
+		osync_converter_initialize(converter, NULL, error);
 	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

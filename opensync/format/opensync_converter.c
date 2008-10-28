@@ -417,12 +417,12 @@ void osync_converter_set_finalize_func(OSyncFormatConverter *converter, OSyncFor
 	converter->finalize_func = finalize_func;
 }
 
-void osync_converter_initialize(OSyncFormatConverter *converter, OSyncError **error) {
+void osync_converter_initialize(OSyncFormatConverter *converter, const char *config, OSyncError **error) {
 
 	osync_assert(converter);
 
 	if (converter->initialize_func) {
-		converter->userdata = converter->initialize_func(error);
+		converter->userdata = converter->initialize_func(config, error);
 	}
 }
 
