@@ -24,20 +24,30 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-xmlformat.h>
+
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xmlstring.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
-#include <glib.h>
+#include <libxml/xmlschemas.h>
 
-//#include "tomboy_note_format.h"
+#include <glib.h>
 
 #define TOMBOY_FORMAT_OPENSYNC_PLUGINVERSION 1
 
-osync_bool tomboynote_validate(xmlDocPtr doc);
+/*
+ * An overview of the tomboy format is found at http://live.gnome.org/Tomboy/NoteXmlFormat
+ */
+
+typedef struct TomboyNoteSchema TomboyNoteSchema;
+
+osync_bool tomboynote_validate(xmlDocPtr doc, xmlSchemaValidCtxtPtr context);
 osync_bool conv_tomboynote_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error);
 osync_bool conv_xmlformat_to_tomboynote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error);
 osync_bool detect_tomboynote(const char *data, int size, void *userdata);
+
+void* tomboynote_initialize(OSyncError **error);
+void tomboynote_finalize(void *userdata);
 
 #endif /*TOMBOY_NOTE_H_*/

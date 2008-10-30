@@ -76,10 +76,9 @@ START_TEST (tomboynote_test_validate)
 
 	//xmlDocDump(stdout, doc);
 	rootnode = xmlDocGetRootElement(good_doc);
-	//xmlFreeNode(rootnode); // <-- crash
 	//printf( "rootnode: type %d name %s %d\n", rootnode->type,rootnode->name, xmlStrEqual(rootnode->name, BAD_CAST "note"));
-	fail_unless( tomboynote_validate(good_doc) );
-	fail_if( tomboynote_validate(bad_doc) );
+	fail_unless( tomboynote_validate(good_doc, NULL) );
+	fail_if( tomboynote_validate(bad_doc, NULL) );
 
 }
 END_TEST

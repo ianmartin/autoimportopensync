@@ -27,7 +27,7 @@
 #define DATE_TIME_FORMAT "%Y-%m-%dT%H:%M:%S.0000000+00:00"
 #define DATE_TIME_SIZE 34
 
-osync_bool tomboynote_validate(xmlDocPtr doc) {
+osync_bool tomboynote_validate(xmlDocPtr doc, xmlSchemaValidCtxtPtr context) {
 	//TODO: use xml schema validation
 	osync_trace(TRACE_ENTRY, "%s (%p)", __func__, doc);
 	osync_assert(doc);
@@ -497,7 +497,7 @@ osync_bool detect_tomboynote(const char *data, int size, void *userdata) {
 	if (!data) {
 		return FALSE;
 	}
-	/* not complete correct xml header validation */
+	/* not completely correct xml header validation */
 	if (!g_regex_match_simple("\\s*<?\\s*xml\\sversion\\s*=\\s*\"1.0\"\\s*.*?\\s*>.*", data, 0, 0)) {
 		osync_trace(TRACE_EXIT, "%s not xml data", __func__);
 		return FALSE;
@@ -514,7 +514,7 @@ osync_bool detect_tomboynote(const char *data, int size, void *userdata) {
 		goto FREE_CONTEXT;
 	}
 
-	if ( !tomboynote_validate(doc) ) {
+	if ( !tomboynote_validate(doc, NULL) ) {
 		osync_trace(TRACE_EXIT, "%s could not validate xml.", __func__);
 		goto FREE_DOC;
 	}

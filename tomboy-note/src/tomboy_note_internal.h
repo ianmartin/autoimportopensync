@@ -26,6 +26,13 @@
 
 #include <glib/gstring.h>
 
+struct TomboyNoteSchema {
+	/** The schema object */
+	xmlSchemaPtr schema;
+	/** The schema validation context */
+	xmlSchemaValidCtxtPtr context;
+};
+
 void tomboynote_parse_content_node(xmlNodePtr node, GString * output);
 void tomboynote_parse_content(xmlDocPtr doc, GString * output);
 
