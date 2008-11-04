@@ -140,11 +140,12 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 		osync_change_set_uid(change, uid);
 		osync_change_set_hash(change, hash);
 		
-		// Report every entry .. every unreported entry got deleted.
-		osync_hashtable_report(sinkenv->hashtable, uid);
-
 		OSyncChangeType changetype = osync_hashtable_get_changetype(sinkenv->hashtable, change);
 		osync_change_set_changetype(change, changetype);
+		
+		// Update entry.
+		// Set the hash of the object (optional, only required if you use hashtabled)
+		osync_hashtable_update_change(sinkenv->hashtable, change);
 		
 		if (changetype == OSYNC_CHANGE_TYPE_UNMODIFIED) {
 			g_free(hash);
@@ -153,9 +154,6 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 			continue;
 		}
 
-
-		//Set the hash of the object (optional, only required if you use hashtabled)
-		osync_hashtable_update_change(sinkenv->hashtable, change);
 		g_free(hash);
 		g_free(uid);
 
@@ -268,16 +266,27 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	/*
 	 * This function will only be called if the sync was successful
 	 */
-
+	OSyncError *error = NULL;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	sink_environment *sinkenv = osync_objtype_sink_get_userdata(sink);
+	
 	//If we use anchors we have to update it now.
 	//Now you get/calculate the current anchor of the device
 	char *lanchor = NULL;
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	osync_anchor_update(anchorpath, "lanchor", lanchor);
 	g_free(anchorpath);
+	//Save hashtable to database
+	if (!osync_hashtable_save(sinkenv->hashtable, &error))
+		goto error;
 	
 	//Answer the call
 	osync_context_report_success(ctx);
+	return;
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_error_unref(&error);
+	return;
 }
 
 static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -288,7 +297,7 @@ static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	//Close all stuff you need to close
 	
 	//Close the hashtable
-	osync_hashtable_free(sinkenv->hashtable);
+	osync_hashtable_unref(sinkenv->hashtable);
 	sinkenv->hashtable = NULL;
 
 	//Answer the call

@@ -1,6 +1,6 @@
 PROJECT( libopensync-plugin-example )
 
-SET( VERSION ${OPENSYNC_VERSION} )
+SET( VERSION "0.38" )
 
 # Look for 3rd Party CMake modules
 SET( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules" )

@@ -150,7 +150,7 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	return TRUE;
 }
 
-void *initialize(OSyncError **error)
+void *initialize(const char* config, OSyncError **error)
 {
 	/*
 	 * Here you can create converter specific data.
