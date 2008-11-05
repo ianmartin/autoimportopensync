@@ -233,8 +233,8 @@ static void gc_get_changes_calendar(void *data, OSyncPluginInfo *info, OSyncCont
 		if (!xmlformat)
 			goto error;
 
-		fprintf(stderr, "gevent: %s\nosync: %s\n", gcal_event_get_xml(event),
-			raw_xml);
+		osync_trace(TRACE_INTERNAL, "gevent: %s\nosync: %s\n",
+			    gcal_event_get_xml(event), raw_xml);
 
 		osync_xmlformat_sort(xmlformat);
 		odata = osync_data_new(xmlformat,
@@ -350,8 +350,8 @@ static void gc_get_changes_contact(void *data, OSyncPluginInfo *info, OSyncConte
 		if (!xmlformat)
 			goto error;
 
-		fprintf(stderr, "gcont: %s\nosync: %s\n", gcal_contact_get_xml(contact),
-			raw_xml);
+		osync_trace(TRACE_INTERNAL, "gcont: %s\nosync: %s\n",
+			    gcal_contact_get_xml(contact), raw_xml);
 
 		osync_xmlformat_sort(xmlformat);
 
@@ -433,7 +433,7 @@ static void gc_commit_change_calendar(void *data, OSyncPluginInfo *info,
 	}
 	raw_xml = plgdata->xslt_ctx_gcal->xml_str;
 
-	fprintf(stderr, "osync: %s\ngcont: %s\n\n", osync_xml, raw_xml);
+	osync_trace(TRACE_EXIT, "osync: %s\ngcont: %s\n\n", osync_xml, raw_xml);
 
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_ADDED:
@@ -483,6 +483,16 @@ static void gc_commit_change_calendar(void *data, OSyncPluginInfo *info,
 		free(updated_event);
 
 	if (event) {
+		/* update the timestamp */
+		if (plgdata->cal_timestamp)
+			free(plgdata->cal_timestamp);
+		plgdata->cal_timestamp = strdup(gcal_event_get_updated(event));
+		if (!plgdata->cal_timestamp) {
+			msg = "Failed copying contact timestamp!\n";
+			goto error;
+		}
+
+		/* FIXME: not sure if this works */
 		/* Inform the new ID */
 		osync_change_set_uid(change, gcal_event_get_url(event));
 		gcal_event_delete(event);
@@ -530,7 +540,7 @@ static void gc_commit_change_contact(void *data, OSyncPluginInfo *info,
 	}
 	raw_xml = plgdata->xslt_ctx_gcont->xml_str;
 
-	fprintf(stderr, "osync: %s\ngcont: %s\n\n", osync_xml, raw_xml);
+	osync_trace(TRACE_INTERNAL, "osync: %s\ngcont: %s\n\n", osync_xml, raw_xml);
 
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_ADDED:
@@ -580,6 +590,16 @@ static void gc_commit_change_contact(void *data, OSyncPluginInfo *info,
 		free(updated_contact);
 
 	if (contact) {
+		/* update the timestamp */
+		if (plgdata->cont_timestamp)
+			free(plgdata->cont_timestamp);
+		plgdata->cont_timestamp = strdup(gcal_contact_get_updated(contact));
+		if (!plgdata->cont_timestamp) {
+			msg = "Failed copying contact timestamp!\n";
+			goto error;
+		}
+
+		/* FIXME: not sure if this works */
 		/* Inform the new ID */
 		osync_change_set_uid(change, gcal_contact_get_url(contact));
 		gcal_contact_delete(contact);
@@ -600,15 +620,25 @@ static void gc_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	struct gc_plgdata *plgdata = NULL;
 	int result;
 
-	plgdata = data;
-	osync_anchor_update(plgdata->gcal_anchor_path, "gcalendar", plgdata->cal_timestamp);
-	osync_anchor_update(plgdata->gcont_anchor_path, "gcontact", plgdata->cont_timestamp);
 }
 
 static void gc_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	struct gc_plgdata *plgdata = data;
+
+	if (plgdata->calendar && plgdata->cal_timestamp) {
+		osync_trace(TRACE_INTERNAL, "query updated timestamp: %s\n",
+				    plgdata->cal_timestamp);
+		osync_anchor_update(plgdata->gcal_anchor_path, "gcalendar",
+				    plgdata->cal_timestamp);
+	}
+	if (plgdata->contacts && plgdata->cont_timestamp) {
+		osync_trace(TRACE_INTERNAL, "query updated timestamp: %s\n",
+				    plgdata->cont_timestamp);
+		osync_anchor_update(plgdata->gcont_anchor_path, "gcontact",
+				    plgdata->cont_timestamp);
+	}
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
