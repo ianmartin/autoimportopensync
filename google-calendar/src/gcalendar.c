@@ -617,15 +617,8 @@ error:
 static void gc_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
-	struct gc_plgdata *plgdata = NULL;
-	int result;
-
-}
-
-static void gc_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	struct gc_plgdata *plgdata = data;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	if (plgdata->calendar && plgdata->cal_timestamp) {
 		osync_trace(TRACE_INTERNAL, "query updated timestamp: %s\n",
@@ -633,6 +626,7 @@ static void gc_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_anchor_update(plgdata->gcal_anchor_path, "gcalendar",
 				    plgdata->cal_timestamp);
 	}
+
 	if (plgdata->contacts && plgdata->cont_timestamp) {
 		osync_trace(TRACE_INTERNAL, "query updated timestamp: %s\n",
 				    plgdata->cont_timestamp);
@@ -640,6 +634,12 @@ static void gc_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 				    plgdata->cont_timestamp);
 	}
 
+	osync_context_report_success(ctx);
+}
+
+static void gc_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
