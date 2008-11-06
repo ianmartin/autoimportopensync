@@ -9,6 +9,7 @@
 #  Copyright (c) 2006 Philippe Bernery <philippe.bernery@gmail.com>
 #  Copyright (c) 2007 Daniel Gollub <dgollub@suse.de>
 #  Copyright (c) 2007 Alban Browaeys <prahal@yahoo.com>
+#  Copyright (c) 2008 Michael Bell <michael.bell@web.de>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
@@ -31,7 +32,7 @@ ELSE (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS )
   ENDIF ( GLIB2_FIND_REQUIRED )
 
   IF ( GLIB2_MIN_VERSION )
-    PKG_SEARCH_MODULE( GLIB2 ${_pkgconfig_REQUIRED} glib-2.0>="${GLIB2_MIN_VERSION}" )
+    PKG_SEARCH_MODULE( GLIB2 ${_pkgconfig_REQUIRED} glib-2.0>=${GLIB2_MIN_VERSION} )
   ELSE ( GLIB2_MIN_VERSION )
     PKG_SEARCH_MODULE( GLIB2 ${_pkgconfig_REQUIRED} glib-2.0 )
   ENDIF ( GLIB2_MIN_VERSION )
