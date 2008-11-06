@@ -88,9 +88,9 @@ static void free_plg(struct gc_plgdata *plgdata)
 	}
 
 	if (plgdata->gcal_anchor_path)
-		free(plgdata->gcal_anchor_path);
+		g_free(plgdata->gcal_anchor_path);
 	if (plgdata->gcont_anchor_path)
-		free(plgdata->gcont_anchor_path);
+		g_free(plgdata->gcont_anchor_path);
 	if (plgdata->xslt_path)
 		free(plgdata->xslt_path);
 	if (plgdata->xslt_ctx_gcal)
@@ -188,7 +188,7 @@ static void gc_get_changes_calendar(void *data, OSyncPluginInfo *info, OSyncCont
 	else
 		osync_trace(TRACE_INTERNAL, "first sync!\n");
 
-	if (osync_objtype_sink_get_slowsync(plgdata->gcal_sink) || !timestamp) {
+	if (osync_objtype_sink_get_slowsync(plgdata->gcal_sink)) {
 		osync_trace(TRACE_INTERNAL, "\n\t\tgcal: Client asked for slow syncing...\n");
 		slow_sync_flag = 1;
 		result = gcal_get_events(plgdata->calendar, &(plgdata->all_events));
@@ -305,7 +305,7 @@ static void gc_get_changes_contact(void *data, OSyncPluginInfo *info, OSyncConte
 	if (!plgdata->gcont_sink)
 		return;
 	timestamp = osync_anchor_retrieve(plgdata->gcal_anchor_path, "gcontact");
-	if (osync_objtype_sink_get_slowsync(plgdata->gcont_sink) || !timestamp) {
+	if (osync_objtype_sink_get_slowsync(plgdata->gcont_sink)) {
 		osync_trace(TRACE_INTERNAL, "\n\t\tgcont: Client asked for slow syncing...\n");
 		slow_sync_flag = 1;
 		result = gcal_get_contacts(plgdata->contacts, &(plgdata->all_contacts));
@@ -561,7 +561,7 @@ static void gc_commit_change_contact(void *data, OSyncPluginInfo *info,
 			result = gcal_update_xmlentry(plgdata->contacts, raw_xml, &updated_contact,
 						      NULL);
 			if (result == -1) {
-				msg = "Failed editing event!\n";
+				msg = "Failed editing contact!\n";
 				goto error;
 			}
 
@@ -574,7 +574,7 @@ static void gc_commit_change_contact(void *data, OSyncPluginInfo *info,
 		case OSYNC_CHANGE_TYPE_DELETED:
 			result = gcal_erase_xmlentry(plgdata->contacts, raw_xml);
 			if (result == -1) {
-				msg = "Failed deleting event!\n";
+				msg = "Failed deleting contact!\n";
 				goto error;
 			}
 		break;
