@@ -205,17 +205,27 @@ static void gc_get_changes_calendar(void *data, OSyncPluginInfo *info, OSyncCont
 		goto error;
 	}
 
+	osync_trace(TRACE_INTERNAL, "gcalendar: got then all!\n");
+	if (plgdata->all_events.length == 0) {
+		osync_trace(TRACE_INTERNAL, "gcalendar: no changes...\n");
+		goto no_changes;
+	} else
+		osync_trace(TRACE_INTERNAL, "gcalendar: changes count: %d\n",
+			    plgdata->all_events.length);
+
+
 	/* Calendar returns most recently updated event as first element */
 	event = gcal_event_element(&(plgdata->all_events), 0);
-	if (!event)
+	if (!event) {
+		msg = "Cannot access last updated event!\n";
 		goto error;
+	}
 	plgdata->cont_timestamp = strdup(gcal_event_get_updated(event));
 	if (!plgdata->cont_timestamp) {
 		msg = "Failed copying event timestamp!\n";
 		goto error;
 	}
 
-	osync_trace(TRACE_INTERNAL, "gcalendar: got then all!\n");
 	for (i = 0; i < plgdata->all_events.length; ++i) {
 		event = gcal_event_element(&(plgdata->all_events), i);
 		if (!event)
@@ -263,13 +273,17 @@ static void gc_get_changes_calendar(void *data, OSyncPluginInfo *info, OSyncCont
 		osync_change_unref(chg);
 	}
 
+no_changes:
+
 	/* Load XSLT style to convert osync xmlformat-event --> gdata */
 	snprintf(buffer, sizeof(buffer) - 1, "%s/osync2gcal.xslt",
 		 plgdata->xslt_path);
-	if ((result = xslt_initialize(plgdata->xslt_ctx_gcal, buffer)))
+	if ((result = xslt_initialize(plgdata->xslt_ctx_gcal, buffer))) {
+		msg = "Cannot initialize new XSLT!\n";
 		goto error;
-	osync_trace(TRACE_INTERNAL, "\ndone calendar: %s\n", buffer);
+	}
 
+	osync_trace(TRACE_INTERNAL, "\ndone calendar: %s\n", buffer);
 
 exit:
 	osync_context_report_success(ctx);
@@ -304,7 +318,12 @@ static void gc_get_changes_contact(void *data, OSyncPluginInfo *info, OSyncConte
 
 	if (!plgdata->gcont_sink)
 		return;
-	timestamp = osync_anchor_retrieve(plgdata->gcal_anchor_path, "gcontact");
+	timestamp = osync_anchor_retrieve(plgdata->gcont_anchor_path, "gcontact");
+	if (timestamp)
+		osync_trace(TRACE_INTERNAL, "timestamp is: %s\n", timestamp);
+	else
+		osync_trace(TRACE_INTERNAL, "first sync!\n");
+
 	if (osync_objtype_sink_get_slowsync(plgdata->gcont_sink)) {
 		osync_trace(TRACE_INTERNAL, "\n\t\tgcont: Client asked for slow syncing...\n");
 		slow_sync_flag = 1;
@@ -322,18 +341,27 @@ static void gc_get_changes_contact(void *data, OSyncPluginInfo *info, OSyncConte
 		goto error;
 	}
 
+	osync_trace(TRACE_INTERNAL, "gcontact: got then all!\n");
+	if (plgdata->all_contacts.length == 0) {
+		osync_trace(TRACE_INTERNAL, "gcontact: no changes...\n");
+		goto no_changes;
+	} else
+		osync_trace(TRACE_INTERNAL, "gcontact: changes count: %d\n",
+			    plgdata->all_contacts.length);
+
 	/* Contacts returns most recently updated entry as last element */
 	contact = gcal_contact_element(&(plgdata->all_contacts),
 				       (plgdata->all_contacts.length - 1));
-	if (!contact)
+	if (!contact) {
+		msg = "Cannot access last updated contact!\n";
 		goto error;
+	}
 	plgdata->cont_timestamp = strdup(gcal_contact_get_updated(contact));
 	if (!plgdata->cont_timestamp) {
 		msg = "Failed copying contact timestamp!\n";
 		goto error;
 	}
 
-	osync_trace(TRACE_INTERNAL, "gcontact: got then all!\n");
 	for (i = 0; i < plgdata->all_contacts.length; ++i) {
 		contact = gcal_contact_element(&(plgdata->all_contacts), i);
 		if (!contact)
@@ -382,13 +410,17 @@ static void gc_get_changes_contact(void *data, OSyncPluginInfo *info, OSyncConte
 		osync_change_unref(chg);
 	}
 
+no_changes:
+
 	/* Load XSLT style to convert osync xmlformat-contact --> gdata */
 	snprintf(buffer, sizeof(buffer) - 1, "%s/osync2gcont.xslt",
 		 plgdata->xslt_path);
-	if ((result = xslt_initialize(plgdata->xslt_ctx_gcont, buffer)))
+	if ((result = xslt_initialize(plgdata->xslt_ctx_gcont, buffer))) {
+		msg = "Cannot initialize new XSLT!\n";
 		goto error;
-	osync_trace(TRACE_INTERNAL, "\ndone contact: %s\n", buffer);
+	}
 
+	osync_trace(TRACE_INTERNAL, "\ndone contact: %s\n", buffer);
 
 exit:
 	osync_context_report_success(ctx);
@@ -621,6 +653,10 @@ static void gc_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	if (plgdata->calendar && plgdata->cal_timestamp) {
+		/* FIXME: hack to workaround the limitation of google protocol
+		 * doing inclusive query: advance 1 second in timestamp.
+		 */
+		plgdata->cal_timestamp[18] += 1;
 		osync_trace(TRACE_INTERNAL, "query updated timestamp: %s\n",
 				    plgdata->cal_timestamp);
 		osync_anchor_update(plgdata->gcal_anchor_path, "gcalendar",
@@ -628,6 +664,10 @@ static void gc_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	}
 
 	if (plgdata->contacts && plgdata->cont_timestamp) {
+		/* FIXME: hack to workaround the limitation of google protocol
+		 * doing inclusive query: advance 1 second in timestamp.
+		 */
+		plgdata->cont_timestamp[18] += 1;
 		osync_trace(TRACE_INTERNAL, "query updated timestamp: %s\n",
 				    plgdata->cont_timestamp);
 		osync_anchor_update(plgdata->gcont_anchor_path, "gcontact",
