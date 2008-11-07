@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo -n "Checking Code Coverage of unit tests"
 DATE=$( date +%Y%m%d%H%M%S )
