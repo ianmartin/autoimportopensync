@@ -580,15 +580,21 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 					  g_string_append(string2, " -> ");
 				}
 				g_string_append(string2, osync_objformat_get_name(osync_converter_get_targetformat(edge)));
-				if (size2 > 1 && count2 < size2) g_string_append(string2, " -> ");
+				if (size2 > 1 && count2 < size2)
+					g_string_append(string2, " -> ");
 			}
 			g_string_append(string, osync_objformat_get_name(vertice->format));
 			g_string_append(string, " ( ");
-			g_string_append(string, g_string_free(string2, FALSE));
+			g_string_append(string, string2->str);
 			g_string_append(string, " ) ");
-			if (size > 1 && count < size) g_string_append(string, " -> ");
+
+			g_string_free(string2, TRUE);
+
+			if (size > 1 && count < size)
+				g_string_append(string, " -> ");
 		}
-		osync_trace(TRACE_INTERNAL, "Tree : %s", g_string_free(string, FALSE));
+		osync_trace(TRACE_INTERNAL, "Tree : %s", string->str);
+		g_string_free(string, TRUE);
 
 		/* Get the first OSyncFormatConverterPathVertice from the search queue
 		 * and remove it from the queue */
@@ -607,9 +613,12 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 				  g_string_append(string, " -> ");
 			}
 			g_string_append(string, osync_objformat_get_name(osync_converter_get_targetformat(edge)));
-			if (size > 1 && count < size) g_string_append(string, " -> ");
+			if (size > 1 && count < size)
+				g_string_append(string, " -> ");
 		}
-		osync_trace(TRACE_INTERNAL, "Next vertice : %s (%s).", osync_objformat_get_name(current->format), g_string_free(string, FALSE));
+		osync_trace(TRACE_INTERNAL, "Next vertice : %s (%s).", osync_objformat_get_name(current->format), string->str);
+		g_string_free(string, TRUE);
+
 		guint neighbour_id = 0;
 		current->neighbour_id = 0;
 		vertice_id++; // current OSyncFormatConverterPathVertice id for its neighbours
@@ -686,9 +695,11 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 					  g_string_append(string, " -> ");
 				}
 				g_string_append(string, osync_objformat_get_name(osync_converter_get_targetformat(edge)));
-				if (size > 1 && count < size) g_string_append(string, " -> ");
+				if (size > 1 && count < size)
+					g_string_append(string, " -> ");
 			}
-			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s (%s)", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format), g_string_free(string, FALSE));
+			osync_trace(TRACE_INTERNAL, "%s's neighbour : %s (%s)", osync_objformat_get_name(current->format), osync_objformat_get_name(neighbour->format), string->str);
+			g_string_free(string, TRUE);
 
 			/* We found a neighbour and insert it sorted in our search queue 
 			   If vertices are equals in losses, objtypes and conversions, first registered is inserted before the others 
