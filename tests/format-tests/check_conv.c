@@ -405,6 +405,7 @@ START_TEST (conv_find_path)
 	path = osync_format_env_find_path_with_detectors(env, data2, format1, NULL, &error);
 	fail_unless(path == NULL, NULL);
 	fail_unless(error != NULL, NULL);
+	osync_error_unref(&error);
 	
 	osync_format_env_free(env);
 	
@@ -523,6 +524,7 @@ START_TEST (conv_find_path_false)
 	OSyncFormatConverterPath *path = osync_format_env_find_path_with_detectors(env, data1, format3, NULL, &error);
 	fail_unless(path == NULL, NULL);
 	fail_unless(error != NULL, NULL);
+	osync_error_unref(&error);
 	
 	osync_format_env_free(env);
 	
@@ -748,6 +750,7 @@ START_TEST (conv_find_circular_false)
 	OSyncFormatConverterPath *path = osync_format_env_find_path_with_detectors(env, data1, format4, NULL, &error);
 	fail_unless(path == NULL, NULL);
 	fail_unless(error != NULL, NULL);
+	osync_error_unref(&error);
 	
 	osync_format_env_free(env);
 	
