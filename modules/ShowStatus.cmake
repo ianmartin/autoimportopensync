@@ -11,7 +11,11 @@
 
 MACRO( SHOW_STATUS _name _message )
 	IF( DEFINED ${_name} )
-		MESSAGE( STATUS "${_message}\t\t${${_name}}" )
+		IF( ${ARGV2} )
+			MESSAGE( STATUS "${_message}\t\t${${_name}}\t(${${ARGV2}})" )
+		ELSE( ${ARGV2} )
+			MESSAGE( STATUS "${_message}\t\t${${_name}}" )
+		ENDIF( ${ARGV2} )
 	ELSE( DEFINED ${_name} )
 		MESSAGE( STATUS "${_message}\t\tOFF" )
 	ENDIF( DEFINED ${_name})
