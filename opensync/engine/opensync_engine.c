@@ -198,10 +198,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype);
 
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
-	GString *member_objtype_str = g_string_new(g_strdup_printf("%lli", memberid));
-	g_string_append(member_objtype_str,"_");
-	g_string_append(member_objtype_str, objtype);
-	const char *member_objtype = g_string_free(member_objtype_str, FALSE);
+	char *member_objtype = g_strdup_printf("%lli_%s", memberid, objtype); 
 
 	OSyncData *data = osync_change_get_data(change);
 
@@ -292,11 +289,15 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to find engine which can handle objtype %s", osync_change_get_objtype(change));
 		goto error;
 	}
+
+	g_free(member_objtype);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 
 error:
+	g_free(member_objtype);
+	
 	osync_engine_set_error(engine, error);
 	osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
