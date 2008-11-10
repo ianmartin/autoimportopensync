@@ -696,6 +696,7 @@ static void mock_finalize(void *data)
 		osync_hashtable_unref(dir->hashtable);
 
 		env->directories = g_list_remove(env->directories, dir);
+		g_free(dir);
 	}
 
 	if (env->mainsink)
