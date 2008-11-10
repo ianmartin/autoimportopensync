@@ -80,6 +80,7 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, con
  	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
 	
  	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
+	g_free(schemafilepath);
 	if ( xmlSchemaParserCtxt == NULL ) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema parser context.");
 		goto error;
