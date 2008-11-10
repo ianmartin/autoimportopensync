@@ -267,6 +267,8 @@ START_TEST (filter_save_and_load)
 	fail_unless(filter1->custom_filter->hook != NULL, NULL);
 	fail_unless(!strcmp(osync_filter_get_config(filter1), "test"), NULL);
 
+	osync_group_unref(group);
+
 	destroy_testbed(testbed);
 }
 END_TEST
