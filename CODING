@@ -144,6 +144,11 @@ Standard instructions:
     -Wbad-function-cast
     -Wcast-qual
     -std=iso9899:1990
+    -D_FORTIFY_SOURCE=2
+
+    Hint:
+    For developers using GCC there is a CMAKE_BUILD_TYPE "hacking" which sets
+    the default compiler flags to a recommended compiler flag set.
 
 LOGS and TRACES
 ---------------------------------------------------------------------
