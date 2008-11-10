@@ -1354,10 +1354,12 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyn
 		count ++;
 		OSyncObjFormatSink *format_sink = t->data;
 		g_string_append(string, osync_objformat_sink_get_objformat(format_sink));
-		if (size > 1 && count < size) g_string_append(string, " - ");
+		if (size > 1 && count < size)
+			g_string_append(string, " - ");
 	}
 
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %s, %p)", __func__, env, sourcedata, targets, g_string_free(string, FALSE), preferred_format ? preferred_format:"NONE", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %s, %p)", __func__, env, sourcedata, targets, string->str, preferred_format ? preferred_format:"NONE", error);
+	g_string_free(string, TRUE);
 	
 	path = _osync_format_env_find_path_fn(env, sourcedata, _target_fn_format_sinks, _target_fn_format_sinks_reached_lastconverter, targets, preferred_format, error);
 	if (!path) {
