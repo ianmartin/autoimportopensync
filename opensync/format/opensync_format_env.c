@@ -636,6 +636,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		 */
 		if (last_converter_fn(fndata, tree)) {
 			osync_trace(TRACE_INTERNAL, "Last converter for target format reached: %s.", (result)?osync_objformat_get_name(result->format):"null");
+			_vertice_unref(current);
 			break;
 		}
 		/* Check if saved result is equal to current regarding losses, objtype_changes
@@ -711,6 +712,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 			if (target_fn(fndata, neighbour->format)) {
 				osync_trace(TRACE_INTERNAL, "Possible target found.");
 				result = neighbour;
+				_vertice_ref(result);
 			}
 		}
 
