@@ -671,6 +671,7 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_advancedoption_param_add_valenum(param, "BAR2");
 	fail_unless(osync_list_length(osync_plugin_advancedoption_param_get_valenums(param)) == 2, NULL);
 	osync_plugin_advancedoption_add_parameter(option, param);
+	osync_plugin_advancedoption_param_unref(param);
 
 	/* Localization */
 	OSyncPluginLocalization *local = osync_plugin_localization_new(&error);
@@ -709,6 +710,7 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_resource_set_name(resource1, "foobar1");
 	osync_plugin_resource_set_mime(resource1, "foobar1");
 	osync_plugin_resource_add_objformat_sink(resource1, format_sink1);
+	osync_objformat_sink_unref(format_sink1);
 	osync_plugin_resource_set_objtype(resource1, "foobar1");
 	osync_plugin_resource_set_path(resource1, "foobar1");
 	osync_plugin_resource_set_url(resource1, "foobar1");
@@ -726,6 +728,7 @@ START_TEST (plugin_config_save_and_load)
 	osync_plugin_resource_set_name(resource2, "foobar2");
 	osync_plugin_resource_set_mime(resource2, "foobar2");
 	osync_plugin_resource_add_objformat_sink(resource2, format_sink2);
+	osync_objformat_sink_unref(format_sink2);
 	osync_plugin_resource_set_objtype(resource2, "foobar2");
 	osync_plugin_resource_set_path(resource2, "foobar2");
 	osync_plugin_resource_set_url(resource2, "foobar2");
