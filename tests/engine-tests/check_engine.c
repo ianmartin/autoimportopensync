@@ -23,6 +23,7 @@ static void _member_add_format(OSyncMember *member, const char *objtype, const c
        if (!osync_member_find_objtype_sink(member, objtype)) {
                sink = osync_objtype_sink_new(objtype, NULL);
 	       osync_member_add_objtype_sink(member, sink);
+	       osync_objtype_sink_unref(sink);
        }
 
        osync_member_add_objformat(member, objtype, objformat);
@@ -197,6 +198,7 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockobjtype1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -481,6 +483,7 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockformat1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -498,6 +501,7 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	format_sink = osync_objformat_sink_new("vcard", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = connect2;
@@ -514,7 +518,8 @@ static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	format_sink = osync_objformat_sink_new("plain", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
-	
+	osync_objformat_sink_unref(format_sink);
+
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = connect2;
 	functions.disconnect = disconnect2;
@@ -871,6 +876,7 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockobjtype1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -889,6 +895,7 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	format_sink = osync_objformat_sink_new("vcard", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = connect3;
@@ -906,6 +913,7 @@ static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	format_sink = osync_objformat_sink_new("plain", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = connect3;
@@ -1108,6 +1116,7 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockobjtype1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -1126,6 +1135,7 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	format_sink = osync_objformat_sink_new("vcard", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = connect3;
@@ -1143,6 +1153,7 @@ static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncE
 	
 	format_sink = osync_objformat_sink_new("plain", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	memset(&functions, 0, sizeof(functions));
 	functions.connect = connect3;
@@ -1395,6 +1406,7 @@ static void get_changes5(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_data_unref(changedata);
 	
 	osync_context_report_change(ctx, change);
+	osync_change_unref(change);
 	
 	g_atomic_int_inc(&(env->num_get_changes));
 	
@@ -1429,6 +1441,7 @@ static void *initialize5(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError 
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockformat1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -1606,6 +1619,7 @@ static void get_changes6(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_data_unref(changedata);
 		
 		osync_context_report_change(ctx, change);
+		osync_change_unref(change);
 	}
 	
 	g_atomic_int_inc(&(env->num_get_changes));
@@ -1629,6 +1643,7 @@ static void *initialize6(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError 
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockformat1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
@@ -1806,6 +1821,7 @@ static void get_changes7(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_data_unref(changedata);
 		
 		osync_context_report_change(ctx, change);
+		osync_change_unref(change);
 	}
 	
 	g_atomic_int_inc(&(env->num_get_changes));
@@ -1829,6 +1845,7 @@ static void *initialize7(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError 
 	
 	OSyncObjFormatSink *format_sink = osync_objformat_sink_new("mockformat1", error);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
+	osync_objformat_sink_unref(format_sink);
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
