@@ -228,6 +228,7 @@ void osync_member_unref(OSyncMember *member)
 	osync_assert(member);
 		
 	if (g_atomic_int_dec_and_test(&(member->ref_count))) {
+
 		if (member->pluginname)
 			g_free(member->pluginname);
 
@@ -464,6 +465,7 @@ OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **err
 	g_free(filename);
 
 	osync_member_set_config(member, config);
+	osync_plugin_config_unref(config);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return config;
