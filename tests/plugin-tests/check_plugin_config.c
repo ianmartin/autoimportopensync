@@ -622,7 +622,6 @@ START_TEST (plugin_config_resources)
 
 	fail_unless(osync_plugin_resource_ref(resource) != NULL, NULL);
 	osync_plugin_resource_unref(resource);
-	osync_plugin_resource_unref(resource);
 
 	osync_plugin_config_unref(config);
 
