@@ -570,6 +570,11 @@ void osync_engine_unref(OSyncEngine *engine)
 
 		if (engine->internalSchemas)
 			g_hash_table_destroy(engine->internalSchemas);
+
+#ifdef OPENSYNC_UNITTESTS
+		if (engine->schema_dir)
+			g_free(engine->schema_dir);
+#endif /* OPENSYNC_UNITTESTS */
 		
 		g_free(engine);
 		osync_trace(TRACE_EXIT, "%s", __func__);
