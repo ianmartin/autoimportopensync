@@ -296,6 +296,7 @@ void osync_plugin_advancedoption_remove_valenum(OSyncPluginAdvancedOption *optio
 	if (!data)
 		return;
 
+	g_free(data->data);
 	option->valenum = osync_list_remove(option->valenum, data->data);
 }
 
@@ -347,6 +348,9 @@ void osync_plugin_advancedoption_param_unref(OSyncPluginAdvancedOptionParameter 
 			
 		if (param->name)
 			g_free(param->name);
+
+		if (param->value)
+			g_free(param->value);
 
 		while (param->valenum) {
 			g_free(param->valenum->data);
@@ -433,6 +437,7 @@ void osync_plugin_advancedoption_param_remove_valenum(OSyncPluginAdvancedOptionP
 	if (!data)
 		return;
 
+	g_free(data->data);
 	param->valenum = osync_list_remove(param->valenum, data->data);
 }
 
