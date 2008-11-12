@@ -22,6 +22,7 @@ static void _member_add_objtype(OSyncMember *member, const char *objtype)
        if (!osync_member_find_objtype_sink(member, objtype)) {
                sink = osync_objtype_sink_new(objtype, NULL);
 	       osync_member_add_objtype_sink(member, sink);
+	       osync_objtype_sink_unref(sink);
        }
 }
 
