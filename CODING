@@ -46,6 +46,12 @@ Some highlights:
     if (condition)
         do_this;
 
+- Also it is a good practice to use always brackets in conditions:
+	 
+	 if (condition) {
+	 	do_only_this;
+	 }
+	 
 - Variables are always in lower case (like tmp_buf)
 - New defined types are capitalized (like OSyncEngine)
 - Never use typedefs just to hide pointers
@@ -70,7 +76,10 @@ CODE DOCUMENTATION
 
 * Add FIXME, TODO and XXX comments appropriately.
 
-* Doxygen
+* Use Doxygen (http://www.stack.nl/~dimitri/doxygen/) to document your code
+
+* Add your doxygen annotations in the header files. This allows other developers to read 
+  the documentation without having installed the source.
 
 * Add simple READMEs and pictures as needed, but concentrate
   on doxygen.
@@ -83,7 +92,7 @@ Always:
     * Use static for internal functions;
     * Use safe glib functions where possible;
     * Check validity of all received parameters;
-    * Use assert() while developing;
+    * Use osync_assert() while developing;
     * Do not use alloca() or other non-recommended functions;
     * Check for return errors even from malloc() and other
       standard system calls;
