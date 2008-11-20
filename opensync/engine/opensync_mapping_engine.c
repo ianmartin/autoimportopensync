@@ -167,13 +167,16 @@ static OSyncMappingEntryEngine *_osync_mapping_engine_get_latest_entry(OSyncMapp
 
 		if (cur < 0)
 			goto error;
+		
+		/* If there are several changes/entries having the
+		   same _and_ the latest revision -> don't declare
+		   a latest_change. Since it's not guranteed that those are
+		   equal, even with the _same_ revision.
+		 */
+		if (cur == latest)
+			latest_change = NULL;
 
-		if (cur == latest) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Entries got changed at the same time. Can't decide.");
-			goto error;
-		}
-
-		if (cur < latest)
+		if (cur <= latest)
 			continue;
 
 		latest = cur;
@@ -181,14 +184,15 @@ static OSyncMappingEntryEngine *_osync_mapping_engine_get_latest_entry(OSyncMapp
 	}
 
 	if (!latest_change) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest change.");
-		goto error;
+		osync_trace(TRACE_EXIT, "%s: Can't find the latest change.",
+				__func__);
+		return NULL;
 	}
 
 	latest_entry = _osync_mapping_engine_find_entry(engine, latest_change);
 
 	if (!latest_entry) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest entry.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest entry of the latest change.");
 		goto error;
 	}
 
