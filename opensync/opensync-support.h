@@ -53,6 +53,7 @@ OSYNC_EXPORT osync_bool osync_file_write(const char *filename, const char *data,
 OSYNC_EXPORT osync_bool osync_file_read(const char *filename, char **data, unsigned int *size, OSyncError **error);
 OSYNC_EXPORT const char *osync_get_version(void);
 OSYNC_EXPORT void *osync_try_malloc0(unsigned int size, OSyncError **error);
+OSYNC_EXPORT void osync_free(void *ptr);
 
 char *osync_strreplace(const char *input, const char *delimiter, const char *replacement);
 

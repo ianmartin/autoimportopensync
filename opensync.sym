@@ -238,6 +238,7 @@ osync_format_env_num_objformats
 osync_format_env_register_converter
 osync_format_env_register_filter
 osync_format_env_register_objformat
+osync_free
 osync_get_version
 osync_group_add_filter
 osync_group_add_member

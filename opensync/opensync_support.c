@@ -459,6 +459,21 @@ void *osync_try_malloc0(unsigned int size, OSyncError **error)
 	return result;
 }
 
+/*! @brief Frees memory
+ * 
+ * Frees memory allocated by osync_try_malloc0().
+ * 
+ * @param ptr Pointer to allocated memory which should get freed
+ * 
+ */
+void osync_free(void *ptr)
+{
+	if (!ptr)
+		return;
+
+	g_free(ptr);
+}
+
 /*! @brief Allocates a new thread with a g_mainloop 
  * 
  * @param context Pointer to GMainContext 
