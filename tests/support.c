@@ -42,7 +42,8 @@ char *setup_testbed(const char *fkt_name)
 	
 	setuid(65534);
 	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
-	mkdtemp(testbed);
+	if (!mkdtemp(testbed))
+		abort();
 	
 	char *command = NULL;
 	if (fkt_name) {
@@ -116,10 +117,13 @@ void destroy_testbed(char *path)
 {
 	char *command = g_strdup_printf("rm -rf %s", path);
 	if (olddir) {
-		chdir(olddir);
+		if (chdir(olddir) == -1)
+			abort();
 		g_free(olddir);
 	}
-	system(command);
+	if (system(command))
+		abort();
+
 	g_free(command);
 	osync_trace(TRACE_INTERNAL, "Tearing down %s", path);
 	g_free(path);
@@ -662,7 +666,7 @@ osync_bool osync_testing_file_copy(const char *source, const char *dest)
  *
  * @param source source filename
  * @param dest destination filename
- * @returns TRUE on success, FALSE otherwise
+ * @returns TRUE on when equal/success, FALSE otherwise
  *
  */
 osync_bool osync_testing_diff(const char *file1, const char *file2)
