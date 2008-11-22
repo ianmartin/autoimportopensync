@@ -55,7 +55,10 @@ OSYNC_EXPORT const char *osync_get_version(void);
 OSYNC_EXPORT void *osync_try_malloc0(unsigned int size, OSyncError **error);
 OSYNC_EXPORT void osync_free(void *ptr);
 
-char *osync_strreplace(const char *input, const char *delimiter, const char *replacement);
+OSYNC_EXPORT char *osync_strreplace(const char *input, const char *delimiter, const char *replacement);
+
+OSYNC_EXPORT char *osync_strdup(const char *str);
+OSYNC_EXPORT char *osync_strdup_printf(const char *format, ...);
 
 OPENSYNC_END_DECLS
 

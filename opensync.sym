@@ -803,6 +803,9 @@ osync_status_update_change
 osync_status_update_engine
 osync_status_update_mapping
 osync_status_update_member
+osync_strdup
+osync_strdup_printf
+osync_strreplace
 osync_time_alarmdu2sec
 osync_time_datestamp
 osync_time_isdate

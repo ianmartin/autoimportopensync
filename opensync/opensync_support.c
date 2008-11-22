@@ -730,5 +730,40 @@ char *osync_rand_str(int maxlength)
 
 	return retchar;
 }
+
+/*! @brief Duplicates a string 
+ * 
+ * Duplicates a string, ending with terminating-zero: \0
+ * 
+ * @param str The pointer of the string to duplicate
+ * @returns The duplicate string, caller is responsible for freeing.
+ * 
+ */
+char *osync_strdup(const char *str)
+{
+	return g_strdup(str);
+}
+
+/*! @brief Duplicates a formated string 
+ * 
+ * Duplicates a formated string, ending with terminating-zero: \0
+ * 
+ * @param str The pointer of the string to duplicate
+ * @param args 
+ * @returns The duplicate string, caller is responsible for freeing.
+ * 
+ */
+char *osync_strdup_printf(const char *format, ...)
+{
+	va_list ap;
+	char *str;
+
+	va_start(ap, format);
+	str = g_strdup_vprintf(format, ap); 
+	va_end(ap);
+
+	return str;
+}
+
 /*@}*/
 
