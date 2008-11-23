@@ -38,8 +38,6 @@
 #include "config.h"
 #include "support.h"
 
-#include "opensync/plugin/opensync_plugin_info_internals.h"
-
 typedef struct mock_env {
 	GList *directories;
 

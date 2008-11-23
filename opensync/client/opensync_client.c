@@ -38,7 +38,7 @@
 #include "opensync_client_private.h"
 
 #ifdef OPENSYNC_UNITTESTS
-#include "plugin/opensync_plugin_info_internals.h"
+#include "plugin/opensync_plugin_info_private.h"	/* FIXME: access directly private header */
 #endif
 
 typedef struct callContext {

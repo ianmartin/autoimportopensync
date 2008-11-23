@@ -23,7 +23,7 @@
 
 #include "opensync-format.h"
 #include "opensync-plugin.h"
-#include "opensync_plugin_info_internals.h"
+#include "opensync_plugin_info_private.h"
 
 #include "opensync-merger.h"
 #include "opensync-version.h"

@@ -21,6 +21,8 @@
 #include "mock_sync.h"
 #include "mock_format.h"
 
+#include "opensync/plugin/opensync_plugin_info_private.h"	/* FIXME: access direclty private header */
+
 static osync_bool mock_get_error(long long int memberid, const char *domain)
 {
         const char *env = g_getenv(domain);

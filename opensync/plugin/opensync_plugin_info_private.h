@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef OPENSYNC_PLUGIN_INFO_INTERNALS_H_
-#define OPENSYNC_PLUGIN_INFO_INTERNALS_H_
+#ifndef OPENSYNC_PLUGIN_INFO_PRIVATE_H_
+#define OPENSYNC_PLUGIN_INFO_PRIVATE_H_
 
 struct OSyncPluginInfo {
 	void *loop;
@@ -43,4 +43,4 @@ struct OSyncPluginInfo {
 #endif	
 };
 
-#endif /*OPENSYNC_PLUGIN_INFO_INTERNALS_H_*/
+#endif /* OPENSYNC_PLUGIN_INFO_PRIVATE_H_ */
