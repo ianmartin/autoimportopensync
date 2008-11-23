@@ -74,6 +74,7 @@ osync_converter_unref
 osync_data_get_data
 osync_data_get_objformat
 osync_data_get_objtype
+osync_data_get_printable
 osync_data_has_data
 osync_data_new
 osync_data_ref

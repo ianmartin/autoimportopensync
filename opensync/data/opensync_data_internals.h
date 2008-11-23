@@ -26,7 +26,6 @@ void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size);
 OSyncData *osync_data_clone(OSyncData *data, OSyncError **error);
 OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata);
 
-char *osync_data_get_printable(OSyncData *data);
 time_t osync_data_get_revision(OSyncData *data, OSyncError **error);
 
 #endif /* _OPENSYNC_DATA_INTERNALS_H_ */

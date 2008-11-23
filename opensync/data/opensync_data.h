@@ -35,5 +35,7 @@ OSYNC_EXPORT void osync_data_get_data(OSyncData *data, char **buffer, unsigned i
 OSYNC_EXPORT void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size);
 
 OSYNC_EXPORT osync_bool osync_data_has_data(OSyncData *data);
+
+OSYNC_EXPORT char *osync_data_get_printable(OSyncData *data);
 #endif /* _OPENSYNC_DATA_H_ */
 
