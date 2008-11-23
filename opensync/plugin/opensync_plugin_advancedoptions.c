@@ -22,7 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
-#include "opensync_plugin_advancedoptions_internals.h"
+#include "opensync_plugin_advancedoptions_private.h"
 
 
 static int _list_string_compare(void *a, void *b)

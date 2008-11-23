@@ -18,33 +18,27 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_AUTHENTICATON_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_AUTHENTICATON_PRIVATE_H_
 
-#define OSYNC_PLUGIN_CONFING_SCHEMA "plugin_config.xsd"
-
-/*! @brief Gives information about the plugin configuration 
+/*! @brief Gives information about required authentication settings 
  * 
- * @ingroup OSyncPluginConfigPrivateAPI 
+ * @ingroup OSyncPluginAuthenticationPrivateAPI 
  **/
-struct OSyncPluginConfig {
-	/** Advanced Options */
-	OSyncList *advancedoptions;
-	/** Connection configuration */
-	OSyncPluginConnection *connection;
-	/** Authentication configuration */
-	OSyncPluginAuthentication *authentication;
-	/** Localization configuration */
-	OSyncPluginLocalization *localization;
-	/** List of resource configurations */
-	OSyncList *resources;
+struct OSyncPluginAuthentication {
+	/** Username (or Login) to identifiy or authentifiy */
+	char *username;
+	/** Password to authenticate. DONT USE THIS! The password is NOT protect at all! */
+	char *password;
+	/** Reference or Key for Password Managers which store the password in a safe way. */
+	char *reference; 
 
-	/** Flags to store supported config options */
-	OSyncPluginConfigSupportedFlags supported;
+	/** Supported authentication options */
+	OSyncPluginAuthenticationOptionSupportedFlags supported_options;
 
 	/** Object reference counting */
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_CONFIG_INTERNALS_H_*/
+#endif /* _OPENSYNC_PLUGIN_AUTHENTICATON_PRIVATE_H_ */
 

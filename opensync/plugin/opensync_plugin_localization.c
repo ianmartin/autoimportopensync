@@ -22,7 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
-#include "opensync_plugin_localization_internals.h"
+#include "opensync_plugin_localization_private.h"
 
 OSyncPluginLocalization *osync_plugin_localization_new(OSyncError **error)
 {

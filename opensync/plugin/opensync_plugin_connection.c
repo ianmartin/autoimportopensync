@@ -22,7 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
-#include "opensync_plugin_connection_internals.h"
+#include "opensync_plugin_connection_private.h"
 
 OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error)
 {

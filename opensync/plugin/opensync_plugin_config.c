@@ -23,14 +23,16 @@
 
 #include "opensync-plugin.h"
 #include "opensync-format.h"
-#include "opensync_plugin_config_internals.h"
-#include "opensync_plugin_connection_internals.h"
-#include "opensync_plugin_advancedoptions_internals.h"
-#include "opensync_plugin_authentication_internals.h"
-#include "opensync_plugin_localization_internals.h"
-#include "opensync_plugin_resource_internals.h"
 
 #include "opensync_xml.h"
+
+#include "opensync_plugin_advancedoptions_private.h"	/* FIXME: direct access to private header */
+#include "opensync_plugin_authentication_private.h"	/* FIXME: direct access to private header */
+#include "opensync_plugin_connection_private.h"		/* FIXME: direct access to private header */
+#include "opensync_plugin_localization_private.h"	/* FIXME: direct access to private header */
+#include "opensync_plugin_resource_private.h"		/* FIXME: direct access to private header */
+
+#include "opensync_plugin_config_private.h"
 
 static OSyncPluginAdvancedOptionParameter *_osync_plugin_config_parse_advancedoption_param(OSyncPluginAdvancedOption *option, xmlNode *cur, OSyncError **error)
 {

@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_ADVANCEDOPTIONS_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_ADVANCEDOPTIONS_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_ADVANCEDOPTIONS_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_ADVANCEDOPTIONS_PRIVATE_H_
 
 /*! @brief Gives information about advanced plugin options 
  * 
@@ -80,6 +80,6 @@ struct OSyncPluginAdvancedOptionParameter {
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_ADVANCEDOPTIONS_INTERNALS_H_*/
+#endif /* _OPENSYNC_PLUGIN_ADVANCEDOPTIONS_PRIVATE_H_ */
 
 

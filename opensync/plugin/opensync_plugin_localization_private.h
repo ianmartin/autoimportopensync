@@ -18,27 +18,27 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_AUTHENTICATON_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_AUTHENTICATON_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_LOCALIZATION_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_LOCALIZATION_PRIVATE_H_
 
-/*! @brief Gives information about required authentication settings 
+/*! @brief Gives information about current localization settings 
  * 
- * @ingroup OSyncPluginAuthenticationPrivateAPI 
+ * @ingroup OSyncPluginLocalizationPrivateAPI 
  **/
-struct OSyncPluginAuthentication {
-	/** Username (or Login) to identifiy or authentifiy */
-	char *username;
-	/** Password to authenticate. DONT USE THIS! The password is NOT protect at all! */
-	char *password;
-	/** Reference or Key for Password Managers which store the password in a safe way. */
-	char *reference; 
+struct OSyncPluginLocalization {
+	/** Encoding of device/service/application (e.g. cp1925, ...) */
+	char *encoding;
+	/** Timezone of device/service/application (e.g. Europe/Berlin, ...) */
+	char *timezone;
+	/** Language of device/service/application (e.g. en_US, de_DE, ...) */
+	char *language;
 
-	/** Supported authentication options */
-	OSyncPluginAuthenticationOptionSupportedFlags supported_options;
+	/** Supported localization options */
+	OSyncPluginLocalizationOptionSupportedFlags supported_options;
 
 	/** Object reference counting */
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_AUTHENTICATON_INTERNALS_H_*/
+#endif /* _OPENSYNC_PLUGIN_LOCALIZATION_PRIVATE_H_ */
 

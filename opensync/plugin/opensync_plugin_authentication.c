@@ -22,7 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
-#include "opensync_plugin_authentication_internals.h"
+#include "opensync_plugin_authentication_private.h"
 
 OSyncPluginAuthentication *osync_plugin_authentication_new(OSyncError **error)
 {

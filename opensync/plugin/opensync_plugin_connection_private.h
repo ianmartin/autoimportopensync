@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_CONNECTION_INTERANLS_H_
-#define _OPENSYNC_PLUGIN_CONNECTION_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_CONNECTION_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_CONNECTION_PRIVATE_H_
 
 /*! @brief Gives information about the current connection type 
  * 
@@ -70,5 +70,5 @@ struct OSyncPluginConnection {
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_CONNECTION_INTERNALS_H_*/
+#endif /* _OPENSYNC_PLUGIN_CONNECTION_PRIVATE_H_ */
 

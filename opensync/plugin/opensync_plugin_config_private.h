@@ -18,37 +18,33 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_RESOURCE_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_RESOURCE_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_CONFIG_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_CONFIG_PRIVATE_H_
 
-/*! @brief Gives information about resource
+#define OSYNC_PLUGIN_CONFING_SCHEMA "plugin_config.xsd"
+
+/*! @brief Gives information about the plugin configuration 
  * 
- * @ingroup OSyncPluginResourcePrivateAPI 
+ * @ingroup OSyncPluginConfigPrivateAPI 
  **/
-struct OSyncPluginResource {
-	/** If resource is enabled */
-	osync_bool enabled;
-	/** Human readable identifier/name of resource */
-	char *name;
-	/** MIME type of this resource */
-	char *mime;
-	/** Objtype of the resource */
-	char *objtype;
-	/** Preferred objformat : step or target **/
-	char *preferred_format;
-	/** OSyncObjFormatSink List of this resource */
-	OSyncList *objformatsinks;
-	/** Filesystem path */
-	char *path;
-	/** URL */
-	char *url;
+struct OSyncPluginConfig {
+	/** Advanced Options */
+	OSyncList *advancedoptions;
+	/** Connection configuration */
+	OSyncPluginConnection *connection;
+	/** Authentication configuration */
+	OSyncPluginAuthentication *authentication;
+	/** Localization configuration */
+	OSyncPluginLocalization *localization;
+	/** List of resource configurations */
+	OSyncList *resources;
 
-	/** Supported resource options */
-	OSyncPluginResourceOptionSupportedFlags supported_options;
+	/** Flags to store supported config options */
+	OSyncPluginConfigSupportedFlags supported;
 
 	/** Object reference counting */
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_PLUGIN_RESOURCE_INTERNALS_H_*/
+#endif /* _OPENSYNC_PLUGIN_CONFIG_PRIVATE_H_ */
 
