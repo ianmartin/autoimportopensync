@@ -32,6 +32,8 @@
 #include "opensync_client_internals.h"
 #include "opensync_client_private.h"
 
+#include "opensync_context_internals.h"
+
 #ifdef OPENSYNC_UNITTESTS
 #include "plugin/opensync_plugin_info_internals.h"
 #endif

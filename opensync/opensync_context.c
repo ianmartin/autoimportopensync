@@ -21,8 +21,10 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync-context.h"
 #include "opensync-data.h"
+
+#include "opensync-context.h"
+#include "opensync_context_private.h"
 #include "opensync_context_internals.h"
 
 OSyncContext *osync_context_new(OSyncError **error)
