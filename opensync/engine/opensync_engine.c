@@ -37,6 +37,7 @@
 
 #include "opensync_obj_engine.h"
 #include "opensync_engine.h"
+#include "opensync_engine_private.h"
 #include "opensync_engine_internals.h"
 
 #ifdef OPENSYNC_UNITTESTS

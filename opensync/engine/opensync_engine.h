@@ -135,12 +135,6 @@ OSYNC_EXPORT OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error
 OSYNC_EXPORT OSyncEngine *osync_engine_ref(OSyncEngine *engine);
 OSYNC_EXPORT void osync_engine_unref(OSyncEngine *engine);
 
-OSYNC_EXPORT void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
-OSYNC_EXPORT void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
-
-OSYNC_EXPORT OSyncGroup *osync_engine_get_group(OSyncEngine *engine);
-OSYNC_EXPORT OSyncArchive *osync_engine_get_archive(OSyncEngine *engine);
-
 OSYNC_EXPORT osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error);
 
@@ -151,37 +145,21 @@ OSYNC_EXPORT osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncErr
 OSYNC_EXPORT osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
 
-//OSYNC_EXPORT void osync_engine_pause(OSyncEngine *engine);
 OSYNC_EXPORT osync_bool osync_engine_abort(OSyncEngine *engine, OSyncError **error);
 
-//OSYNC_EXPORT void osync_engine_one_iteration(OSyncEngine *engine);
-//OSYNC_EXPORT void osync_engine_flag_manual(OSyncEngine *engine);
 
-typedef struct OSyncMappingEngine OSyncMappingEngine;
-
-//typedef void *(* osync_message_cb) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
 typedef void (* osync_conflict_cb) (OSyncEngine *, OSyncMappingEngine *, void *);
 typedef void (* osync_status_change_cb) (OSyncChangeUpdate *, void *);
 typedef void (* osync_status_mapping_cb) (OSyncMappingUpdate *, void *);
 typedef void (* osync_status_member_cb) (OSyncMemberUpdate *, void *);
 typedef void (* osync_status_engine_cb) (OSyncEngineUpdate *, void *);
 
-/* OSYNC_EXPORT void osync_engine_set_message_callback(OSyncEngine *engine, osync_message_cb callback, void *user_data);*/
 OSYNC_EXPORT void osync_engine_set_conflict_callback(OSyncEngine *engine, osync_conflict_cb callback, void *user_data);
 OSYNC_EXPORT void osync_engine_set_changestatus_callback(OSyncEngine *engine, osync_status_change_cb callback, void *user_data);
 OSYNC_EXPORT void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, osync_status_mapping_cb callback, void *user_data);
 OSYNC_EXPORT void osync_engine_set_enginestatus_callback(OSyncEngine *engine, osync_status_engine_cb callback, void *user_data);
 OSYNC_EXPORT void osync_engine_set_memberstatus_callback(OSyncEngine *engine, osync_status_member_cb callback, void *user_data);
 
-OSYNC_EXPORT void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event);
-OSYNC_EXPORT osync_bool osync_engine_check_get_changes(OSyncEngine *engine);
-
-OSYNC_EXPORT int osync_engine_num_proxies(OSyncEngine *engine);
-OSYNC_EXPORT OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth);
-OSYNC_EXPORT OSyncClientProxy *osync_engine_find_proxy(OSyncEngine *engine, OSyncMember *member);
-
-OSYNC_EXPORT int osync_engine_num_objengine(OSyncEngine *engine);
-OSYNC_EXPORT OSyncObjEngine *osync_engine_nth_objengine(OSyncEngine *engine, int nth);
 OSYNC_EXPORT OSyncObjEngine *osync_engine_find_objengine(OSyncEngine *engine, const char *objtype);
 
 OSYNC_EXPORT osync_bool osync_engine_mapping_solve(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncChange *change, OSyncError **error);

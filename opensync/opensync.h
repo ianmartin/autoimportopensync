@@ -176,6 +176,7 @@ typedef struct OSyncMapping OSyncMapping;
 typedef struct OSyncMappingTable OSyncMappingTable;
 typedef struct OSyncMappingView OSyncMappingView;
 typedef struct OSyncMappingEntry OSyncMappingEntry;
+typedef struct OSyncMappingEngine OSyncMappingEngine;
 
 /* Helper component */
 typedef struct OSyncAnchorDB OSyncAnchorDB;

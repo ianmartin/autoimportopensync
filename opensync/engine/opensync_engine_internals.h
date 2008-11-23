@@ -21,102 +21,23 @@
 #ifndef OPENSYNC_ENGINE_INTERNALS_H_
 #define OPENSYNC_ENGINE_INTERNALS_H_
 
-typedef enum {
-	OSYNC_ENGINE_SOLVE_DUPLICATE,
-	OSYNC_ENGINE_SOLVE_CHOOSE,
-	OSYNC_ENGINE_SOLVE_IGNORE,
-	OSYNC_ENGINE_SOLVE_USE_LATEST
-} OSyncEngineSolveType;
+osync_bool osync_engine_check_get_changes(OSyncEngine *engine);
 
-typedef struct OSyncEngineCommand {
-	OSyncEngineCmd cmd;
-	OSyncMappingEngine *mapping_engine;
-	OSyncChange *master;
-	OSyncEngineSolveType solve_type;
-	OSyncMember *member;
-} OSyncEngineCommand;
+void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event);
 
-struct OSyncEngine {
-	int ref_count;
-	/** The opensync group **/
-	OSyncGroup *group;
-	OSyncArchive *archive;
-	
-	char *engine_path;
-	char *plugin_dir;
-	char *format_dir;
-#ifdef OPENSYNC_UNITTESTS
-	char *schema_dir;
-#endif /* OPENSYNC_UNITTESTS */	
-	OSyncFormatEnv *formatenv;
-	OSyncPluginEnv *pluginenv;
-	
-	OSyncEngineState state;
-	
-	osync_conflict_cb conflict_callback;
-	void *conflict_userdata;
-	
-	osync_status_change_cb changestat_callback;
-	void *changestat_userdata;
-	
-	osync_status_member_cb mebstat_callback;
-	void *mebstat_userdata;
-	
-	osync_status_engine_cb engstat_callback;
-	void *engstat_userdata;
-	
-	osync_status_mapping_cb mapstat_callback;
-	void *mapstat_userdata;
-	
-	//void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
-	//void *plgmsg_userdata;
-	
-	/** The g_main_loop of this engine **/
-	OSyncThread *thread;
-	GMainContext *context;
-	
-	GAsyncQueue *command_queue;
-	GSourceFuncs *command_functions;
-	GSource *command_source;
-	
-	GCond* syncing;
-	GMutex* syncing_mutex;
-	
-	GCond* started;
-	GMutex* started_mutex;
-	
-	/** proxies contains a list of all OSyncClientProxy objects **/
-	GList *proxies;
+OSyncClientProxy *osync_engine_find_proxy(OSyncEngine *engine, OSyncMember *member);
 
-	/** object_engines contains a list of all OSyncObjEngine objects **/
-	GList *object_engines;
+OSyncArchive *osync_engine_get_archive(OSyncEngine *engine);
+OSyncGroup *osync_engine_get_group(OSyncEngine *engine);
 
-	osync_bool man_dispatch;
-	osync_bool allow_sync_alert;
-	
-	OSyncError *error;
-	
-	int proxy_connects;
-	int proxy_disconnects;
-	int proxy_get_changes;
-	int proxy_written;
-	int proxy_sync_done;
-	int proxy_errors;
-	
-	int obj_errors;
-	int obj_connects;
-	int obj_disconnects;
-	int obj_get_changes;
-	int obj_written;
-	int obj_sync_done;
-	
-	osync_bool busy;
-	
-	GHashTable *internalFormats;
-	GHashTable *internalSchemas;
-	/** converter_paths contains a hash of all OSyncFormatConverterPath objects **/
-	GHashTable *converterPathes;
-};
+OSyncObjEngine *osync_engine_nth_objengine(OSyncEngine *engine, int nth);
+int osync_engine_num_objengine(OSyncEngine *engine);
+
+OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth);
+int osync_engine_num_proxies(OSyncEngine *engine);
+
+void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
+void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
 
 #ifdef OPENSYNC_UNITTESTS
 void osync_engine_set_schemadir(OSyncEngine *engine, const char *schema_dir);

@@ -30,6 +30,8 @@
 #include "opensync-mapping.h"
 #include "opensync-plugin.h"
 
+#include "opensync_engine_internals.h"
+
 #include "opensync_obj_engine.h"
 #include "opensync_obj_engine_internals.h"
 

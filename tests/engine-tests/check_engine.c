@@ -9,6 +9,8 @@
 #include <opensync/opensync-context.h>
 
 #include "opensync/engine/opensync_engine_internals.h"
+#include "opensync/engine/opensync_engine_private.h"
+
 #include "opensync/group/opensync_member_internals.h"
 #include "opensync/client/opensync_client_internals.h"
 

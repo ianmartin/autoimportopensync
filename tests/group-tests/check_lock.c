@@ -3,7 +3,10 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync-group.h>
 #include <opensync/opensync_internals.h>
+
 #include "opensync/engine/opensync_engine_internals.h"
+#include "opensync/engine/opensync_engine_private.h"
+
 #include "opensync/group/opensync_group_internals.h"
 
 START_TEST (simple_lock)

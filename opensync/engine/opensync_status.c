@@ -28,6 +28,8 @@
 #include "opensync-data.h"
 
 #include "opensync_engine_internals.h"
+#include "opensync_engine_private.h" /* FIXME: Access private struct from OSyncEngine */
+
 #include "opensync_mapping_engine_internals.h"
 
 void osync_status_free_member_update(OSyncMemberUpdate *update)

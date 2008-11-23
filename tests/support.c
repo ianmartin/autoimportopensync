@@ -1,5 +1,7 @@
 #include "support.h"
 
+#include "opensync/engine/opensync_engine_internals.h"
+
 char *olddir = NULL;
 
 static void reset_env(void)
