@@ -21,67 +21,9 @@
 #ifndef _OPENSYNC_UPDATER_INTERNALS_H
 #define _OPENSYNC_UPDATER_INTERNALS_H 
 
-#include <libxml/xmlIO.h>
-#include <libxml/parser.h>
-#include <libxml/xmlmemory.h>
-
-#include <libxslt/xslt.h>
-#include <libxslt/transform.h>
-#include <libxslt/xsltutils.h>
-#include <libxslt/xsltInternals.h>
-
-#include <libexslt/exslt.h>
-
-#define OSYNC_UPDATER_SUFFIX ".xsl"
-
-typedef enum {
-	OSYNC_UPDATER_UNKOWN,
-	OSYNC_UPDATER_PROCESSING_MEMBER_CONFIG,
-	OSYNC_UPDATER_PROCESSING_MEMBER_DATABASE,
-	OSYNC_UPDATER_PROCESSING_GROUP_CONFIG,
-	OSYNC_UPDATER_PROCESSING_GROUP_DATABASE,
-	OSYNC_UPDATER_NUM
-} OSyncUpdaterEvent; 
-
-struct OSyncUpdater {
-	/* reference counter for OSyncUpdater */
-	int ref_count;
-
-	/* Error stack for errors during update process */
-	OSyncError *error;
-
-	/* The OSyncGroup which are handled */
-	OSyncGroup *group;
-
-	/* Updates Directory (by default: OPENSYNC_UPDATESDIR) */
-	char *updatesdir;
-
-	/* OSyncUpdater status callback */
-	osync_updater_cb status_callback;
-
-	GCond *updating;
-	GMutex *updating_mutex;
-
-	OSyncThread *thread;
-	GMainContext *context;
-
-	int member_version;
-	int group_version;
-	int plugin_version;
-
-};
-
-struct OSyncUpdaterStatus {
-	/** The type of the status update */
-	OSyncUpdaterEvent type;
-	/** The member for which the status update is, on NULL it's about the group */
-	OSyncMember *member;
-	/** If the status was a error, this error will be set */
-	OSyncError *error;
-};
-
 void osync_updater_set_group_version(OSyncUpdater *updater, int major);
 void osync_updater_set_member_version(OSyncUpdater *updater, int major);
 void osync_updater_set_plugin_version(OSyncUpdater *updater, int major);
 
 #endif /*  _OPENSYNC_UPDATER_INTERNALS_H */
+

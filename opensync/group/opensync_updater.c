@@ -18,13 +18,26 @@
  * 
  */
 
+#include <libxml/xmlIO.h>
+#include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
+
+#include <libxslt/xslt.h>
+#include <libxslt/transform.h>
+#include <libxslt/xsltutils.h>
+#include <libxslt/xsltInternals.h>
+
+#include <libexslt/exslt.h>
+
 #include "opensync.h"
 #include "opensync_internals.h"
 
 #include "opensync-group.h"
 
 #include "opensync_xml.h"
+
 #include "opensync_updater.h"
+#include "opensync_updater_private.h"
 #include "opensync_updater_internals.h"
 
 /**
