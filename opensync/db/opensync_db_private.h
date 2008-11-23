@@ -23,8 +23,6 @@
 
 #include <sqlite3.h>
 
-#include "opensync_db.h"
-
 struct OSyncDB {
 	sqlite3 *sqlite3db;
 };
