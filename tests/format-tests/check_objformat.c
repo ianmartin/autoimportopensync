@@ -2,6 +2,7 @@
 
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-serializer.h>
+#include "opensync/format/opensync_objformat_internals.h"
 
 static OSyncConvCmpResult compare_format(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {

@@ -22,6 +22,8 @@
 #include "opensync_internals.h"
 
 #include "opensync-format.h"
+#include "format/opensync_objformat_internals.h"
+
 #include "opensync-data.h"
 #include "opensync_data_private.h"
 #include "opensync_data_internals.h"

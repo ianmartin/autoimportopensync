@@ -23,6 +23,7 @@
 
 #include "opensync-format.h"
 #include "opensync_objformat_internals.h"
+#include "opensync_objformat_private.h"
 
 /**
  * @defgroup OSyncObjectFormatAPI OpenSync Object Format

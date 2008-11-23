@@ -27,6 +27,7 @@
 
 #include "opensync-format.h"
 #include "opensync_format_env_internals.h"
+#include "opensync_objformat_internals.h"
 
 #include "opensync_filter_internals.h"
 

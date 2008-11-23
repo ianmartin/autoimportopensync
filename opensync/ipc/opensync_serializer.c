@@ -25,6 +25,8 @@
 
 #include "opensync-data.h"
 #include "opensync-format.h"
+#include "format/opensync_objformat_internals.h"
+
 #include "opensync-plugin.h"
 
 #include "opensync_serializer_internals.h"

@@ -18,9 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_OBJFORMAT_INTERNALS_H_
-#define _OPENSYNC_OBJFORMAT_INTERNALS_H_
-
+#ifndef _OPENSYNC_OBJFORMAT_PRIVATE_H_
+#define _OPENSYNC_OBJFORMAT_PRIVATE_H_
 
 /**
  * @defgroup OSyncConvPrivate OpenSync Conversion Internals
@@ -56,4 +55,4 @@ struct OSyncObjFormat {
 
 /*@}*/
 
-#endif //_OPENSYNC_OBJFORMAT_INTERNALS_H_
+#endif /* _OPENSYNC_OBJFORMAT_PRIVATE_H_ */
