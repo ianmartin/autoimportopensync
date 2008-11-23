@@ -24,6 +24,7 @@
 #include "opensync-module.h"
 #include "opensync-plugin.h"
 #include "opensync_plugin_env_internals.h"
+#include "opensync_plugin_env_private.h"
 
 /**
  * @defgroup PublicAPI Public APIs

@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_ENV_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_ENV_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_ENV_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_ENV_PRIVATE_H_
 
 struct OSyncPluginEnv {
 	GList *plugins;
@@ -29,4 +29,4 @@ struct OSyncPluginEnv {
 	GModule *current_module;
 };
 
-#endif //_OPENSYNC_PLUGIN_ENV_INTERNALS_H_
+#endif /* _OPENSYNC_PLUGIN_ENV_PRIVATE_H_ */

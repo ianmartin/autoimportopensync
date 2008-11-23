@@ -559,7 +559,6 @@ osync_plugin_discover
 osync_plugin_env_find_plugin
 osync_plugin_env_free
 osync_plugin_env_load
-osync_plugin_env_load_module
 osync_plugin_env_new
 osync_plugin_env_nth_plugin
 osync_plugin_env_num_plugins
