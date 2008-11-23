@@ -25,11 +25,9 @@
 #include "opensync-format.h"
 #include "format/opensync_filter_internals.h"
 
-#include "db/opensync_db_internals.h"
-
 #include "opensync-group.h"
 #include "opensync_group_internals.h"
-
+#include "opensync-db.h"
 
 #ifdef OPENSYNC_UNITTESTS
 #include "opensync_member_internals.h"

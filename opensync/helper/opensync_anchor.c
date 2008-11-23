@@ -21,9 +21,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "db/opensync_db_internals.h"
-
 #include "opensync-helper.h"
+#include "opensync-db.h"
 
 /*! @brief Create the anchor table in the specified database
  * 
