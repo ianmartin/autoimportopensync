@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef OPENSYNC_ERROR_INTERNALS_H_
-#define OPENSYNC_ERROR_INTERNALS_H_
+#ifndef OPENSYNC_ERROR_PRIVATE_H_
+#define OPENSYNC_ERROR_PRIVATE_H_
 
 /*! @brief Represent an error
  */
@@ -32,4 +32,4 @@ struct OSyncError {
 	OSyncError *child;
 };
 
-#endif //OPENSYNC_ERROR_INTERNALS_H_
+#endif //OPENSYNC_ERROR_PRIVATE_H_

@@ -21,7 +21,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync_error_internals.h"
+#include "opensync_error_private.h"
 
 /**
  * @defgroup OSyncErrorPrivateAPI OpenSync Error Internals
