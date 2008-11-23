@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 
 #include <opensync/opensync-ipc.h>
+#include "opensync/ipc/opensync_queue_internals.h"
 
 START_TEST (ipc_new)
 {

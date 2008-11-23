@@ -28,6 +28,7 @@
 
 #include "opensync-ipc.h"
 #include "ipc/opensync_serializer_internals.h"
+#include "ipc/opensync_queue_internals.h"
 
 #include "opensync-format.h"
 #include "opensync-version.h"

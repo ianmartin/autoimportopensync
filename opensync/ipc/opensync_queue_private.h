@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_QUEUE_INTERNALS_H
-#define _OPENSYNC_QUEUE_INTERNALS_H
+#ifndef _OPENSYNC_QUEUE_PRIVATE_H
+#define _OPENSYNC_QUEUE_PRIVATE_H
 
 #include <fcntl.h>
 #ifndef _WIN32
@@ -110,4 +110,5 @@ typedef struct OSyncPendingMessage {
 
 /*@}*/
 
-#endif /*_OPENSYNC_QUEUE_INTERNALS_H*/
+#endif /* _OPENSYNC_QUEUE_PRIVATE_H */
+

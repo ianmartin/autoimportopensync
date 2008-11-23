@@ -26,7 +26,7 @@
 #include "opensync_queue.h"
 
 #include "opensync_queue_internals.h"
-
+#include "opensync_queue_private.h"
 
 /**
  * @ingroup OSyncQueue

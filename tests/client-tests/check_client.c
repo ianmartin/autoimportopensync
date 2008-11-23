@@ -1,9 +1,10 @@
 #include "support.h"
 #include <sys/wait.h>
 
-#include <opensync/opensync-client.h>
 #include <opensync/opensync-ipc.h>
+#include "opensync/ipc/opensync_queue_internals.h"
 
+#include <opensync/opensync-client.h>
 #include "opensync/client/opensync_client_internals.h"
 
 START_TEST (client_new)
