@@ -26,6 +26,8 @@
 #include "opensync-format.h"
 #include "opensync_format_env_internals.h"
 
+#include "opensync_filter_internals.h"
+
 /*! @brief Loads the modules from a given directory
  * 
  * Loads all modules from a directory into a osync environment

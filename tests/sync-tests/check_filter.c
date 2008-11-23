@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include "opensync/format/opensync_filter_internals.h"
+#include "opensync/format/opensync_filter_private.h"
 #include "opensync/group/opensync_group_internals.h"
 #include "opensync/engine/opensync_engine_internals.h"
 

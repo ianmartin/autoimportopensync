@@ -24,6 +24,7 @@
 #include "opensync-data.h"
 #include "opensync-format.h"
 #include "opensync_filter_internals.h"
+#include "opensync_filter_private.h"
 
 /**
  * @defgroup OSyncFilterAPI OpenSync Filter

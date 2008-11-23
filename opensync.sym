@@ -71,10 +71,6 @@ osync_converter_ref
 osync_converter_set_finalize_func
 osync_converter_set_initialize_func
 osync_converter_unref
-osync_custom_filter_invoke
-osync_custom_filter_new
-osync_custom_filter_ref
-osync_custom_filter_unref
 osync_data_clone
 osync_data_compare
 osync_data_get_data
@@ -160,14 +156,6 @@ osync_error_stack
 osync_error_unref
 osync_file_read
 osync_file_write
-osync_filter_get_config
-osync_filter_get_objtype
-osync_filter_invoke
-osync_filter_new
-osync_filter_new_custom
-osync_filter_ref
-osync_filter_set_config
-osync_filter_unref
 osync_format_env_convert
 osync_format_env_detect_objformat
 osync_format_env_detect_objformat_full

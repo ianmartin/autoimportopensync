@@ -18,16 +18,30 @@
  * 
  */
 
-#ifndef OPENSYNCFORMAT_H_
-#define OPENSYNCFORMAT_H_
+#ifndef _OPENSYNC_FILTER_PRIVATE_H_
+#define _OPENSYNC_FILTER_PRIVATE_H_
 
-OPENSYNC_BEGIN_DECLS
+/*! @brief Represents a filter to filter changes 
+ * @ingroup OSyncFilterPrivate
+ **/
+struct OSyncFilter {
+	char *objtype;
+	OSyncFilterAction action;
+	OSyncCustomFilter *custom_filter;
+	char *config;
+	int ref_count;
+};
 
-#include "format/opensync_converter.h"
-#include "format/opensync_format_env.h"
-#include "format/opensync_objformat.h"
-#include "format/opensync_objformat_sink.h"
+/*! @brief Represents a custom filter that can be used to call hooks
+ * @ingroup OSyncFilterPrivate
+ **/
+struct OSyncCustomFilter {
+	char *name;
+	char *objtype;
+	char *objformat;
+	OSyncFilterFunction hook;
+	int ref_count;
+};
 
-OPENSYNC_END_DECLS
+#endif /* _OPENSYNC_FILTER_PRIVATE_H_ */
 
-#endif /*OPENSYNCFORMAT_H_*/
