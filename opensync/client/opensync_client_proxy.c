@@ -22,7 +22,10 @@
 #include "opensync_internals.h"
 
 #include "opensync-data.h"
+
 #include "opensync-ipc.h"
+#include "ipc/opensync_serializer_internals.h"
+
 #include "opensync-client.h"
 #include "opensync-group.h"
 #include "opensync-plugin.h"

@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 
 #include <opensync/opensync-ipc.h>
+#include "opensync/ipc/opensync_serializer_internals.h"
 #include <opensync/opensync-plugin.h>
 
 static osync_bool _compare_string(const void *string1, const void *string2)

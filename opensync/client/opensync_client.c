@@ -23,7 +23,10 @@
 
 #include "opensync-context.h"
 #include "opensync-plugin.h"
+
 #include "opensync-ipc.h"
+#include "ipc/opensync_serializer_internals.h"
+
 #include "opensync-format.h"
 #include "opensync-version.h"
 #include "opensync-merger.h"

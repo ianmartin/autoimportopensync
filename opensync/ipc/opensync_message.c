@@ -21,7 +21,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync_serializer.h"
+#include "opensync_serializer_internals.h"
 #include "opensync_message.h"
 
 #include "opensync_message_internals.h"

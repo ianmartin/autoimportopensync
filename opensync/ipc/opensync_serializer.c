@@ -21,12 +21,13 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync_serializer.h"
 #include "opensync_message.h"
 
 #include "opensync-data.h"
 #include "opensync-format.h"
 #include "opensync-plugin.h"
+
+#include "opensync_serializer_internals.h"
 
 osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError **error)
 {
