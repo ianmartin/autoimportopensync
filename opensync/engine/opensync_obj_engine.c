@@ -35,6 +35,7 @@
 #include "opensync_engine_internals.h"
 #include "opensync_sink_engine_internals.h"
 #include "opensync_mapping_entry_engine_internals.h"
+#include "opensync_status_internals.h"
 
 #include "opensync_mapping_engine.h"
 #include "opensync_mapping_engine_internals.h"

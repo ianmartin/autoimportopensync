@@ -35,7 +35,8 @@
 #include "archive/opensync_archive_internals.h"
 #include "client/opensync_client_proxy_internals.h"
 
-#include "opensync_obj_engine.h"
+#include "opensync_status_internals.h"
+
 #include "opensync_engine.h"
 #include "opensync_engine_private.h"
 #include "opensync_engine_internals.h"

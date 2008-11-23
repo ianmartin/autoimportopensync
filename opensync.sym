@@ -657,15 +657,6 @@ osync_queue_disconnect
 osync_queue_free
 osync_queue_new
 osync_queue_new_from_fd
-osync_status_conflict
-osync_status_free_change_update
-osync_status_free_engine_update
-osync_status_free_mapping_update
-osync_status_free_member_update
-osync_status_update_change
-osync_status_update_engine
-osync_status_update_mapping
-osync_status_update_member
 osync_strdup
 osync_strdup_printf
 osync_strreplace

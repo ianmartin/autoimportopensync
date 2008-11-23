@@ -29,23 +29,22 @@
 #include "opensync-data.h"
 #include "opensync-mapping.h"
 #include "opensync-plugin.h"
-#include "plugin/opensync_objtype_sink_internals.h"
 
 #include "opensync_engine_internals.h"
-
-#include "opensync_obj_engine.h"
+#include "opensync_status_internals.h"
 #include "opensync_obj_engine_internals.h"
-
 #include "opensync_sink_engine_internals.h"
 #include "opensync_mapping_entry_engine_internals.h"
 
-#include "opensync_mapping_engine.h"
-#include "opensync_mapping_engine_internals.h"
-
+#include "plugin/opensync_objtype_sink_internals.h"
 #include "archive/opensync_archive_internals.h"
 #include "data/opensync_change_internals.h"
 #include "data/opensync_data_internals.h"
 #include "client/opensync_client_proxy_internals.h"
+
+#include "opensync_mapping_engine.h"
+#include "opensync_mapping_engine_internals.h"
+
 
 OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error)
 {
