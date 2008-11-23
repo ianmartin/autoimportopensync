@@ -24,6 +24,7 @@
 #include "opensync-data.h"
 #include "opensync-format.h"
 #include "opensync_change_internals.h"
+#include "opensync_change_private.h"
 
 /**
  * @defgroup OSyncChangeAPI OpenSync Change

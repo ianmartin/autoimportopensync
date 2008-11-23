@@ -27,6 +27,8 @@
 #include "opensync-merger.h"
 #include "opensync_member_internals.h"
 
+#include "merger/opensync_capabilities_internals.h"
+
 #include "opensync_xml.h"
 
 /**

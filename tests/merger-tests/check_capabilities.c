@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include <opensync/opensync-merger.h>
+#include "opensync/merger/opensync-merger_internals.h"
 
 START_TEST (capabilities_new)
 {

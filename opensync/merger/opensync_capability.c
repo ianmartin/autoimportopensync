@@ -26,6 +26,8 @@
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"
 
+#include "opensync_capabilities_private.h" /* FIXME: include forgein private-header */
+
 /**
  * @defgroup OSyncCapabilityPrivateAPI OpenSync Capability Internals
  * @ingroup OSyncPrivate

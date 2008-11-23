@@ -6,15 +6,9 @@ osync_archive_new
 osync_archive_ref
 osync_archive_unref
 osync_capabilities_assemble
-osync_capabilities_get_first
-osync_capabilities_load
-osync_capabilities_member_get_capabilities
-osync_capabilities_member_has_capabilities
-osync_capabilities_member_set_capabilities
 osync_capabilities_new
 osync_capabilities_parse
 osync_capabilities_ref
-osync_capabilities_sort
 osync_capabilities_unref
 osync_capability_add_key
 osync_capability_get_key_count
@@ -23,9 +17,6 @@ osync_capability_get_next
 osync_capability_get_nth_key
 osync_capability_has_key
 osync_capability_new
-osync_change_clone
-osync_change_compare
-osync_change_duplicate
 osync_change_get_changetype
 osync_change_get_data
 osync_change_get_hash

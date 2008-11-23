@@ -28,6 +28,8 @@
 
 #include "opensync-group.h"
 
+#include "opensync_capabilities_private.h"
+
 /**
  * @defgroup OSyncCapabilitiesPrivateAPI OpenSync Capabilities Internals
  * @ingroup OSyncPrivate

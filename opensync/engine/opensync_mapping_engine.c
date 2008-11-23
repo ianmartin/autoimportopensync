@@ -40,6 +40,7 @@
 #include "opensync_mapping_engine_internals.h"
 
 #include "archive/opensync_archive_internals.h"
+#include "data/opensync_change_internals.h"
 
 OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error)
 {

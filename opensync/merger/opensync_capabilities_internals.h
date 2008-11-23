@@ -25,39 +25,13 @@
 
 typedef struct OSyncCapabilitiesObjType OSyncCapabilitiesObjType;
 
-/**
- * @brief Represent a CapabilitiesObjType object
- * @ingroup OSyncCapabilitiesPrivateAPI
- */
-struct OSyncCapabilitiesObjType {
-	/** The pointer to the next objtype */
-	OSyncCapabilitiesObjType *next;
-	/** The pointer to the first capability */
-	OSyncCapability *first_child;
-	/** The pointer to the last capability */
-	OSyncCapability *last_child;
-	/** Counter which holds the number of capabilities for one objtype*/
-	int child_count;
-	/** The wrapped xml node */
-	xmlNodePtr node;	
-};
+OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, const char *objtype);
 
-/**
- * @brief Represent a Capabilities object
- * @ingroup OSyncCapabilitiesPrivateAPI
- */
-struct OSyncCapabilities {
-	/** The reference counter for this object */
-	int ref_count;
-	/** The pointer to the first objtype */
-	OSyncCapabilitiesObjType *first_objtype;
-	/** The pointer to the last objtype */
-	OSyncCapabilitiesObjType *last_objtype;
-	/** The wrapped xml document */
-	xmlDocPtr doc;
-};
+void osync_capabilities_sort(OSyncCapabilities *capabilities);
 
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error);
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype);
+OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error);
+osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member);
+OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *member, OSyncError** error);
+osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSyncCapabilities* capabilities, OSyncError** error);
 
 #endif /*OPENSYNC_CAPABILITIES_INTERNAL_H_*/

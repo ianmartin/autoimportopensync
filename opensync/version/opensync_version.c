@@ -27,6 +27,8 @@
 #include "opensync-version.h"
 #include "opensync-version_internals.h"
 
+#include "merger/opensync_capabilities_internals.h"
+
 /**
  * @defgroup OSyncVersionPrivateAPI OpenSync Version Internals
  * @ingroup OSyncPrivate
