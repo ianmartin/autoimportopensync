@@ -1,5 +1,6 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>
+#include <opensync/opensync_support_internals.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>

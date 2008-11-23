@@ -40,17 +40,12 @@ typedef enum {
 	TRACE_ERROR
 } OSyncTraceType;
 
-OSYNC_EXPORT char *osync_rand_str(int maxlength);
-OSYNC_EXPORT char *osync_print_binary(const unsigned char *data, int len);
-
 #define __NULLSTR(x) x ? x : "(NULL)"
 OSYNC_EXPORT void osync_trace_reset_indent(void);
 OSYNC_EXPORT void osync_trace(OSyncTraceType type, const char *message, ...);
 OSYNC_EXPORT void osync_trace_disable(void);
 OSYNC_EXPORT void osync_trace_enable(void);
 
-OSYNC_EXPORT osync_bool osync_file_write(const char *filename, const char *data, unsigned int size, int mode, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_file_read(const char *filename, char **data, unsigned int *size, OSyncError **error);
 OSYNC_EXPORT const char *osync_get_version(void);
 OSYNC_EXPORT void *osync_try_malloc0(unsigned int size, OSyncError **error);
 OSYNC_EXPORT void osync_free(void *ptr);
@@ -60,7 +55,10 @@ OSYNC_EXPORT char *osync_strreplace(const char *input, const char *delimiter, co
 OSYNC_EXPORT char *osync_strdup(const char *str);
 OSYNC_EXPORT char *osync_strdup_printf(const char *format, ...);
 
+OSYNC_EXPORT osync_bool osync_file_write(const char *filename, const char *data, unsigned int size, int mode, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_file_read(const char *filename, char **data, unsigned int *size, OSyncError **error);
+
 OPENSYNC_END_DECLS
 
-#endif //_OPENSYNC_SUPPORT_H
+#endif /* _OPENSYNC_SUPPORT_H */
 

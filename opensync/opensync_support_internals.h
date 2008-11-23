@@ -39,4 +39,8 @@ OSyncThread *osync_thread_create(GThreadFunc func, void *userdata, OSyncError **
 
 int osync_bitcount(unsigned int u);
 
-#endif //_OPENSYNC_SUPPORT_INTERNALS_H
+char *osync_rand_str(int maxlength);
+char *osync_print_binary(const unsigned char *data, int len);
+
+#endif /* _OPENSYNC_SUPPORT_INTERNALS_H */
+

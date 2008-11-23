@@ -651,7 +651,6 @@ osync_plugin_set_name
 osync_plugin_set_start_type
 osync_plugin_set_useable_timeout
 osync_plugin_unref
-osync_print_binary
 osync_queue_connect
 osync_queue_create
 osync_queue_disconnect
@@ -672,7 +671,6 @@ osync_queue_send_message
 osync_queue_send_message_with_timeout
 osync_queue_set_message_handler
 osync_queue_setup_with_gmainloop
-osync_rand_str
 osync_status_conflict
 osync_status_free_change_update
 osync_status_free_engine_update
