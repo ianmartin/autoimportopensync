@@ -21,5 +21,33 @@
 #ifndef _OPENSYNC_DB_INTERNALS_H_
 #define _OPENSYNC_DB_INTERNALS_H_
 
+#include <opensync/opensync_list.h>
+
+typedef struct OSyncDB OSyncDB;
+
+OSyncDB *osync_db_new(OSyncError **error);
+
+osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error);
+osync_bool osync_db_close(OSyncDB *db, OSyncError **error);
+
+int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error);
+
+osync_bool osync_db_reset_table(OSyncDB *db, const char *tablename, OSyncError **error);
+osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error);
+
+int osync_db_count(OSyncDB *db, const char *query, OSyncError **error);
+
+char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error);
+int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error);
+osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error);
+OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
+void osync_db_free_list(OSyncList *list);
+
+osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error);
+int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
+
+long long int osync_db_last_rowid(OSyncDB *db);
+char *osync_db_sql_escape(const char *query);
+
 #endif /* _OPENSYNC_DB_INTERNALS_H_ */
 

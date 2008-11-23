@@ -21,11 +21,13 @@
  
 #include "opensync.h"
 #include "opensync_internals.h"
-#include "opensync_hashtable_internals.h"
+
+#include "db/opensync_db_internals.h"
 
 #include "opensync-data.h"
 #include "opensync-helper.h"
-#include "opensync-db.h"
+
+#include "opensync_hashtable_internals.h"
 
 /**
  * @defgroup OSyncHashtableAPI OpenSync Hashtables

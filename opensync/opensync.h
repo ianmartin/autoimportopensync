@@ -204,7 +204,6 @@ typedef struct OSyncFormatProperty OSyncFormatProperty;
 typedef struct OSyncCustomFilter OSyncCustomFilter;
 typedef struct OSyncMessage OSyncMessage;
 typedef struct OSyncQueue OSyncQueue;
-typedef struct OSyncDB OSyncDB;
 typedef int osync_bool;
 
 OPENSYNC_END_DECLS

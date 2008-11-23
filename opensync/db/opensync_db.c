@@ -21,6 +21,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 #include "opensync_db.h"
+#include "opensync_db_private.h"
 #include "opensync_db_internals.h"
 
 /*
