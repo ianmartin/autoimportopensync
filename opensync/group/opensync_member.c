@@ -124,13 +124,13 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
 				osync_objtype_sink_set_write(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				char *str_name = osync_xml_find_node(cur, "name");
-				char *str_config = osync_xml_find_node(cur, "config");
-				OSyncObjFormatSink *format_sink = osync_objformat_sink_new(str_name, error);
+				xmlChar *str_name = osync_xml_find_node(cur, "name");
+				xmlChar *str_config = osync_xml_find_node(cur, "config");
+				OSyncObjFormatSink *format_sink = osync_objformat_sink_new((char *)str_name, error);
 				if (!format_sink)
 					return NULL;
 
-				osync_objformat_sink_set_config(format_sink, str_config);
+				osync_objformat_sink_set_config(format_sink, (char *)str_config);
 				osync_objtype_sink_add_objformat_sink(sink, format_sink);
 				osync_objformat_sink_unref(format_sink);
 

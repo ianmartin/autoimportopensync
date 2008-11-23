@@ -57,9 +57,8 @@ xmlNode *osync_xml_node_get_root(xmlDoc *doc, const char *name, OSyncError **err
 xmlNode *osync_xml_get_node(xmlNode *parent, const char *name);
 
 xmlNode *osync_xml_node_add(xmlNode *parent, const char *name, const char *data);
-//void osync_xml_format_dump(OSyncXML *xml, char **data, int *size);
 xmlNode *osync_xml_format_parse(const char *input, int size, const char *rootname, OSyncError **error);
-char *osync_xml_find_node(xmlNode *parent, const char *name);
+xmlChar *osync_xml_find_node(xmlNode *parent, const char *name);
 void osync_xml_node_add_property(xmlNode *parent, const char *name, const char *data);
 char *osync_xml_find_property(xmlNode *parent, const char *name);
 osync_bool osync_xml_has_property(xmlNode *parent, const char *name);
