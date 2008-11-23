@@ -31,7 +31,10 @@
 #include "ipc/opensync_queue_internals.h"
 
 #include "opensync-format.h"
+
 #include "opensync-version.h"
+#include "version/opensync_version_internals.h"
+
 #include "opensync-merger.h"
 
 #include "opensync-client.h"

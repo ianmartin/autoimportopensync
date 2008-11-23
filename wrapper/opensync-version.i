@@ -1,7 +1,7 @@
 %inline %{
-	static PyObject *version_load_from_descriptions() {
+	static PyObject *version_load_from_default_descriptions() {
 		Error *err = NULL;
-		OSyncList *list = osync_version_load_from_descriptions(&err);
+		OSyncList *list = osync_version_load_from_default_descriptions(&err);
 		if (!list) {
 			if (!raise_exception_on_error(err))
 				wrapper_exception("osync_version_load_from_descriptions failed but did not set error code");

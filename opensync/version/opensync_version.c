@@ -24,10 +24,11 @@
 #include "opensync_internals.h"
 
 #include "opensync-merger.h"
+#include "merger/opensync_capabilities_internals.h"
+
 #include "opensync-version.h"
 #include "opensync-version_internals.h"
-
-#include "merger/opensync_capabilities_internals.h"
+#include "opensync_version_private.h"
 
 /**
  * @defgroup OSyncVersionPrivateAPI OpenSync Version Internals
@@ -102,7 +103,7 @@ error:
  * @param schemadir Path to XML schema directory
  * @returns List of OSyncVersion objects, NULL if none found
  */
-OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir)
+OSyncList *osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir)
 {
 	GDir *dir = NULL;
 	GError *gerror = NULL;
@@ -551,9 +552,9 @@ error:
  * @param error Pointer to error-struct
  * @returns List of OSyncVersion objects, NULL if none found
  */
-OSyncList *osync_version_load_from_descriptions(OSyncError **error)
+OSyncList *osync_version_load_from_default_descriptions(OSyncError **error)
 {
-	return _osync_version_load_from_descriptions(error, NULL, NULL);
+	return osync_version_load_from_descriptions(error, NULL, NULL);
 }
 
 /**
@@ -574,7 +575,7 @@ OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncE
 	OSyncCapabilities *capabilities = NULL;
 
 
-	OSyncList *versions = osync_version_load_from_descriptions(error);
+	OSyncList *versions = osync_version_load_from_default_descriptions(error);
 	if (*error) /* versions can be null */
 		goto error;
 

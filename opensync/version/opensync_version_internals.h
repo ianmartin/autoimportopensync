@@ -23,23 +23,24 @@
 #ifndef OPENSYNC_VERSION_INTERNALS_H_
 #define OPENSYNC_VERSION_INTERNALS_H_
 
-/**
- * @brief Represent a Version object
- * @ingroup OSyncVersionPrivateAPI
- */
-struct OSyncVersion{
-	/** The reference counter for this object */
-	int ref_count;
-	char *plugin;
-	char *priority;
-	char *vendor;
-	char *modelversion;
-	char *firmwareversion;
-	char *softwareversion;
-	char *hardwareversion;
-	char *identifier;
-};
 
-OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir);
 
-#endif /*OPENSYNC_VERSION_INTERNALS_H_*/
+OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncError **error);
+
+OSyncList *osync_version_load_from_default_descriptions(OSyncError **error);
+OSyncList *osync_version_load_from_descriptions(OSyncError **error, const char *descriptiondir, const char *schemadir);
+
+char *osync_version_get_plugin(OSyncVersion *version);
+char *osync_version_get_priority(OSyncVersion *version);
+char *osync_version_get_vendor(OSyncVersion *version);
+char *osync_version_get_modelversion(OSyncVersion *version);
+char *osync_version_get_firmwareversion(OSyncVersion *version);
+char *osync_version_get_softwareversion(OSyncVersion *version);
+char *osync_version_get_hardwareversion(OSyncVersion *version);
+char *osync_version_get_identifier(OSyncVersion *version);
+
+
+int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error);
+
+#endif /* OPENSYNC_VERSION_INTERNALS_H_ */
+

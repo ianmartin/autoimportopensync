@@ -28,12 +28,14 @@
 #include "ipc/opensync_queue_internals.h"
 #include "plugin/opensync_objtype_sink_internals.h"
 
-#include "opensync-client.h"
 #include "opensync-group.h"
 #include "opensync-plugin.h"
 #include "opensync-merger.h"
+
 #include "opensync-version.h"
- 
+#include "version/opensync_version_internals.h"
+
+#include "opensync-client.h"
 #include "opensync_client_internals.h"
 
 #include "opensync_client_proxy_internals.h"

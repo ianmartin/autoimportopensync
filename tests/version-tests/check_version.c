@@ -64,7 +64,7 @@ START_TEST (version_load_from_descriptions)
 	char *testbed = setup_testbed("merger");
 
 	OSyncError *error = NULL;
-	OSyncList *versions = _osync_version_load_from_descriptions(&error, testbed, testbed);
+	OSyncList *versions = osync_version_load_from_descriptions(&error, testbed, testbed);
 	//fail_unless(versions != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
