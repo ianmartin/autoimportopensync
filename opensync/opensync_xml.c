@@ -21,6 +21,16 @@
 #include "opensync_xml.h"
 #include "opensync_internals.h"
 #include <opensync/opensync-serializer.h>
+
+void osync_xml_free(void *ptr)
+{
+	xmlFree(ptr);
+}
+
+void osync_xml_free_doc(xmlDoc *doc)
+{
+	osync_xml_free_doc(doc);
+}
    
 xmlNode *osync_xml_node_add_root(xmlDoc *doc, const char *name)
 {
@@ -374,8 +384,8 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
 	xmlXPathFreeObject(leftxobj);
 	xmlXPathFreeObject(rightxobj);
 
-	xmlFreeDoc(leftdoc);
-	xmlFreeDoc(rightdoc);	
+	osync_xml_free_doc(leftdoc);
+	osync_xml_free_doc(rightdoc);	
 
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
 	if (same) {
@@ -540,7 +550,7 @@ osync_bool osync_xml_open_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *path
 	return TRUE;
 
 error_free_doc:
-	xmlFreeDoc(*doc);
+	osync_xml_free_doc(*doc);
 error:
 	osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;

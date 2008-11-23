@@ -52,6 +52,9 @@ typedef struct OSyncXMLScore {
 	const char *path;
 } OSyncXMLScore;
 
+void osync_xml_free(void *ptr);
+void osync_xml_free_doc(xmlDoc *doc);
+
 xmlNode *osync_xml_node_add_root(xmlDoc *doc, const char *name);
 xmlNode *osync_xml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error);
 xmlNode *osync_xml_get_node(xmlNode *parent, const char *name);

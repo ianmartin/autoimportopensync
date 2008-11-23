@@ -23,6 +23,7 @@
 
 #include "opensync-group.h"
 
+#include "opensync_xml.h"
 #include "opensync_updater.h"
 #include "opensync_updater_internals.h"
 
@@ -101,7 +102,7 @@ static osync_bool osync_updater_stylesheet_process(OSyncUpdater *updater, const 
 	}
 
 	result = xsltApplyStylesheetUser(cur, doc, NULL, NULL, NULL, ctxt);
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 
 	if (!result || ctxt->state != XSLT_STATE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Applying the stylesheet failed.");
@@ -110,11 +111,11 @@ static osync_bool osync_updater_stylesheet_process(OSyncUpdater *updater, const 
 
 	xsltSaveResultToFilename(config, result, cur, 0);
 
-	xmlFreeDoc(result);
+	osync_xml_free_doc(result);
 	xsltFreeStylesheet(cur);
 
 	/* FIXME: Review; This got freed by xsltFreeStylesheet?!
-	xmlFreeDoc(style);
+	osync_xml_free_doc(style);
 	*/
 
 	xsltFreeTransformContext(ctxt);
@@ -128,11 +129,11 @@ error:
 
 	/* FIXME: Review; This got freed by xsltFreeStylesheet?!
 	if (style)
-		xmlFreeDoc(style);
+		osync_xml_free_doc(style);
 	*/
 
 	if (result)
-		xmlFreeDoc(result);
+		osync_xml_free_doc(result);
 
 	if (ctxt)
 		xsltFreeTransformContext(ctxt);

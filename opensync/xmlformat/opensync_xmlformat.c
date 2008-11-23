@@ -210,7 +210,7 @@ void osync_xmlformat_unref(OSyncXMLFormat *xmlformat)
 			osync_xmlfield_delete(cur);
 			cur = tmp;
 		}
-		xmlFreeDoc(xmlformat->doc);
+		osync_xml_free_doc(xmlformat->doc);
 		g_free(xmlformat);
 	}
 }

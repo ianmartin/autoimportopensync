@@ -143,7 +143,7 @@ OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char 
 		
 		root = xmlDocGetRootElement(doc);
 		if(!root || !xmlStrEqual(root->name, BAD_CAST "versions")) {
-			xmlFreeDoc(doc);
+			osync_xml_free_doc(doc);
 			continue;
 		}
 
@@ -152,7 +152,7 @@ OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char 
  		g_free(schemafilepath);
 
 		if(res == FALSE) {
-			xmlFreeDoc(doc);
+			osync_xml_free_doc(doc);
 			continue;
 		}
 		
@@ -161,7 +161,7 @@ OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char 
 		
 			version = osync_version_new(error);
 			if(!version) {
-				xmlFreeDoc(doc);
+				osync_xml_free_doc(doc);
 				OSyncList *cur = osync_list_first(versions);
 				while(cur) {
 					osync_version_unref(cur->data);
@@ -190,7 +190,7 @@ OSyncList *_osync_version_load_from_descriptions(OSyncError **error, const char 
 			versions = osync_list_append(versions, version);
 		}
 		
-		xmlFreeDoc(doc);
+		osync_xml_free_doc(doc);
 	}
 	
 	g_dir_close(dir);

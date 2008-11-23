@@ -61,7 +61,7 @@ static OSyncPluginAdvancedOptionParameter *_osync_plugin_config_parse_advancedop
 		else if (!xmlStrcmp(cur->name, BAD_CAST "Value"))
 			osync_plugin_advancedoption_param_set_value(param, str);
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -114,7 +114,7 @@ static OSyncPluginAdvancedOption *_osync_plugin_config_parse_advancedoption(OSyn
 			osync_plugin_advancedoption_set_value(option, str);
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	option->parameters = osync_list_reverse(option->parameters);
@@ -186,7 +186,7 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 			osync_plugin_authentication_set_reference(auth, str);
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_plugin_config_set_authentication(config, auth);
@@ -224,11 +224,11 @@ static osync_bool _osync_plugin_config_parse_connection_bluetooth(OSyncPluginCon
 			osync_plugin_connection_bt_set_sdpuuid(conn, str);
 		} else {
 //			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", __NULLSTR(cur->name));
-			xmlFree(str);
+			osync_xml_free(str);
 			goto error;
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 
@@ -265,11 +265,11 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
 
-			xmlFree(str);
+			osync_xml_free(str);
 			goto error;
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -298,11 +298,11 @@ static osync_bool _osync_plugin_config_parse_connection_irda(OSyncPluginConnecti
 			osync_plugin_connection_irda_set_service(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
-			xmlFree(str);
+			osync_xml_free(str);
 			goto error;
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -340,11 +340,11 @@ static osync_bool _osync_plugin_config_parse_connection_network(OSyncPluginConne
 			osync_plugin_connection_net_set_dnssd(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
-			xmlFree(str);
+			osync_xml_free(str);
 			goto error;
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -376,11 +376,11 @@ static osync_bool _osync_plugin_config_parse_connection_serial(OSyncPluginConnec
 			osync_plugin_connection_serial_set_devicenode(conn, str);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
-			xmlFree(str);
+			osync_xml_free(str);
 			goto error;
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -478,7 +478,7 @@ static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *con
 			osync_plugin_localization_set_language(local, str);
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_plugin_config_set_localization(config, local);
@@ -517,20 +517,20 @@ static osync_bool _osync_plugin_config_parse_resource_format(OSyncPluginResource
 		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Config"))
 			config = str;
 		else
-			xmlFree(str);
+			osync_xml_free(str);
 	}
 
 	osync_assert(objformat);
 
 	format_sink = osync_objformat_sink_new(objformat, error);
-	xmlFree((xmlChar *) objformat);
+	osync_xml_free((xmlChar *) objformat);
 
 	if (!format_sink)
 		goto error_free_config;
 
 	if (config) {
 		osync_objformat_sink_set_config(format_sink, config);
-		xmlFree((xmlChar *) config);
+		osync_xml_free((xmlChar *) config);
 	}
 
 	osync_plugin_resource_add_objformat_sink(res, format_sink);
@@ -540,7 +540,7 @@ static osync_bool _osync_plugin_config_parse_resource_format(OSyncPluginResource
 	return TRUE;
 
 error_free_config:
-	xmlFree((xmlChar *) config);
+	osync_xml_free((xmlChar *) config);
 /*error:*/
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -569,15 +569,15 @@ static osync_bool _osync_plugin_config_parse_resource_formats(OSyncPluginResourc
 		else if (!xmlStrcmp(cur->name, (const xmlChar *)"Format")) {
 			if (!_osync_plugin_config_parse_resource_format(res, cur->xmlChildrenNode, error))
 				goto error;
-			xmlFree(str);
+			osync_xml_free(str);
 		} else
-			xmlFree(str);
+			osync_xml_free(str);
 
 	}
 
 	if (preferred_format) {
 		osync_plugin_resource_set_preferred_format(res, preferred_format);
-		xmlFree((xmlChar *) preferred_format);
+		osync_xml_free((xmlChar *) preferred_format);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -628,14 +628,14 @@ static OSyncPluginResource *_osync_plugin_config_parse_resource(OSyncPluginConfi
 			osync_plugin_resource_set_url(res, str);
 		}
 
-		xmlFree(str);
+		osync_xml_free(str);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return res;
 
 error_free_str:
-	xmlFree(str);
+	osync_xml_free(str);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
@@ -742,7 +742,7 @@ osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *
 	if (cur && !_osync_plugin_config_parse(config, cur, error))
 		goto error;
 
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1311,13 +1311,13 @@ osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *
 
 	xmlSaveFormatFile(path, doc, 1);
 
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error_and_free:	
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;

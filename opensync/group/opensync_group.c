@@ -585,7 +585,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 
 
 	xmlSaveFormatFile(filename, doc, 1);
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 	g_free(filename);
 
 	for (i = 0; i < osync_group_num_members(group); i++) {
@@ -786,7 +786,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 							continue;
 						}
 						osync_filter_update_hook(filter, group, str);
-						xmlFree(str);
+						osync_xml_free(str);
 					}
 					
 					if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
@@ -796,7 +796,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 							continue;
 						}
 						filter->sourcememberid = atoll(str);
-						xmlFree(str);
+						osync_xml_free(str);
 					}
 					
 					if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
@@ -806,7 +806,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 							continue;
 						}
 						filter->destmemberid = atoll(str);
-						xmlFree(str);
+						osync_xml_free(str);
 					}
 					
 					if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
@@ -816,18 +816,18 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 							continue;
 						}
 						filter->action = atoi(str);
-						xmlFree(str);
+						osync_xml_free(str);
 					}
 					filternode = filternode->next;
 				}
 				osync_filter_register(group, filter);
 			}*/
 		
-			xmlFree(str);
+			osync_xml_free(str);
 		}
 		cur = cur->next;
 	}
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 	
 	/* Check for sanity */
 	if (!group->name) {
@@ -1270,12 +1270,12 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 			&& OSYNC_GROUP_MINOR_VERSION == version_minor)
 		uptodate = TRUE;
 
-	xmlFree(version_str);
+	osync_xml_free(version_str);
 end:
 	g_free(config);
 
 	if (doc)
-		xmlFreeDoc(doc);
+		osync_xml_free_doc(doc);
 
 	osync_trace(TRACE_EXIT, "%s(%p)", __func__, group);
 	return uptodate;

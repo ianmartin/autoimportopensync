@@ -86,7 +86,7 @@ void _osync_member_parse_timeout(xmlNode *cur, OSyncObjTypeSink *sink)
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
 				osync_objtype_sink_set_read_timeout(sink, atoi(str));
 			}
-			xmlFree(str);
+			osync_xml_free(str);
 		}
 		cur = cur->next;
 	}
@@ -134,12 +134,12 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 				osync_objtype_sink_add_objformat_sink(sink, format_sink);
 				osync_objformat_sink_unref(format_sink);
 
-				xmlFree(str_name);
-				xmlFree(str_config);
+				osync_xml_free(str_name);
+				osync_xml_free(str_config);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
 				_osync_member_parse_timeout(cur->xmlChildrenNode, sink);
 			}
-			xmlFree(str);
+			osync_xml_free(str);
 		}
 		cur = cur->next;
 	}
@@ -552,11 +552,11 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 				_osync_member_parse_timeout(cur->xmlChildrenNode, member->main_sink);
 			}
 
-			xmlFree(str);
+			osync_xml_free(str);
 		}
 		cur = cur->next;
 	}
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 
 	if(osync_capabilities_member_has_capabilities(member))
 	{
@@ -572,7 +572,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	return TRUE;
 	
 error_free_doc:
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -688,7 +688,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 
 	//The main sink
 	if (member->main_sink && !_osync_member_save_sink(doc, member->main_sink, error)) {
-		xmlFreeDoc(doc);
+		osync_xml_free_doc(doc);
 		goto error;
 	}
 	
@@ -698,7 +698,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		OSyncObjTypeSink *sink = o->data;
 
 		if (!_osync_member_save_sink(doc, sink, error)) {
-			xmlFreeDoc(doc);
+			osync_xml_free_doc(doc);
 			goto error;
 		}
 	}
@@ -710,7 +710,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	xmlSaveFormatFile(filename, doc, 1);
 	g_free(filename);
 
-	xmlFreeDoc(doc);
+	osync_xml_free_doc(doc);
 	
 	//Saving the config if it exists
 	if (member->config) {
@@ -1091,7 +1091,7 @@ osync_bool osync_member_config_is_uptodate(OSyncMember *member)
 			&& OSYNC_MEMBER_MINOR_VERSION == version_minor)
 		uptodate = TRUE;
 
-	xmlFree(version_str);
+	osync_xml_free(version_str);
 
 end:
 	g_free(config);
@@ -1143,13 +1143,13 @@ osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 			&& OSYNC_PLUGIN_MINOR_VERSION == version_minor)
 		uptodate = TRUE;
 
-	xmlFree(version_str);
+	osync_xml_free(version_str);
 
 end:
 	g_free(config);
 
 	if (doc)
-		xmlFreeDoc(doc);
+		osync_xml_free_doc(doc);
 
 	osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
 	return uptodate;

@@ -225,7 +225,7 @@ void osync_capabilities_unref(OSyncCapabilities *capabilities)
 			g_free(objtype);
 			objtype = tmp;
 		}
-		xmlFreeDoc(capabilities->doc);
+		osync_xml_free_doc(capabilities->doc);
 		g_free(capabilities);
 	}
 }
