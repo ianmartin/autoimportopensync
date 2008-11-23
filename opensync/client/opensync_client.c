@@ -25,10 +25,12 @@
 #include "opensync-plugin.h"
 #include "opensync-ipc.h"
 #include "opensync-format.h"
-#include "opensync-client.h"
-#include "opensync_client_internals.h"
 #include "opensync-version.h"
 #include "opensync-merger.h"
+
+#include "opensync-client.h"
+#include "opensync_client_internals.h"
+#include "opensync_client_private.h"
 
 #ifdef OPENSYNC_UNITTESTS
 #include "plugin/opensync_plugin_info_internals.h"

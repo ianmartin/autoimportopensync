@@ -29,8 +29,11 @@
 #include "opensync-merger.h"
 #include "opensync-version.h"
  
+#include "opensync_client_internals.h"
+
 #include "opensync_client_proxy.h"
 #include "opensync_client_proxy_internals.h"
+
 
 #include <sys/types.h>
 #include <sys/wait.h>

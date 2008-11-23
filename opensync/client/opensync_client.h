@@ -30,10 +30,5 @@ OSYNC_EXPORT void osync_client_set_outgoing_queue(OSyncClient *client, OSyncQueu
 
 OSYNC_EXPORT void osync_client_run_and_block(OSyncClient *client);
 OSYNC_EXPORT osync_bool osync_client_run(OSyncClient *client, OSyncError **error);
-OSYNC_EXPORT void osync_client_shutdown(OSyncClient *client);
-OSYNC_EXPORT void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
-OSYNC_EXPORT void osync_client_disconnect(OSyncClient *client);
-
-OSYNC_EXPORT osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error);
 
 #endif /*OPENSYNC_CLIENT_H_*/

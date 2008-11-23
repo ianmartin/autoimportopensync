@@ -4,6 +4,8 @@
 #include <opensync/opensync-client.h>
 #include <opensync/opensync-ipc.h>
 
+#include "opensync/client/opensync_client_internals.h"
+
 START_TEST (client_new)
 {
 	char *testbed = setup_testbed(NULL);

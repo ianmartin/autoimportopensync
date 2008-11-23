@@ -31,8 +31,6 @@ osync_change_set_hash
 osync_change_set_objtype
 osync_change_set_uid
 osync_change_unref
-osync_client_disconnect
-osync_client_error_shutdown
 osync_client_new
 osync_client_proxy_commit_change
 osync_client_proxy_committed_all
@@ -64,10 +62,8 @@ osync_client_proxy_unref
 osync_client_ref
 osync_client_run
 osync_client_run_and_block
-osync_client_run_external
 osync_client_set_incoming_queue
 osync_client_set_outgoing_queue
-osync_client_shutdown
 osync_client_unref
 osync_context_new
 osync_context_ref

@@ -10,6 +10,7 @@
 
 #include "opensync/engine/opensync_engine_internals.h"
 #include "opensync/group/opensync_member_internals.h"
+#include "opensync/client/opensync_client_internals.h"
 
 #include "../mock-plugin/mock_sync.h"
 #include "../mock-plugin/mock_format.h"
