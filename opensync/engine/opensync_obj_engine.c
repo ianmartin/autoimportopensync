@@ -41,6 +41,8 @@
 #include "opensync_obj_engine.h"
 #include "opensync_obj_engine_internals.h"
 
+#include "archive/opensync_archive_internals.h"
+
 OSyncMappingEngine *_osync_obj_engine_create_mapping_engine(OSyncObjEngine *engine, OSyncError **error)
 {
 	/* If there is none, create one */

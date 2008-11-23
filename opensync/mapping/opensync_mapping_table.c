@@ -27,6 +27,8 @@
 
 #include "opensync_mapping_table_internals.h"
 
+#include "archive/opensync_archive_internals.h"
+
 /**
  * @brief Creates a new mapping table object
  * @param error Pointer to an error struct

@@ -25,16 +25,17 @@
 #ifndef OPENSYNC_ARCHIVE_INTERNALS_H_
 #define OPENSYNC_ARCHIVE_INTERNALS_H_
 
-/**
- * @brief Represent a Archive object
- * @ingroup OSyncArchivePrivateAPI
- */
-struct OSyncArchive {
-	/** The reference counter for this object */
-	int ref_count;
-	/**  */
-	OSyncDB *db;
-	/**  */
-};
+#include <opensync/opensync_list.h>
+
+osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, const char *objtype, const char *data, unsigned int size, OSyncError **error);
+int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error);
+
+long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error);
+osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, const char *objtype, OSyncError **error);
+osync_bool osync_archive_flush_changes(OSyncArchive *archive, const char *objtype, OSyncError **error);
+
+osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const char *objtype, OSyncList **mappingsids, OSyncList **changetypes, OSyncError **error);
+osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char *objtype, long long int mappingid, OSyncChangeType changetype, OSyncError **error);
+osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const char *objtype, OSyncError **error);
 
 #endif /*OPENSYNC_ARCHIVE_INTERNALS_H_*/

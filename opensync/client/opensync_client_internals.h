@@ -21,19 +21,10 @@
 #ifndef OPENSYNC_CLIENT_INTERNALS_H_
 #define OPENSYNC_CLIENT_INTERNALS_H_
 
-struct OSyncClient {
-	OSyncQueue *incoming;
-	OSyncQueue *outgoing;
-	GMainContext *context;
-	GMainLoop *syncloop;
-	GThread *disconnectThread;
-	int ref_count;
-	OSyncPlugin *plugin;
-	OSyncPluginInfo *plugin_info;
-	OSyncPluginEnv *plugin_env;
-	OSyncFormatEnv *format_env;
-	void *plugin_data;
-	OSyncThread *thread;
-};
+void osync_client_shutdown(OSyncClient *client);
+void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
+void osync_client_disconnect(OSyncClient *client);
+
+osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error);
 
 #endif /*OPENSYNC_CLIENT_INTERNALS_H_*/

@@ -27,18 +27,13 @@ OSYNC_EXPORT void osync_data_unref(OSyncData *data);
 
 OSYNC_EXPORT OSyncObjFormat *osync_data_get_objformat(OSyncData *data);
 OSYNC_EXPORT void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat);
+
 OSYNC_EXPORT const char *osync_data_get_objtype(OSyncData *data);
 OSYNC_EXPORT void osync_data_set_objtype(OSyncData *data, const char *objtype);
 
 OSYNC_EXPORT void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size);
-OSYNC_EXPORT void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size);
 OSYNC_EXPORT void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size);
+
 OSYNC_EXPORT osync_bool osync_data_has_data(OSyncData *data);
+#endif /* _OPENSYNC_DATA_H_ */
 
-OSYNC_EXPORT OSyncData *osync_data_clone(OSyncData *data, OSyncError **error);
-OSYNC_EXPORT OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata);
-
-OSYNC_EXPORT char *osync_data_get_printable(OSyncData *data);
-OSYNC_EXPORT time_t osync_data_get_revision(OSyncData *data, OSyncError **error);
-
-#endif //_OPENSYNC_DATA_H_

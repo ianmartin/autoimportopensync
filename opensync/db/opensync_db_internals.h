@@ -21,12 +21,5 @@
 #ifndef _OPENSYNC_DB_INTERNALS_H_
 #define _OPENSYNC_DB_INTERNALS_H_
 
-#include <sqlite3.h>
+#endif /* _OPENSYNC_DB_INTERNALS_H_ */
 
-#include "opensync_db.h"
-
-struct OSyncDB {
-	sqlite3 *sqlite3db;
-};
-
-#endif //_OPENSYNC_DB_INTERNALS_H_

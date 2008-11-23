@@ -39,6 +39,8 @@
 #include "opensync_mapping_engine.h"
 #include "opensync_mapping_engine_internals.h"
 
+#include "archive/opensync_archive_internals.h"
+
 OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, parent, mapping, error);

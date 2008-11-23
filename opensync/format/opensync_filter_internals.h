@@ -21,26 +21,33 @@
 #ifndef _OPENSYNC_FILTER_INTERNALS_H_
 #define _OPENSYNC_FILTER_INTERNALS_H_
 
-/*! @brief Represents a filter to filter changes 
- * @ingroup OSyncFilterPrivate
+/*! @brief The action that should be invoked
+ * @ingroup OSyncFilterAPI
  **/
-struct OSyncFilter {
-	char *objtype;
-	OSyncFilterAction action;
-	OSyncCustomFilter *custom_filter;
-	char *config;
-	int ref_count;
-};
+typedef enum OSyncFilterAction {
+	/** This filter should be ignored */
+	OSYNC_FILTER_IGNORE = 0,
+	/** The change should be allowed to pass (overrides previous action) */
+	OSYNC_FILTER_ALLOW = 1,
+	/** The change should be prevented from passing (overrides previous action) */
+	OSYNC_FILTER_DENY = 2
+} OSyncFilterAction;
 
-/*! @brief Represents a custom filter that can be used to call hooks
- * @ingroup OSyncFilterPrivate
- **/
-struct OSyncCustomFilter {
-	char *name;
-	char *objtype;
-	char *objformat;
-	OSyncFilterFunction hook;
-	int ref_count;
-};
+typedef osync_bool (* OSyncFilterFunction) (OSyncData *data, const char *config);
 
-#endif //_OPENSYNC_FILTER_INTERNALS_H_
+OSyncFilter *osync_filter_new(const char *objtype, OSyncFilterAction action, OSyncError **error);
+OSyncFilter *osync_filter_new_custom(OSyncCustomFilter *custom_filter, const char *config, OSyncFilterAction action, OSyncError **error);
+OSyncFilter *osync_filter_ref(OSyncFilter *filter);
+void osync_filter_unref(OSyncFilter *filter);
+void osync_filter_set_config(OSyncFilter *filter, const char *config);
+const char *osync_filter_get_config(OSyncFilter *filter);
+const char *osync_filter_get_objtype(OSyncFilter *filter);
+OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncData *data);
+
+OSyncCustomFilter *osync_custom_filter_new(const char *objtype, const char *objformat, const char *name, OSyncFilterFunction hook, OSyncError **error);
+OSyncCustomFilter *osync_custom_filter_ref(OSyncCustomFilter *filter);
+void osync_custom_filter_unref(OSyncCustomFilter *filter);
+osync_bool osync_custom_filter_invoke(OSyncCustomFilter *filter, OSyncData *data, const char *config);
+
+#endif /* _OPENSYNC_FILTER_INTERNALS_H_ */
+

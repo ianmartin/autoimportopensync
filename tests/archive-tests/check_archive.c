@@ -2,6 +2,7 @@
 
 #include <opensync/opensync.h>
 #include <opensync/opensync-archive.h>
+#include "archive/opensync_archive_internals.h"
 
 
 START_TEST (archive_new)

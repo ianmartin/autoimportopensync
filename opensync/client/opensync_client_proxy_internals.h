@@ -17,60 +17,60 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
- 
+
 #ifndef OSYNC_CLIENT_PROXY_INTERNALS_H_
 #define OSYNC_CLIENT_PROXY_INTERNALS_H_
 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT	30000
+typedef void (* proxy_init_cb) (OSyncClientProxy *proxy, void *userdata);
 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_INITIALIZE	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_FINALIZE	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_DISCOVER	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
+typedef void (* initialize_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* finalize_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* discover_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* connect_cb) (OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error);
+typedef void (* disconnect_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* read_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* get_changes_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* change_cb) (OSyncClientProxy *proxy, void *userdata, OSyncChange *change);
+typedef void (* commit_change_cb) (OSyncClientProxy *proxy, void *userdata, const char *uid, OSyncError *error);
+typedef void (* committed_all_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* sync_done_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_CONNECT	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_DISCONNECT	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_GETCHANGES	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_COMMIT	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_BATCHCOMMIT	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_COMMITTEDALL	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_SYNCDONE	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_READ		OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
-#define OSYNC_CLIENT_PROXY_TIMEOUT_WRITE	OSYNC_CLIENT_PROXY_TIMEOUT_DEFAULT 
+OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember *member, OSyncError **error);
+OSyncClientProxy *osync_client_proxy_ref(OSyncClientProxy *proxy);
+void osync_client_proxy_unref(OSyncClientProxy *proxy);
 
-typedef struct OSyncClientProxyTimeouts {
-	unsigned int initialize;
-	unsigned int finalize;
-	unsigned int discover;
-} OSyncClientProxyTimeouts;
+void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx);
+void osync_client_proxy_set_change_callback(OSyncClientProxy *proxy, change_cb cb, void *userdata);
+OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy);
 
-struct OSyncClientProxy {
-	int ref_count;
-	
-	OSyncMember *member;
-	
-	char *path;
-	OSyncQueue *incoming;
-	OSyncQueue *outgoing;
-	pid_t child_pid;
+osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type, const char *path, OSyncError **error);
+osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **error);
 
-	/** Function specific timeouts */
-	OSyncClientProxyTimeouts timeout;
+osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, OSyncPluginConfig *config, OSyncError **error);
+void osync_client_proxy_set_initialize_timeout(OSyncClientProxy *proxy, unsigned int timeout);
+unsigned int osync_client_proxy_get_initialize_timeout(OSyncClientProxy *proxy);
 
-	/** OSyncClient object isn't initialized at all! Only with start type threaded. */
-	OSyncClient *client;
+osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error);
+void osync_client_proxy_set_finalize_timeout(OSyncClientProxy *proxy, unsigned int timeout);
+unsigned int osync_client_proxy_get_finalize_timeout(OSyncClientProxy *proxy);
 
-	/** Start type of the Client */
-	OSyncStartType type;
+osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error);
+void osync_client_proxy_set_discover_timeout(OSyncClientProxy *proxy, unsigned int timeout);
+unsigned int osync_client_proxy_get_discover_timeout(OSyncClientProxy *proxy);
 
-	OSyncFormatEnv *formatenv;
-	
-	osync_bool has_main_sink;
-	GList *objtypes;
-	
-	GMainContext *context;
-	
-	change_cb change_callback;
-	void *change_callback_data;
-};
+int osync_client_proxy_num_objtypes(OSyncClientProxy *proxy);
+OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nth);
+OSyncObjTypeSink *osync_client_proxy_find_objtype_sink(OSyncClientProxy *proxy, const char *objtype);
 
-#endif /*OSYNC_CLIENT_PROXY_INTERNALS_H_*/
+osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
+osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error);
+
+osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
+osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
+osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_change_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
+osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error);
+
+osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb callback, void *userdata, const char *objtype, OSyncError **error);
+ 
+#endif /* OSYNC_CLIENT_PROXY_INTERNALS_H_ */
+
