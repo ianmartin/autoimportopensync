@@ -66,21 +66,16 @@ OSYNC_EXPORT void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn dis
 OSYNC_EXPORT void *osync_plugin_get_data(OSyncPlugin *plugin);
 OSYNC_EXPORT void osync_plugin_set_data(OSyncPlugin *plugin, void *data);
 
+OSYNC_EXPORT osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error);
+
+OSYNC_EXPORT void osync_plugin_set_discover_timeout(OSyncPlugin *plugin, unsigned int timeout);
+OSYNC_EXPORT void osync_plugin_set_initialize_timeout(OSyncPlugin *plugin, unsigned int timeout);
+OSYNC_EXPORT void osync_plugin_set_finalize_timeout(OSyncPlugin *plugin, unsigned int timeout);
+OSYNC_EXPORT void osync_plugin_set_useable_timeout(OSyncPlugin *plugin, unsigned int timeout);
+
 OSYNC_EXPORT void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
 OSYNC_EXPORT void osync_plugin_finalize(OSyncPlugin *plugin, void *data);
 OSYNC_EXPORT osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInfo *info, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error);
 
-OSYNC_EXPORT unsigned int osync_plugin_get_discover_timeout(OSyncPlugin *plugin);
-OSYNC_EXPORT void osync_plugin_set_discover_timeout(OSyncPlugin *plugin, unsigned int timeout);
+#endif /* OPENSYNC_PLUGIN_H_ */
 
-OSYNC_EXPORT unsigned int osync_plugin_get_initialize_timeout(OSyncPlugin *plugin);
-OSYNC_EXPORT void osync_plugin_set_initialize_timeout(OSyncPlugin *plugin, unsigned int timeout);
-
-OSYNC_EXPORT unsigned int osync_plugin_get_finalize_timeout(OSyncPlugin *plugin);
-OSYNC_EXPORT void osync_plugin_set_finalize_timeout(OSyncPlugin *plugin, unsigned int timeout);
-
-OSYNC_EXPORT unsigned int osync_plugin_get_useable_timeout(OSyncPlugin *plugin);
-OSYNC_EXPORT void osync_plugin_set_useable_timeout(OSyncPlugin *plugin, unsigned int timeout);
-
-#endif //_OPENSYNC_PLUGIN_H_

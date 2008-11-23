@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_PLUGIN_INTERNALS_H_
-#define _OPENSYNC_PLUGIN_INTERNALS_H_
+#ifndef _OPENSYNC_PLUGIN_PRIVATE_H_
+#define _OPENSYNC_PLUGIN_PRIVATE_H_
 
 #define OSYNC_PLUGIN_TIMEOUT_DEFAULT	60
 
@@ -69,4 +69,4 @@ struct OSyncPlugin {
 	int ref_count;
 };
 
-#endif //_OPENSYNC_PLUGIN_INTERNALS_H_
+#endif /* _OPENSYNC_PLUGIN_PRIVATE_H_ */

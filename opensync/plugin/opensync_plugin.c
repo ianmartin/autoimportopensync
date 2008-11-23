@@ -22,6 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
+#include "opensync_plugin_private.h"
 #include "opensync_plugin_internals.h"
 
 /**
@@ -357,7 +358,17 @@ osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
 	return TRUE;
 }
 
-/*** FIXME Get discovery timeout is missing */
+/*! @brief Get timeout interval for plugin discovery
+ * 
+ * @param plugin The plugin to get discvoery timeout 
+ * @return Timeout value 
+ * 
+ */
+unsigned int osync_plugin_get_discover_timeout(OSyncPlugin *plugin)
+{
+	osync_assert(plugin);
+	return plugin->timeout.discover;
+}
 
 /*! @brief Set timeout interval for plugin discovery
  * 

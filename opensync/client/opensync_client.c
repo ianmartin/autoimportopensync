@@ -23,6 +23,7 @@
 
 #include "opensync-context.h"
 #include "opensync-plugin.h"
+#include "plugin/opensync_plugin_internals.h"
 #include "plugin/opensync_objtype_sink_internals.h"
 
 #include "opensync-ipc.h"

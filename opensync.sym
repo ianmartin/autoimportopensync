@@ -569,6 +569,7 @@ osync_plugin_finalize
 osync_plugin_get_config_type
 osync_plugin_get_data
 osync_plugin_get_description
+osync_plugin_get_discover_timeout
 osync_plugin_get_finalize_timeout
 osync_plugin_get_initialize_timeout
 osync_plugin_get_longname
