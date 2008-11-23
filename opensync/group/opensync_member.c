@@ -22,6 +22,8 @@
 #include "opensync_internals.h"
 
 #include "opensync-plugin.h"
+#include "plugin/opensync_objtype_sink_internals.h"
+
 #include "opensync-group.h"
 #include "opensync-format.h"
 #include "opensync-merger.h"

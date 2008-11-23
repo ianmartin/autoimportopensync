@@ -24,8 +24,8 @@
 #include "opensync-context.h"
 #include "opensync-format.h"
 
-#include "opensync_sink.h"
-#include "opensync_sink_internals.h"
+#include "opensync_objtype_sink.h"
+#include "opensync_objtype_sink_private.h"
 
 /**
  * @defgroup OSyncObjTypeSinkAPI OpenSync Object Type Sink

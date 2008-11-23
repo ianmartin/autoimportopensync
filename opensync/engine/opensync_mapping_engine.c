@@ -29,6 +29,7 @@
 #include "opensync-data.h"
 #include "opensync-mapping.h"
 #include "opensync-plugin.h"
+#include "plugin/opensync_objtype_sink_internals.h"
 
 #include "opensync_engine_internals.h"
 

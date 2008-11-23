@@ -28,6 +28,7 @@
 #include "format/opensync_objformat_internals.h"
 
 #include "opensync-plugin.h"
+#include "plugin/opensync_objtype_sink_internals.h"
 
 #include "opensync_serializer_internals.h"
 

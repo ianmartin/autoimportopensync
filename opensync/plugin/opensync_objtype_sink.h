@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_SINK_H_
-#define _OPENSYNC_SINK_H_
+#ifndef _OPENSYNC_OBJTYPE_SINK_H_
+#define _OPENSYNC_OBJTYPE_SINK_H_
 
 typedef void (* OSyncSinkConnectFn) (void *data, OSyncPluginInfo *info, OSyncContext *ctx);
 typedef void (* OSyncSinkDisconnectFn) (void *data, OSyncPluginInfo *info, OSyncContext *ctx);
@@ -64,24 +64,6 @@ OSYNC_EXPORT void osync_objtype_sink_remove_objformat_sink(OSyncObjTypeSink *sin
 OSYNC_EXPORT void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions, void *userdata);
 OSYNC_EXPORT void *osync_objtype_sink_get_userdata(OSyncObjTypeSink *sink);
 
-OSYNC_EXPORT osync_bool osync_objtype_sink_get_function_read(OSyncObjTypeSink *sink);
-OSYNC_EXPORT void osync_objtype_sink_set_function_read(OSyncObjTypeSink *sink, osync_bool read);
-
-OSYNC_EXPORT osync_bool osync_objtype_sink_get_function_getchanges(OSyncObjTypeSink *sink);
-OSYNC_EXPORT void osync_objtype_sink_set_function_getchanges(OSyncObjTypeSink *sink, osync_bool getchanges);
-
-OSYNC_EXPORT osync_bool osync_objtype_sink_get_function_write(OSyncObjTypeSink *sink);
-OSYNC_EXPORT void osync_objtype_sink_set_function_write(OSyncObjTypeSink *sink, osync_bool write);
-
-OSYNC_EXPORT void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
-OSYNC_EXPORT void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
-// OSYNC_EXPORT void osync_objtype_sink_write(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
-OSYNC_EXPORT void osync_objtype_sink_connect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
-OSYNC_EXPORT void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
-OSYNC_EXPORT void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
-OSYNC_EXPORT void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
-OSYNC_EXPORT void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
-
 OSYNC_EXPORT osync_bool osync_objtype_sink_is_enabled(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_set_enabled(OSyncObjTypeSink *sink, osync_bool enabled);
 
@@ -100,40 +82,23 @@ OSYNC_EXPORT void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool
 OSYNC_EXPORT osync_bool osync_objtype_sink_get_slowsync(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync);
 
+OSYNC_EXPORT void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_connect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+
 OSYNC_EXPORT void osync_objtype_sink_set_connect_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_connect_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_connect_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_disconnect_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_disconnect_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_disconnect_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_getchanges_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_getchanges_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_getchanges_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_commit_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_commit_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_commit_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_batchcommit_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_batchcommit_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_batchcommit_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_committedall_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_committedall_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_committedall_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_syncdone_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_syncdone_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_syncdone_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_write_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_write_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_write_timeout(OSyncObjTypeSink *sink);
-
 OSYNC_EXPORT void osync_objtype_sink_set_read_timeout(OSyncObjTypeSink *sink, unsigned int timeout);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_read_timeout_or_default(OSyncObjTypeSink *sink);
-OSYNC_EXPORT unsigned int osync_objtype_sink_get_read_timeout(OSyncObjTypeSink *sink);
 
-#endif //_OPENSYNC_SINK_H_
+#endif /* _OPENSYNC_OBJTYPE_SINK_H_ */
+

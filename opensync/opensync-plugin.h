@@ -32,8 +32,8 @@ OPENSYNC_BEGIN_DECLS
 #include "plugin/opensync_plugin_connection.h"
 #include "plugin/opensync_plugin_localization.h"
 #include "plugin/opensync_plugin_resource.h"
-#include "plugin/opensync_sink.h"
+#include "plugin/opensync_objtype_sink.h"
 
 OPENSYNC_END_DECLS
 
-#endif //OPENSYNCPLUGIN_H_
+#endif /* OPENSYNCPLUGIN_H_ */
