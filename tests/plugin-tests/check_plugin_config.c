@@ -3,7 +3,7 @@
 #include <opensync/opensync-plugin.h>
 #include <opensync/opensync-format.h>
 
-#include "opensync/plugin/opensync_plugin_config_internals.h"
+#include "opensync/plugin/opensync_plugin_config_private.h"
 
 static const char *_format_sink_get_objformat(OSyncPluginResource *res) {
 
