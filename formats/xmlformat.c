@@ -320,7 +320,6 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	
 	osync_objformat_set_revision_func(format, get_contact_revision);
 	
-	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
 	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
 	
@@ -345,7 +344,6 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	
 	osync_objformat_set_revision_func(format, get_event_revision);
 	
-	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
 	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
 	
@@ -370,7 +368,6 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 
 	osync_objformat_set_revision_func(format, get_todo_revision);
 
-//	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
 	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
 	
@@ -395,7 +392,6 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 
 	osync_objformat_set_revision_func(format, get_note_revision);
 
-//	osync_objformat_must_marshal(format);
 	osync_objformat_set_marshal_func(format, marshal_xmlformat);
 	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
 	
