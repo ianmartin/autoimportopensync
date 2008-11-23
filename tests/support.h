@@ -108,3 +108,6 @@ OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *p
 /* Engine helper */
 OSyncEngine *osync_testing_create_engine_dummy(unsigned int member_size);
 
+/* System Env helper */
+void osync_testing_system_abort(const char *command);
+

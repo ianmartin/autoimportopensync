@@ -65,7 +65,7 @@ START_TEST (sync_easy_new)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -173,7 +173,7 @@ START_TEST (sync_easy_new_del)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -229,7 +229,7 @@ START_TEST (sync_easy_new_del)
 	osync_hashtable_unref(table);
 	
 	reset_counters();
-	system("rm data1/testdata");
+	osync_testing_system_abort("rm data1/testdata");
 
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -305,9 +305,9 @@ START_TEST (sync_easy_conflict)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
-	system("cp testdata comp_data");
-	system("cp new_data1 data2/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata comp_data");
+	osync_testing_system_abort("cp new_data1 data2/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -417,8 +417,8 @@ START_TEST (sync_easy_new_mapping)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
-	system("cp testdata data2/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data2/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -509,7 +509,7 @@ START_TEST (sync_easy_new_mapping)
 	osync_hashtable_unref(table);
 	
 	reset_counters();
-	system("rm data1/testdata");
+	osync_testing_system_abort("rm data1/testdata");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -585,8 +585,8 @@ START_TEST (sync_easy_conflict_duplicate)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
-	system("cp new_data1 data2/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
+	osync_testing_system_abort("cp new_data1 data2/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -681,7 +681,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	osync_hashtable_unref(table);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	system("rm -f data1/testdata-dupe");
+	osync_testing_system_abort("rm -f data1/testdata-dupe");
 	
 	reset_counters();
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
@@ -764,8 +764,8 @@ START_TEST (sync_easy_conflict_abort)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
-	system("cp new_data1 data2/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
+	osync_testing_system_abort("cp new_data1 data2/testdata");
 	
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 
@@ -869,7 +869,7 @@ START_TEST (sync_easy_conflict_abort)
 */
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
-//	system("rm -f data1/testdata-dupe");
+//	osync_testing_system_abort("rm -f data1/testdata-dupe");
 	
 	reset_counters();
 	fail_unless(!osync_engine_synchronize_and_block(engine, &error), NULL);
@@ -972,7 +972,7 @@ START_TEST (sync_conflict_duplicate)
 
 	synchronize_once(engine, NULL);
 	
-	system("diff -x \".*\" data1 data2");
+	osync_testing_system_abort("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 3, 0);
@@ -1031,9 +1031,9 @@ START_TEST (sync_conflict_duplicate2)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
-	system("cp testdata comp_data");
-	system("cp new_data1 data2/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata comp_data");
+	osync_testing_system_abort("cp new_data1 data2/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1128,11 +1128,11 @@ START_TEST (sync_conflict_duplicate2)
 	osync_hashtable_unref(table);
 	
 	
-	system("rm -f data1/testdata");
-	system("rm -f data2/testdata-dupe");
+	osync_testing_system_abort("rm -f data1/testdata");
+	osync_testing_system_abort("rm -f data2/testdata-dupe");
 	sleep(2);
-	system("cp new_data1 data2/testdata");
-	system("cp new_data1 comp_data");
+	osync_testing_system_abort("cp new_data1 data2/testdata");
+	osync_testing_system_abort("cp new_data1 comp_data");
 	
 	reset_counters();
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
@@ -1318,9 +1318,9 @@ START_TEST (sync_conflict_delay)
     check_hash(table, "testdata3");
 	osync_hashtable_unref(table);
 	
-	system("rm -f data1/testdata1");
-	system("rm -f data2/testdata2");
-	system("rm -f data1/testdata3");
+	osync_testing_system_abort("rm -f data1/testdata1");
+	osync_testing_system_abort("rm -f data2/testdata2");
+	osync_testing_system_abort("rm -f data1/testdata3");
 	
 	reset_counters();
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
@@ -1397,7 +1397,7 @@ START_TEST (sync_conflict_deldel)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1433,8 +1433,8 @@ START_TEST (sync_conflict_deldel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	reset_counters();
-	system("rm data1/testdata");
-	system("rm data2/testdata");
+	osync_testing_system_abort("rm data1/testdata");
+	osync_testing_system_abort("rm data2/testdata");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1509,7 +1509,7 @@ START_TEST (sync_moddel)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1547,8 +1547,8 @@ START_TEST (sync_moddel)
 	reset_counters();
 	
 	sleep(2);
-	system("cp new_data1 data1/testdata");
-	system("cp new_data2 data2/testdata");
+	osync_testing_system_abort("cp new_data1 data1/testdata");
+	osync_testing_system_abort("cp new_data2 data2/testdata");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1611,7 +1611,7 @@ START_TEST (sync_moddel)
 	
 	reset_counters();
 	
-	system("rm data2/testdata");
+	osync_testing_system_abort("rm data2/testdata");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1686,7 +1686,7 @@ START_TEST (sync_conflict_moddel)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1724,8 +1724,8 @@ START_TEST (sync_conflict_moddel)
 	reset_counters();
 	
 	sleep(2);
-	system("cp new_data2 data1/testdata");
-	system("rm -f data2/testdata");
+	osync_testing_system_abort("cp new_data2 data1/testdata");
+	osync_testing_system_abort("rm -f data2/testdata");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1803,8 +1803,8 @@ START_TEST (sync_easy_dualdel)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
-	system("cp new_data1 data1/testdata2");
+	osync_testing_system_abort("cp testdata data1/testdata");
+	osync_testing_system_abort("cp new_data1 data1/testdata2");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1902,8 +1902,8 @@ START_TEST (sync_easy_dualdel)
 	reset_counters();
 	
 	sleep(2);
-	system("rm -f data1/testdata");
-	system("rm -f data1/testdata2");
+	osync_testing_system_abort("rm -f data1/testdata");
+	osync_testing_system_abort("rm -f data1/testdata2");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -1988,10 +1988,10 @@ START_TEST (sync_large)
 	create_random_file("data1/file9");
 	create_random_file("data1/file10");
 	
-	system("cp data1/file2 data2/file2");
+	osync_testing_system_abort("cp data1/file2 data2/file2");
 	create_random_file("data2/file3");
 	create_random_file("data2/file4");
-	system("cp data1/file5 data2/file5");
+	osync_testing_system_abort("cp data1/file5 data2/file5");
 	create_random_file("data2/file6");
 	create_random_file("data2/file7");
 	create_random_file("data2/file8");
@@ -2132,30 +2132,30 @@ START_TEST (sync_large)
 	//Modify right
 	create_random_file("data2/file2");
 	//Delete left
-	system("rm -f data1/file3");
+	osync_testing_system_abort("rm -f data1/file3");
 	//Delete right
-	system("rm -f data2/file4");
+	osync_testing_system_abort("rm -f data2/file4");
 	//Add left, right, same
 	create_random_file("data1/file13");
-	system("cp data1/file13 data2/file13");
+	osync_testing_system_abort("cp data1/file13 data2/file13");
 	//Add left, right, conflict
 	create_random_file("data1/file14");
 	create_random_file("data2/file14");
 	//Modify left, right, same
 	create_random_file("data1/file5");
-	system("cp data1/file5 data2/file5");
+	osync_testing_system_abort("cp data1/file5 data2/file5");
 	//Modify left, right, conflict
 	create_random_file("data1/file6");
 	create_random_file("data2/file6");
 	//Delete left, right
-	system("rm -f data1/file7");
-	system("rm -f data2/file7");
+	osync_testing_system_abort("rm -f data1/file7");
+	osync_testing_system_abort("rm -f data2/file7");
 	//delete left, modify right
-	system("rm -f data1/file8");
+	osync_testing_system_abort("rm -f data1/file8");
 	create_random_file("data2/file8");
 	//modify left, delete right
 	create_random_file("data1/file9");
-	system("rm -f data2/file9");
+	osync_testing_system_abort("rm -f data2/file9");
 	
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
@@ -2256,23 +2256,23 @@ START_TEST (sync_large)
 	
 	reset_counters();
 	
-	system("rm -f data1/file1");
-	system("rm -f data1/file2");
-	system("rm -f data1/file10");
-	system("rm -f data1/file11");
-	system("rm -f data1/file12");
-	system("rm -f data1/file13");
-	system("rm -f data1/file14");
+	osync_testing_system_abort("rm -f data1/file1");
+	osync_testing_system_abort("rm -f data1/file2");
+	osync_testing_system_abort("rm -f data1/file10");
+	osync_testing_system_abort("rm -f data1/file11");
+	osync_testing_system_abort("rm -f data1/file12");
+	osync_testing_system_abort("rm -f data1/file13");
+	osync_testing_system_abort("rm -f data1/file14");
 	
 	
-	system("rm -f data2/file5");
-	system("rm -f data2/file6");
-	system("rm -f data2/file9");
-	system("rm -f data2/file10");
-	system("rm -f data2/file11");
-	system("rm -f data2/file12");
-	system("rm -f data2/file13");
-	system("rm -f data2/file14");
+	osync_testing_system_abort("rm -f data2/file5");
+	osync_testing_system_abort("rm -f data2/file6");
+	osync_testing_system_abort("rm -f data2/file9");
+	osync_testing_system_abort("rm -f data2/file10");
+	osync_testing_system_abort("rm -f data2/file11");
+	osync_testing_system_abort("rm -f data2/file12");
+	osync_testing_system_abort("rm -f data2/file13");
+	osync_testing_system_abort("rm -f data2/file14");
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -2355,13 +2355,13 @@ START_TEST (sync_detect_obj)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("mkdir file-1");
-	system("mkdir file2-1");
-	system("mkdir file3-1");
+	osync_testing_system_abort("mkdir file-1");
+	osync_testing_system_abort("mkdir file2-1");
+	osync_testing_system_abort("mkdir file3-1");
 	
-	system("mkdir file-2");
-	system("mkdir file2-2");
-	system("mkdir file3-2");
+	osync_testing_system_abort("mkdir file-2");
+	osync_testing_system_abort("mkdir file2-2");
+	osync_testing_system_abort("mkdir file3-2");
 	
 	create_random_file("file-1/file1");
 	
@@ -2569,13 +2569,13 @@ START_TEST (sync_detect_obj2)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("mkdir file-1");
-	system("mkdir file2-1");
-	system("mkdir file3-1");
+	osync_testing_system_abort("mkdir file-1");
+	osync_testing_system_abort("mkdir file2-1");
+	osync_testing_system_abort("mkdir file3-1");
 	
-	system("mkdir file-2");
-	system("mkdir file2-2");
-	system("mkdir file3-2");
+	osync_testing_system_abort("mkdir file-2");
+	osync_testing_system_abort("mkdir file2-2");
+	osync_testing_system_abort("mkdir file3-2");
 	
 	create_random_file("file-1/file1");
 	
@@ -2784,7 +2784,7 @@ START_TEST (sync_slowsync_connect)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2882,8 +2882,8 @@ START_TEST (sync_slowsync_connect)
 	/* 2nd Sync with new path config for #1 member - this is needed
 	 * to trigger a slow-sync within the connect() plugin call. */
 	reset_counters();
-	system("mkdir data3");
-	system("cp configs/new_path.conf configs/group/1/mock-sync.conf");
+	osync_testing_system_abort("mkdir data3");
+	osync_testing_system_abort("cp configs/new_path.conf configs/group/1/mock-sync.conf");
 	
 	group = osync_group_new(&error);
 	fail_unless(group != NULL, NULL);
@@ -2994,7 +2994,7 @@ START_TEST (sync_slowsync_mainsink_connect)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	system("cp testdata data1/testdata");
+	osync_testing_system_abort("cp testdata data1/testdata");
 
 	setenv("MAINSINK_CONNECT", "1", TRUE);
 	
@@ -3094,7 +3094,7 @@ START_TEST (sync_slowsync_mainsink_connect)
 	/* 2nd Sync trigger a SlowSync within the MAINSINK connect function. */
 	reset_counters();
 	setenv("CONNECT_SLOWSYNC", "1", TRUE);
-	system("rm data2/testdata");
+	osync_testing_system_abort("rm data2/testdata");
 	
 	group = osync_group_new(&error);
 	fail_unless(group != NULL, NULL);

@@ -754,3 +754,9 @@ OSyncEngine *osync_testing_create_engine_dummy(unsigned int member_size)
 	return engine;
 }
 
+void osync_testing_system_abort(const char *command)
+{
+	if (system(command))
+		abort();
+}
+
