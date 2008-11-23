@@ -22,7 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-format.h"
-#include "opensync_objformat_sink_internals.h"
+#include "opensync_objformat_sink_private.h"
 
 /**
  * @defgroup OSyncObjFormatSink OpenSync Object Format Sink
