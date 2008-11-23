@@ -5,6 +5,8 @@
 #include <opensync/opensync-ipc.h>
 #include <opensync/opensync-plugin.h>
 
+#include "opensync/client/opensync_client_proxy_internals.h"
+
 START_TEST (proxy_new)
 {
 	char *testbed = setup_testbed(NULL);

@@ -41,6 +41,7 @@
 
 #include "archive/opensync_archive_internals.h"
 #include "data/opensync_change_internals.h"
+#include "client/opensync_client_proxy_internals.h"
 
 OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error)
 {

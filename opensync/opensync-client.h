@@ -24,7 +24,6 @@
 OPENSYNC_BEGIN_DECLS
 
 #include "client/opensync_client.h"
-#include "client/opensync_client_proxy.h"
 
 OPENSYNC_END_DECLS
 

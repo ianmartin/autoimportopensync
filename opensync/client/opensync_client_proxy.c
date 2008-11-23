@@ -31,8 +31,8 @@
  
 #include "opensync_client_internals.h"
 
-#include "opensync_client_proxy.h"
 #include "opensync_client_proxy_internals.h"
+#include "opensync_client_proxy_private.h"
 
 
 #include <sys/types.h>
