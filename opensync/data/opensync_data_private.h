@@ -18,16 +18,19 @@
  * 
  */
 
-#ifndef _OPENSYNC_DATA_INTERNALS_H_
-#define _OPENSYNC_DATA_INTERNALS_H_
+#ifndef _OPENSYNC_DATA_PRIVATE_H_
+#define _OPENSYNC_DATA_PRIVATE_H_
 
-void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size);
+struct OSyncData {
+	/** The data reported from the plugin */
+	char *data;
+	/** The size of the data from the plugin */
+	int size;
+	/** The name of the object type */
+	char *objtype;
+	/** The name of the format */
+	OSyncObjFormat *objformat;
+	int ref_count;
+};
 
-OSyncData *osync_data_clone(OSyncData *data, OSyncError **error);
-OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata);
-
-char *osync_data_get_printable(OSyncData *data);
-time_t osync_data_get_revision(OSyncData *data, OSyncError **error);
-
-#endif /* _OPENSYNC_DATA_INTERNALS_H_ */
-
+#endif /* _OPENSYNC_DATA_PRIVATE_H_ */

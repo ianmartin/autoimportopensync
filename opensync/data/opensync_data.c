@@ -23,6 +23,7 @@
 
 #include "opensync-format.h"
 #include "opensync-data.h"
+#include "opensync_data_private.h"
 #include "opensync_data_internals.h"
 
 /**

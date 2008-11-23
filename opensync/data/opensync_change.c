@@ -22,9 +22,12 @@
 #include "opensync_internals.h"
 
 #include "opensync-data.h"
+#include "opensync_data_internals.h"
+
 #include "opensync-format.h"
 #include "opensync_change_internals.h"
 #include "opensync_change_private.h"
+
 
 /**
  * @defgroup OSyncChangeAPI OpenSync Change

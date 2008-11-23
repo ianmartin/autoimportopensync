@@ -22,8 +22,11 @@
 #include "opensync_internals.h"
 
 #include "opensync-data.h"
+#include "data/opensync_data_internals.h"
+
 #include "opensync-format.h"
 #include "opensync_converter_private.h"
+
 
 /**
  * @defgroup OSyncConverterAPI OpenSync Converter
