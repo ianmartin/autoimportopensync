@@ -41,4 +41,6 @@ OSYNC_EXPORT OSyncObjFormat *osync_change_get_objformat(OSyncChange *change);
 OSYNC_EXPORT const char *osync_change_get_objtype(OSyncChange *change);
 OSYNC_EXPORT void osync_change_set_objtype(OSyncChange *change, const char *objtype);
 
+OSYNC_EXPORT OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange);
+
 #endif /*_OPENSYNC_CHANGE_H_*/
