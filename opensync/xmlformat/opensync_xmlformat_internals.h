@@ -23,28 +23,15 @@
 #ifndef OPENSYNC_XMLFORMAT_INTERNALS_H_
 #define OPENSYNC_XMLFORMAT_INTERNALS_H_
 
+const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat);
+const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat);
 
-/** 
- * @brief Represent a XMLFormat object
- * @ingroup OSyncXMLFormatPrivateAPI
- */
-struct OSyncXMLFormat {
-	/** The reference counter for this object */
-	int ref_count;
-	/** The first xmlfield */
-	OSyncXMLField *first_child;
-	/** The last xmlfield */
-	OSyncXMLField *last_child;
-	/** counter which holds the number of xmlfields */
-	int child_count;	
-	/** The wrapped xml document */
-	xmlDocPtr doc;
-	/** sorted status of xmlformat */
-	osync_bool sorted;
+osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat, OSyncError **error);
 
-};
+void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
+osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat);
 
-int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname);
+osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error);
 
+#endif /* OPENSYNC_XMLFORMAT_INTERNAL_H_ */
 
-#endif /*OPENSYNC_XMLFORMAT_INTERNAL_H_*/

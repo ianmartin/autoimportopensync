@@ -24,7 +24,11 @@
 #include "opensync_internals.h"
 
 #include "opensync-xmlformat.h"
+
 #include "opensync-xmlformat_internals.h"
+#include "opensync_xmlformat_private.h"
+
+#include "opensync_xmlfield_private.h"		/* FIXME: direct access of private header */
 
 /**
  * @defgroup OSyncXMLFormatPrivateAPI OpenSync XMLFormat Internals
@@ -33,63 +37,6 @@
  * 
  */
 /*@{*/
-
-/**
- * @brief Search for the points in the sorted OSyncXMLPoints array for a given fieldname.
- * @param points The sorted points array
- * @param cur_pos Pointer to the actual line in the points array
- * @param basic_points Points which should be returned if fieldname will not found in the points array 
- * @param fieldname The name of the field for which the points should be returned
- * @returns The points for the fieldname
- */
-int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname)
-{
-	for(; points[(*cur_pos)].fieldname; (*cur_pos)++) {
-		int res = strcmp(points[(*cur_pos)].fieldname, fieldname);
-		if(res == 0) 
-			return points[(*cur_pos)].points;
-		if(res > 0)
-			return basic_points;
-	}
-
-	return basic_points;
-}
-
-/**
- * @brief Search for the points in the sorted OSyncXMLPoints array for the fieldname of xmlfield and handle ignored fields.
- * 
- *  This uses _osync_xmlformat_get_points() but handle the case if the field needs to be ignored.
- *  Ignored fields doesn't have influence on the compare result. This is needed to keep the compare 
- *  result SAME if an ignored fields are the only differences between the entries.
- *
- *  0 Points got returned for ignored fields to avoid influence of the collected_points value and let
- *  collected_points not raise over the threshold value. This could change the compare result to SIMILAR,
- *  even if the entry should  MISMATCH, this should be avoided. This happens when the number of ignored fiels
- *  is the greather equal as the thresold value.
- *
- * @param xmlfield Pointer to xmlfield
- * @param points The sorted points array
- * @param cur_pos Pointer to the actual line in the points array. Gets incremented if the xmlfield requires this! 
- * @param basic_points Points which should be returned if fieldname will not found in the points array 
- * @param same Pointer ot the compare result flag SAME, which got not set to FALSE if the fields should be ignored.
- * @returns The points for the fieldname. If the field should be ignored 0 points got retunred.
- */
-static int _osync_xmlformat_subtract_points(OSyncXMLField *xmlfield, OSyncXMLPoints points[], int *cur_pos, int basic_points, int *same) {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, xmlfield, points, cur_pos, basic_points, same);
-	int p = _osync_xmlformat_get_points(points, cur_pos, basic_points, (const char *) xmlfield->node->name);
-
-	/* Stay with SAME as compare result and don't substract any points - if fields should be ignored */
-	if (p != -1) {
-		osync_trace(TRACE_INTERNAL, "Not same anymore - \"%s\" field differs!", xmlfield->node->name);
-		*same = FALSE;
-	} else {
-		osync_trace(TRACE_INTERNAL, "Ignored field: %s", xmlfield->node->name);
-		p = 0;
-	}
-
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, p);
-	return p;
-}
 
 /*@}*/
 
@@ -166,7 +113,7 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 	xmlNodePtr cur = xmlDocGetRootElement(xmlformat->doc);
 	cur = cur->children;
 	while (cur != NULL) {
-		OSyncXMLField *xmlfield = _osync_xmlfield_new(xmlformat, cur, error);
+		OSyncXMLField *xmlfield = osync_xmlfield_new_node(xmlformat, cur, error);
 		if(!xmlfield) {
 			osync_xmlformat_unref(xmlformat);
 			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
@@ -282,7 +229,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 		goto error;
 	}
 
-	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new(error);
+	OSyncXMLFieldList *xmlfieldlist = osync_xmlfieldlist_new(error);
 	if (!xmlfieldlist)
 		goto error;
 
@@ -305,7 +252,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 
 	key->node = xmlNewNode(NULL, BAD_CAST name);
 	
-	ret = bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
+	ret = bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
 
 	/* no result - return empty xmlfieldlist */
 	if (!ret)
@@ -335,7 +282,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 		va_end(args);
 
 		if(all_attr_equal)
-			_osync_xmlfieldlist_add(xmlfieldlist, cur);
+			osync_xmlfieldlist_add(xmlfieldlist, cur);
 	}
 
 end:	
@@ -412,7 +359,7 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 		xmlUnlinkNode(cur->node);
 	}
 	
-	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
+	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
 	
 	/** bring the xmlformat and the xmldoc in a consistent state */
 	xmlformat->first_child = ((OSyncXMLField *)list[0])->node->_private;
@@ -459,232 +406,13 @@ osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat)
 	for(; cur != NULL; cur = osync_xmlfield_get_next(cur)) {
 
 		/* Equal when returns 0, like strcmp() */
-		if (prev && _osync_xmlfield_compare_stdlib(&prev, &cur) > 0)
+		if (prev && osync_xmlfield_compare_stdlib(&prev, &cur) > 0)
 			return FALSE;
 
 		prev = cur;
 	}
 
 	return TRUE;
-}
-
-/**
- * @brief Compares two xmlformat objects with each other
- * @param xmlformat1 The pointer to a xmlformat object
- * @param xmlformat2 The pointer to a xmlformat object
- * @param points The sorted points array
- * @param basic_points Points which should be used if a xmlfield name is not found in the points array
- * @param threshold If the two xmlformats are not the same, then this value will decide if the two xmlformats are similar 
- * @return One of the values of the OSyncConvCmpResult enumeration
- */
-OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int threshold)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %i)", __func__, xmlformat1, xmlformat2, points, basic_points, threshold);
-
-	int res, collected_points, cur_pos;
-	OSyncXMLField *xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
-	OSyncXMLField *xmlfield2 = osync_xmlformat_get_first_field(xmlformat2);
-
-	cur_pos = 0;
-	collected_points = 0;
-
-	osync_bool same = TRUE;
-	
-	while(xmlfield1 != NULL || xmlfield2 != NULL)
-	{
-
-		/* subtract points for xmlfield2*/
-		if(xmlfield1 == NULL) {
-			collected_points -= _osync_xmlformat_subtract_points(xmlfield2, points, &cur_pos, basic_points, &same);
-			xmlfield2 = xmlfield2->next;
-			continue;	
-		}
-		
-		/* subtract points for xmlfield1*/
-		if(xmlfield2 == NULL) {
-			collected_points -= _osync_xmlformat_subtract_points(xmlfield1, points, &cur_pos, basic_points, &same);
-			xmlfield1 = xmlfield1->next;
-			continue;
-		}
-	
-		res = strcmp((const char *)xmlfield1->node->name, (const char *)xmlfield2->node->name);
-		osync_trace(TRACE_INTERNAL, "result of strcmp(): %i (%s || %s)", res, xmlfield1->node->name, xmlfield2->node->name);
-		
-		/* subtract points for xmlfield1*/
-		if(res < 0) {
-			collected_points -= _osync_xmlformat_subtract_points(xmlfield1, points, &cur_pos, basic_points, &same);
-			xmlfield1 = xmlfield1->next;
-			continue;		
-		}
-		
-		/* subtract points for xmlfield2*/
-		if(res > 0) {
-			collected_points -= _osync_xmlformat_subtract_points(xmlfield2, points, &cur_pos, basic_points, &same);
-			xmlfield2 = xmlfield2->next;
-			continue;			
-		}
-		
-		/* make lists and compare */
-		if(res == 0)
-		{
-			GSList *fieldlist1 = NULL;
-			GSList *fieldlist2 = NULL;
-
-			const char *curfieldname = (const char *)xmlfield1->node->name;
-
-			/* get the points*/
-			int p = _osync_xmlformat_get_points(points, &cur_pos, basic_points, curfieldname);
-	
-			/* don't compare both fields if they should be ignore to avoid influence of the compare result */
-			if (p == -1) {
-				xmlfield1 = xmlfield1->next;
-				xmlfield2 = xmlfield2->next;
-				continue;
-			}
-
-			do {
-				fieldlist1 = g_slist_prepend(fieldlist1, xmlfield1);
-				xmlfield1 = xmlfield1->next;
-				if(xmlfield1 == NULL)
-					break;
-				res = strcmp((const char *)xmlfield1->node->name, curfieldname);
-			} while(res == 0);
-			
-			do {
-				fieldlist2 = g_slist_prepend(fieldlist2, xmlfield2);
-				xmlfield2 = xmlfield2->next;
-				if(xmlfield2 == NULL)
-					break;
-				res = strcmp((const char *)xmlfield2->node->name, curfieldname);
-			} while(res == 0);			
-			
-			do {
-			
-				/* if same then compare and give points*/
-				do {
-					if(!same)
-						break;
-						
-					/* both lists must have the same length */	
-					if(g_slist_length(fieldlist1) != g_slist_length(fieldlist2)) {
-						same = FALSE;
-						osync_trace(TRACE_INTERNAL, "both list don't have the same length");
-						break;
-					}
-					
-					GSList *cur_list1;
-					GSList *cur_list2;
-					do {
-						cur_list1 = fieldlist1;
-						cur_list2 = fieldlist2;
-
-						do {
-							if(osync_xmlfield_compare((OSyncXMLField *)cur_list1->data, (OSyncXMLField *)cur_list2->data) == TRUE)
-								break;
-							cur_list2 = g_slist_next(cur_list2);
-							if(cur_list2 == NULL) {
-								same = FALSE;	
-								osync_trace(TRACE_INTERNAL, "one field is alone: %s", osync_xmlfield_get_name(cur_list1->data));
-								break;
-							}
-						}while(1);
-						
-						if(same) {
-							/* add the points */
-							osync_trace(TRACE_INTERNAL, "add %i point(s) for same fields: %s", p, curfieldname);
-							collected_points += p;
-							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
-							fieldlist2 = g_slist_delete_link(fieldlist2, cur_list2);
-						}else
-							break;							
-
-					}while(fieldlist1 != NULL);
-				} while(0);
-				
-				/* if similar then compare and give points*/
-				do {
-					if(same)
-						break;
-					/* if no points to add or to subtract we need no compair of similarity */
-					if(!p) {
-						g_slist_free(fieldlist1);
-						g_slist_free(fieldlist2);
-						fieldlist1 = NULL;
-						fieldlist2 = NULL;
-						break;
-					}
-					
-					GSList *cur_list1;
-					GSList *cur_list2;
-					osync_bool found;
-					int subtracted_count;
-					subtracted_count = 0;
-					do {
-						found = FALSE;
-						cur_list1 = fieldlist1;
-						cur_list2 = fieldlist2;
-						
-						while(cur_list2) {
-
-							if(osync_xmlfield_compare_similar(	(OSyncXMLField *)cur_list1->data,
-																(OSyncXMLField *)cur_list2->data,
-																points[cur_pos].keys) == TRUE) {
-								found = TRUE;	
-								break;
-							}
-
-							cur_list2 = g_slist_next(cur_list2);
-						}
-						
-						/* add or subtract the points */
-						if(found) {
-							/* add the points */
-							osync_trace(TRACE_INTERNAL, "add %i point(s) for similiar field: %s", p, curfieldname);
-							collected_points += p;
-							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
-							fieldlist2 = g_slist_delete_link(fieldlist2, cur_list2);
-						}else{
-							/* subtract the points */
-							osync_trace(TRACE_INTERNAL, "subtracting %i point(s) for missing field: %s", p, curfieldname);
-							collected_points -= p;
-							subtracted_count++;
-							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
-						}
-					}while(fieldlist1 != NULL);
-					
-					/* subtract the points for the remaining elements in the list2 */
-					while(fieldlist2) {
-						/* subtract the points */
-						if(subtracted_count > 0) {
-							subtracted_count--;
-						} else {
-							osync_trace(TRACE_INTERNAL, "subtracting %i point(s) for remaining field: %s", p, curfieldname);
-							collected_points -= p;
-						}
-						fieldlist2 = g_slist_delete_link(fieldlist2, fieldlist2);
-					}
-	
-				}while(0);
-				
-			}while(0);
-
-			/* the lists should not exist */
-			g_assert(!fieldlist1);
-			g_assert(!fieldlist2);
-		}
-	};
-	
-	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", collected_points, threshold);
-	if (same) {
-		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
-		return OSYNC_CONV_DATA_SAME;
-	}
-	if (collected_points >= threshold) {
-		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
-		return OSYNC_CONV_DATA_SIMILAR;
-	}
-	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
-	return OSYNC_CONV_DATA_MISMATCH;
 }
 
 

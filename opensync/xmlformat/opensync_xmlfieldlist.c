@@ -26,6 +26,8 @@
 #include "opensync-xmlformat.h"
 #include "opensync-xmlformat_internals.h"
 
+#include "opensync_xmlfieldlist_private.h"
+
 /**
  * @defgroup OSyncXMLFieldListPrivateAPI OpenSync XMLFieldList Internals
  * @ingroup OSyncPrivate
@@ -39,7 +41,7 @@
  * @param error The error which will hold the info in case of an error
  * @return The pointer to the newly allocated xmlfieldlist object or NULL in case of error
  */
-OSyncXMLFieldList *_osync_xmlfieldlist_new(OSyncError **error)
+OSyncXMLFieldList *osync_xmlfieldlist_new(OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
@@ -59,7 +61,7 @@ OSyncXMLFieldList *_osync_xmlfieldlist_new(OSyncError **error)
  * @param xmlfieldlist The pointer to a xmlfieldlist object
  * @param xmlfield The xmlfield pointer to add to the xmlfieldlist 
  */
-void _osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xmlfield)
+void osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfieldlist);
 	osync_assert(xmlfield);
@@ -72,7 +74,7 @@ void _osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xml
  * @param xmlfieldlist The pointer to a xmlfieldlist object
  * @param index The index of the xmlfield pointer to remove 
  */
-void _osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index)
+void osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index)
 {
 	osync_assert(xmlfieldlist);
 	

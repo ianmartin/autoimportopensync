@@ -23,27 +23,21 @@
 #ifndef OPENSYNC_XMLFIELD_INTERNALS_H_
 #define OPENSYNC_XMLFIELD_INTERNALS_H_
 
-/**
- * @brief Represent a XMLField object
- * @ingroup OSyncXMLFieldPrivateAPI
- */
-struct OSyncXMLField {
-	/** The pointer to the next xmlfield */
-	OSyncXMLField *next;
-	/** The pointer to the previous xmlfield */
-	OSyncXMLField *prev; 
-	/** The wrapped xml node */
-	xmlNodePtr node;
-	/** Sorted status */
-	osync_bool sorted;
-};
+OSyncXMLField *osync_xmlfield_new_node(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error);
+void osync_xmlfield_free(OSyncXMLField *xmlfield);
 
-OSyncXMLField *_osync_xmlfield_new(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error);
-void _osync_xmlfield_free(OSyncXMLField *xmlfield);
+void osync_xmlfield_delete(OSyncXMLField *xmlfield);
+void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
+void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
 
-void _osync_xmlfield_unlink(OSyncXMLField *xmlfield);
+osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2);
+osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[]);
 
-int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2);
-int _osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2);
+void osync_xmlfield_sort(OSyncXMLField *xmlfield);
+
+void osync_xmlfield_unlink(OSyncXMLField *xmlfield);
+
+int osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2);
+int osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2);
 
 #endif /*OPENSYNC_XMLFIELD_INTERNALS_H_*/

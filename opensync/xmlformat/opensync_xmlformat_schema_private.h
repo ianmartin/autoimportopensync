@@ -20,10 +20,26 @@
  * 
  */
  
-#ifndef OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
-#define OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
+#ifndef OPENSYNC_XMLFORMAT_SCHEMA_PRIVATE_H_
+#define OPENSYNC_XMLFORMAT_SCHEMA_PRIVATE_H_
 
-OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error);
-OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error); 
+#include <libxml/xpath.h>
+#include <libxml/xmlschemas.h>
+#include <libxml/tree.h>
 
-#endif /* OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_ */
+/** 
+ * @brief Represents a Schema object
+ * @ingroup OSyncXMLFormatPrivateAPI
+ */
+struct OSyncXMLFormatSchema {
+	/** The schema object */
+	xmlSchemaPtr schema;
+	/** The schema validation context */
+	xmlSchemaValidCtxtPtr context;
+	/** The object type of OSyncXMLFormat */
+	char *objtype;
+	/** The reference counter for this object */
+	int ref_count;
+};
+
+#endif /* OPENSYNC_XMLFORMAT_SCHEMA_PRIVATE_H_ */

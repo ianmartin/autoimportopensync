@@ -26,6 +26,10 @@
 #include "opensync-xmlformat.h"
 #include "opensync-xmlformat_internals.h"
 
+#include "opensync_xmlformat_private.h"		/* FIXME: direct access of private header */
+
+#include "opensync_xmlformat_schema_private.h"
+
 static GList *schemas = NULL;
 static GStaticMutex schema_mutex = G_STATIC_MUTEX_INIT;
 

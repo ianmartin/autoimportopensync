@@ -1,6 +1,6 @@
 /*
  * libopensync - A synchronization framework
- * Copyright (C) 2008  Bjoern Ricks <bjoern.ricks@gmail.com>
+ * Copyright (C) 2006  NetNix Finland Ltd <netnix@netnix.fi>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,14 +16,27 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
- * Author: Bjoern Ricks <bjoern.ricks@gmail.com>
+ * Author: Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  */
- 
-#ifndef OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
-#define OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
 
-OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error);
-OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error); 
+#ifndef OPENSYNC_XMLFIELD_PRIVATE_H_
+#define OPENSYNC_XMLFIELD_PRIVATE_H_
 
-#endif /* OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_ */
+/**
+ * @brief Represent a XMLField object
+ * @ingroup OSyncXMLFieldPrivateAPI
+ */
+struct OSyncXMLField {
+	/** The pointer to the next xmlfield */
+	OSyncXMLField *next;
+	/** The pointer to the previous xmlfield */
+	OSyncXMLField *prev; 
+	/** The wrapped xml node */
+	xmlNodePtr node;
+	/** Sorted status */
+	osync_bool sorted;
+};
+
+#endif /* OPENSYNC_XMLFIELD_PRIVATE_H_ */
+

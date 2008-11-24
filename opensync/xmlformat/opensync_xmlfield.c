@@ -25,6 +25,10 @@
 
 #include "opensync-xmlformat.h"
 #include "opensync-xmlformat_internals.h"
+#include "opensync_xmlformat_private.h"		/* FIXME: direct access of private header */
+
+#include "opensync_xmlfield_private.h"
+#include "opensync_xmlfield_internals.h"
 
 /**
  * @defgroup OSyncXMLFieldPrivateAPI OpenSync XMLField Internals
@@ -42,7 +46,7 @@
  * @param error The error which will hold the info in case of an error
  * @return The pointer to the newly allocated xmlfield object or NULL in case of error
  */
- OSyncXMLField *_osync_xmlfield_new(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error)
+ OSyncXMLField *osync_xmlfield_new_node(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error)
 {
 	OSyncXMLField *xmlfield = osync_try_malloc0(sizeof(OSyncXMLField), error);
 	if(!xmlfield) {
@@ -72,7 +76,7 @@
  * @brief Frees a already unlinked xmlfield object
  * @param xmlfield The pointer to a xmlfield object
  */
-void _osync_xmlfield_free(OSyncXMLField *xmlfield)
+void osync_xmlfield_free(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
 	
@@ -84,7 +88,7 @@ void _osync_xmlfield_free(OSyncXMLField *xmlfield)
  * @brief Unlink a xmlfield object  
  * @param xmlfield The pointer to a xmlfield object
  */
-void _osync_xmlfield_unlink(OSyncXMLField *xmlfield)
+void osync_xmlfield_unlink(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
 	
@@ -106,7 +110,7 @@ void _osync_xmlfield_unlink(OSyncXMLField *xmlfield)
  * @param xmlfield2 The pointer to a xmlfield object
  * @returns same as strcmp(), 0 is equal
  */
-int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
+int osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 {
 	return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
 }
@@ -117,7 +121,7 @@ int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
  * @param key2 The pointer to a xmlNodePtr
  * @returns same as strcmp(), 0 is equal
  */
-int _osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
+int osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
 {
 	return strcmp((const char*) (*(xmlNodePtr *) key1)->name, (const char*) (*(xmlNodePtr *) key2)->name);
 }
@@ -148,7 +152,7 @@ OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, O
 	
 	xmlNodePtr node = xmlNewTextChild(xmlDocGetRootElement(xmlformat->doc), NULL, BAD_CAST name, NULL);
 	
-	OSyncXMLField *xmlfield = _osync_xmlfield_new(xmlformat, node, error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new_node(xmlformat, node, error);
 	if(!xmlfield) {
 		xmlUnlinkNode(node);
 		xmlFreeNode(node);
@@ -174,8 +178,8 @@ void osync_xmlfield_delete(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
 	
-	_osync_xmlfield_unlink(xmlfield);
-	_osync_xmlfield_free(xmlfield);	
+	osync_xmlfield_unlink(xmlfield);
+	osync_xmlfield_free(xmlfield);	
 }
 
 /**
@@ -188,7 +192,7 @@ void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXM
 	osync_assert(xmlfield);
 	osync_assert(to_link);
 
-	_osync_xmlfield_unlink(to_link);
+	osync_xmlfield_unlink(to_link);
 
 	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
 	xmlAddPrevSibling(xmlfield->node, to_link->node);
@@ -214,7 +218,7 @@ void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXML
 	osync_assert(xmlfield);
 	osync_assert(to_link);
 	
-	_osync_xmlfield_unlink(to_link);
+	osync_xmlfield_unlink(to_link);
 	
 	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
 	xmlAddNextSibling(xmlfield->node, to_link->node);
@@ -514,213 +518,6 @@ void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const ch
 }
 
 /**
- * @brief Compares two xmlfield objects with each other
- * @param xmlfield1 The pointer to a xmlformat object
- * @param xmlfield2 The pointer to a xmlformat object
- * @return TRUE if both xmlfield objects are the same otherwise FALSE
- */
-osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, xmlfield1, xmlfield2);
-	osync_assert(xmlfield1);
-	osync_assert(xmlfield2);
-	
-	int i;	
-	osync_bool same;
-	
-	if(xmlStrcmp(xmlfield1->node->name, xmlfield2->node->name)) {
-		osync_trace(TRACE_EXIT, "%s: %i", __func__, FALSE);
-		return FALSE;
-	}
-
-	same = TRUE;
-	xmlNodePtr key1 = xmlfield1->node->children;
-	xmlNodePtr key2 = xmlfield2->node->children;
-	
-	while(same)
-	{
-		if(key1 == NULL && key2 == NULL) {
-			break;
-		}
-			
-		if(key1 == NULL || key2 == NULL) {
-			same = FALSE;
-			break;	
-		}
-		
-		GSList *keylist1;
-		GSList *keylist2;
-		keylist1 = NULL;
-		keylist2 = NULL;
-		
-		const char *curkeyname = (const char *)key1->name;
-		do {
-			keylist1 = g_slist_prepend(keylist1, key1);
-			key1 = key1->next;
-			if(key1 == NULL)
-				break;
-			i = strcmp((const char *)key1->name, curkeyname);
-		} while(i == 0);
-		
-		do {
-			keylist2 = g_slist_prepend(keylist2, key2);
-			key2 = key2->next;
-			if(key2 == NULL)
-				break;
-			i = strcmp((const char *)key2->name, curkeyname);
-		} while(i == 0);	
-		
-		do{
-			/* both lists must have the same length */	
-			if(g_slist_length(keylist1) != g_slist_length(keylist2)) {
-				osync_trace(TRACE_INTERNAL, "It's not the same anymore...");
-				same = FALSE;
-				break;
-			}
-						
-			GSList *cur_list1;
-			GSList *cur_list2;
-			
-			do {
-				cur_list1 = keylist1;
-				cur_list2 = keylist2;
-	
-				do {
-					if(!xmlStrcmp(osync_xml_node_get_content(cur_list1->data), osync_xml_node_get_content(cur_list2->data)))
-						break;
-					cur_list2 = g_slist_next(cur_list2);
-					if(cur_list2 == NULL) {
-						same = FALSE;	
-						break;
-					}
-				}while(1);
-				
-				if(same) {
-					keylist1 = g_slist_delete_link(keylist1, cur_list1);
-					keylist2 = g_slist_delete_link(keylist2, cur_list2);
-				}else
-					break;
-				
-			}while(keylist1 != NULL);
-		}while(0);	
-		
-		if(keylist1)
-			g_slist_free(keylist1);
-		if(keylist2)
-			g_slist_free(keylist2);
-	}
-	
-	/* now we check if the attributes are equal */
-	do {
-		if(!same)
-			break;
-		
-		int i1 =osync_xmlfield_get_attr_count(xmlfield1);
-		int i2 =osync_xmlfield_get_attr_count(xmlfield2);
-		
-		if(i1 != i2) {
-			same = FALSE;
-			break;
-		}
-		
-		for(i=0; i < i1; i++) {
-			const char *attrvalue = osync_xmlfield_get_attr(xmlfield2, osync_xmlfield_get_nth_attr_name(xmlfield1, i));
-			if( attrvalue == NULL ||
-				strcmp(attrvalue, osync_xmlfield_get_nth_attr_value(xmlfield1, i))) {
-				same = FALSE;
-				break;	
-			}
-		}
-	} while(0);
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, same);
-	return same;
-}
-
-/**
- * @brief Compares two xmlfield objects with each other of similarity
- * @param xmlfield1 The pointer to a xmlformat object
- * @param xmlfield2 The pointer to a xmlformat object
- * @param keys OSyncXMLPoints::keys
- * @return TRUE if both xmlfield objects are the similar otherwise FALSE
- */
-osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[])
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, xmlfield1, xmlfield2, keys);
-	osync_assert(xmlfield1);
-	osync_assert(xmlfield2);
-	
-	osync_bool res = TRUE;
-	if(strcmp((const char *) xmlfield1->node->name, (const char *) xmlfield2->node->name) != 0)
-		res = FALSE;
-
-	xmlNodePtr node1, node2;
-	node1 = xmlfield1->node->children;
-	node2 = xmlfield2->node->children;
-
-	int i;
-	for(i=0; keys[i]; i++) {
-		GSList *list1;
-		GSList *list2;
-		list1 = NULL;
-		list2 = NULL;
-		
-		while(node1 != NULL) {
-			if(strcmp(keys[i], (const char *)node1->name) == 0)
-				list1 = g_slist_prepend(list1, node1);
-			node1 = node1->next;
-		};
-		
-		while(node2 != NULL) {
-			if(strcmp(keys[i], (const char *)node2->name) == 0)
-				list2 = g_slist_prepend(list2, node2);
-			node2 = node2->next;
-		};
-		
-		GSList *cur_list1;
-		GSList *cur_list2;
-		
-		while(list1 != NULL)
-		{
-			cur_list1 = list1;
-			cur_list2 = list2;
-			
-			if(cur_list2 == NULL) {
-				res = FALSE;
-				break;	
-			}
-			
-			while(xmlStrcmp(osync_xml_node_get_content((xmlNodePtr)cur_list1->data),
-							 osync_xml_node_get_content((xmlNodePtr)cur_list2->data))) {		
-//			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
-//						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {
-				cur_list2 = g_slist_next(cur_list2);
-				if(cur_list2 == NULL) {
-					res = FALSE;	
-					break;
-				}
-			}
-			
-			if(res) {
-				list1 = g_slist_delete_link(list1, cur_list1);
-				list2 = g_slist_delete_link(list2, cur_list2);
-			}else
-				break;
-		}
-		if(list2 != NULL)
-			res = FALSE;
-			
-		if(!res) {
-			if(list1 != NULL)
-				g_slist_free(list1);
-			if(list2 != NULL)
-				g_slist_free(list2);
-		}
-	}
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
-	return res;
-}
-
-/**
  * @brief Sort all key nodes  of the xmlfield. This function have to be called
  *  if the xmlfield got build in a unsorted way. Sorting is not needed if the
  *  xmfield got build in a sorted way.
@@ -754,7 +551,7 @@ void osync_xmlfield_sort(OSyncXMLField *xmlfield)
 		xmlUnlinkNode(tmp);
 	}
 	
-	qsort(list, count, sizeof(xmlNodePtr), _osync_xmlfield_key_compare_stdlib);
+	qsort(list, count, sizeof(xmlNodePtr), osync_xmlfield_key_compare_stdlib);
 	
 	for(index = 0; index < count; index++) {
 		cur = (xmlNodePtr)list[index];
