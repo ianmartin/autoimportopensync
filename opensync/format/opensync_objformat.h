@@ -30,6 +30,7 @@ typedef char *(* OSyncFormatPrintFunc) (const char *data, unsigned int size);
 typedef time_t (* OSyncFormatRevisionFunc) (const char *data, unsigned int size, OSyncError **error);
 typedef osync_bool (* OSyncFormatMarshalFunc) (const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
 typedef osync_bool (* OSyncFormatDemarshalFunc) (OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
+typedef osync_bool (* OSyncFormatValidateFunc) (const char *data, unsigned int size, OSyncError **error);
 
 OSYNC_EXPORT OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error);
 OSYNC_EXPORT OSyncObjFormat *osync_objformat_ref(OSyncObjFormat *format);
@@ -48,6 +49,7 @@ OSYNC_EXPORT void osync_objformat_set_print_func(OSyncObjFormat *format, OSyncFo
 OSYNC_EXPORT void osync_objformat_set_revision_func(OSyncObjFormat *format, OSyncFormatRevisionFunc revision_func);
 OSYNC_EXPORT void osync_objformat_set_marshal_func(OSyncObjFormat *format, OSyncFormatMarshalFunc marshal_func);
 OSYNC_EXPORT void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemarshalFunc marshal_func);
+OSYNC_EXPORT void osync_objformat_set_validate_func(OSyncObjFormat *format, OSyncFormatValidateFunc validate_func);
 
 OSYNC_EXPORT char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size);
 

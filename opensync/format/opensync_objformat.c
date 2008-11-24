@@ -454,4 +454,54 @@ osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *messa
 	return format->demarshal_func(message, output, outpsize, error);
 }
 
+
+/**
+ * @brief Sets the optional validation function for an object format
+ *
+ * The validation function can be used to validate data for the specific
+ * format. This is optional. The validation should be fast, since once this
+ * function is registered this get called during conversion for every change.
+ *
+ * @param format Pointer to the object format
+ * @param validate_func The validation function to use
+ */
+void osync_objformat_set_validate_func(OSyncObjFormat *format, OSyncFormatValidateFunc validate_func)
+{
+	osync_assert(format);
+	format->validate_func = validate_func;
+}
+
+/**
+ * @brief Validate supplied ata in format specific way 
+ *
+ * @param format Pointer to the object format
+ * @param data Pointer to the object to validate 
+ * @param size Size in bytes of the object specified by the data parameter
+ * @param error Pointer to an error struct
+ * @returns TRUE if data passed format specific validation, otherwise FALSE 
+
+ */
+osync_bool osync_objformat_validate(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error)
+{
+	osync_assert(format);
+	osync_assert(format->validate_func);
+	return format->validate_func(data, size, error);
+}
+
+/**
+ * @brief Check if specific format requires validation 
+ *
+ * If a validation function is set for the specific format then validation is
+ * required for every conversion which results in this object format.
+ *
+ * @param format Pointer to the object format
+ * @returns TRUE if validation is required for this format, otherwise FALSE 
+
+ */
+osync_bool osync_objformat_must_validate(OSyncObjFormat *format)
+{
+	osync_assert(format);
+	return format->validate_func ? TRUE : FALSE;
+}
+
 /*@}*/

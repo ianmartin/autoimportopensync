@@ -34,6 +34,8 @@ osync_bool osync_objformat_is_equal(OSyncObjFormat *leftformat, OSyncObjFormat *
 osync_bool osync_objformat_must_marshal(OSyncObjFormat *format);
 osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
 osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
+osync_bool osync_objformat_validate(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error);
+osync_bool osync_objformat_must_validate(OSyncObjFormat *format);
 
 #endif /* _OPENSYNC_OBJFORMAT_INTERNALS_H_ */
 
