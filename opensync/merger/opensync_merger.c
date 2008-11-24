@@ -141,16 +141,8 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	 		}
 		 }
 		 
-	 	if(cap_cur == NULL)	{
-			tmp = old_cur;
-			old_cur = osync_xmlfield_get_next(old_cur);
-			if(ret >= 0) {
-				osync_xmlfield_adopt_xmlfield_before_field(new_cur, tmp);
-			} else {
-				osync_xmlfield_adopt_xmlfield_after_field(new_cur, tmp);
-			}
-			continue;		 		
-	 	}
+		/* This should be always NULL reg. #820 */
+		osync_assert(cap_cur);
 
  		ret = strcmp(osync_capability_get_name(cap_cur), osync_xmlfield_get_name(old_cur));
 	 	if(ret == 0)
