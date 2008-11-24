@@ -29,7 +29,7 @@ void osync_xml_free(void *ptr)
 
 void osync_xml_free_doc(xmlDoc *doc)
 {
-	osync_xml_free_doc(doc);
+	xmlFreeDoc(doc);
 }
    
 xmlNode *osync_xml_node_add_root(xmlDoc *doc, const char *name)
