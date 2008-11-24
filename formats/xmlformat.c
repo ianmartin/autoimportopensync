@@ -301,6 +301,12 @@ static time_t get_todo_revision(const char *data, unsigned int size, OSyncError 
 	return get_revision(data, size, "LastModified", error);
 }
 
+osync_bool validate_xmlformat(const char *data, unsigned int size, OSyncError **error)
+{
+	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *) data;
+	return osync_xmlformat_validate(xmlformat, error);
+}
+
 osync_bool get_format_info(OSyncFormatEnv *env)
 {
 	OSyncError *error = NULL;
@@ -320,6 +326,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_contact);
+	osync_objformat_set_validate_func(format, validate_xmlformat);
 	
 	osync_objformat_set_revision_func(format, get_contact_revision);
 	
@@ -344,6 +351,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_event);
+	osync_objformat_set_validate_func(format, validate_xmlformat);
 	
 	osync_objformat_set_revision_func(format, get_event_revision);
 	
@@ -368,6 +376,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_todo);
+	osync_objformat_set_validate_func(format, validate_xmlformat);
 
 	osync_objformat_set_revision_func(format, get_todo_revision);
 
@@ -392,6 +401,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_note);
+	osync_objformat_set_validate_func(format, validate_xmlformat);
 
 	osync_objformat_set_revision_func(format, get_note_revision);
 
