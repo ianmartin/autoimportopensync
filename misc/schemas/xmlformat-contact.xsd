@@ -28,6 +28,7 @@
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-ICQ" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Jabber" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-MSN" type="IM"/>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Skype" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yahoo" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yabber" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IRC" type="StringContent"/>
