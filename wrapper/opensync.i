@@ -25,14 +25,18 @@ typedef OSyncConfigurationType ConfigurationType;
 typedef OSyncConflictResolution ConflictResolution;
 typedef OSyncContext Context;
 typedef OSyncConvCmpResult ConvCmpResult;
+/*
 typedef OSyncCustomFilter CustomFilter;
+*/
 typedef OSyncData Data;
 typedef OSyncEngine Engine;
 typedef OSyncEngineEvent EngineEvent;
 typedef OSyncError Error;
 typedef OSyncErrorType ErrorType;
+/*
 typedef OSyncFilterAction FilterAction;
 typedef OSyncFilter Filter;
+*/
 typedef OSyncFormatConverter FormatConverter;
 typedef OSyncFormatConverterPath FormatConverterPath;
 typedef OSyncFormatEnv FormatEnv;

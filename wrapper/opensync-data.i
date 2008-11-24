@@ -53,10 +53,12 @@ typedef struct {} Data;
 		osync_data_get_data(self, buffer, size);
 	}
 
+        /*
 	%cstring_output_allocate_size(char **buffer, unsigned int *size, );
 	void steal_data(char **buffer, unsigned int *size) {
 		osync_data_steal_data(self, buffer, size);
 	}
+        */
 
 	%cstring_input_binary(char *buf, unsigned int size);
 	void set_data(char *buffer, unsigned int size) {
@@ -76,9 +78,11 @@ typedef struct {} Data;
 			return data; /* new object, no need to inc ref */
 	}
 
+        /*
 	ConvCmpResult compare(Data *data) {
 		return osync_data_compare(self, data);
 	}
+        */
 
 	char *get_printable() {
 		return osync_data_get_printable(self);
@@ -169,6 +173,7 @@ typedef struct {} Change;
 		return osync_change_compare(self, change);
 	}
 
+        /*
 	bool duplicate() {
 		Error *err = NULL;
 		bool dirty = FALSE;
@@ -177,6 +182,7 @@ typedef struct {} Change;
 			wrapper_exception("osync_change_duplicate failed but did not set error code");
 		return dirty;
 	}
+        */
 
 	ObjFormat *get_objformat() {
 		ObjFormat *ret = osync_change_get_objformat(self);

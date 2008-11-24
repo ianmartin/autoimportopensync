@@ -8,9 +8,11 @@ typedef enum {} TraceType;
 %constant int TRACE_ERROR = TRACE_ERROR;
 
 %inline %{
+        /*
 	static char *rand_str(int maxlength) {
 		return osync_rand_str(maxlength);
 	}
+        */
 
 	static void trace_reset_indent() {
 		osync_trace_reset_indent();

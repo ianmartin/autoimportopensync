@@ -179,6 +179,7 @@ typedef struct {} Group;
 		return osync_group_objtype_enabled(self, objtype);
 	}
 
+        /*
 	void add_filter(Filter *filter) {
 		osync_group_add_filter(self, filter);
 	}
@@ -197,6 +198,7 @@ typedef struct {} Group;
 			osync_filter_ref(filter);
 		return filter;
 	}
+        */
 
 	void set_last_synchronization(time_t last_sync) {
 		osync_group_set_last_synchronization(self, last_sync);
@@ -245,7 +247,9 @@ typedef struct {} Group;
 		self.__oldinit(*args)
 		self.members = _ListWrapper(self.num_members, self.nth_member)
 		self.objtypes = _ListWrapper(self.num_objtypes, self.nth_objtype)
+                /*
 		self.filters = _ListWrapper(self.num_filters, self.nth_filter)
+                */
 %}
 }
 

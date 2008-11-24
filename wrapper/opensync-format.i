@@ -110,6 +110,7 @@ typedef struct {} FormatConverterPath;
 }
 
 
+/*
 typedef enum {} FilterAction;
 
 %constant int FILTER_IGNORE = OSYNC_FILTER_IGNORE;
@@ -152,7 +153,7 @@ typedef struct {} Filter;
 	objtype = property(get_objtype)
 %}
 }
-
+*/
 
 typedef struct {} FormatEnv;
 %extend FormatEnv {
@@ -220,6 +221,7 @@ typedef struct {} FormatEnv;
 		return ret;
 	}
 
+        /*
 	void register_filter(CustomFilter *filter) {
 		osync_format_env_register_filter(self, filter);
 	}
@@ -234,6 +236,7 @@ typedef struct {} FormatEnv;
 			osync_custom_filter_ref(ret);
 		return ret;
 	}
+        */
 
 	ObjFormat *detect_objformat(Data *data) {
 		ObjFormat *ret = osync_format_env_detect_objformat(self, data);
@@ -302,7 +305,9 @@ typedef struct {} FormatEnv;
 		self.__oldinit(*args)
 		self.objformats = _ListWrapper(self.num_objformats, self.nth_objformat)
 		self.converters = _ListWrapper(self.num_converters, self.nth_converter)
+                /*
 		self.filters = _ListWrapper(self.num_filters, self.nth_filter)
+                */
 %}
 }
 

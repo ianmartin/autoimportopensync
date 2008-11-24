@@ -69,6 +69,7 @@ typedef struct {} Engine;
 		osync_engine_unref(self);
 	}
 
+        /*
 	void set_plugindir(const char *dir) {
 		osync_engine_set_plugindir(self, dir);
 	}
@@ -83,6 +84,7 @@ typedef struct {} Engine;
 			osync_group_ref(ret);
 		return ret;
 	}
+        */
 
 /* TODO: Archive not wrapped yet
 	Archive *get_archive() {
@@ -198,6 +200,7 @@ typedef struct {} Engine;
 
 	/* TODO: other callbacks */
 
+        /*
 	void event(EngineEvent ev) {
 		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
@@ -209,10 +212,10 @@ typedef struct {} Engine;
 		return osync_engine_check_get_changes(self);
 	}
 
-
         int num_proxies() {
                 return osync_engine_num_proxies(self);
         }
+        */
 
         /* TODO create ClientProxy object
         ClientProxy nth_objengine(int nth) {
@@ -224,9 +227,11 @@ typedef struct {} Engine;
         }
         */
 
+        /*
         int num_objengine() {
                 return osync_engine_num_objengine(self);
         }
+        */
 
         /* TODO Create ObjEngine object
         ObjEngine nth_objengine(int nth) {

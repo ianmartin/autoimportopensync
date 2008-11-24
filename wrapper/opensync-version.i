@@ -1,3 +1,4 @@
+/*
 %inline %{
 	static PyObject *version_load_from_default_descriptions() {
 		Error *err = NULL;
@@ -10,6 +11,7 @@
 		return osynclist_to_pylist(list, SWIGTYPE_p_Version);
 	}
 %}
+*/
 
 typedef struct {} Version;
 %extend Version {
@@ -26,64 +28,70 @@ typedef struct {} Version;
 		osync_version_unref(self);
 	}
 
-	char *get_plugin() {
-		return osync_version_get_plugin(self);
-	}
-
-	void set_plugin(char *plugin) {
-		osync_version_set_plugin(self, plugin);
-	}
-
-	char *get_priority() {
-		return osync_version_get_priority(self);
-	}
-
-	void set_priority(char *priority) {
-		osync_version_set_priority(self, priority);
-	}
-
-	char *get_vendor() {
-		return osync_version_get_vendor(self);
-	}
-
-	void set_vendor(char *vendor) {
-		osync_version_set_vendor(self, vendor);
-	}
-
+        /*
+        char *get_plugin() {
+        	return osync_version_get_plugin(self);
+        }
+        
+        
+        char *get_priority() {
+        	return osync_version_get_priority(self);
+        }
+        
+       
+        char *get_vendor() {
+        	return osync_version_get_vendor(self);
+        }
+        
 	char *get_modelversion() {
 		return osync_version_get_modelversion(self);
-	}
-
-	void set_modelversion(char *modelversion) {
-		osync_version_set_modelversion(self, modelversion);
-	}
-
-	char *get_firmwareversion() {
-		return osync_version_get_firmwareversion(self);
-	}
-
-	void set_firmwareversion(char *firmwareversion) {
-		osync_version_set_firmwareversion(self, firmwareversion);
-	}
-
-	char *get_softwareversion() {
-		return osync_version_get_softwareversion(self);
-	}
-
-	void set_softwareversion(char *softwareversion) {
-		osync_version_set_softwareversion(self, softwareversion);
 	}
 
 	char *get_hardwareversion() {
 		return osync_version_get_hardwareversion(self);
 	}
 
-	void set_hardwareversion(char *hardwareversion) {
-		osync_version_set_hardwareversion(self, hardwareversion);
+
+	char *get_firmwareversion() {
+		return osync_version_get_firmwareversion(self);
+	}
+
+
+	char *get_softwareversion() {
+		return osync_version_get_softwareversion(self);
 	}
 
 	char *get_identifier() {
 		return osync_version_get_identifier(self);
+	}
+        */
+
+        void set_priority(char *priority) {
+        	osync_version_set_priority(self, priority);
+        }
+ 
+        void set_vendor(char *vendor) {
+        	osync_version_set_vendor(self, vendor);
+        }
+
+        void set_plugin(char *plugin) {
+        	osync_version_set_plugin(self, plugin);
+        }
+
+	void set_modelversion(char *modelversion) {
+		osync_version_set_modelversion(self, modelversion);
+	}
+
+	void set_firmwareversion(char *firmwareversion) {
+		osync_version_set_firmwareversion(self, firmwareversion);
+	}
+
+	void set_softwareversion(char *softwareversion) {
+		osync_version_set_softwareversion(self, softwareversion);
+	}
+
+	void set_hardwareversion(char *hardwareversion) {
+		osync_version_set_hardwareversion(self, hardwareversion);
 	}
 
 	void set_identifier(char *identifier) {
