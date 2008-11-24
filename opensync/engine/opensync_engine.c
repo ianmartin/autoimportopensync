@@ -474,7 +474,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	g_source_attach(engine->command_source, engine->context);
 	g_main_context_ref(engine->context);
 
-	char *enginesdir = g_strdup_printf("%s%c.opensync%cengines", g_get_home_dir(), G_DIR_SEPARATOR, G_DIR_SEPARATOR);
+	char *enginesdir = g_strdup_printf("%s%cengines", osync_group_get_configdir(group), G_DIR_SEPARATOR);
 	engine->engine_path = g_strdup_printf("%s%cenginepipe", enginesdir, G_DIR_SEPARATOR);
 	
 	if (g_mkdir_with_parents(enginesdir, 0755) < 0) {
