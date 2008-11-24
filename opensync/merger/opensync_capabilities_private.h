@@ -55,7 +55,7 @@ struct OSyncCapabilities {
 	xmlDocPtr doc;
 };
 
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error);
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype);
+OSyncCapabilitiesObjType *osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error);
+OSyncCapabilitiesObjType *osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype);
 
 #endif /*OPENSYNC_CAPABILITIES_PRIVATE_H_*/

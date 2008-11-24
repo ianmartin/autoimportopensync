@@ -25,7 +25,12 @@
 
 #include "opensync-xmlformat.h"
 /* FIXME: osync_merge_merge() requires direct xmlNode access -> dirty! */ 
-#include "../xmlformat/opensync-xmlformat_internals.h"
+#include "xmlformat/opensync-xmlformat_internals.h"
+
+
+#include "xmlformat/opensync_xmlfield_private.h"	/* FIXME: direcyt access to private header */
+
+#include "opensync_capability_private.h"	/* FIXME: direcyt access to private header */
 
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"

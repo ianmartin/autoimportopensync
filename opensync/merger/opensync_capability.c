@@ -28,6 +28,8 @@
 
 #include "opensync_capabilities_private.h" /* FIXME: include forgein private-header */
 
+#include "opensync_capability_private.h"
+
 /**
  * @defgroup OSyncCapabilityPrivateAPI OpenSync Capability Internals
  * @ingroup OSyncPrivate
@@ -44,7 +46,7 @@
  * @param error The error which will hold the info in case of an error
  * @return The pointer to the newly allocated capability object or NULL in case of error
  */
-OSyncCapability *_osync_capability_new(OSyncCapabilitiesObjType *capabilitiesobjtype, xmlNodePtr node, OSyncError **error)
+OSyncCapability *osync_capability_new_node(OSyncCapabilitiesObjType *capabilitiesobjtype, xmlNodePtr node, OSyncError **error)
 {
 	osync_assert(capabilitiesobjtype);
 	osync_assert(node);
@@ -74,7 +76,7 @@ OSyncCapability *_osync_capability_new(OSyncCapabilitiesObjType *capabilitiesobj
  * @brief Frees a capability object 
  * @param capability The pointer to a capability object
  */
-void _osync_capability_free(OSyncCapability *capability)
+void osync_capability_free(OSyncCapability *capability)
 {
 	osync_assert(capability);
 	
@@ -86,7 +88,7 @@ void _osync_capability_free(OSyncCapability *capability)
  * @param capability1 The pointer to a capability object
  * @param capability2 The pointer to a capability object
  */
-int _osync_capability_compare_stdlib(const void *capability1, const void *capability2)
+int osync_capability_compare_stdlib(const void *capability1, const void *capability2)
 {
 	return strcmp(osync_capability_get_name(*(OSyncCapability **)capability1), osync_capability_get_name(*(OSyncCapability **)capability2));
 }
@@ -117,10 +119,10 @@ OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const cha
 	osync_assert(objtype);
 	osync_assert(name);
 	
-	OSyncCapabilitiesObjType *capabilitiesobjtype = _osync_capabilitiesobjtype_get(capabilities, objtype);
+	OSyncCapabilitiesObjType *capabilitiesobjtype = osync_capabilitiesobjtype_get(capabilities, objtype);
 	if(!capabilitiesobjtype) {
 		xmlNodePtr node = xmlNewTextChild(xmlDocGetRootElement(capabilities->doc), NULL, BAD_CAST objtype, NULL);
-		capabilitiesobjtype = _osync_capabilitiesobjtype_new(capabilities, node, error);
+		capabilitiesobjtype = osync_capabilitiesobjtype_new(capabilities, node, error);
 		if(!capabilitiesobjtype) {
 			xmlUnlinkNode(node);
 			xmlFreeNode(node);
@@ -130,7 +132,7 @@ OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const cha
 	}
 	
 	xmlNodePtr node = xmlNewTextChild(capabilitiesobjtype->node, NULL, (xmlChar *)name, NULL);
-	OSyncCapability *capability = _osync_capability_new(capabilitiesobjtype, node, error);
+	OSyncCapability *capability = osync_capability_new_node(capabilitiesobjtype, node, error);
 	if(!capability) {
 		xmlUnlinkNode(node);
 		xmlFreeNode(node);

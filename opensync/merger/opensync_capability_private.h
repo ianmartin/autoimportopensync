@@ -20,11 +20,21 @@
  * 
  */
  
-#ifndef OPENSYNC_CAPABILITY_INTERNALS_H_
-#define OPENSYNC_CAPABILITY_INTERNALS_H_
+#ifndef OPENSYNC_CAPABILITY_PRIVATE_H_
+#define OPENSYNC_CAPABILITY_PRIVATE_H_
 
-OSyncCapability *osync_capability_new_node(OSyncCapabilitiesObjType *objtype, xmlNodePtr node, OSyncError **error);
-void osync_capability_free(OSyncCapability *capability);
-int osync_capability_compare_stdlib(const void *capability1, const void *capability2);
+/**
+ * @brief Represent a Capabilitiy object
+ * @ingroup OSyncCapabilityPrivateAPI
+ */
+struct OSyncCapability {
+	/** The pointer to the next capability */
+	OSyncCapability *next;
+	/** The pointer to the previous capability */
+	OSyncCapability *prev;
+	/** The wrapped xml node */
+	xmlNodePtr node;
+};
 
-#endif /*OPENSYNC_CAPABILITY_INTERNALS_H_*/
+#endif /* OPENSYNC_CAPABILITY_PRIVATE_H_ */
+

@@ -28,6 +28,8 @@
 
 #include "opensync-group.h"
 
+#include "opensync_capability_private.h"		/* FIXME: direct access of private header */
+
 #include "opensync_capabilities_private.h"
 
 /**
@@ -46,7 +48,7 @@
  * @param error The error which will hold the info in case of an error
  * @return The pointer to the newly allocated capabilitiesobjtype object or NULL in case of error
  */
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error)
+OSyncCapabilitiesObjType *osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error)
 {
 	osync_assert(capabilities);
 	osync_assert(node);
@@ -78,7 +80,7 @@ OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capa
  * @param objtype The name of the objtype (e.g.: contact)
  * @return The capabilitiesobjtype for a given objtype from the capabilities
  */
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype)
+OSyncCapabilitiesObjType *osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype)
 {
 	osync_assert(capabilities);
 	osync_assert(objtype);
@@ -160,7 +162,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	xmlNodePtr cur = xmlDocGetRootElement(capabilities->doc);
 	cur = cur->children;
 	for(; cur != NULL; cur = cur->next) {
-		OSyncCapabilitiesObjType *capabilitiesobjtype = _osync_capabilitiesobjtype_new(capabilities, cur, error);
+		OSyncCapabilitiesObjType *capabilitiesobjtype = osync_capabilitiesobjtype_new(capabilities, cur, error);
 		if(!capabilitiesobjtype) {
 			osync_capabilities_unref(capabilities);
 			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
@@ -174,7 +176,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 			if (!strcmp((const char *) tmp->name, "comment"))
 				continue;
 
-			OSyncCapability *capability = _osync_capability_new(capabilitiesobjtype, tmp, error);
+			OSyncCapability *capability = osync_capability_new_node(capabilitiesobjtype, tmp, error);
 			if(!capability) {
 				osync_capabilities_unref(capabilities);
 				osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
@@ -219,7 +221,7 @@ void osync_capabilities_unref(OSyncCapabilities *capabilities)
 			while(capability)
 			{
 				tmp2 = osync_capability_get_next(capability);
-				_osync_capability_free(capability);
+				osync_capability_free(capability);
 				capability = tmp2;
 			}				
 			
@@ -244,7 +246,7 @@ OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, c
 	osync_assert(objtype);
 	
 	OSyncCapability *res = NULL;
-	OSyncCapabilitiesObjType *tmp = _osync_capabilitiesobjtype_get(capabilities, objtype);
+	OSyncCapabilitiesObjType *tmp = osync_capabilitiesobjtype_get(capabilities, objtype);
 	if(tmp)
 		res = tmp->first_child;
 	return res;
@@ -294,7 +296,7 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
 			xmlUnlinkNode(cur->node);
 		}
 	
-		qsort(list, objtype->child_count, sizeof(OSyncCapability *), _osync_capability_compare_stdlib);
+		qsort(list, objtype->child_count, sizeof(OSyncCapability *), osync_capability_compare_stdlib);
 	
 		/** bring the capabilities and xmldoc in a consistent state */
 		objtype->first_child = ((OSyncCapability *)list[0])->node->_private;
