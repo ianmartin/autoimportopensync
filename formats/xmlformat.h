@@ -36,6 +36,19 @@
 
 #define HANDLE_IGNORE (void *)1
 
+/**
+ * @brief Holds all information which will be needed to compaire two xmlfields. 
+ * @ingroup OSyncXMLFormatAPI
+ */
+typedef struct OSyncXMLPoints {
+	/** The name of a xmlfield */
+	char *fieldname;
+	/** The points for this xmlfield */
+	int points;
+	/** The keys of a xmlfield which have to be the same for equality. This array must end with NULL. */
+	char** keys;
+} OSyncXMLPoints;
+
 void destroy_xmlformat(char *input, unsigned int inpsize);
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 char *print_xmlformat(const char *data, unsigned int size);
@@ -43,5 +56,9 @@ char *print_xmlformat(const char *data, unsigned int size);
 osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
 osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
 
-#endif // XMLFORMAT_H_
+int xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname);
+
+OSyncConvCmpResult xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold);
+
+#endif /* XMLFORMAT_H_ */
 

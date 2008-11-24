@@ -26,6 +26,8 @@
 #include <opensync/opensync-xmlformat.h>
 #include <opensync/opensync-format.h>
 
+#include "opensync/xmlformat/opensync_xmlformat_internals.h"
+
 osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
         *free_input = TRUE;

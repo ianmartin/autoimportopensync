@@ -24,6 +24,9 @@
 
 #include "xmlformat.h"
 
+#include "opensync/opensync_xml.h"
+#include "opensync/xmlformat/opensync_xmlformat_internals.h"
+
 void destroy_xmlformat(char *input, unsigned int inpsize)
 {
 	osync_xmlformat_unref((OSyncXMLFormat *)input);
@@ -133,7 +136,7 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 		{NULL}
 	};
 
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 		
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -167,7 +170,7 @@ static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int lefts
 		{NULL}
 	};
 	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -201,7 +204,7 @@ static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsi
 		{NULL}
 	};
 	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -233,7 +236,7 @@ static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsi
 		{NULL}
 	};
 	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
