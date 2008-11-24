@@ -41,5 +41,5 @@ ADD_CHECK_TEST( serializer ipc-tests/check_serializer.c ${TEST_TARGET_LIBRARIES}
 ADD_CHECK_TEST( time format-tests/check_time.c ${TEST_TARGET_LIBRARIES} )
 ADD_CHECK_TEST( version version-tests/check_version.c ${TEST_TARGET_LIBRARIES} )
 ADD_CHECK_TEST( updater group-tests/check_updater.c ${TEST_TARGET_LIBRARIES} )
-ADD_CHECK_TEST( xmlformat merger-tests/check_xmlformat.c ${TEST_TARGET_LIBRARIES} )
+ADD_CHECK_TEST( xmlformat merger-tests/check_xmlformat.c xmlformat-compare  ${TEST_TARGET_LIBRARIES} )
 

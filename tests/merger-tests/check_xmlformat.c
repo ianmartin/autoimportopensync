@@ -1,8 +1,10 @@
 #include "support.h"
 
 #include <opensync/opensync-xmlformat.h>
+#include "formats/xmlformat.h"
 
 #include "opensync/xmlformat/opensync-xmlformat_internals.h"
+#include "opensync/xmlformat/opensync_xmlformat_schema_private.h"	/* FIXME: dierct access of private header */
 
 START_TEST (xmlformat_new)
 {
@@ -122,7 +124,7 @@ START_TEST (xmlformat_search_field)
 }
 END_TEST
 
-START_TEST (xmlformat_compare)
+START_TEST (xmlformat_compare_test)
 {
 	char *testbed = setup_testbed("xmlformats");
 
@@ -155,10 +157,10 @@ START_TEST (xmlformat_compare)
         };
 
 
-        result1 = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+        result1 = xmlformat_compare((OSyncXMLFormat*)xmlformat, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
 
 	// Check for left-right / right-left compare issues
-        result2 = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat, points, 0, 100);
+        result2 = xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat, points, 0, 100);
 	fail_unless(result1 == result2);
 
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat);
@@ -204,7 +206,7 @@ START_TEST (xmlformat_compare_field2null)
                 {NULL}
         };
 
-        osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+        xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
 
 
 	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
@@ -254,10 +256,10 @@ START_TEST (xmlformat_compare_ignore_fields)
                 {NULL}
         };
 
-        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+        result = xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
 	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
 
-        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat1, points, 0, 100);
+        result = xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat1, points, 0, 100);
 	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
 
 
@@ -281,10 +283,10 @@ START_TEST (xmlformat_compare_ignore_fields)
 	g_free(buffer1);
 	g_free(buffer2);
 
-        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+        result = xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
 	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
 
-        result = osync_xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat1, points, 0, 100);
+        result = xmlformat_compare((OSyncXMLFormat*)xmlformat2, (OSyncXMLFormat*)xmlformat1, points, 0, 100);
 	fail_unless(result == OSYNC_CONV_DATA_SAME, NULL);
 
 
@@ -439,7 +441,7 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlformat_sort", xmlformat_sort);
 	create_case(s, "xmlformat_is_sorted", xmlformat_is_sorted);
 	create_case(s, "xmlformat_search_field", xmlformat_search_field);
-	create_case(s, "xmlformat_compare", xmlformat_compare);
+	create_case(s, "xmlformat_compare_test", xmlformat_compare_test);
 	create_case(s, "xmlformat_compare_field2null", xmlformat_compare_field2null);
 	create_case(s, "xmlformat_compare_ignore_fields", xmlformat_compare_ignore_fields);
 	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);

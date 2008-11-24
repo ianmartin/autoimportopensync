@@ -3,6 +3,8 @@
 #include <opensync/opensync-merger.h>
 #include <opensync/opensync-xmlformat.h>
 #include "opensync/merger/opensync-merger_internals.h"
+#include "opensync/xmlformat/opensync_xmlformat_internals.h"
+
 
 START_TEST (merger_new)
 {
