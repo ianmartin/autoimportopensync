@@ -1,5 +1,5 @@
-# - Try to find GThread2 
-# Find GThread headers, libraries and the answer to all questions.
+# - Try to find Expat 
+# Find Expat headers, libraries and the answer to all questions.
 #
 #  EXPAT_FOUND               True if Expat got found
 #  EXPAT_INCLUDE_DIRS        Location of Expat headers 
