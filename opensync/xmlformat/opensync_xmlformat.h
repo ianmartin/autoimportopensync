@@ -35,4 +35,7 @@ OSYNC_EXPORT osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char
 
 OSYNC_EXPORT unsigned int osync_xmlformat_size();
 
+OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
+OSYNC_EXPORT osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat);
+
 #endif /*OPENSYNC_XMLFORMAT_H_*/

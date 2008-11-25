@@ -44,4 +44,6 @@ OSYNC_EXPORT const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield
 OSYNC_EXPORT const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth);
 OSYNC_EXPORT void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const char *value);
 
+OSYNC_EXPORT void osync_xmlfield_sort(OSyncXMLField *xmlfield);
+
 #endif /*OPENSYNC_XMLFIELD_H_*/

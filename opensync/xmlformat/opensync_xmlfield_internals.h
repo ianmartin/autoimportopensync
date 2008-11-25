@@ -33,8 +33,6 @@ void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXML
 osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2);
 osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[]);
 
-void osync_xmlfield_sort(OSyncXMLField *xmlfield);
-
 void osync_xmlfield_unlink(OSyncXMLField *xmlfield);
 
 int osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2);

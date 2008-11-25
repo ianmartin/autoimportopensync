@@ -729,11 +729,13 @@ osync_xmlfield_set_attr
 osync_xmlfield_set_key_value
 osync_xmlfield_set_name
 osync_xmlfield_set_nth_key_value
+osync_xmlfield_sort
 osync_xmlfieldlist_free
 osync_xmlfieldlist_get_length
 osync_xmlfieldlist_item
 osync_xmlformat_assemble
 osync_xmlformat_get_first_field
+osync_xmlformat_is_sorted
 osync_xmlformat_new
 osync_xmlformat_parse
 osync_xmlformat_ref
@@ -743,4 +745,5 @@ osync_xmlformat_schema_unref
 osync_xmlformat_schema_validate
 osync_xmlformat_search_field
 osync_xmlformat_size
+osync_xmlformat_sort
 osync_xmlformat_unref

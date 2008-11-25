@@ -28,9 +28,6 @@ const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat);
 
 osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat, OSyncError **error);
 
-void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
-osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat);
-
 osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error);
 
 #endif /* OPENSYNC_XMLFORMAT_INTERNAL_H_ */
