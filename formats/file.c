@@ -137,19 +137,6 @@ static osync_bool copy_file(const char *input, unsigned int inpsize, char **outp
 	return TRUE;
 }
 
-static void create_file(char **buffer, unsigned int *size)
-{
-	OSyncFileFormat *outfile = osync_try_malloc0(sizeof(OSyncFileFormat), NULL);
-	
-	outfile->path = osync_rand_str(g_random_int_range(1, 100));
-	
-	outfile->data = osync_rand_str(g_random_int_range(1, 100));
-	outfile->size = strlen(outfile->data);
-	
-	*buffer = (char *)outfile;
-	*size = sizeof(OSyncFileFormat);
-}
-
 static time_t revision_file(const char *input, unsigned int inpsize, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, input, inpsize, error);
@@ -217,7 +204,6 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	osync_objformat_set_print_func(format, print_file);
 	osync_objformat_set_revision_func(format, revision_file);
 	osync_objformat_set_copy_func(format, copy_file);
-	osync_objformat_set_create_func(format, create_file);
 	
 	osync_objformat_set_marshal_func(format, marshal_file);
 	osync_objformat_set_demarshal_func(format, demarshal_file);
