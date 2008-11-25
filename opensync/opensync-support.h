@@ -58,6 +58,8 @@ OSYNC_EXPORT char *osync_strdup_printf(const char *format, ...);
 OSYNC_EXPORT osync_bool osync_file_write(const char *filename, const char *data, unsigned int size, int mode, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_file_read(const char *filename, char **data, unsigned int *size, OSyncError **error);
 
+OSYNC_EXPORT char *osync_rand_str(int maxlength);
+
 OPENSYNC_END_DECLS
 
 #endif /* _OPENSYNC_SUPPORT_H */

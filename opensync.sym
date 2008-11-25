@@ -661,6 +661,7 @@ osync_queue_disconnect
 osync_queue_free
 osync_queue_new
 osync_queue_new_from_fd
+osync_rand_str
 osync_strdup
 osync_strdup_printf
 osync_strreplace
