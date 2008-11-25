@@ -96,9 +96,6 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 	OSyncError *error = NULL;
 
-	// Reset the list of reported changes, to detect deleted changes
-	osync_hashtable_reset_reports(sinkenv->hashtable);
-
 	//If you use opensync hashtables you can detect if you need
 	//to do a slow-sync and set this on the hastable directly
 	//otherwise you have to make 2 function like "get_changes" and
@@ -183,7 +180,6 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 	//When you are done looping and if you are using hashtables
 	//check for deleted entries ... via hashtable
-	int i;
 	OSyncList *u, *uids = osync_hashtable_get_deleted(sinkenv->hashtable);
 	for (u = uids; u; u = u->next) {
 		OSyncChange *change = osync_change_new(&error);
@@ -213,7 +209,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 		osync_context_report_change(ctx, change);
 
-		osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+		osync_hashtable_update_change(sinkenv->hashtable, change);
 
 		osync_change_unref(change);
 	}
@@ -255,7 +251,7 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 	}
 
 	//If you are using hashtables you have to calculate the hash here:
-	osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), "new hash");
+	osync_hashtable_update_change(sinkenv->hashtable, change);
 
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -321,7 +317,7 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	OSyncPluginConfig *config = osync_plugin_info_get_config(info);
 	if (!config) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get config.");
-		goto error_free_env;
+		goto error;
 	}
 	/*
 	 * You need to specify the <some name>_environment somewhere with
@@ -370,8 +366,6 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 		const char *objtype = osync_objtype_sink_get_name(sinkenv->sink);
 		OSyncPluginResource *res = osync_plugin_config_find_active_resource(config, objtype);
-		/* get e.g. path from config. */
-		const char *path = osync_plugin_resource_get_path(res);
 		
 		/* get objformat sinks */
 		OSyncList *s = osync_plugin_resource_get_objformat_sinks(res);
