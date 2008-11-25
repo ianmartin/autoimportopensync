@@ -258,7 +258,13 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 			/* Invoke the converter */
 			if (!converter->convert_func(input_data, input_size, &output_data, &output_size, &free_input, config, converter->userdata, error))
 				goto error;
-			
+
+			/* Validate if for this objformat are format-plugin validiation-function is provided */
+			if (osync_objformat_must_validate(converter->target_format)) {
+				if (!osync_objformat_validate(converter->target_format, output_data, output_size, error))
+					goto error;
+			}
+
 			/* Good. We now have some new data. Now we have to see what to do with the old data */
 			if (free_input) {
 				osync_objformat_destroy(converter->source_format, input_data, input_size);
