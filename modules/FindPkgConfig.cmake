@@ -96,6 +96,12 @@
 set(PKG_CONFIG_VERSION 1)
 set(PKG_CONFIG_FOUND   0)
 
+IF ( PkgConfig_FIND_REQUIRED )
+	SET( PKGCONFIG_REQUIRED "REQUIRED" )
+ELSE( PkgConfig_FIND_REQUIRED )
+	SET( PKGCONFIG_REQUIRED "" )	
+ENDIF ( PkgConfig_FIND_REQUIRED )
+
 find_program(PKG_CONFIG_EXECUTABLE NAMES pkg-config DOC "pkg-config executable")
 mark_as_advanced(PKG_CONFIG_EXECUTABLE)
 
@@ -189,7 +195,7 @@ macro(_pkg_check_modules_internal _is_required _is_silent _prefix)
   set(_pkg_check_modules_list ${ARGN})
   list(LENGTH _pkg_check_modules_list _pkg_check_modules_cnt)
 
-  if(PKG_CONFIG_EXECUTABLE)
+  if(PKG_CONFIG_FOUND)
     # give out status message telling checked module
     if (NOT ${_is_silent})
       if (_pkg_check_modules_cnt EQUAL 1)
@@ -303,11 +309,11 @@ macro(_pkg_check_modules_internal _is_required _is_silent _prefix)
       _pkgconfig_invoke_dyn("${_pkg_check_modules_packages}" "${_prefix}" CFLAGS              ""        --cflags )
       _pkgconfig_invoke_dyn("${_pkg_check_modules_packages}" "${_prefix}" CFLAGS_OTHER        ""        --cflags-only-other )
     endif(_pkg_check_modules_failed)
-  else(PKG_CONFIG_EXECUTABLE)
-    if (${_is_required})
+  else(PKG_CONFIG_FOUND)
+    if (PKGCONFIG_REQUIRED AND ${_is_required})
       message(SEND_ERROR "pkg-config tool not found")
-    endif (${_is_required})
-  endif(PKG_CONFIG_EXECUTABLE)
+    endif (PKGCONFIG_REQUIRED AND ${_is_required})
+  endif(PKG_CONFIG_FOUND)
 endmacro(_pkg_check_modules_internal)
 
 ###
@@ -327,32 +333,39 @@ endmacro(pkg_check_modules)
 
 ###
 macro(pkg_search_module _prefix _module0)
-  # check cached value
-  if ( NOT DEFINED __pkg_config_checked_${_prefix} OR __pkg_config_checked_${_prefix} LESS ${PKG_CONFIG_VERSION} OR NOT ${_prefix}_FOUND )
-    set(_pkg_modules_found 0)
-    _pkgconfig_parse_options(_pkg_modules_alt _pkg_is_required "${_module0}" ${ARGN})
-
-    message(STATUS "checking for one of the modules '${_pkg_modules_alt}'")
-
-    # iterate through all modules and stop at the first working one.
-    foreach(_pkg_alt ${_pkg_modules_alt})
-      if(NOT _pkg_modules_found)
-        _pkg_check_modules_internal(0 1 "${_prefix}" "${_pkg_alt}")
-      endif(NOT _pkg_modules_found)
-
-      if (${_prefix}_FOUND)
-        set(_pkg_modules_found 1)
-      endif(${_prefix}_FOUND)
-    endforeach(_pkg_alt)
-
-    if (NOT ${_prefix}_FOUND)
-      if(${_pkg_is_required})
-        message(SEND_ERROR "None of the required '${_pkg_modules_alt}' found")
-      endif(${_pkg_is_required})
-    endif(NOT ${_prefix}_FOUND)
+  if(PKG_CONFIG_FOUND)
+      # check cached value
+      if ( NOT DEFINED __pkg_config_checked_${_prefix} OR __pkg_config_checked_${_prefix} LESS ${PKG_CONFIG_VERSION} OR NOT ${_prefix}_FOUND )
+        set(_pkg_modules_found 0)
+        _pkgconfig_parse_options(_pkg_modules_alt _pkg_is_required "${_module0}" ${ARGN})
     
-    _pkgconfig_set(__pkg_config_checked_${_prefix} ${PKG_CONFIG_VERSION})
-  endif(NOT DEFINED __pkg_config_checked_${_prefix} OR __pkg_config_checked_${_prefix} LESS ${PKG_CONFIG_VERSION} OR NOT ${_prefix}_FOUND )  
+        message(STATUS "checking for one of the modules '${_pkg_modules_alt}'")
+    
+        # iterate through all modules and stop at the first working one.
+        foreach(_pkg_alt ${_pkg_modules_alt})
+          if(NOT _pkg_modules_found)
+            _pkg_check_modules_internal(0 1 "${_prefix}" "${_pkg_alt}")
+          endif(NOT _pkg_modules_found)
+    
+          if (${_prefix}_FOUND)
+            set(_pkg_modules_found 1)
+          endif(${_prefix}_FOUND)
+        endforeach(_pkg_alt)
+    
+        if (NOT ${_prefix}_FOUND)
+          if(${_pkg_is_required})
+            message(SEND_ERROR "None of the required '${_pkg_modules_alt}' found")
+          endif(${_pkg_is_required})
+        endif(NOT ${_prefix}_FOUND)
+        
+        _pkgconfig_set(__pkg_config_checked_${_prefix} ${PKG_CONFIG_VERSION})
+      endif(NOT DEFINED __pkg_config_checked_${_prefix} OR __pkg_config_checked_${_prefix} LESS ${PKG_CONFIG_VERSION} OR NOT ${_prefix}_FOUND )
+  else(PKG_CONFIG_FOUND)
+    if (PKGCONFIG_REQUIRED)
+      message(SEND_ERROR "pkg-config tool not found")
+    endif (PKGCONFIG_REQUIRED)
+  endif(PKG_CONFIG_FOUND)
+  
 endmacro(pkg_search_module)
 
 ### Local Variables:
