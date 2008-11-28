@@ -30,7 +30,7 @@ ENDIF ( LIBEXSLT_MIN_VERSION )
 
 # Look for libexslt include dir and libraries without pkg-config...
 IF ( NOT LIBEXSLT_FOUND AND NOT PKG_CONFIG_FOUND )
-	FIND_PATH( _libexslt_include_DIR libexslt/syncml.h 
+	FIND_PATH( _libexslt_include_DIR libexslt/exslt.h 
 			PATHS
 			/opt/local/include/
 			/sw/include/
@@ -38,7 +38,7 @@ IF ( NOT LIBEXSLT_FOUND AND NOT PKG_CONFIG_FOUND )
 			/usr/include/ 
 	)
 
-	FIND_LIBRARY( _libexslt_link_DIR syncml 
+	FIND_LIBRARY( _libexslt_link_DIR libexslt 
 			PATHS
 			/opt/local/lib
 			/sw/lib
