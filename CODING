@@ -78,8 +78,8 @@ CODE DOCUMENTATION
 
 * Use Doxygen (http://www.stack.nl/~dimitri/doxygen/) to document your code
 
-* Add your doxygen annotations in the header files. This allows other developers to read 
-  the documentation without having installed the source.
+* Add your doxygen annotations in the header files. This allows other
+  developers to read the documentation without having installed the source.
 
 * Add simple READMEs and pictures as needed, but concentrate
   on doxygen.
