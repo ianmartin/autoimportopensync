@@ -150,15 +150,14 @@ ELSE (GLIB2_LIBRARIES AND GLIB2_INCLUDE_DIRS )
       )
 
       FIND_LIBRARY(LIBICONV_LIBRARY
-	NAMES
-	  iconv
-	NO_DEFAULT_PATH 
-	PATHS
-	  /opt/gnome/lib
-	  /opt/local/lib
-	  /sw/lib
-	  /usr/lib
-	  /usr/local/lib
+      NAMES
+        iconv
+      PATHS
+        /opt/gnome/lib
+        /opt/local/lib
+        /sw/lib
+        /usr/lib
+        /usr/local/lib
       )
 
       IF (LIBICONV_LIBRARY AND LIBICONV_INCLUDE_DIR)
