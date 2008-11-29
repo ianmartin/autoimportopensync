@@ -638,11 +638,13 @@ error:
 static osync_bool connect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
-	cmd->sink = sink;
+	assert(cmd);
 
 	OSyncContext *context = osync_context_new(error);
 	if (!context)
 		goto error;
+
+	cmd->sink = sink;
 
 	osync_context_set_callback(context, _osyncplugin_ctx_callback_connect, cmd);
 
@@ -727,12 +729,14 @@ error:
 static osync_bool disconnect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
+	assert(cmd);
 
 	OSyncContext *context = osync_context_new(error);
 	if (!context)
 		goto error;
 
 	cmd->sink = sink;
+
 	osync_context_set_callback(context, _osyncplugin_ctx_callback_disconnect, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
@@ -807,7 +811,7 @@ error:
 
 }
 
-static osync_bool commit_sink(OSyncObjTypeSink *sink, OSyncChange *change, void *plugin_data, OSyncError **error) {
+static osync_bool commit_sink(Command *cmd, OSyncObjTypeSink *sink, OSyncChange *change, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
 	assert(change);
@@ -816,7 +820,9 @@ static osync_bool commit_sink(OSyncObjTypeSink *sink, OSyncChange *change, void 
 	if (!context)
 		goto error;
 
-	osync_context_set_callback(context, _osyncplugin_ctx_callback_commit_change, sink);
+	cmd->sink = sink;
+
+	osync_context_set_callback(context, _osyncplugin_ctx_callback_commit_change, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
@@ -848,20 +854,20 @@ static osync_bool commit(Command *cmd, OSyncChange *change, void *plugin_data, O
 		if (!sink)
 			goto error;
 
-		if (!commit_sink(sink, change, plugin_data, error))
+		if (!commit_sink(cmd, sink, change, plugin_data, error))
 			goto error;
 	} else {
 		num = osync_plugin_info_num_objtypes(plugin_info);
 		for (i=0; i < num; i++) {
 			sink = osync_plugin_info_nth_objtype(plugin_info, i);
 
-			if (!commit_sink(sink, change, plugin_data, error))
+			if (!commit_sink(cmd, sink, change, plugin_data, error))
 				goto error;
 		}
 
 		/* last but not least - the main sink */
 		if (get_main_sink())
-			if (!commit_sink(get_main_sink(), change, plugin_data, error))
+			if (!commit_sink(cmd, get_main_sink(), change, plugin_data, error))
 				goto error;
 	}
 	
@@ -921,15 +927,18 @@ error:
 	return;
 }
 
-static osync_bool syncdone_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+static osync_bool syncdone_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
+	assert(cmd);
 
 	OSyncContext *context = osync_context_new(error);
 	if (!context)
 		goto error;
 
-	osync_context_set_callback(context, _osyncplugin_ctx_callback_syncdone, sink);
+	cmd->sink = sink;
+
+	osync_context_set_callback(context, _osyncplugin_ctx_callback_syncdone, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
@@ -955,20 +964,20 @@ static osync_bool syncdone(Command *cmd, void *plugin_data, OSyncError **error)
 		if (!sink)
 			goto error;
 
-		if (!syncdone_sink(sink, plugin_data, error))
+		if (!syncdone_sink(cmd, sink, plugin_data, error))
 			goto error;
 	} else {
 		num = osync_plugin_info_num_objtypes(plugin_info);
 		for (i=0; i < num; i++) {
 			sink = osync_plugin_info_nth_objtype(plugin_info, i);
 
-			if (!syncdone_sink(sink, plugin_data, error))
+			if (!syncdone_sink(cmd, sink, plugin_data, error))
 				goto error;
 		}
 
 		/* last but not least - the main sink */
 		if (get_main_sink())
-			if (!syncdone_sink(get_main_sink(), plugin_data, error))
+			if (!syncdone_sink(cmd, get_main_sink(), plugin_data, error))
 				goto error;
 	}
 
@@ -1001,15 +1010,18 @@ error:
 	return;
 }
 
-static osync_bool committedall_sink(OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
+static osync_bool committedall_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
 
 	assert(sink);
+	assert(cmd);
 
 	OSyncContext *context = osync_context_new(error);
 	if (!context)
 		goto error;
+	
+	cmd->sink = sink; 
 
-	osync_context_set_callback(context, _osyncplugin_ctx_callback_committedall, sink);
+	osync_context_set_callback(context, _osyncplugin_ctx_callback_committedall, cmd);
 
 	osync_plugin_info_set_sink(plugin_info, sink);
 
@@ -1034,20 +1046,20 @@ static osync_bool committedall(Command *cmd, void *plugin_data, OSyncError **err
 		if (!sink)
 			goto error;
 
-		if (!committedall_sink(sink, plugin_data, error))
+		if (!committedall_sink(cmd, sink, plugin_data, error))
 			goto error;
 	} else {
 		num = osync_plugin_info_num_objtypes(plugin_info);
 		for (i=0; i < num; i++) {
 			sink = osync_plugin_info_nth_objtype(plugin_info, i);
 
-			if (!committedall_sink(sink, plugin_data, error))
+			if (!committedall_sink(cmd, sink, plugin_data, error))
 				goto error;
 		}
 
 		/* last but not least - the main sink */
 		if (get_main_sink())
-			if (!committedall_sink(get_main_sink(), plugin_data, error))
+			if (!committedall_sink(cmd, get_main_sink(), plugin_data, error))
 				goto error;
 	}
 
