@@ -21,12 +21,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <glib.h>
+#include <libxml/tree.h>
+
 #include <opensync/opensync.h>
-#include <opensync/opensync_internals.h>
 #include <opensync/opensync-xmlformat.h>
 #include <opensync/opensync-format.h>
-
-#include "opensync/xmlformat/opensync_xmlformat_internals.h"
 
 osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
@@ -47,13 +47,16 @@ static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *dat
 	if (!g_pattern_match_simple(g_string_free(string, FALSE), data))
 		return FALSE;
 
-	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(data, size, NULL);
-	if (!xmlformat)
+
+	xmlDocPtr doc = xmlReadMemory(data, size, NULL, NULL, XML_PARSE_NOBLANKS);
+	if (!doc)
+		return FALSE;
+		
+	xmlNodePtr cur = xmlDocGetRootElement(doc);
+	if (!cur)
 		return FALSE;
 
-	int ret = strcmp(objtype, osync_xmlformat_get_objtype(xmlformat));
-
-	osync_xmlformat_unref(xmlformat);
+	int ret = xmlStrcmp(BAD_CAST objtype, cur->name);
 
 	if (ret)
 		return FALSE;
