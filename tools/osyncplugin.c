@@ -626,6 +626,7 @@ static void _osyncplugin_ctx_callback_connect(void *user_data, OSyncError *error
 
 	g_mutex_lock(cmd->mutex);
 	g_cond_signal(cmd->cond);
+	cmd->done = TRUE;
 	g_mutex_unlock(cmd->mutex);
 
 	return;
@@ -796,6 +797,7 @@ static void _osyncplugin_ctx_callback_commit_change(void *user_data, OSyncError 
 
 	g_mutex_lock(cmd->mutex);
 	g_cond_signal(cmd->cond);
+	cmd->done = TRUE;
 	g_mutex_unlock(cmd->mutex);
 
 	return;
@@ -910,6 +912,7 @@ static void _osyncplugin_ctx_callback_syncdone(void *user_data, OSyncError *erro
 
 	g_mutex_lock(cmd->mutex);
 	g_cond_signal(cmd->cond);
+	cmd->done = TRUE;
 	g_mutex_unlock(cmd->mutex);
 
 	return;
@@ -989,6 +992,7 @@ static void _osyncplugin_ctx_callback_committedall(void *user_data, OSyncError *
 
 	g_mutex_lock(cmd->mutex);
 	g_cond_signal(cmd->cond);
+	cmd->done = TRUE;
 	g_mutex_unlock(cmd->mutex);
 
 	return;
