@@ -26,9 +26,5 @@
 const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat);
 const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat);
 
-osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat, OSyncError **error);
-
-osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error);
-
 #endif /* OPENSYNC_XMLFORMAT_INTERNAL_H_ */
 

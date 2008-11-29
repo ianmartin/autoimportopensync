@@ -735,6 +735,7 @@ osync_xmlfieldlist_free
 osync_xmlfieldlist_get_length
 osync_xmlfieldlist_item
 osync_xmlformat_assemble
+osync_xmlformat_copy
 osync_xmlformat_get_first_field
 osync_xmlformat_is_sorted
 osync_xmlformat_new

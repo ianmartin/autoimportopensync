@@ -24,7 +24,6 @@
 
 #include "xmlformat.h"
 
-#include "opensync/opensync_xml.h"
 #include "opensync/xmlformat/opensync_xmlformat_internals.h"
 
 void destroy_xmlformat(char *input, unsigned int inpsize)
@@ -304,7 +303,11 @@ static time_t get_todo_revision(const char *data, unsigned int size, OSyncError 
 osync_bool validate_xmlformat(const char *data, unsigned int size, OSyncError **error)
 {
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *) data;
-	return osync_xmlformat_validate(xmlformat, error);
+	osync_assert(xmlformat);
+	
+	OSyncXMLFormatSchema *schema = osync_xmlformat_schema_get_instance(xmlformat, error);
+
+	return osync_xmlformat_schema_validate(schema, xmlformat, error);
 }
 
 osync_bool get_format_info(OSyncFormatEnv *env)

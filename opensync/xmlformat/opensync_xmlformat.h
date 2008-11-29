@@ -23,19 +23,110 @@
 #ifndef OPENSYNC_XMLFORMAT_H_
 #define OPENSYNC_XMLFORMAT_H_
 
+/**
+ * @defgroup OSyncXMLFormatAPI OpenSync XMLFormat
+ * @ingroup OSyncPublic
+ * @brief The public part of the OSyncXMLFormat
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Creates a new xmlformat object
+ * @param objtype The name of the objtype (e.g.: contact)
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated xmlformat object or NULL in case of error
+ */
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error);
+
+/**
+ * @brief Creates a new xmlformat object from a xml document. 
+ * @param buffer The pointer to the xml document
+ * @param size The size of the xml document
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated xmlformat object or NULL in case of error
+ */
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSyncError **error);
+
+/**
+ * @brief Increments the reference counter
+ * @param xmlformat The pointer to a xmlformat object
+ */
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_ref(OSyncXMLFormat *xmlformat);
+
+/**
+ * @brief Decrement the reference counter. The xmlformat object will 
+ *  be freed if there is no more reference to it.
+ * @param xmlformat The pointer to a xmlformat object
+ */
 OSYNC_EXPORT void osync_xmlformat_unref(OSyncXMLFormat *xmlformat);
 
+/**
+ * @brief Get the first field of a xmlformat
+ * @param xmlformat The pointer to a xmlformat object
+ * @return The first field of the xmlformat
+ */
 OSYNC_EXPORT OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat);
+
+/**
+ * @brief Serarch for xmlfields in the given xmlformat. It's up to the caller to
+ *  free the returned list with OSyncXMLFieldList::osync_xmlfieldlist_free
+ * @param xmlformat The pointer to a xmlformat object 
+ * @param name The name of the xmlfields to search for
+ * @param error The error which will hold the info in case of an error
+ * @param ... If the xmlfield should have a attribute with spezial value,
+ *  then it is possible to specify the attribute name and the attribute 
+ *  value. But always there have to set both parametes! There can be more 
+ *  than one attribute pair. The last parameter has always to be NULL.
+ * @return The Pointer to the xmlfieldlist which hold all founded xmlfields
+ *  or NULL in case of error
+ */
 OSYNC_EXPORT OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error, ...);
 
+/**
+ * @brief Dump the xmlformat into the memory.
+ * @param xmlformat The pointer to a xmlformat object 
+ * @param buffer The pointer to the buffer which will hold the xml document
+ * @param size The pointer to the buffer which will hold the size of the xml document
+ * @return The xml document and the size of it. It's up to the caller to free
+ *  the buffer. Always it return TRUE.
+ */
 OSYNC_EXPORT osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, unsigned int *size);
 
-OSYNC_EXPORT unsigned int osync_xmlformat_size();
-
+/**
+ * @brief Sort all xmlfields of the xmlformat.
+ *
+ *  Calling this funcion is very expensive - try to avoid if possible.
+ *  Recommendend approch would be to assemble a xmlformat in a sorted way.
+ *
+ * @param xmlformat The pointer to a xmlformat object
+ */
 OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
+
+/**
+ * @brief Check if all xmlfields of the xmlformat are sorted.
+ * @param xmlformat The pointer to a xmlformat object
+ * @returns TRUE if sorted, FALSE otherwise
+ */
 OSYNC_EXPORT osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat);
 
-#endif /*OPENSYNC_XMLFORMAT_H_*/
+/**
+ * @brief Returns true if the copy succedded, false otherwise
+ *
+ * @return Boolean status of the copy operation.
+ */ 
+OSYNC_EXPORT osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error);
+
+/**
+ * @brief Returns the size of the OSyncXMLFormat struct.
+ *
+ * This is needed since the struct itself is private.
+ *
+ * @return The size of OSyncXMLFormat struct. 
+ */
+OSYNC_EXPORT unsigned int osync_xmlformat_size();
+
+/*@}*/
+
+#endif /* OPENSYNC_XMLFORMAT_H_ */
+

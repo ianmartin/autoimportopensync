@@ -24,7 +24,6 @@
 #include <libxml/xmlstring.h>
 #include <libxml/tree.h>
 
-#include "opensync/opensync_xml.h"
 #include "opensync/xmlformat/opensync_xmlformat_internals.h"
 
 
@@ -88,8 +87,18 @@ static int xmlformat_subtract_points(OSyncXMLField *xmlfield, OSyncXMLPoints *po
 	return p;
 }
 
-
-
+/**
+ * @brief Help method which return the content of a xmlNode
+ * @param node The pointer to a xmlNode
+ * @return The value of the xmlNode or a empty string
+ */
+static xmlChar *xml_node_get_content(xmlNodePtr node)
+{
+	if (node->children && node->children->content)
+		return node->children->content;
+		
+	return (xmlChar *)"";
+}
 
 /**
  * @brief Compares two xmlfield objects with each other
@@ -164,7 +173,7 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 				cur_list2 = keylist2;
 	
 				do {
-					if(!xmlStrcmp(osync_xml_node_get_content(cur_list1->data), osync_xml_node_get_content(cur_list2->data)))
+					if(!xmlStrcmp(xml_node_get_content(cur_list1->data), xml_node_get_content(cur_list2->data)))
 						break;
 					cur_list2 = g_slist_next(cur_list2);
 					if(cur_list2 == NULL) {
@@ -267,10 +276,8 @@ osync_bool xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xml
 				break;	
 			}
 			
-			while(xmlStrcmp(osync_xml_node_get_content((xmlNodePtr)cur_list1->data),
-							 osync_xml_node_get_content((xmlNodePtr)cur_list2->data))) {		
-//			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
-//						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {
+			while(xmlStrcmp(xml_node_get_content((xmlNodePtr)cur_list1->data),
+							 xml_node_get_content((xmlNodePtr)cur_list2->data))) {		
 				cur_list2 = g_slist_next(cur_list2);
 				if(cur_list2 == NULL) {
 					res = FALSE;	

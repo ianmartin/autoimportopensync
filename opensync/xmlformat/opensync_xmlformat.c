@@ -38,22 +38,32 @@
  */
 /*@{*/
 
+/**
+ * @brief Get the name of the root node in a xmlformat
+ * @param xmlformat The pointer to a xmlformat object
+ * @return The name of the root node of the xmlformat
+ */
+const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat)
+{
+	osync_assert(xmlformat);
+	
+	return (const char *)xmlDocGetRootElement(xmlformat->doc)->name;
+}
+
+/**
+ * @brief Get the objtype of a xmlformat
+ * @param xmlformat The pointer to a xmlformat object
+ * @return The objtype of the xmlformat
+ */
+const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat)
+{
+	osync_assert(xmlformat);
+	
+	return osync_xmlformat_root_name(xmlformat);
+}
+
 /*@}*/
 
-/**
- * @defgroup OSyncXMLFormatAPI OpenSync XMLFormat
- * @ingroup OSyncPublic
- * @brief The public part of the OSyncXMLFormat
- * 
- */
-/*@{*/
-
-/**
- * @brief Creates a new xmlformat object
- * @param objtype The name of the objtype (e.g.: contact)
- * @param error The error which will hold the info in case of an error
- * @return The pointer to the newly allocated xmlformat object or NULL in case of error
- */
 OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, objtype, error);
@@ -78,13 +88,6 @@ OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error)
 	return xmlformat;
 }
 
-/**
- * @brief Creates a new xmlformat object from a xml document. 
- * @param buffer The pointer to the xml document
- * @param size The size of the xml document
- * @param error The error which will hold the info in case of an error
- * @return The pointer to the newly allocated xmlformat object or NULL in case of error
- */
 OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, buffer, size, error);
@@ -126,10 +129,6 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 	return xmlformat;
 }
 
-/**
- * @brief Increments the reference counter
- * @param xmlformat The pointer to a xmlformat object
- */
 OSyncXMLFormat *osync_xmlformat_ref(OSyncXMLFormat *xmlformat)
 {
 	osync_assert(xmlformat);
@@ -139,11 +138,6 @@ OSyncXMLFormat *osync_xmlformat_ref(OSyncXMLFormat *xmlformat)
 	return xmlformat;
 }
 
-/**
- * @brief Decrement the reference counter. The xmlformat object will 
- *  be freed if there is no more reference to it.
- * @param xmlformat The pointer to a xmlformat object
- */
 void osync_xmlformat_unref(OSyncXMLFormat *xmlformat)
 {
 	osync_assert(xmlformat);
@@ -162,35 +156,6 @@ void osync_xmlformat_unref(OSyncXMLFormat *xmlformat)
 	}
 }
 
-/**
- * @brief Get the name of the root node in a xmlformat
- * @param xmlformat The pointer to a xmlformat object
- * @return The name of the root node of the xmlformat
- */
-const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat)
-{
-	osync_assert(xmlformat);
-	
-	return (const char *)xmlDocGetRootElement(xmlformat->doc)->name;
-}
-
-/**
- * @brief Get the objtype of a xmlformat
- * @param xmlformat The pointer to a xmlformat object
- * @return The objtype of the xmlformat
- */
-const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat)
-{
-	osync_assert(xmlformat);
-	
-	return osync_xmlformat_root_name(xmlformat);
-}
-
-/**
- * @brief Get the first field of a xmlformat
- * @param xmlformat The pointer to a xmlformat object
- * @return The first field of the xmlformat
- */
 OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat)
 {
 	osync_assert(xmlformat);
@@ -198,19 +163,6 @@ OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat)
 	return xmlformat->first_child;
 }
 
-/**
- * @brief Serarch for xmlfields in the given xmlformat. It's up to the caller to
- *  free the returned list with OSyncXMLFieldList::osync_xmlfieldlist_free
- * @param xmlformat The pointer to a xmlformat object 
- * @param name The name of the xmlfields to search for
- * @param error The error which will hold the info in case of an error
- * @param ... If the xmlfield should have a attribute with spezial value,
- *  then it is possible to specify the attribute name and the attribute 
- *  value. But always there have to set both parametes! There can be more 
- *  than one attribute pair. The last parameter has always to be NULL.
- * @return The Pointer to the xmlfieldlist which hold all founded xmlfields
- *  or NULL in case of error
- */
 OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error, ...)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, ...)", __func__, xmlformat, name, error);
@@ -299,14 +251,6 @@ error:
 	return NULL;
 }
 
-/**
- * @brief Dump the xmlformat into the memory.
- * @param xmlformat The pointer to a xmlformat object 
- * @param buffer The pointer to the buffer which will hold the xml document
- * @param size The pointer to the buffer which will hold the size of the xml document
- * @return The xml document and the size of it. It's up to the caller to free
- *  the buffer. Always it return TRUE.
- */
 osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, unsigned int *size)
 {
 	osync_assert(xmlformat);
@@ -317,25 +261,6 @@ osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, un
 	return TRUE;	
 }
 
-/**
- * @brief Validate the xmlformat against its schema
- * @param xmlformat The pointer to a xmlformat object 
- * @param error The error which will hold the info in case of an error
- * @return TRUE if xmlformat valid else FALSE
- */
-osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat, OSyncError **error)
-{
-	osync_assert(xmlformat);
-	
-	OSyncXMLFormatSchema * schema = osync_xmlformat_schema_get_instance(xmlformat, error);
-	return osync_xmlformat_schema_validate(schema, xmlformat, error);
-}
-
-/**
- * @brief Sort all xmlfields of the xmlformat. This function has to
- *  be called after a xmlfield was added to the xmlformat.
- * @param xmlformat The pointer to a xmlformat object
- */
 void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
@@ -386,11 +311,6 @@ end:
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/**
- * @brief Check if all xmlfields of the xmlformat are sorted.
- * @param xmlformat The pointer to a xmlformat object
- * @returns TRUE if sorted, FALSE otherwise
- */
 osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
@@ -415,12 +335,6 @@ osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat)
 	return TRUE;
 }
 
-
-/**
- * @brief Returns true if the copy succedded, false otherwise
- *
- * @return Boolean status of the copy operation.
- */ 
 osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, source, destination);
@@ -445,16 +359,8 @@ osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destina
         return TRUE;
 }
 
-/**
- * @brief Returns the size of the OSyncXMLFormat struct.
- *
- * This is needed since the struct itself is private.
- *
- * @return The size of OSyncXMLFormat struct. 
- */
 unsigned int osync_xmlformat_size()
 {
 	return sizeof(OSyncXMLFormat);
 }
 
-/*@}*/
