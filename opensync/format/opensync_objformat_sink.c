@@ -93,7 +93,7 @@ void osync_objformat_sink_unref(OSyncObjFormatSink *sink)
 /**
  * @brief Returns the objformat of the sink 
  * @param format Pointer to the object format sink
- * @return Pointer to object format sink
+ * @return Pointer to object format name
  */
 const char *osync_objformat_sink_get_objformat(OSyncObjFormatSink *sink)
 {
