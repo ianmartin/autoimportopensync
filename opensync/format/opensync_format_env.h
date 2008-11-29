@@ -54,4 +54,4 @@ OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path_with_detectors
 OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyncFormatEnv *env, OSyncData *sourcedata, OSyncList *targets, const char *preferred_format, OSyncError **error);
 
 
-#endif //_OPENSYNC_FORMAT_ENV_H_
+#endif /* _OPENSYNC_FORMAT_ENV_H_ */

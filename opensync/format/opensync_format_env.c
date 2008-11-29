@@ -909,7 +909,9 @@ OSyncObjFormat *osync_format_env_find_objformat(OSyncFormatEnv *env, const char 
 	GList *element = NULL;
 	
 	osync_assert(env);
-	osync_assert(name);
+
+	if (!name)
+		return NULL;
 	
 	for (element = env->objformats; element; element = element->next) {
 		OSyncObjFormat *format = element->data;
