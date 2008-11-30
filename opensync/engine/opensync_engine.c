@@ -1102,6 +1102,47 @@ static void _osync_engine_discover_callback(OSyncClientProxy *proxy, void *userd
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+
+/*! @brief Initialize format environment and "intenral formats" for the engine 
+ *
+ * FIXME: Drop internal schema initilization once xmlformat plugin does this in the fomrat-init function. 
+ * 
+ * @param engine A pointer to the engine, which to initialize the formatenv.
+ * @param error A pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise.
+ * 
+ */
+static osync_bool _osync_engine_initialize_formats(OSyncEngine *engine, OSyncError **error)
+{
+	engine->formatenv = osync_format_env_new(error);
+	if (!engine->formatenv)
+		goto error;
+	
+	if (!osync_format_env_load_plugins(engine->formatenv, engine->format_dir, error))
+		goto error_free;
+	
+	/* XXX The internal formats XXX */
+	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
+	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
+	_osync_engine_set_internal_format(engine, "todo", osync_format_env_find_objformat(engine->formatenv, "xmlformat-todo"));
+	_osync_engine_set_internal_format(engine, "note", osync_format_env_find_objformat(engine->formatenv, "xmlformat-note"));
+	/* init schemas */
+	_osync_engine_set_internal_schema(engine, "contact", error);
+	_osync_engine_set_internal_schema(engine, "event", error);
+	_osync_engine_set_internal_schema(engine, "todo", error);
+	_osync_engine_set_internal_schema(engine, "note", error);
+	
+	return TRUE;
+
+error_free:
+	osync_format_env_free(engine->formatenv);
+	engine->formatenv = NULL;
+
+error:
+	return FALSE;
+}
+
+
 osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
@@ -1138,26 +1179,9 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		case OSYNC_LOCK_OK:
 			break;
 	}
-	
-	engine->formatenv = osync_format_env_new(error);
-	if (!engine->formatenv)
+
+	if (!_osync_engine_initialize_formats(engine, error))
 		goto error;
-	
-	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
-	
-	if (!osync_format_env_load_plugins(engine->formatenv, engine->format_dir, error))
-		goto error_finalize;
-	
-	/* XXX The internal formats XXX */
-	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
-	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
-	_osync_engine_set_internal_format(engine, "todo", osync_format_env_find_objformat(engine->formatenv, "xmlformat-todo"));
-	_osync_engine_set_internal_format(engine, "note", osync_format_env_find_objformat(engine->formatenv, "xmlformat-note"));
-	/* init schemas */
-	_osync_engine_set_internal_schema(engine, "contact", error);
-	_osync_engine_set_internal_schema(engine, "event", error);
-	_osync_engine_set_internal_schema(engine, "todo", error);
-	_osync_engine_set_internal_schema(engine, "note", error);
 	
 	osync_trace(TRACE_INTERNAL, "Running the main loop");
 	if (!_osync_engine_start(engine, error))
@@ -1196,6 +1220,8 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		if (prev_sync_unclean)
 			osync_obj_engine_set_slowsync(objengine, TRUE);
 	}
+
+	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1623,6 +1649,11 @@ osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSync
 		goto error;
 	
 	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
+
+	/* Initialize formats before members! 
+	 * Since we check if the formats claimed by the members are available */
+	if (!_osync_engine_initialize_formats(engine, error))
+		goto error;
 	
 	OSyncClientProxy *proxy = _osync_engine_initialize_member(engine, member, error);
 	if (!proxy)
