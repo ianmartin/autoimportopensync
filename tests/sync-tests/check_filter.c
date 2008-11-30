@@ -169,7 +169,7 @@ START_TEST (filter_sync_custom)
 	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine, &error);
 
-	fail_unless(!osync_testing_diff("data1", "data2"), NULL);
+	fail_unless(osync_testing_diff("data1", "data2"), NULL);
 
 	g_free(formatdir);
 	g_free(plugindir);

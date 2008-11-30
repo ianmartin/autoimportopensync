@@ -1154,8 +1154,8 @@ START_TEST (no_connect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -1874,7 +1874,7 @@ START_TEST (single_commit_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 
-	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data2"));
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 
 	g_free(formatdir);
@@ -1998,7 +1998,7 @@ START_TEST (single_commit_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 
-	fail_unless(!osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data2"));
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 
 	g_free(formatdir);
@@ -2264,7 +2264,7 @@ START_TEST (commit_error_modify)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
-	fail_unless(!osync_testing_diff("data2", "data3"));
+	fail_unless(osync_testing_diff("data2", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2338,7 +2338,7 @@ START_TEST (commit_error_delete)
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
-	fail_unless(!osync_testing_diff("data2", "data3"));
+	fail_unless(osync_testing_diff("data2", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2398,8 +2398,8 @@ START_TEST (committed_all_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2460,8 +2460,8 @@ START_TEST (committed_all_batch_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2521,8 +2521,8 @@ START_TEST (single_sync_done_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2582,8 +2582,8 @@ START_TEST (dual_sync_done_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2643,8 +2643,8 @@ START_TEST (triple_sync_done_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2706,8 +2706,8 @@ START_TEST (single_sync_done_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2769,8 +2769,8 @@ START_TEST (dual_sync_done_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2833,8 +2833,8 @@ START_TEST (sync_done_timeout_and_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successful == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2894,8 +2894,8 @@ START_TEST (single_disconnect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -2955,8 +2955,8 @@ START_TEST (dual_disconnect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -3016,8 +3016,8 @@ START_TEST (triple_disconnect_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -3079,8 +3079,8 @@ START_TEST (single_disconnect_timeout)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -3142,8 +3142,8 @@ START_TEST (dual_disconnect_timeout)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);
@@ -3206,8 +3206,8 @@ START_TEST (disconnect_timeout_and_error)
 	fail_unless(num_engine_errors == 0, NULL);
 	fail_unless(num_engine_successful == 1, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	g_free(formatdir);
 	g_free(plugindir);

@@ -142,8 +142,8 @@ START_TEST (dual_sync_engine_lock)
 	osync_engine_unref(engine);
 	osync_engine_unref(engine2);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 	
 	osync_group_unref(group);
 	osync_group_unref(group2);
@@ -263,8 +263,8 @@ START_TEST (dual_sync_engine_unclean)
 	
 	fail_unless(num_engine_prev_unclean == 0, NULL);
 	
-	fail_unless(!osync_testing_diff("data1", "data2"));
-	fail_unless(!osync_testing_diff("data1", "data3"));
+	fail_unless(osync_testing_diff("data1", "data2"));
+	fail_unless(osync_testing_diff("data1", "data3"));
 
 	osync_group_unref(group);
 	

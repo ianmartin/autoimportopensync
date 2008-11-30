@@ -693,7 +693,7 @@ osync_bool osync_testing_diff(const char *file1, const char *file2)
         ret = system(cmd);
         g_free(cmd);
 
-        return ret;
+        return !ret;
 }
 
 /*! @brief Creates a simple OSyncPluginConfig with a single resource.
