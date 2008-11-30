@@ -10,9 +10,12 @@
 START_TEST (proxy_new)
 {
 	char *testbed = setup_testbed(NULL);
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+
+	OSyncFormatEnv *formatenv = osync_testing_load_formatenv(formatdir);
 	
 	OSyncError *error = NULL;
-	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(formatenv, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -27,9 +30,12 @@ END_TEST
 START_TEST (proxy_spawn)
 {
 	char *testbed = setup_testbed(NULL);
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+
+	OSyncFormatEnv *formatenv = osync_testing_load_formatenv(formatdir);
 	
 	OSyncError *error = NULL;
-	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(formatenv, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -91,6 +97,8 @@ START_TEST (proxy_init)
 	char *testbed = setup_testbed(NULL);
 	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+
+	OSyncFormatEnv *formatenv = osync_testing_load_formatenv(formatdir);
 	
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
@@ -98,7 +106,7 @@ START_TEST (proxy_init)
 	fail_unless(error == NULL, NULL);
 	osync_thread_start(thread);
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(formatenv, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -138,6 +146,8 @@ START_TEST (proxy_discover)
 	char *testbed = setup_testbed(NULL);
 	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+
+	OSyncFormatEnv *formatenv = osync_testing_load_formatenv(formatdir);
 	
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
@@ -145,7 +155,7 @@ START_TEST (proxy_discover)
 	fail_unless(error == NULL, NULL);
 	osync_thread_start(thread);
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(formatenv, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -203,13 +213,15 @@ START_TEST (proxy_connect)
 	char *formatdir = g_strdup_printf("%s/formats",  testbed);
 	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
 
+	OSyncFormatEnv *formatenv = osync_testing_load_formatenv(formatdir);
+
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
 	fail_unless(thread != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_thread_start(thread);
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(formatenv, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 

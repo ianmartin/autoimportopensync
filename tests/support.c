@@ -598,6 +598,16 @@ void discover_all_once(OSyncEngine *engine, OSyncError **error)
 	}
 }
 
+OSyncFormatEnv *osync_testing_load_formatenv(const char *formatdir)
+{
+	OSyncError *error = NULL;
+	OSyncFormatEnv *formatenv = osync_format_env_new(&error);
+	fail_unless(formatenv != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	fail_unless(osync_format_env_load_plugins(formatenv, formatdir, &error));
+	return formatenv;
+}
+
 /*! @brief Check if file or directory exists. No check for regular file! 
  * 
  * @param file filename or fullpath of file/directory 
