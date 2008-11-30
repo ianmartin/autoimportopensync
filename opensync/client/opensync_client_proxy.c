@@ -31,6 +31,7 @@
 #include "opensync-group.h"
 #include "opensync-plugin.h"
 #include "opensync-merger.h"
+#include "opensync-format.h"
 
 #include "opensync-version.h"
 #include "version/opensync_version_internals.h"
@@ -745,6 +746,8 @@ OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember 
 {
 	OSyncClientProxy *proxy = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, formatenv, member, error);
+
+	osync_assert(formatenv);
 	
 	proxy = osync_try_malloc0(sizeof(OSyncClientProxy), error);
 	if (!proxy)
@@ -753,6 +756,7 @@ OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember 
 	proxy->type = OSYNC_START_TYPE_UNKNOWN;
 	proxy->formatenv = formatenv;
 	
+	/* TODO: Is member optional parameter? */
 	if (member) {
 		proxy->member = member;
 		osync_member_ref(member);
@@ -1031,6 +1035,38 @@ error:
 	return FALSE;
 }
 
+/**
+ * @brief Check if passed resource is valid.
+ * 
+ *  This check looks for:
+ *   - are all format plugins in the format-sinks available
+ *   - ... 
+ *
+ * @param proxy Pointer to OSyncClientProxy
+ * @param resource Pointer to resource to check
+ * @param error The error which will hold the info of an invalid resource 
+ * @return TRUE if valid, FALSE otherwise.
+ */
+static osync_bool osync_client_proxy_check_resource(OSyncClientProxy *proxy, OSyncPluginResource *resource, OSyncError **error)
+{
+	OSyncList *format_sinks = osync_plugin_resource_get_objformat_sinks(resource);
+
+	/* OSyncPluginConfig should fail on validiation if format sinks are missing for any resource */
+	osync_assert(format_sinks);
+
+	for (; format_sinks; format_sinks = format_sinks->next) {
+		OSyncObjFormatSink *format_sink = format_sinks->data;	
+		const char *objformat_name = osync_objformat_sink_get_objformat(format_sink);
+
+		if (!osync_format_env_find_objformat(proxy->formatenv, objformat_name)) {
+			osync_error_set(error, OSYNC_ERROR_PLUGIN_NOT_FOUND, "Plugin for format \"%s\" not found.", objformat_name);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, OSyncPluginConfig *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
@@ -1068,6 +1104,9 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 
 			if (!osync_plugin_resource_is_enabled(res))
 				continue;
+
+			if (!osync_client_proxy_check_resource(proxy, res, error))
+				goto error;
 
 			const char *objtype = osync_plugin_resource_get_objtype(res);
 			OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);

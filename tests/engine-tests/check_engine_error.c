@@ -3270,6 +3270,41 @@ START_TEST (get_changes_disconnect_error)
 }
 END_TEST
 
+START_TEST (missing_format_plugin)
+{
+	char *testbed = setup_testbed("missing_format_plugin");
+	char *formatdir = g_strdup_printf("%s/formats",  testbed);
+	char *plugindir = g_strdup_printf("%s/plugins",  testbed);
+
+	OSyncError *error = NULL;
+
+	OSyncGroup *group = osync_group_new(&error);
+	osync_group_set_schemadir(group, testbed);
+	osync_group_load(group, "configs/group", &error);
+	fail_unless(error == NULL, NULL);
+
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	osync_engine_set_schemadir(engine, testbed);
+	osync_engine_set_plugindir(engine, plugindir);
+	osync_engine_set_formatdir(engine, formatdir);
+
+	fail_unless(osync_engine_initialize(engine, &error) == FALSE, NULL); /* Intended fail */
+	fail_unless(osync_error_is_set(&error), "No expected error about MISSINGFORMAT!");
+	
+	osync_error_unref(&error);
+	osync_engine_unref(engine);
+	
+	g_free(formatdir);
+	g_free(plugindir);
+	
+	destroy_testbed(testbed);
+
+}
+END_TEST
+
 Suite *error_suite(void)
 {
 	Suite *s = suite_create("Engine Errors");
@@ -3339,6 +3374,8 @@ Suite *error_suite(void)
 	create_case(s, "disconnect_timeout_and_error", disconnect_timeout_and_error);
 
 	create_case(s, "get_changes_disconnect_error", get_changes_disconnect_error);
+
+	create_case(s, "missing_format_plugin", missing_format_plugin);
 	
 	return s;
 }
