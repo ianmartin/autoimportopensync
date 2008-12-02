@@ -22,13 +22,6 @@ MACRO( ADD_DOCUMENTATION _formatName _fileType )
 	# _fileType   - DIRECTORY, FILE
 	# ARGN        - filenames
 
-	# check that the documentation is built
-
-	IF( NOT BUILD_DOCUMENTATION )
-		MESSAGE( SEND_ERROR "ADD_DOCUMENTATION requires to build the documentation first." )
-		RETURN()
-	ENDIF( NOT BUILD_DOCUMENTATION )
-
 	# check _formatName
 
 	STRING( TOUPPER ${_formatName} FORMAT_NAME )
