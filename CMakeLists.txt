@@ -76,7 +76,7 @@ ADD_SUBDIRECTORY( tools )
 ADD_SUBDIRECTORY( misc )
 ADD_SUBDIRECTORY( cmake )
 
-ADD_SUBDIRECTORY( docs/example-plugin/src/ ) 
+#ADD_SUBDIRECTORY( docs/example-plugin/src/ ) 
 
 IF ( SWIG_FOUND )
 	ADD_SUBDIRECTORY( wrapper )
