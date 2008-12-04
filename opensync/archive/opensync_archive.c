@@ -201,8 +201,10 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, cons
 		goto error;
 
 	// FIXME: Avoid subselect - this query needs up to 0.5s
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("REPLACE INTO tbl_archive (objtype, mappingid, data) VALUES('%s', %lli, ?)", objtype, id);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("REPLACE INTO tbl_archive (objtype, mappingid, data) VALUES('%s', %lli, ?)", escaped_objtype, id);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	
 	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
 		g_free(query);
@@ -231,8 +233,10 @@ int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *
 		goto error;
 
 	char *escaped_uid = osync_db_sql_escape(uid);
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("SELECT data FROM tbl_archive WHERE objtype='%s' AND mappingid=(SELECT mappingid FROM tbl_changes WHERE objtype='%s' AND uid='%s' LIMIT 1)", objtype, objtype, escaped_uid);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("SELECT data FROM tbl_archive WHERE objtype='%s' AND mappingid=(SELECT mappingid FROM tbl_changes WHERE objtype='%s' AND uid='%s' LIMIT 1)", escaped_objtype, escaped_objtype, escaped_uid);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	int ret = osync_db_get_blob(archive->db, query, data, size, error);
 	g_free(query);
 	g_free(escaped_uid);
@@ -265,17 +269,17 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 
 	char *query = NULL;
 	char *escaped_uid = osync_db_sql_escape(uid);
-
-
+	char *escaped_objtype = osync_db_sql_escape(objtype);
 
 	if (!id) {
-		// FIXME: '%s' can cause trouble if the objtype includes '
-		query = g_strdup_printf("INSERT INTO tbl_changes (objtype, uid, mappingid, memberid) VALUES('%s', '%s', '%lli', '%lli')", objtype, escaped_uid, mappingid, memberid);
+		query = g_strdup_printf("INSERT INTO tbl_changes (objtype, uid, mappingid, memberid) VALUES('%s', '%s', '%lli', '%lli')", escaped_objtype, escaped_uid, mappingid, memberid);
 	} else {
-		// FIXME: '%s' can cause trouble if the objtype includes '
-		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', mappingid='%lli', memberid='%lli' WHERE objtype='%s' AND id=%lli", escaped_uid, mappingid, memberid, objtype, id);
+		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', mappingid='%lli', memberid='%lli' WHERE objtype='%s' AND id=%lli", escaped_uid, mappingid, memberid, escaped_objtype, id);
 	}
+	g_free(escaped_objtype);
 	g_free(escaped_uid);
+	escaped_objtype = NULL;
+	escaped_uid = NULL;
 	
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
@@ -304,8 +308,10 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
 	if (!osync_archive_create_changes(archive->db, objtype, error))
 		goto error;
 
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s' AND id=%lli", objtype, id);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s' AND id=%lli", escaped_objtype, id);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
 		goto error;
@@ -337,8 +343,10 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	if (!osync_archive_create_changes(archive->db, objtype, error))
 		goto error;
 
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", objtype);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", escaped_objtype);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	result = osync_db_query_table(archive->db, query, error);
 
 	g_free(query);
@@ -382,8 +390,10 @@ osync_bool osync_archive_flush_changes(OSyncArchive *archive, const char *objtyp
 	if (!osync_archive_create_changes(archive->db, objtype, error))
 		goto error;
 	
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s'", objtype);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s'", escaped_objtype);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
@@ -415,8 +425,10 @@ osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const cha
 	if (!osync_archive_create_changelog(archive->db, objtype, error))
 		goto error;
 
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("SELECT entryid, changetype FROM tbl_changelog WHERE objtype='%s' ORDER BY id", objtype);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("SELECT entryid, changetype FROM tbl_changelog WHERE objtype='%s' ORDER BY id", escaped_objtype);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	result = osync_db_query_table(archive->db, query, error);
 
 	g_free(query);
@@ -456,8 +468,10 @@ osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char
 	if (!osync_archive_create_changelog(archive->db, objtype, error))
 		goto error;
 	
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("INSERT INTO tbl_changelog (objtype, entryid, changetype) VALUES('%s', '%lli', '%i')", objtype, id, changetype);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("INSERT INTO tbl_changelog (objtype, entryid, changetype) VALUES('%s', '%lli', '%i')", escaped_objtype, id, changetype);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
@@ -484,8 +498,10 @@ osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const cha
 	if (!osync_archive_create_changelog(archive->db, objtype, error))
 		goto error;
 	
-	// FIXME: '%s' can cause trouble if the objtype includes '
-	char *query = g_strdup_printf("DELETE FROM tbl_changelog WHERE objtype='%s'", objtype);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("DELETE FROM tbl_changelog WHERE objtype='%s'", escaped_objtype);
+	g_free(escaped_objtype);
+	escaped_objtype = NULL;
 	
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
