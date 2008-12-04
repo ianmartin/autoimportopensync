@@ -30,26 +30,6 @@
 #include "opensync_archive_internals.h"
 #include "opensync-db.h"
 
-/**
- * @defgroup OSyncArchivePrivateAPI OpenSync Archive Internals
- * @ingroup OSyncPrivate
- * @brief The private part of the OSyncArchive API
- * 
- */
-/*@{*/
-
-/*@}*/
-
-/**
- * @defgroup OSyncArchiveAPI OpenSync Archive
- * @ingroup OSyncPublic
- * @brief Functions for manipulating the archive
- * 
- * The archive is a persistent store of all of the objects seen/handled 
- * in a sync group. It is necessary for the merger code to work.
- */
-/*@{*/
-
 static osync_bool osync_archive_create_changes(OSyncDB *db, const char *objtype, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
@@ -160,12 +140,6 @@ error:
 	return FALSE;
 }
 
-/**
- * @brief Creates a new archive object
- * @param filename the full path to the archive database file
- * @param error Pointer to an error struct
- * @return The pointer to the newly allocated archive object or NULL in case of error
- */
 OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
@@ -197,10 +171,6 @@ error:
 	return NULL;
 }
 
-/**
- * @brief Increments the reference counter
- * @param archive The pointer to an archive object
- */
 OSyncArchive *osync_archive_ref(OSyncArchive *archive)
 {
 	osync_assert(archive);
@@ -210,11 +180,6 @@ OSyncArchive *osync_archive_ref(OSyncArchive *archive)
 	return archive;
 }
 
-/**
- * @brief Decrement the reference counter. The archive object will 
- *  be freed if there is no more reference to it.
- * @param archive The pointer to an archive object
- */
 void osync_archive_unref(OSyncArchive *archive)
 {
 	osync_assert(archive);
@@ -234,17 +199,6 @@ void osync_archive_unref(OSyncArchive *archive)
 	}
 }
 
-/**
- * @brief Stores data of an entry in the group archive database (blob).
- *
- * @param archive The group archive
- * @param id Archive (database) id of entry to save.
- * @param objtype The object type of the entry
- * @param data The data to store 
- * @param size Total size of data 
- * @param error Pointer to an error struct
- * @return Returns TRUE on success otherwise FALSE
- */ 
 osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, const char *objtype, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %p, %u, %p)", __func__, archive, id, objtype, data, size, error);
@@ -273,17 +227,6 @@ error:
 	return FALSE;
 }
 
-/**
- * @brief Loads data of an entry which is stored in the group archive database (blob).
- *
- * @param archive The group archive
- * @param uid UID of requestd entry
- * @param objtype The objtype type of the entry
- * @param data Pointer to store the requested data 
- * @param size Pointer to store the size of requested data
- * @param error Pointer to an error struct
- * @return Returns 0 if no data is present else 1. On error -1.
- */ 
 int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p, %p)", __func__, archive, uid, objtype, data, size, error);
@@ -316,18 +259,6 @@ error:
 	return -1;
 }
 
-/**
- * @brief Saves an entry in the group archive. 
- *
- * @param archive The group archive
- * @param id Archive (database) id of entry to update (if it already exists), specify 0 to add a new entry.
- * @param uid Reported UID of entry
- * @param objtype Reported object type of entry
- * @param mappingid Mapped ID of entry 
- * @param memberid ID of member which reported entry 
- * @param error Pointer to an error struct
- * @return Returns number of entries in archive group database. 0 on error. 
- */ 
 long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error)
 {
 	
@@ -369,15 +300,6 @@ error:
 	return 0;
 }
 
-/**
- * @brief Deletes an entry from a group archive.
- *
- * @param archive The group archive
- * @param id Archive (database) id of entry to be deleted
- * @param objtype The object type of the entry
- * @param error Pointer to an error struct
- * @return TRUE if the specified change was deleted successfully, otherwise FALSE
- */ 
 osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, const char *objtype, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %p)", __func__, archive, id, objtype, error);
@@ -403,18 +325,6 @@ error:
 	return FALSE;
 }
 
-/**
- * @brief Loads all changes from group archive for a certain object type.
- *
- * @param archive The group archive
- * @param objtype Requested object type 
- * @param ids List to store the archive (database) ids of each entry
- * @param uids List to store uids of each entry
- * @param mappingids List to store mappingids for each entry
- * @param memberids List to store member IDs for each entry 
- * @param error Pointer to an error struct
- * @return TRUE on when all changes successfully loaded otherwise FALSE
- */ 
 osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p, %p, %p)", __func__, archive, objtype, ids, uids, mappingids, memberids, error);
@@ -453,7 +363,7 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 		*mappingids = osync_list_append((*mappingids), GINT_TO_POINTER((int)mappingid));
 		*memberids = osync_list_append((*memberids), GINT_TO_POINTER((int)memberid));
 		
-	    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
+		osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
 	}
 
 	osync_db_free_list(result);	
@@ -465,14 +375,6 @@ error:
 	return FALSE;	
 }
 
-/**
- * @brief Delete all changes from group archive for a certain object type.
- *
- * @param archive The group archive
- * @param objtype Reported object type of entry
- * @param error Pointer to an error struct
- * @return Returns TRUE on success, FALSE otherwise 
- */ 
 osync_bool osync_archive_flush_changes(OSyncArchive *archive, const char *objtype, OSyncError **error)
 {
 	
@@ -500,16 +402,6 @@ error:
 	return FALSE;
 }
 
-/**
- * @brief Loads all conficting changes which were ignored in the previous sync. 
- *
- * @param archive The group archive
- * @param objtype Requested object type 
- * @param ids List to store the archive (database) ids of each entry
- * @param changetypes List to store the changetypes for each entry
- * @param error Pointer to an error struct
- * @return TRUE on when all changes successfully loaded otherwise FALSE
- */ 
 osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **changetypes, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, archive, objtype, ids, error);
@@ -543,7 +435,7 @@ osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const cha
 		*ids = osync_list_append((*ids), GINT_TO_POINTER((int)id));
 		*changetypes = osync_list_append((*changetypes), GINT_TO_POINTER((int)changetype));
 		
-	    	osync_trace(TRACE_INTERNAL, "Loaded ignored mapping with entryid %lli", id);
+		osync_trace(TRACE_INTERNAL, "Loaded ignored mapping with entryid %lli", id);
 	}
 
 	osync_db_free_list(result);	
@@ -555,16 +447,6 @@ error:
 	return FALSE;	
 }
 
-/**
- * @brief Saves an entry in the ignored conflict list.
- *
- * @param archive The group archive
- * @param objtype Reported object type of entry
- * @param id Mapping Entry ID of entry 
- * @param changetype Changetype of entry 
- * @param error Pointer to an error struct
- * @return Returns TRUE on success, FALSE otherwise 
- */ 
 osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char *objtype, long long int id, OSyncChangeType changetype, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %lli, %p)", __func__, archive, objtype, id, error);
@@ -592,14 +474,6 @@ error:
 	return FALSE;
 }
 
-/**
- * @brief Deletes all ignored conflict entries of the changelog with the objtype.
- *
- * @param archive The group archive
- * @param objtype Reported object type of entry
- * @param error Pointer to an error struct
- * @return Returns TRUE on success, FALSE otherwise 
- */ 
 osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const char *objtype, OSyncError **error)
 {
 	
@@ -627,4 +501,3 @@ error:
 	return FALSE;
 }
 
-/*@}*/

@@ -27,10 +27,50 @@
 
 #include <opensync/opensync_list.h>
 
+/**
+ * @defgroup OSyncArchiveAPI OpenSync Archive
+ * @ingroup OSyncPublic
+ * @brief Functions for manipulating the archive
+ * 
+ * The archive is a persistent store of all of the objects seen/handled 
+ * in a sync group. It is necessary for the merger code to work.
+ */
+/*@{*/
+
+/**
+ * @brief Creates a new archive object
+ * @param filename the full path to the archive database file
+ * @param error Pointer to an error struct
+ * @return The pointer to the newly allocated archive object or NULL in case of error
+ */
 OSYNC_EXPORT OSyncArchive *osync_archive_new(const char *filename, OSyncError **error);
+
+/**
+ * @brief Increments the reference counter
+ * @param archive The pointer to an archive object
+ */
 OSYNC_EXPORT OSyncArchive *osync_archive_ref(OSyncArchive *archive);
+
+/**
+ * @brief Decrement the reference counter. The archive object will 
+ *  be freed if there is no more reference to it.
+ * @param archive The pointer to an archive object
+ */
 OSYNC_EXPORT void osync_archive_unref(OSyncArchive *archive);
 
+/**
+ * @brief Loads all changes from group archive for a certain object type.
+ *
+ * @param archive The group archive
+ * @param objtype Requested object type 
+ * @param ids List to store the archive (database) ids of each entry
+ * @param uids List to store uids of each entry
+ * @param mappingids List to store mappingids for each entry
+ * @param memberids List to store member IDs for each entry 
+ * @param error Pointer to an error struct
+ * @return TRUE on when all changes successfully loaded otherwise FALSE
+ */
 OSYNC_EXPORT osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error);
+/*@}*/
 
 #endif /*OPENSYNC_ARCHIVE_H_*/
