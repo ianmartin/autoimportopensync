@@ -70,6 +70,17 @@ FIND_PACKAGE( SWIG )
 FIND_PACKAGE( PythonLibs )
 FIND_PACKAGE( Check )
 
+# test configuration
+
+OPTION( OPENSYNC_UNITTESTS "enable testing" OFF )
+IF ( CHECK_FOUND )
+	SET( OPENSYNC_UNITTESTS ON )
+ELSE ( CHECK_FOUND )
+	SET( OPENSYNC_UNITTESTS OFF )
+ENDIF ( CHECK_FOUND )
+
+# sub directories
+
 ADD_SUBDIRECTORY( opensync )
 ADD_SUBDIRECTORY( formats )
 ADD_SUBDIRECTORY( tools )
@@ -78,14 +89,16 @@ ADD_SUBDIRECTORY( cmake )
 
 #ADD_SUBDIRECTORY( docs/example-plugin/src/ ) 
 
+OPTION( ENABLE_WRAPPER "enable wrapper" OFF )
 IF ( SWIG_FOUND )
 	ADD_SUBDIRECTORY( wrapper )
+	SET( ENABLE_WRAPPER ON )
 ENDIF ( SWIG_FOUND )
 
-IF ( CHECK_FOUND AND OPENSYNC_UNITTESTS )
+IF ( OPENSYNC_UNITTESTS )
 	INCLUDE( Testing )
 	ADD_SUBDIRECTORY( tests )
-ENDIF ( CHECK_FOUND AND OPENSYNC_UNITTESTS )
+ENDIF ( OPENSYNC_UNITTESTS )
 
 IF ( CMAKE_SYSTEM_NAME MATCHES SunOS )
 	SET( HAVE_SOLARIS 1 )
@@ -121,3 +134,9 @@ INSTALL( FILES "${CMAKE_CURRENT_BINARY_DIR}/libopensync.pc" DESTINATION ${LIB_IN
 
 OPENSYNC_PACKAGE( ${PROJECT_NAME} ${OPENSYNC_VERSION} )
 
+######## configuration status output ###############
+INCLUDE( ShowStatus )
+MESSAGE( STATUS "==================================================" )
+SHOW_STATUS( OPENSYNC_UNITTESTS "enable testing\t\t" )
+SHOW_STATUS( ENABLE_WRAPPER "build wrapper\t\t" )
+SHOW_STATUS( BUILD_DOCUMENTATION "build documentation\t\t" )
