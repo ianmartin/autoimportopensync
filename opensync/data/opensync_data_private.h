@@ -21,6 +21,8 @@
 #ifndef _OPENSYNC_DATA_PRIVATE_H_
 #define _OPENSYNC_DATA_PRIVATE_H_
 
+/*! @ingroup OSyncDataPrivate 
+ * @brief A data object */
 struct OSyncData {
 	/** The data reported from the plugin */
 	char *data;

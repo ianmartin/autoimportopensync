@@ -31,20 +31,6 @@
 #include "opensync_change_private.h"
 
 
-/**
- * @defgroup OSyncChangeAPI OpenSync Change
- * @ingroup OSyncPublic
- * @brief Handles change objects
- * 
- */
-/*@{*/
-
-/*! @brief Create a new change object
- * 
- * @param error An error struct
- * @returns The new change object
- * 
- */
 OSyncChange *osync_change_new(OSyncError **error)
 {
 	OSyncChange *change = osync_try_malloc0(sizeof(OSyncChange), error);
@@ -56,11 +42,6 @@ OSyncChange *osync_change_new(OSyncError **error)
 	return change;
 }
 
-/*! @brief Increase the reference count on a change object
- * 
- * @param change The change object
- * 
- */
 OSyncChange *osync_change_ref(OSyncChange *change)
 {
 	osync_assert(change);
@@ -70,11 +51,6 @@ OSyncChange *osync_change_ref(OSyncChange *change)
 	return change;
 }
 
-/*! @brief Decrease the reference count on a change object
- * 
- * @param change The change object
- * 
- */
 void osync_change_unref(OSyncChange *change)
 {
 	osync_assert(change);
@@ -93,36 +69,18 @@ void osync_change_unref(OSyncChange *change)
 	}
 }
 
-/*! @brief Gets the changetype of a change
- * 
- * @param change The change
- * @returns The changetype
- * 
- */
 OSyncChangeType osync_change_get_changetype(OSyncChange *change)
 {
 	osync_assert(change);
 	return change->changetype;
 }
 
-/*! @brief Sets the changetype of a change
- * 
- * @param change The change
- * @param type The changetype to set
- * 
- */
 void osync_change_set_changetype(OSyncChange *change, OSyncChangeType type)
 {
 	osync_assert(change);
 	change->changetype = type;
 }
 
-/*! @brief Gets the object format of a change
- * 
- * @param change The change
- * @returns The object format
- * 
- */
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 {
 	osync_assert(change);
@@ -131,12 +89,6 @@ OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 	return osync_data_get_objformat(change->data);
 }
 
-/*! @brief Gets the object type of a change
- * 
- * @param change The change
- * @returns The name of the object type
- * 
- */
 const char *osync_change_get_objtype(OSyncChange *change)
 {
 	osync_assert(change);
@@ -145,12 +97,6 @@ const char *osync_change_get_objtype(OSyncChange *change)
 	return osync_data_get_objtype(change->data);
 }
 
-/*! @brief Sets the object type of a change
- * 
- * @param change The change
- * @param objtype The name of the object type to set
- * 
- */
 void osync_change_set_objtype(OSyncChange *change, const char *objtype)
 {
 	osync_assert(change);
@@ -159,12 +105,6 @@ void osync_change_set_objtype(OSyncChange *change, const char *objtype)
 	osync_data_set_objtype(change->data, objtype);
 }
 
-/*! @brief Sets the hash of a change that is used to decide whether a change is new, modified etc.
- * 
- * @param change The change
- * @param hash The hash to set
- * 
- */
 void osync_change_set_hash(OSyncChange *change, const char *hash)
 {
 	osync_assert(change);
@@ -173,24 +113,12 @@ void osync_change_set_hash(OSyncChange *change, const char *hash)
 	change->hash = g_strdup(hash);
 }
 
-/*! @brief Gets the hash of a change
- * 
- * @param change The change
- * @returns The hash
- * 
- */
 const char *osync_change_get_hash(OSyncChange *change)
 {
 	osync_assert(change);
 	return change->hash;
 }
 
-/*! @brief Sets the uid of a change
- * 
- * @param change The change
- * @param uid The uid to set
- * 
- */
 void osync_change_set_uid(OSyncChange *change, const char *uid)
 {
 	osync_assert(change);
@@ -201,24 +129,12 @@ void osync_change_set_uid(OSyncChange *change, const char *uid)
 	change->uid = g_strdup(uid);
 }
 
-/*! @brief Gets the uid of a change
- * 
- * @param change The change
- * @returns The uid
- * 
- */
 const char *osync_change_get_uid(OSyncChange *change)
 {
 	osync_assert(change);
 	return change->uid;
 }
 
-/*! @brief Sets the data of a change
- * 
- * @param change The change
- * @param data the data object to set
- * 
- */
 void osync_change_set_data(OSyncChange *change, OSyncData *data)
 {
 	osync_assert(change);
@@ -228,25 +144,12 @@ void osync_change_set_data(OSyncChange *change, OSyncData *data)
 	osync_data_ref(data);
 }
 
-/*! @brief Gets the data from a change object
- * 
- * @param change The change
- * @returns the data object
- * 
- */
 OSyncData *osync_change_get_data(OSyncChange *change)
 {
 	osync_assert(change);
 	return change->data;
 }
 
-/*! @brief Clone a change object
- *
- *  @param source The change object to clone
- *  @param error An error struct
- *  @returns a copy of the specified change object, or NULL if an error occured
- *
- */
 OSyncChange *osync_change_clone(OSyncChange *source, OSyncError **error)
 {
 	OSyncChange *change = NULL;
@@ -272,20 +175,6 @@ OSyncChange *osync_change_clone(OSyncChange *source, OSyncError **error)
 	return change;
 }
 
-/*! @brief Compares two changes
- * 
- * Compares the two given changes and returns:
- * CONV_DATA_MISMATCH if they are not the same
- * CONV_DATA_SIMILAR if the are not the same but look similar
- * CONV_DATA_SAME if they are exactly the same
- * This function does also compare changetypes etc unlike
- * osync_data_compare()
- * 
- * @param leftchange The left change to compare
- * @param rightchange The right change to compare
- * @returns The result of the comparison
- * 
- */
 OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
@@ -302,17 +191,6 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
 	}
 }
 
-/*! @brief Duplicates the uid of a change
- * 
- * This will call the duplicate function of a format.
- * This is used if a uid is not unique.
- * 
- * @param change The change to duplicate
- * @param dirty Reference which stores value if change still needs to be multiplied (dirty)
- * @param error An error struct
- * @returns TRUE if the uid was duplicated successfully, FALSE otherwise.
- * 
- */
 osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncError **error)
 {
 	osync_assert(change);
@@ -344,4 +222,3 @@ osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncE
 	return TRUE;
 }
 
-/*@}*/

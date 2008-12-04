@@ -21,7 +21,35 @@
 #ifndef _OPENSYNC_CHANGE_INTERNALS_H_
 #define _OPENSYNC_CHANGE_INTERNALS_H_
 
+/**
+ * @defgroup OSyncChangeInternalAPI OpenSync Change
+ * @ingroup OSyncDataInternal
+ */
+
+/*@{*/
+
+/*! @brief Clone a change object
+ *
+ *  @param source The change object to clone
+ *  @param error An error struct
+ *  @returns a copy of the specified change object, or NULL if an error occured
+ *
+ */
 OSyncChange *osync_change_clone(OSyncChange *source, OSyncError **error);
+
+/*! @brief Duplicates the uid of a change
+ * 
+ * This will call the duplicate function of a format.
+ * This is used if a uid is not unique.
+ * 
+ * @param change The change to duplicate
+ * @param dirty Reference which stores value if change still needs to be multiplied (dirty)
+ * @param error An error struct
+ * @returns TRUE if the uid was duplicated successfully, FALSE otherwise.
+ * 
+ */
 osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncError **error);
+
+/*@}*/
 
 #endif /*_OPENSYNC_CHANGE_INTERNALS_H_*/
