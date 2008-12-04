@@ -45,14 +45,6 @@ OSyncDB *osync_db_new(OSyncError **error)
 	return db;
 }
 
-/**
- * @brief Open a database
- * 
- * @param db Pointer to database struct
- * @param dbfile Full file path to database file
- * @param error Pointer to a error struct 
- * @return If database opened successfully then TRUE else FALSE
- */
 osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, dbfile, error);
@@ -70,13 +62,6 @@ osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error)
 	return TRUE;
 }
 
-/**
- * @brief Close a sqlite3 database file
- * 
- * @param db Pointer to database struct
- * @param error Pointer to a error struct 
- * @return If database closed successfully then TRUE else FALSE
- */
 osync_bool osync_db_close(OSyncDB *db, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
@@ -94,14 +79,6 @@ osync_bool osync_db_close(OSyncDB *db, OSyncError **error)
 	return TRUE;
 }
 
-/**
- * @brief Counts result of a database query 
- * 
- * @param db Pointer to database struct
- * @param query SQL database query 
- * @param error Pointer to a error struct 
- * @return Returns number of query result or -1 on error 
- */
 int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
@@ -126,14 +103,6 @@ int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 	return num;
 }
 
-/**
- * @brief Executes a simple SQL query 
- * 
- * @param db Pointer to database struct
- * @param query SQL database query 
- * @param error Pointer to a error struct 
- * @return Returns TRUE on success otherwise FALSE 
- */
 osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
@@ -154,15 +123,6 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 	return TRUE;
 }
 
-/**
- * @brief Exectues a SQL query and fill all requested data in a OSyncList. 
- *        Check error with osync_error_is_set().
- * 
- * @param db Pointer to database struct
- * @param query SQL database query 
- * @param error Pointer to a error struct 
- * @return Returns pointer to OSyncList which contains the each result as another OSyncList ptr. Freeing is recommend with osync_db_free_list() 
- */
 OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
@@ -209,11 +169,6 @@ OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **err
 	return table; 
 }
 
-/**
- * @brief Frees the full result of osync_db_query_table().
- *
- * @param list Result OSyncList pointer of osync_db_query_table()
- */
 void osync_db_free_list(OSyncList *list) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, list);
 
@@ -228,16 +183,6 @@ void osync_db_free_list(OSyncList *list) {
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/**
- * @brief Execute a SQL query for a single string (char *). Do only use this
- *        function when you expect a single return. The function will return
- *        NULL if there are more then one results! 
- *
- * @param db Pointer to database struct
- * @param query SQL database query 
- * @param error Pointer to a error struct 
- * @return Returns result string from database. NULL on more then one result or on error (the caller is responsible for freeing)
- */
 char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
@@ -278,16 +223,6 @@ error:
 	return NULL;
 }
 
-/**
- * @brief Execute a SQL query for a single integer. Do only use this
- *        function when you expect a single return. The function will return
- *        NULL if there are more then one results! 
- *
- * @param db Pointer to database struct
- * @param query SQL database query 
- * @param error Pointer to a error struct 
- * @return Returns result integer from database.  On more then one result or on error -1 
- */
 int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
@@ -327,14 +262,6 @@ error:
 	return -1;
 }
 
-/**
- * @brief Full reset of a sqlite3 table. 
- *
- * @param db Pointer to database struct
- * @param tablename Name of table which gets reseted
- * @param error Pointer to a error struct 
- * @return TRUE on success otherwise FALSE
- */
 osync_bool osync_db_reset_table(OSyncDB *db, const char *tablename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
@@ -409,15 +336,6 @@ error:
 
 }
 
-
-/**
- * @brief Checks if requested table exists in database
- *
- * @param db Pointer to database struct
- * @param tablename Name of table which gets reseted
- * @param error Pointer to a error struct 
- * @return If the table exist 1 else 0. On error -1.
- */
 int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
@@ -455,17 +373,6 @@ int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error
 	return 1;
 }
 
-
-/**
- * @brief Insert a data (blob) in database. 
- *
- * @param db Pointer to database struct
- * @param query SQL query to bind the data blob
- * @param data Pointer to the data
- * @param size The size of the data which should be binded
- * @param error Pointer to a error struct 
- * @return TRUE on success otherwise FALSE
- */
 osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %u, %p)", __func__, db, query, size, error);
@@ -478,9 +385,9 @@ osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, 
 
 	sqlite3_stmt *sqlite_stmt = NULL;
 
-        int rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
-        if(rc != SQLITE_OK)
-                goto error_msg;
+	int rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
+	if(rc != SQLITE_OK)
+		goto error_msg;
 
 	/* TODO Handle the case of multiple data blobs.... index = 1 will break with multiple blobs. */
 	rc = sqlite3_bind_blob(sqlite_stmt, 1, data, size, SQLITE_TRANSIENT);
@@ -514,16 +421,6 @@ error:
 	return FALSE;
 }
 
-/**
- * @brief Get a data (blob) from the database. 
- *
- * @param db Pointer to database struct
- * @param query SQL query to get the data blob
- * @param data Pointer where to store the data
- * @param size Pointer to store the size of data
- * @param error Pointer to a error struct 
- * @return 1 on success, 0 no result, -1 on error.
- */
 int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, db, query, data, size, error);

@@ -23,6 +23,8 @@
 
 #include <sqlite3.h>
 
+/*! @ingroup OSyncDBPrivate 
+ * @brief A OSyncDB object */
 struct OSyncDB {
 	sqlite3 *sqlite3db;
 };
