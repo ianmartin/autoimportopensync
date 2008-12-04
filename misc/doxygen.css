@@ -160,10 +160,12 @@ caption { font-weight: bold }
 .memdoc { 
 	border: 1px solid #000000;
 	background-color: #D5E1E8;
+	padding-left: 10px;
 }
 .memproto { 
 	border: 1px solid #000000;
 	background-color: #D5E1FF;
+	padding-left: 10px;
 	-moz-border-radius-topleft:8px;
 	-moz-border-radius-topright:8px
 }
