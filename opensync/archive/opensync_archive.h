@@ -28,8 +28,10 @@
 #include <opensync/opensync_list.h>
 
 /**
- * @defgroup OSyncArchiveAPI OpenSync Archive
+ * @defgroup OSyncArchive OpenSync Archive Module
  * @ingroup OSyncPublic
+ * @defgroup OSyncArchiveAPI OpenSync Archive
+ * @ingroup OSyncArchive
  * @brief Functions for manipulating the archive
  * 
  * The archive is a persistent store of all of the objects seen/handled 

@@ -24,7 +24,7 @@
 /**
  * @defgroup OSyncDataInternal OpenSync Data Module Internals
  * @ingroup OSyncPrivate
- * @defgroup OSyncDataAPI OpenSync Data
+ * @defgroup OSyncDataInternalAPI OpenSync Data
  * @ingroup OSyncDataInternal
  * @brief The internal part of the OSyncData API
  */
