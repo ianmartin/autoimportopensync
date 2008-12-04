@@ -18,7 +18,6 @@
         <xsd:element maxOccurs="1" minOccurs="0" name="Categories" type="Categories"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Class" type="StringContent"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="EMail" type="EMail"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="FbUrl" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="FileAs" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="FormattedName" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="FreeBusyUrl" type="StringContent"/>
