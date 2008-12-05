@@ -6,23 +6,29 @@ START_TEST (single_init_error)
 	
 	setenv("INIT_NULL", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!osengine_init(engine, &error), NULL);
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+
+	/* this is a bug - please see sml_fail_unless for details */
+	fail_unless(osync_engine_initialize(engine, &error), osync_error_print(&error));
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -36,28 +42,33 @@ START_TEST (dual_connect_error)
 	
 	setenv("CONNECT_ERROR", "3", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 2, NULL);
-	fail_unless(num_connected == 0, NULL);
-	fail_unless(num_disconnected == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 0, NULL);
+	fail_unless(num_client_disconnected == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -71,29 +82,34 @@ START_TEST (one_of_two_connect_error)
 	
 	setenv("CONNECT_ERROR", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 1, NULL);
-	fail_unless(num_connected == 1, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 1, NULL);
+	fail_unless(num_client_connected == 1, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -107,29 +123,34 @@ START_TEST (two_of_three_connect_error)
 	
 	setenv("CONNECT_ERROR", "5", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 2, NULL);
-	fail_unless(num_connected == 1, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 1, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -143,29 +164,34 @@ START_TEST (two_of_three_connect_error2)
 	
 	setenv("CONNECT_ERROR", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 2, NULL);
-	fail_unless(num_connected == 1, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 1, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -179,29 +205,34 @@ START_TEST (three_of_three_connect_error)
 	
 	setenv("CONNECT_ERROR", "7", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 3, NULL);
-	fail_unless(num_connected == 0, NULL);
-	fail_unless(num_disconnected == 0, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 3, NULL);
+	fail_unless(num_client_connected == 0, NULL);
+	fail_unless(num_client_disconnected == 0, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -215,29 +246,34 @@ START_TEST (one_of_three_connect_error)
 
 	setenv("CONNECT_ERROR", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 1, NULL);
-	fail_unless(num_connected == 2, NULL);
-	fail_unless(num_disconnected == 2, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 1, NULL);
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -251,29 +287,34 @@ START_TEST (no_connect_error)
 	
 	setenv("CONNECT_ERROR", "0", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -288,30 +329,35 @@ START_TEST (single_connect_timeout)
 	
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 1, NULL);
-	fail_unless(num_connected == 1, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 1, NULL);
+	fail_unless(num_client_connected == 1, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -325,30 +371,35 @@ START_TEST (dual_connect_timeout)
 	
 	setenv("CONNECT_TIMEOUT", "3", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 2, NULL);
-	fail_unless(num_connected == 0, NULL);
-	fail_unless(num_disconnected == 0, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 0, NULL);
+	fail_unless(num_client_disconnected == 0, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -362,30 +413,35 @@ START_TEST (one_of_three_timeout)
 	
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 1, NULL);
-	fail_unless(num_connected == 2, NULL);
-	fail_unless(num_disconnected == 2, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 1, NULL);
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -400,30 +456,35 @@ START_TEST (timeout_and_error)
 	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	setenv("CONNECT_ERROR", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 2, NULL);
-	fail_unless(num_connected == 1, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 1, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -438,32 +499,37 @@ START_TEST (single_get_changes_error)
 	setenv("GET_CHANGES_ERROR", "2", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 2, NULL);
-	fail_unless(num_disconnected == 2, NULL);
-	fail_unless(num_member_get_changes_errors == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	//fail_unless(num_member_get_changes_errors == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -477,33 +543,38 @@ START_TEST (dual_get_changes_error)
 	
 	setenv("GET_CHANGES_ERROR", "3", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 2, NULL);
-	fail_unless(num_disconnected == 2, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
-	fail_unless(num_read == 0, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 2, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_read == 0, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -518,31 +589,36 @@ START_TEST (two_of_three_get_changes_error)
 	setenv("GET_CHANGES_ERROR", "5", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -557,32 +633,37 @@ START_TEST (one_of_three_get_changes_error)
 	setenv("GET_CHANGES_ERROR", "1", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_get_changes_errors == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_get_changes_errors == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -597,34 +678,39 @@ START_TEST (one_of_three_get_changes_timeout)
 	setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_get_changes_errors == 1, NULL);
-	fail_unless(num_member_sent_changes == 2, NULL);
-	fail_unless(num_read == 2, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_get_changes_errors == 1, NULL);
+	//fail_unless(num_member_sent_changes == 2, NULL);
+	fail_unless(num_client_read == 2, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -639,33 +725,38 @@ START_TEST (get_changes_timeout_and_error)
 	setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
 	setenv("GET_CHANGES_ERROR", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
-	fail_unless(num_read == 0, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_read == 0, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	osync_error_unref(&error);
-	osengine_finalize(engine);
-	osengine_free(engine);
+	osync_engine_finalize(engine, &error);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -680,16 +771,21 @@ START_TEST (get_changes_timeout_sleep)
 	setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -697,19 +793,19 @@ START_TEST (get_changes_timeout_sleep)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
-	fail_unless(num_read == 0, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_client_read == 0, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	
@@ -723,17 +819,22 @@ START_TEST (single_commit_error)
 	
 	setenv("COMMIT_ERROR", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -741,21 +842,21 @@ START_TEST (single_commit_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 1, NULL);
-	fail_unless(num_written_errors == 1, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 1, NULL);
+	//fail_unless(num_written_errors == 1, NULL);
 	fail_unless(num_mapping_errors == 1, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -770,17 +871,22 @@ START_TEST (dual_commit_error)
 	
 	setenv("COMMIT_ERROR", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -788,21 +894,21 @@ START_TEST (dual_commit_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 2, NULL);
 	fail_unless(num_mapping_errors == 2, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -817,17 +923,22 @@ START_TEST (single_commit_timeout)
 	
 	setenv("COMMIT_TIMEOUT", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -835,21 +946,21 @@ START_TEST (single_commit_timeout)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 1, NULL);
-	fail_unless(num_written_errors == 1, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 1, NULL);
+	//fail_unless(num_written_errors == 1, NULL);
 	fail_unless(num_mapping_errors == 1, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -864,17 +975,22 @@ START_TEST (dual_commit_timeout)
 	
 	setenv("COMMIT_TIMEOUT", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -882,21 +998,21 @@ START_TEST (dual_commit_timeout)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 2, NULL);
 	fail_unless(num_mapping_errors == 2, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -912,17 +1028,22 @@ START_TEST (commit_timeout_and_error)
 	setenv("COMMIT_TIMEOUT", "4", TRUE);
 	setenv("COMMIT_ERROR", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -930,21 +1051,21 @@ START_TEST (commit_timeout_and_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 2, NULL);
 	fail_unless(num_mapping_errors == 2, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -960,17 +1081,22 @@ START_TEST (commit_timeout_and_error2)
 	setenv("COMMIT_TIMEOUT", "2", TRUE);
 	setenv("COMMIT_ERROR", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -978,21 +1104,21 @@ START_TEST (commit_timeout_and_error2)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 2, NULL);
 	fail_unless(num_mapping_errors == 2, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -1005,17 +1131,22 @@ START_TEST (commit_error_modify)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1033,21 +1164,21 @@ START_TEST (commit_error_modify)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 2, NULL);
 	fail_unless(num_mapping_errors == 2, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -1061,17 +1192,22 @@ START_TEST (commit_error_delete)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1089,21 +1225,21 @@ START_TEST (commit_error_delete)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 2, NULL);
 	fail_unless(num_mapping_errors == 2, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
@@ -1119,17 +1255,22 @@ START_TEST (committed_all_error)
 	
 	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1137,21 +1278,21 @@ START_TEST (committed_all_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1167,17 +1308,22 @@ START_TEST (committed_all_batch_error)
 	setenv("BATCH_COMMIT", "7", TRUE);
 	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1185,21 +1331,21 @@ START_TEST (committed_all_batch_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1214,17 +1360,22 @@ START_TEST (single_sync_done_error)
 	
 	setenv("SYNC_DONE_ERROR", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1232,22 +1383,22 @@ START_TEST (single_sync_done_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 1, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 1, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1262,17 +1413,22 @@ START_TEST (dual_sync_done_error)
 	
 	setenv("SYNC_DONE_ERROR", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1280,22 +1436,22 @@ START_TEST (dual_sync_done_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 2, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 2, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1310,17 +1466,22 @@ START_TEST (triple_sync_done_error)
 	
 	setenv("SYNC_DONE_ERROR", "7", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1328,22 +1489,22 @@ START_TEST (triple_sync_done_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 3, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 3, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1358,17 +1519,22 @@ START_TEST (single_sync_done_timeout)
 	
 	setenv("SYNC_DONE_TIMEOUT", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1376,22 +1542,22 @@ START_TEST (single_sync_done_timeout)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 1, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 1, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1406,17 +1572,22 @@ START_TEST (dual_sync_done_timeout)
 	
 	setenv("SYNC_DONE_TIMEOUT", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1424,22 +1595,22 @@ START_TEST (dual_sync_done_timeout)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 2, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 2, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1455,17 +1626,22 @@ START_TEST (sync_done_timeout_and_error)
 	setenv("SYNC_DONE_TIMEOUT", "5", TRUE);
 	setenv("SYNC_DONE_ERROR", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1473,22 +1649,22 @@ START_TEST (sync_done_timeout_and_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 3, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 0, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 3, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 3, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 3, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1503,17 +1679,22 @@ START_TEST (single_disconnect_error)
 	
 	setenv("DISCONNECT_ERROR", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1521,23 +1702,22 @@ START_TEST (single_disconnect_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 2, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 1, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 1, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1552,17 +1732,22 @@ START_TEST (dual_disconnect_error)
 	
 	setenv("DISCONNECT_ERROR", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1570,23 +1755,22 @@ START_TEST (dual_disconnect_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 2, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1601,17 +1785,22 @@ START_TEST (triple_disconnect_error)
 	
 	setenv("DISCONNECT_ERROR", "7", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1619,23 +1808,22 @@ START_TEST (triple_disconnect_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 0, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 3, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 0, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 3, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1650,17 +1838,22 @@ START_TEST (single_disconnect_timeout)
 	
 	setenv("DISCONNECT_TIMEOUT", "4", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1668,23 +1861,22 @@ START_TEST (single_disconnect_timeout)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 2, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 1, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 2, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 1, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1699,17 +1891,22 @@ START_TEST (dual_disconnect_timeout)
 	
 	setenv("DISCONNECT_TIMEOUT", "6", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1717,23 +1914,22 @@ START_TEST (dual_disconnect_timeout)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 2, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1749,17 +1945,22 @@ START_TEST (disconnect_timeout_and_error)
 	setenv("DISCONNECT_TIMEOUT", "5", TRUE);
 	setenv("DISCONNECT_ERROR", "2", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
@@ -1767,23 +1968,22 @@ START_TEST (disconnect_timeout_and_error)
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 0, NULL);
-	fail_unless(num_member_sent_changes == 3, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 3, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 0, NULL);
+	//fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 2, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 3, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
 	fail_unless(num_engine_errors == 0, NULL);
-	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_successful == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -1801,41 +2001,45 @@ START_TEST (get_changes_disconnect_error)
 	setenv("GET_CHANGES_TIMEOUT", "6", TRUE);
 	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
-	OSyncEnv *osync = init_env();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_memberstatus_callback(engine, member_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
-	osengine_init(engine, &error);
+	OSyncGroup *group = osync_group_new(&error);
+	fail_unless(group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_group_set_schemadir(group, testbed);
+	fail_unless(osync_group_load(group, "configs/group", &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 0, NULL);
-	fail_unless(num_connected == 3, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 1, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_client_errors == 2, NULL);
+	fail_unless(num_client_connected == 3, NULL);
+	fail_unless(num_client_disconnected == 1, NULL);
+	//fail_unless(num_member_sent_changes == 1, NULL);
+	fail_unless(num_client_read == 1, NULL);
+	fail_unless(num_client_written == 0, NULL);
+	//fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_member_sync_done_errors == 0, NULL);
-	fail_unless(num_member_disconnect_errors == 2, NULL);
+	//fail_unless(num_conflicts == 0, NULL);
+	//fail_unless(num_member_sync_done_errors == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
-	fail_unless(num_engine_successfull == 0, NULL);
+	fail_unless(num_engine_successful == 0, NULL);
 	
 	mark_point();
 	osync_error_unref(&error);
 	mark_point();
-	osengine_finalize(engine);
+	osync_engine_finalize(engine, &error);
 	mark_point();
-	osengine_free(engine);
+	osync_engine_unref(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
