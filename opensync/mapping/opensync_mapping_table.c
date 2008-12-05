@@ -191,69 +191,6 @@ error:
 	return FALSE;
 }
 
-#if 0
-osync_bool osync_mapping_table_load(OSyncMappingTable *table, const char *path, OSyncError **error)
-{
-	OSyncMappingEntry *entry = NULL;
-	OSyncMapping *mapping = NULL;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, path, error);
-	
-	int rc = sqlite3_open(path, &(table->db));
-	if (rc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(table->db));
-		goto error;
-	}
-	
-	if (sqlite3_exec(table->db, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, format VARCHAR, memberid INTEGER, mappingid INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable create changes table! %s", sqlite3_errmsg(table->db));
-	
-	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(table->db, "SELECT uid, memberid, mappingid FROM tbl_changes ORDER BY mappingid", -1, &ppStmt, NULL);
-
-	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
-		entry = osync_mapping_entry_new(error);
-		if (!entry)
-			goto error_close;
-		
-		osync_mapping_entry_set_uid(entry, (const char *)sqlite3_column_text(ppStmt, 0));
-		long long int mappingid = sqlite3_column_int64(ppStmt, 1);
-		
-		if (!mapping || osync_mapping_get_id(mapping) != mappingid) {
-			mapping = osync_mapping_new(error);
-			if (!error)
-				goto error_free_entry;
-			
-			osync_mapping_set_id(mapping, mappingid);
-			osync_mapping_table_add_mapping(table, mapping);
-		}
-		osync_mapping_add_entry(mapping, entry);
-    	
-    	/*OSyncMappingView *view = osengine_mappingtable_find_view(table, osync_change_get_member(change));
-    	if (view)
-    		osengine_mappingview_add_entry(view, entry);*/
-		
-		long long int memberid = sqlite3_column_int64(ppStmt, 2);
-		osync_mapping_entry_set_member_id(entry, memberid);
-		
-    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", osync_mapping_entry_get_uid(entry), mappingid, memberid);
-	}
-	sqlite3_finalize(ppStmt);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error_free_entry:
-	osync_mapping_entry_unref(entry);
-error_close:
-	sqlite3_finalize(ppStmt);
-	sqlite3_close(table->db);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-#endif
-
 /**
  * @brief Close the mapping table 
  *

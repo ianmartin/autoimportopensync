@@ -21,13 +21,10 @@
 #ifndef OPENSYNC_MAPPING_TABLE_INTERNALS_H_
 #define OPENSYNC_MAPPING_TABLE_INTERNALS_H_
 
-#include <sqlite3.h>
-
 struct OSyncMappingTable {
 	int ref_count;
 	
 	GList *mappings;
-	//GList *views;
 };
 
 #endif /*OPENSYNC_MAPPING_TABLE_INTERNALS_H_*/

@@ -30,8 +30,6 @@ OSYNC_EXPORT osync_bool osync_mapping_table_flush(OSyncMappingTable *table, OSyn
 
 OSYNC_EXPORT void osync_mapping_table_close(OSyncMappingTable *table);
 
-//OSYNC_EXPORT void osync_mapping_table_add_view(OSyncMappingTable *table, OSyncMappingView *view);
-
 OSYNC_EXPORT OSyncMapping *osync_mapping_table_find_mapping(OSyncMappingTable *table, long long int id);
 OSYNC_EXPORT void osync_mapping_table_add_mapping(OSyncMappingTable *table, OSyncMapping *mapping);
 OSYNC_EXPORT void osync_mapping_table_remove_mapping(OSyncMappingTable *table, OSyncMapping *mapping);
@@ -40,4 +38,4 @@ OSYNC_EXPORT OSyncMapping *osync_mapping_table_nth_mapping(OSyncMappingTable *ta
 
 OSYNC_EXPORT long long int osync_mapping_table_get_next_id(OSyncMappingTable *table);
 
-#endif /*OPENSYNC_MAPPING_TABLE_H_*/
+#endif /* OPENSYNC_MAPPING_TABLE_H_ */
