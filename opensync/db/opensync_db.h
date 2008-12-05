@@ -28,7 +28,7 @@
  * @ingroup OSyncPublic
  * @defgroup OSyncDBAPI OpenSync Database
  * @ingroup OSyncDB
-/*@{*/
+ *@{*/
 
 OSYNC_EXPORT OSyncDB *osync_db_new(OSyncError **error);
 
@@ -162,5 +162,5 @@ OSYNC_EXPORT long long int osync_db_last_rowid(OSyncDB *db);
 OSYNC_EXPORT char *osync_db_sql_escape(const char *query);
 
 /*@}*/
-#endif //_OPENSYNC_DB_H_
+#endif /* _OPENSYNC_DB_H_ */
 
