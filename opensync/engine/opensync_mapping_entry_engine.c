@@ -51,8 +51,8 @@ OSyncMappingEntryEngine *osync_entry_engine_new(OSyncMappingEntry *entry, OSyncM
 	
 	engine->objengine = objengine;
 	
-	engine->mapping_engine = mapping_engine;
-	engine->entry = entry;
+	engine->mapping_engine = osync_mapping_engine_ref(mapping_engine);
+	engine->entry = osync_mapping_entry_ref(entry);
 	
 	sink_engine->entries = g_list_append(sink_engine->entries, engine);
 	osync_entry_engine_ref(engine);
@@ -82,6 +82,12 @@ void osync_entry_engine_unref(OSyncMappingEntryEngine *engine)
 	
 		if (engine->change)
 			osync_change_unref(engine->change);
+
+		if (engine->mapping_engine)
+			osync_mapping_engine_unref(engine->mapping_engine);
+
+		if (engine->entry)
+			osync_mapping_entry_unref(engine->entry);
 		
 		g_free(engine);
 	}
