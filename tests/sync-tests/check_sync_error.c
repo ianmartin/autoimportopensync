@@ -1,5 +1,7 @@
 #include "support.h"
 
+#include "opensync/group/opensync_group_internals.h"
+
 START_TEST (single_init_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
@@ -1156,7 +1158,7 @@ START_TEST (commit_error_modify)
 	
 	sleep(2);
 	
-	system("cp newdata2 data1/testdata");
+	osync_testing_system_abort("cp newdata2 data1/testdata");
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
@@ -1217,7 +1219,7 @@ START_TEST (commit_error_delete)
 	
 	sleep(2);
 	
-	system("rm -f data1/testdata");
+	osync_testing_system_abort("rm -f data1/testdata");
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
