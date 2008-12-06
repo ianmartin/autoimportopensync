@@ -50,70 +50,70 @@ OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned 
 
 /**
  * @brief Increments the reference counter
- * @param xmlformat The pointer to a xmlformat object
+ * @param xmlformat The pointer to the xmlformat object
  */
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_ref(OSyncXMLFormat *xmlformat);
 
 /**
  * @brief Decrement the reference counter. The xmlformat object will 
  *  be freed if there is no more reference to it.
- * @param xmlformat The pointer to a xmlformat object
+ * @param xmlformat The pointer to the xmlformat object
  */
 OSYNC_EXPORT void osync_xmlformat_unref(OSyncXMLFormat *xmlformat);
 
 /**
  * @brief Get the first field of a xmlformat
- * @param xmlformat The pointer to a xmlformat object
+ * @param xmlformat The pointer to the xmlformat object
  * @return The first field of the xmlformat
  */
 OSYNC_EXPORT OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat);
 
 /**
- * @brief Serarch for xmlfields in the given xmlformat. It's up to the caller to
+ * @brief Search for xmlfields in the given xmlformat. It is up to the caller to
  *  free the returned list with OSyncXMLFieldList::osync_xmlfieldlist_free
- * @param xmlformat The pointer to a xmlformat object 
+ * @param xmlformat The pointer to the xmlformat object 
  * @param name The name of the xmlfields to search for
  * @param error The error which will hold the info in case of an error
- * @param ... If the xmlfield should have a attribute with spezial value,
+ * @param ... If the xmlfield should have an attribute with special value,
  *  then it is possible to specify the attribute name and the attribute 
- *  value. But always there have to set both parametes! There can be more 
- *  than one attribute pair. The last parameter has always to be NULL.
- * @return The Pointer to the xmlfieldlist which hold all founded xmlfields
+ *  value. Both parameters must always be set. There can be more 
+ *  than one attribute pair. The last parameter must always be NULL.
+ * @return A pointer to the xmlfieldlist which holds all found xmlfields
  *  or NULL in case of error
  */
 OSYNC_EXPORT OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error, ...);
 
 /**
- * @brief Dump the xmlformat into the memory.
- * @param xmlformat The pointer to a xmlformat object 
- * @param buffer The pointer to the buffer which will hold the xml document
+ * @brief Dump the xmlformat into a buffer.
+ * @param xmlformat The pointer to the xmlformat object 
+ * @param buffer The pointer to the buffer which will hold the xml document. It is up 
+ *  to the caller to free this buffer.
  * @param size The pointer to the buffer which will hold the size of the xml document
- * @return The xml document and the size of it. It's up to the caller to free
- *  the buffer. Always it return TRUE.
+ * @return Always returns TRUE.
  */
 OSYNC_EXPORT osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, unsigned int *size);
 
 /**
  * @brief Sort all xmlfields of the xmlformat.
  *
- *  Calling this funcion is very expensive - try to avoid if possible.
- *  Recommendend approch would be to assemble a xmlformat in a sorted way.
+ *  Calling this function is very expensive - try to avoid using it if possible.
+ *  The recommended approach is to assemble the xmlformat in a sorted way instead.
  *
- * @param xmlformat The pointer to a xmlformat object
+ * @param xmlformat The pointer to the xmlformat object
  */
 OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
 
 /**
- * @brief Check if all xmlfields of the xmlformat are sorted.
+ * @brief Check if all xmlfields of an xmlformat are sorted.
  * @param xmlformat The pointer to a xmlformat object
  * @returns TRUE if sorted, FALSE otherwise
  */
 OSYNC_EXPORT osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat);
 
 /**
- * @brief Returns true if the copy succedded, false otherwise
+ * @brief Copy data from one xmlformat to another.
  *
- * @return Boolean status of the copy operation.
+ * @return True if the copy succeeded, false otherwise
  */ 
 OSYNC_EXPORT osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error);
 
