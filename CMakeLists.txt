@@ -131,7 +131,7 @@ CONFIGURE_FILE( "libopensync.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/libopensync.pc"
 
 ########## INSTALL ##############################
 	
-INSTALL( FILES "${CMAKE_CURRENT_BINARY_DIR}/libopensync.pc" DESTINATION ${LIB_INSTALL_DIR}/pkgconfig/ )	
+INSTALL( FILES "${CMAKE_CURRENT_BINARY_DIR}/libopensync.pc" DESTINATION ${LIBDATA_INSTALL_DIR}/pkgconfig/ )	
 
 ### CPack ########################################
 
