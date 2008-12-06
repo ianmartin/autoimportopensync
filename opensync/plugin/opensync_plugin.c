@@ -25,26 +25,6 @@
 #include "opensync_plugin_private.h"
 #include "opensync_plugin_internals.h"
 
-/**
- * @defgroup OSyncPluginAPI OpenSync Plugin
- * @ingroup OSyncPublic
- * @brief Functions to register and manage plugins
- * 
- */
-/*@{*/
-
-
-/*! @brief Registers a new plugin
- *
- * This function creates a new OSyncPlugin object, that
- * can be used to register a new plugin dynamically. This
- * can be used by a module to register multiple plugins,
- * instead of using the get_info() function which allows
- * registering only one plugin.
- *
- * @param error Pointer to an error struct
- * @returns the newly registered plugin
- */
 OSyncPlugin *osync_plugin_new(OSyncError **error)
 {
 	OSyncPlugin *plugin = osync_try_malloc0(sizeof(OSyncPlugin), error);
@@ -63,11 +43,6 @@ OSyncPlugin *osync_plugin_new(OSyncError **error)
 	return plugin;
 }
 
-/*! @brief Increase the reference count on a plugin
- * 
- * @param plugin Pointer to the plugin
- * 
- */
 OSyncPlugin *osync_plugin_ref(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
@@ -77,11 +52,6 @@ OSyncPlugin *osync_plugin_ref(OSyncPlugin *plugin)
 	return plugin;
 }
 
-/*! @brief Decrease the reference count on a plugin
- * 
- * @param plugin Pointer to the plugin
- * 
- */
 void osync_plugin_unref(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
@@ -100,26 +70,12 @@ void osync_plugin_unref(OSyncPlugin *plugin)
 	}
 }
 
-/*! @brief Returns the name of a plugin
- * 
- * @param plugin Pointer to the plugin
- * @returns Name of the plugin
- * 
- */
 const char *osync_plugin_get_name(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->name;
 }
 
-/*! @brief Sets the name of a plugin
- * 
- * Sets the name of a plugin. This is a short name (maybe < 15 chars).
- *
- * @param plugin Pointer to the plugin
- * @param name the name to set
- * 
- */
 void osync_plugin_set_name(OSyncPlugin *plugin, const char *name)
 {
 	osync_assert(plugin);
@@ -128,26 +84,12 @@ void osync_plugin_set_name(OSyncPlugin *plugin, const char *name)
 	plugin->name = g_strdup(name);
 }
 
-/*! @brief Returns the long name of a plugin
- * 
- * @param plugin Pointer to the plugin
- * @returns Long name of the plugin
- * 
- */
 const char *osync_plugin_get_longname(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->longname;
 }
 
-/*! @brief Sets the long name of a plugin
- * 
- * Sets the long name of a plugin (maybe < 50 chars).
- *
- * @param plugin Pointer to the plugin
- * @param longname the long name to set
- * 
- */
 void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname)
 {
 	osync_assert(plugin);
@@ -156,26 +98,12 @@ void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname)
 	plugin->longname = g_strdup(longname);
 }
 
-/*! @brief Returns the description of a plugin
- * 
- * @param plugin Pointer to the plugin
- * @returns Description of the plugin
- * 
- */
 const char *osync_plugin_get_description(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->description;
 }
 
-/*! @brief Sets the description of a plugin
- * 
- * Sets a longer description for the plugin (maybe < 200 chars).
- *
- * @param plugin Pointer to the plugin
- * @param description the description to set
- * 
- */
 void osync_plugin_set_description(OSyncPlugin *plugin, const char *description)
 {
 	osync_assert(plugin);
@@ -184,94 +112,48 @@ void osync_plugin_set_description(OSyncPlugin *plugin, const char *description)
 	plugin->description = g_strdup(description);
 }
 
-/*! @brief Returns the plugin_info data, set by the plugin
- *
- * @param plugin Pointer to the plugin
- * @returns The void pointer set on plugin->info.plugin_data
- */
 void *osync_plugin_get_data(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->plugin_data;
 }
 
-/*! @brief Set the plugin_info data for the plugin object
- *
- * @param plugin Pointer to the plugin
- * @param data Pointer to data which should get set 
- */
 void osync_plugin_set_data(OSyncPlugin *plugin, void *data)
 {
 	osync_assert(plugin);
 	plugin->plugin_data = data;
 }
 
-/*! @brief Returns whether or not the plugin requires configuration
- *
- * @param plugin Pointer to the plugin
- * @returns The configuration requirement type of the plugin
- */
 OSyncConfigurationType osync_plugin_get_config_type(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->config_type;
 }
 
-/*! @brief Sets whether or not the plugin requires configuration
- *
- * @param plugin Pointer to the plugin
- * @param config_type The configuration requirement type of the plugin
- */
 void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType config_type)
 {
 	osync_assert(plugin);
 	plugin->config_type = config_type;
 }
 
-/*! @brief Returns start type of plugin 
- *
- * @param plugin Pointer to the plugin
- * @returns The start type of the plugin
- */
 OSyncStartType osync_plugin_get_start_type(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->start_type;
 }
 
-/*! @brief Sets the start type of the plugin 
- *
- * @param plugin Pointer to the plugin
- * @param start_type The start type of the plugin
- */
 void osync_plugin_set_start_type(OSyncPlugin *plugin, OSyncStartType start_type)
 {
 	osync_assert(plugin);
 	plugin->start_type = start_type;
 }
 
-/*! @brief Sets the initialize function for a plugin
- *
- * The initialize function of a plugin sets up sinks for the plugin as well
- * as other plugin-wide structures.
- *
- * @param plugin Pointer to the plugin
- * @param init The initialize function for the plugin
- */
 void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init)
 {
 	osync_assert(plugin);
 	plugin->initialize = init;
 }
 
-/*! @brief Sets the finalize function for a plugin
- *
- * The finalize function of a plugin frees any plugin-wide structures
- * that were created in the initialize function.
- *
- * @param plugin Pointer to the plugin
- * @param fin The finalize function for the plugin
- */
 void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin)
 {
 	osync_assert(plugin);
@@ -279,56 +161,24 @@ void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin)
 	plugin->finalize = fin;
 }
 
-/*! @brief Sets the optional discover function for a plugin
- *
- * The discover function of a plugin can be used to specify which 
- * of the sinks in the plugin are currently available, and to declare
- * the compatible device versions for the plugin. It can also
- * be used to set the plugin's capabilities.
- *
- * The discover function is optional.
- *
- * @param plugin Pointer to the plugin
- * @param discover The discover function for the plugin
- */
 void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn discover)
 {
 	osync_assert(plugin);
 	plugin->discover = discover;
 }
 
-/*! @brief Initialize Plugin 
- *
- * @param plugin Pointer to the plugin
- * @param info Pointer to OSyncPluginInfo which describes the plugin 
- * @param error Pointer to error-struct
- * @return Userdata returned by the plugin on success, NULL on error
- */
 void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
 	return plugin->initialize(plugin, info, error);
 }
 
-/*! @brief Finalize Plugin 
- *
- * @param plugin Pointer to the plugin
- * @param data Pointer to userdata which got returned by plugin initialize function
- */
 void osync_plugin_finalize(OSyncPlugin *plugin, void *data)
 {
 	osync_assert(plugin);
 	plugin->finalize(data);
 }
 
-/*! @brief Call plugin discovery
- *
- * @param plugin Pointer to the plugin
- * @param data Pointer to userdata which got returned by plugin initialize function
- * @param info Pointer to OSyncPluginInfo which describes the plugin 
- * @param error Pointer to error-struct
- * @return TRUE on success, FALSE otherwise 
- */
 osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
@@ -338,13 +188,6 @@ osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInf
 	return plugin->discover(data, info, error);
 }
 
-/*! @brief Checks if a plugin is available and usable
- * 
- * @param plugin The plugin to check
- * @param error If the return was FALSE, will contain information on why the plugin is not available
- * @returns TRUE if the plugin was found and is usable, FALSE otherwise
- * 
- */
 osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, plugin, error);
@@ -358,100 +201,51 @@ osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
 	return TRUE;
 }
 
-/*! @brief Get timeout interval for plugin discovery
- * 
- * @param plugin The plugin to get discvoery timeout 
- * @return Timeout value 
- * 
- */
 unsigned int osync_plugin_get_discover_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.discover;
 }
 
-/*! @brief Set timeout interval for plugin discovery
- * 
- * @param plugin The plugin to check
- * @param timeout Timeout value 
- * 
- */
 void osync_plugin_set_discover_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.discover = timeout;
 }
 
-/*! @brief Get timeout interval for plugin initialization 
- * 
- * @param plugin The plugin to check
- * @return Timeout value
- * 
- */
 unsigned int osync_plugin_get_initialize_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.initialize;
 }
 
-/*! @brief Set timeout interval for plugin initialization 
- * 
- * @param plugin The plugin to check
- * @param timeout Timeout value 
- * 
- */
 void osync_plugin_set_initialize_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.initialize = timeout;
 }
 
-/*! @brief Get timeout interval for plugin finalization
- * 
- * @param plugin The plugin to check
- * @return Timeout value
- * 
- */
 unsigned int osync_plugin_get_finalize_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.finalize;
 }
 
-/*! @brief Set timeout interval for plugin finalization 
- * 
- * @param plugin The plugin to check
- * @param timeout Timeout value 
- * 
- */
 void osync_plugin_set_finalize_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.finalize = timeout;
 }
 
-/*! @brief Get timeout interval for plugin "usable" function
- * 
- * @param plugin The plugin to check
- * @return Timeout value
- * 
- */
 unsigned int osync_plugin_get_useable_timeout(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->timeout.useable;
 }
 
-/*! @brief Set timeout interval for plugin "usable" function
- * 
- * @param plugin The plugin to check
- * @param timeout Timeout value 
- * 
- */
 void osync_plugin_set_useable_timeout(OSyncPlugin *plugin, unsigned int timeout)
 {
 	osync_assert(plugin);
 	plugin->timeout.useable = timeout;
 }
 
-/*@}*/
