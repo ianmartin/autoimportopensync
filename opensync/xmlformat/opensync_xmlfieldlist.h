@@ -23,8 +23,35 @@
 #ifndef OPENSYNC_XMLFIELDLIST_H_
 #define OPENSYNC_XMLFIELDLIST_H_
 
+/**
+ * @defgroup OSyncXMLFieldListAPI OpenSync XMLFieldList
+ * @ingroup OSyncPublic
+ * @brief The public part of the OSyncXMLFieldList
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Frees all memory which was allocated for an xmlfieldlist
+ * @param xmlfieldlist Pointer to the xmlfieldlist object to free
+ */
 OSYNC_EXPORT void osync_xmlfieldlist_free(OSyncXMLFieldList *xmlfieldlist);
+
+/**
+ * @brief Get the length of an xmlfieldlist
+ * @param xmlfieldlist Pointer to the xmlfieldlist object
+ * @return The number of xmlfield items in the xmlfieldlist 
+ */
 OSYNC_EXPORT int osync_xmlfieldlist_get_length(OSyncXMLFieldList *xmlfieldlist);
+
+/**
+ * @brief Get the xmlfield at the given index of an xmlfieldlist 
+ * @param xmlfieldlist Pointer to the xmlfieldlist object
+ * @param index The index of the xmlfield pointer to return
+ * @return The item at the specified index, or NULL in case of error.
+ */
 OSYNC_EXPORT OSyncXMLField *osync_xmlfieldlist_item(OSyncXMLFieldList *xmlfieldlist, int index);
+
+/*@}*/
 
 #endif /*OPENSYNC_XMLFIELDLIST_H_*/

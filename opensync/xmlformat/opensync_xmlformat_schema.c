@@ -161,36 +161,9 @@ exit:
 
 /*@}*/
 
-/**
- * @defgroup OSyncXMLFormatAPI OpenSync XMLFormat
- * @ingroup OSyncPublic
- * @brief The public part of the OSyncXMLFormat
- * 
- */
-/*@{*/
-
-/**
- * @brief Get a  schema for the xmlformat.
- *
- * This function creates only one instance of a schema for each objtype. If a xmlformat is passed as a parameter with the same
- * objtype as a xmlformat prior the returned pointer to a OSyncXMLFormatSchema instance is the same as before.
- *
- * @param xmlformat The pointer to a xmlformat object 
- * @param error The error which will hold the info in case of an error
- * @return Pointer to a instance of OSyncXMLFormatSchema
- */
-
 OSyncXMLFormatSchema * osync_xmlformat_schema_get_instance(OSyncXMLFormat *xmlformat, OSyncError **error) {
 	return osync_xmlformat_schema_get_instance_with_path(xmlformat, NULL, error);	
 }
-
-/**
- * @brief Validate the xmlformat against its schema
- * @param xmlformat The pointer to a xmlformat object 
- * @param schema The pointer to a OSyncXMLFormatSchema object.
- * @param error The error which will hold the info in case of an error
- * @return TRUE if xmlformat valid else FALSE
- */
 
 osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXMLFormat *xmlformat, OSyncError **error)
 {
@@ -209,12 +182,6 @@ osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXM
 	return TRUE;
 }
 
-/**
- * @brief Decrement the reference counter. The OSyncXMLFormatSchema object will 
- *  be freed if there is no more reference to it.
- * @param osyncschema Pointer to the Schema that shoud be freed
- * @param error The error which will hold the info in case of an error
- */
 void osync_xmlformat_schema_unref(OSyncXMLFormatSchema *osyncschema) {
 
 	osync_assert(osyncschema);
@@ -231,11 +198,6 @@ void osync_xmlformat_schema_unref(OSyncXMLFormatSchema *osyncschema) {
 	
 }
 
-
-/**
- * @brief Increments the reference counter
- * @param osyncschema The pointer to a OSyncXMLFormatSchema object
- */
 OSyncXMLFormatSchema *osync_xmlformat_schema_ref(OSyncXMLFormatSchema *osyncschema)
 {
 	osync_assert(osyncschema);
@@ -244,4 +206,3 @@ OSyncXMLFormatSchema *osync_xmlformat_schema_ref(OSyncXMLFormatSchema *osyncsche
 
 	return osyncschema;
 }
-/*@}*/

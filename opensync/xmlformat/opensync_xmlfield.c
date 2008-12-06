@@ -126,24 +126,72 @@ int osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
 	return strcmp((const char*) (*(xmlNodePtr *) key1)->name, (const char*) (*(xmlNodePtr *) key2)->name);
 }
 
-/*@}*/
+/** 
+ * @brief Unlink a xmlfield from its context and frees it
+ * @param xmlfield The pointer to a xmlfield object
+ */
+void osync_xmlfield_delete(OSyncXMLField *xmlfield)
+{
+    osync_assert(xmlfield);
+    
+    osync_xmlfield_unlink(xmlfield);
+    osync_xmlfield_free(xmlfield);  
+}
 
 /**
- * @defgroup OSyncXMLFieldAPI OpenSync XMLField
- * @ingroup OSyncPublic
- * @brief The public part of the OSyncXMLField
- * 
+ * @brief Links a xmlfield object from a xmlformat object before a other xmlfield object of a other xmlformat object  
+ * @param xmlfield The pointer to a xmlfield object
+ * @param to_link The pointer to a xmlfield object
  */
-/*@{*/
+void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
+{
+    osync_assert(xmlfield);
+    osync_assert(to_link);
 
- /**
- * @brief Creates a new xmlfield object which will be added to the end of xmlfields of the xmlformat object.
- *  The returned object will be freed with the xmlformat object.
- * @param xmlformat The pointer to a xmlformat object
- * @param name The name of the xmlfield
- * @param error The error which will hold the info in case of an error
- * @return The pointer to the newly allocated xmlformat object or NULL in case of error
+    osync_xmlfield_unlink(to_link);
+
+    xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+    xmlAddPrevSibling(xmlfield->node, to_link->node);
+    
+    to_link->next = xmlfield;
+    to_link->prev = xmlfield->prev;
+    
+    if(xmlfield->prev)
+        xmlfield->prev->next = to_link;
+    else
+        ((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
+    xmlfield->prev = to_link;
+    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+}
+
+/**
+ * @brief Links a xmlfield object from a xmlformat object after a other xmlfield object of a other xmlformat object
+ * @param xmlfield The pointer to a xmlfield object
+ * @param to_link The pointer to a xmlfield object
  */
+void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
+{
+    osync_assert(xmlfield);
+    osync_assert(to_link);
+    
+    osync_xmlfield_unlink(to_link);
+    
+    xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+    xmlAddNextSibling(xmlfield->node, to_link->node);
+    
+    to_link->next = xmlfield->next;
+    to_link->prev = xmlfield;
+    
+    if(xmlfield->next)
+        xmlfield->next->prev = to_link;
+    else
+        ((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
+    xmlfield->next = to_link;
+    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+}
+
+/*@}*/
+
 OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, xmlformat, name, error);
@@ -170,75 +218,6 @@ OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, O
 	return xmlfield;
 }
 
-/** 
- * @brief Unlink a xmlfield from its context and frees it
- * @param xmlfield The pointer to a xmlfield object
- */
-void osync_xmlfield_delete(OSyncXMLField *xmlfield)
-{
-	osync_assert(xmlfield);
-	
-	osync_xmlfield_unlink(xmlfield);
-	osync_xmlfield_free(xmlfield);	
-}
-
-/**
- * @brief Links a xmlfield object from a xmlformat object before a other xmlfield object of a other xmlformat object  
- * @param xmlfield The pointer to a xmlfield object
- * @param to_link The pointer to a xmlfield object
- */
-void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
-{
-	osync_assert(xmlfield);
-	osync_assert(to_link);
-
-	osync_xmlfield_unlink(to_link);
-
-	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-	xmlAddPrevSibling(xmlfield->node, to_link->node);
-	
-	to_link->next = xmlfield;
-	to_link->prev = xmlfield->prev;
-	
-	if(xmlfield->prev)
-		xmlfield->prev->next = to_link;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
-	xmlfield->prev = to_link;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
-}
-
-/**
- * @brief Links a xmlfield object from a xmlformat object after a other xmlfield object of a other xmlformat object
- * @param xmlfield The pointer to a xmlfield object
- * @param to_link The pointer to a xmlfield object
- */
-void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
-{
-	osync_assert(xmlfield);
-	osync_assert(to_link);
-	
-	osync_xmlfield_unlink(to_link);
-	
-	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-	xmlAddNextSibling(xmlfield->node, to_link->node);
-	
-	to_link->next = xmlfield->next;
-	to_link->prev = xmlfield;
-	
-	if(xmlfield->next)
-		xmlfield->next->prev = to_link;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
-	xmlfield->next = to_link;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
-}
-
-/**
- * @brief Get the name of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @return The name of the xmlfield
- */
 const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
@@ -246,11 +225,6 @@ const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield)
 	return (const char *)xmlfield->node->name;
 }
 
-/**
- * @brief Set the name of a xmlfield
- * @param name The name to set
- * @param xmlfield The pointer to a xmlfield object
- */
 void osync_xmlfield_set_name(OSyncXMLField *xmlfield, const char *name)
 {
 	osync_assert(xmlfield);
@@ -259,11 +233,6 @@ void osync_xmlfield_set_name(OSyncXMLField *xmlfield, const char *name)
 	xmlNodeSetName(xmlfield->node, BAD_CAST name);	
 }
 
-/**
- * @brief Get the next xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @return The pointer to the next xmlfield or NULL if there is no more xmlfield
- */
 OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
@@ -271,12 +240,6 @@ OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield)
 	return xmlfield->next;
 }
 
-/**
- * @brief Get the value of a attribute of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param attr The name of the attribute
- * @return The value of the attribute of the xmlfield or NULL in case of error
- */
 const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
 {
 	osync_assert(xmlfield);
@@ -291,12 +254,6 @@ const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
 //	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
 }
 
-/**
- * @brief Set the attribute name and the attribute value of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param attr The name of the attribute
- * @param value The value of the attribute
- */
 void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const char *value)
 {
 	osync_assert(xmlfield);
@@ -306,11 +263,6 @@ void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const ch
 	xmlSetProp(xmlfield->node, BAD_CAST attr, BAD_CAST value);
 }
 
-/**
- * @brief Get the count of attributes of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @return The count of attributes of the xmlfield
- */
 int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
@@ -323,12 +275,6 @@ int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield)
 	return count;
 }
 
-/**
- * @brief Get the name of the nth attribute of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param nth The number of the attribute
- * @return The name of the nth attribute of the xmlfield or NULL in case of error
- */
 const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
 {
 	osync_assert(xmlfield);
@@ -344,12 +290,6 @@ const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
 	return NULL;
 }
 
-/**
- * @brief Get the value of the nth attribute of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param nth The number of the attribute
- * @return The value of the nth attribute of the xmlfield or NULL in case of error
- */
 const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 {
 	osync_assert(xmlfield);
@@ -367,12 +307,6 @@ const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 	return NULL;
 }
 
-/**
- * @brief Get the value of a key/value pair of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param key The key of the key/value pair
- * @return The value of the key/value pair of the xmlfield or NULL in case of error
- */
 const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *key)
 {
 	osync_assert(xmlfield);
@@ -388,12 +322,6 @@ const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *ke
 	return NULL;
 }
 
-/**
- * @brief Set the key/value pair of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param key The key of the key/value pair
- * @param value The value of the key/value pair
- */
 void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, const char *value)
 {
 	osync_assert(xmlfield);
@@ -416,12 +344,6 @@ void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, cons
 	xmlfield->sorted = FALSE;
 }
 
-/**
- * @brief Add the key/value pair to a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param key The key of the key/value pair
- * @param value The value of the key/value pair
- */
 void osync_xmlfield_add_key_value(OSyncXMLField *xmlfield, const char *key, const char *value)
 {
 	osync_assert(xmlfield);
@@ -433,11 +355,6 @@ void osync_xmlfield_add_key_value(OSyncXMLField *xmlfield, const char *key, cons
 	xmlfield->sorted = FALSE;
 }
 
-/**
- * @brief Get the count of keys of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @return The count of keys of the xmlfield
- */
 int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
@@ -451,12 +368,6 @@ int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 	return count;
 }
 
-/**
- * @brief Get the name of the nth key of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param nth The number of the key
- * @return The name of the nth key of the xmlfield or NULL in case of error
- */
 const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
 {
 	osync_assert(xmlfield);
@@ -472,12 +383,6 @@ const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
 	return NULL;
 }
 
-/**
- * @brief Get the value of the nth key of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param nth The number of the key
- * @return The value of the nth key of the xmlfield or NULL in case of error
- */
 const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 {
 	osync_assert(xmlfield);
@@ -495,13 +400,6 @@ const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 	return NULL;
 }
 
-/**
- * @brief Set the value of the nth key of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @param nth The number of the key
- * @param value The value of the key/value pair
- * @return The value of the nth key of the xmlfield or NULL in case of error
- */
 void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const char *value)
 {
 	osync_assert(xmlfield);
@@ -517,12 +415,6 @@ void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const ch
 	}
 }
 
-/**
- * @brief Sort all key nodes  of the xmlfield. This function have to be called
- *  if the xmlfield got build in a unsorted way. Sorting is not needed if the
- *  xmfield got build in a sorted way.
- * @param xmlfield The pointer to a xmlfield object
- */
 void osync_xmlfield_sort(OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
@@ -574,4 +466,3 @@ end:
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/*@}*/

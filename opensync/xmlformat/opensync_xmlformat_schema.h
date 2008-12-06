@@ -23,9 +23,48 @@
 #ifndef OPENSYNC_XMLFORMAT_SCHEMA_H_
 #define OPENSYNC_XMLFORMAT_SCHEMA_H_
 
+/**
+ * @defgroup OSyncXMLFormatAPI OpenSync XMLFormat
+ * @ingroup OSyncPublic
+ * @brief The public part of the OSyncXMLFormat
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Get a schema for an xmlformat.
+ *
+ * This function creates only one instance of a schema for each objtype. If an xmlformat is passed as a parameter with the same
+ * objtype as passed in previously, the returned pointer to an OSyncXMLFormatSchema instance is the same as before.
+ *
+ * @param xmlformat The pointer to a xmlformat object 
+ * @param error The error which will hold the info in case of an error
+ * @return Pointer to a instance of OSyncXMLFormatSchema
+ */
 OSYNC_EXPORT OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance(OSyncXMLFormat *xmlformat, OSyncError **error);
+
+/**
+ * @brief Decrement the reference counter. The OSyncXMLFormatSchema object will 
+ *  be freed if the reference count reaches zero.
+ * @param schema Pointer to the OSyncXMLFormatSchema to be freed
+ */
 OSYNC_EXPORT void osync_xmlformat_schema_unref(OSyncXMLFormatSchema *schema);
+
+/**
+ * @brief Increments the reference counter
+ * @param osyncschema Pointer to the OSyncXMLFormatSchema object
+ */
 OSYNC_EXPORT OSyncXMLFormatSchema *osync_xmlformat_schema_ref(OSyncXMLFormatSchema *osyncschema);
+
+/**
+ * @brief Validate an xmlformat against a schema
+ * @param xmlformat Pointer to the xmlformat object to validate
+ * @param schema Pointer to the OSyncXMLFormatSchema object
+ * @param error The error which will hold the info in case of an error
+ * @return TRUE if the xmlformat is valid, FALSE otherwise
+ */
 OSYNC_EXPORT osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXMLFormat *xmlformat, OSyncError **error);
+
+/*@}*/
 
 #endif /* OPENSYNC_XMLFORMAT_SCHEMA_H_ */

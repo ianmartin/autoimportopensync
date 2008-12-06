@@ -85,18 +85,6 @@ void osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index)
 
 /*@}*/
 
-/**
- * @defgroup OSyncXMLFieldListAPI OpenSync XMLFieldList
- * @ingroup OSyncPublic
- * @brief The public part of the OSyncXMLFieldList
- * 
- */
-/*@{*/
-
-/**
- * @brief Frees all memory which was allocated for the xmlfieldlist
- * @param xmlfieldlist The pointer to a xmlfieldlist object
- */
 void osync_xmlfieldlist_free(OSyncXMLFieldList *xmlfieldlist)
 {
 	osync_assert(xmlfieldlist);
@@ -104,11 +92,6 @@ void osync_xmlfieldlist_free(OSyncXMLFieldList *xmlfieldlist)
 	g_free(xmlfieldlist);
 }
 
-/**
- * @brief Get the count of xmlfield pointers of a xmlfieldlist 
- * @param xmlfieldlist The pointer to a xmlfieldlist object
- * @return The count of xmlfield pointers of the xmlfieldlist 
- */
 int osync_xmlfieldlist_get_length(OSyncXMLFieldList *xmlfieldlist)
 {
 	osync_assert(xmlfieldlist);
@@ -116,12 +99,6 @@ int osync_xmlfieldlist_get_length(OSyncXMLFieldList *xmlfieldlist)
 	return xmlfieldlist->array->len;
 }
 
-/**
- * @brief Get the xmlfield pointer of the given index of a xmlfieldlist 
- * @param xmlfieldlist The pointer to a xmlfieldlist object
- * @param index The index of the xmlfield pointer to return
- * @return The xmlfield of the given index of the xmlfieldlist or NULL in case of error 
- */
 OSyncXMLField *osync_xmlfieldlist_item(OSyncXMLFieldList *xmlfieldlist, int index)
 {
 	osync_assert(xmlfieldlist);
@@ -130,5 +107,3 @@ OSyncXMLField *osync_xmlfieldlist_item(OSyncXMLFieldList *xmlfieldlist, int inde
 		return NULL;
 	return g_ptr_array_index(xmlfieldlist->array, index);
 }
-
-/*@}*/
