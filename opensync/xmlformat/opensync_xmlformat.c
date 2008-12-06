@@ -339,24 +339,22 @@ osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destina
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, source, destination);
 
-        char *buffer = NULL;
-        unsigned int size;
+	char *buffer = NULL;
+	unsigned int size;
 
-        osync_xmlformat_assemble(source, &buffer, &size);
-        *destination = osync_xmlformat_parse(buffer, size, error);
-        if (!(*destination)) {
-                osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-                return FALSE;
-        }
+	osync_xmlformat_assemble(source, &buffer, &size);
+	*destination = osync_xmlformat_parse(buffer, size, error);
+	if (!(*destination)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 
 	if (source->sorted) (*destination)->sorted = TRUE;
 
+	g_free(buffer);
 
-
-        g_free(buffer);
-
-        osync_trace(TRACE_EXIT, "%s", __func__);
-        return TRUE;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 unsigned int osync_xmlformat_size()

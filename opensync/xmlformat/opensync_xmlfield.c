@@ -132,10 +132,10 @@ int osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
  */
 void osync_xmlfield_delete(OSyncXMLField *xmlfield)
 {
-    osync_assert(xmlfield);
-    
-    osync_xmlfield_unlink(xmlfield);
-    osync_xmlfield_free(xmlfield);  
+	osync_assert(xmlfield);
+
+	osync_xmlfield_unlink(xmlfield);
+	osync_xmlfield_free(xmlfield);  
 }
 
 /**
@@ -145,23 +145,23 @@ void osync_xmlfield_delete(OSyncXMLField *xmlfield)
  */
 void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
 {
-    osync_assert(xmlfield);
-    osync_assert(to_link);
+	osync_assert(xmlfield);
+	osync_assert(to_link);
 
-    osync_xmlfield_unlink(to_link);
+	osync_xmlfield_unlink(to_link);
 
-    xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-    xmlAddPrevSibling(xmlfield->node, to_link->node);
-    
-    to_link->next = xmlfield;
-    to_link->prev = xmlfield->prev;
-    
-    if(xmlfield->prev)
-        xmlfield->prev->next = to_link;
-    else
-        ((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
-    xmlfield->prev = to_link;
-    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+	xmlAddPrevSibling(xmlfield->node, to_link->node);
+
+	to_link->next = xmlfield;
+	to_link->prev = xmlfield->prev;
+
+	if(xmlfield->prev)
+		xmlfield->prev->next = to_link;
+	else
+		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
+	xmlfield->prev = to_link;
+	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
 /**
@@ -171,23 +171,23 @@ void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXM
  */
 void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
 {
-    osync_assert(xmlfield);
-    osync_assert(to_link);
-    
-    osync_xmlfield_unlink(to_link);
-    
-    xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-    xmlAddNextSibling(xmlfield->node, to_link->node);
-    
-    to_link->next = xmlfield->next;
-    to_link->prev = xmlfield;
-    
-    if(xmlfield->next)
-        xmlfield->next->prev = to_link;
-    else
-        ((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
-    xmlfield->next = to_link;
-    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+	osync_assert(xmlfield);
+	osync_assert(to_link);
+
+	osync_xmlfield_unlink(to_link);
+
+	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+	xmlAddNextSibling(xmlfield->node, to_link->node);
+
+	to_link->next = xmlfield->next;
+	to_link->prev = xmlfield;
+
+	if(xmlfield->next)
+		xmlfield->next->prev = to_link;
+	else
+		((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
+	xmlfield->next = to_link;
+	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
 /*@}*/
@@ -245,10 +245,10 @@ const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
 	osync_assert(xmlfield);
 	osync_assert(attr);
 	
-    xmlAttrPtr prop;
-    prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
-    if(prop == NULL)
-    	return NULL;
+	xmlAttrPtr prop;
+	prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
+	if(prop == NULL)
+		return NULL;
 	return (const char *)osync_xml_attr_get_content(prop);
 //	return (const char *)prop->children->content;
 //	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
