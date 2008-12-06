@@ -851,6 +851,7 @@ START_TEST (plugin_config_save_and_load_connection_bluetooth)
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
+	osync_plugin_connection_set_supported(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
 	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
 
 	/* Bluetooth Address */
@@ -904,6 +905,7 @@ START_TEST (plugin_config_save_and_load_connection_irda)
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
+	osync_plugin_connection_set_supported(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
 	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
 
 	osync_plugin_connection_irda_set_service(conn, "FancyIR Mobile");
@@ -947,6 +949,7 @@ START_TEST (plugin_config_save_and_load_connection_usb)
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
+	osync_plugin_connection_set_supported(conn, OSYNC_PLUGIN_CONNECTION_USB);
 	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
 
 	/* USB Vendor ID */
@@ -998,6 +1001,7 @@ START_TEST (plugin_config_save_and_load_connection_network)
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
+	osync_plugin_connection_set_supported(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
 	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
 
 
@@ -1054,6 +1058,7 @@ START_TEST (plugin_config_save_and_load_connection_serial)
 	fail_unless(error == NULL, NULL);
 	fail_unless(conn != NULL, NULL);
 
+	osync_plugin_connection_set_supported(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
 	osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
 
 	/* Serial Speed */

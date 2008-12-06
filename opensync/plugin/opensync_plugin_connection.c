@@ -23,6 +23,17 @@
 
 #include "opensync-plugin.h"
 #include "opensync_plugin_connection_private.h"
+#include "opensync_plugin_connection_internals.h"
+
+OSyncPluginConnectionTypeString conn_str[] = {
+	{ OSYNC_PLUGIN_CONNECTION_BLUETOOTH, "Bluetooth" },
+	{ OSYNC_PLUGIN_CONNECTION_USB, "USB" },
+	{ OSYNC_PLUGIN_CONNECTION_NETWORK, "Network" },
+	{ OSYNC_PLUGIN_CONNECTION_SERIAL, "Serial" },
+	{ OSYNC_PLUGIN_CONNECTION_IRDA, "IrDA" },
+	/* Unknown is latest */
+	{ OSYNC_PLUGIN_CONNECTION_UNKNOWN, NULL },
+};
 
 OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error)
 {
@@ -93,6 +104,21 @@ void osync_plugin_connection_set_type(OSyncPluginConnection *connection, OSyncPl
 	osync_assert(connection);
 
 	connection->type = type;
+}
+
+const char *osync_plugin_connection_get_type_string(OSyncPluginConnectionType conn_type)
+{
+	unsigned int i;
+
+	if (conn_type == OSYNC_PLUGIN_CONNECTION_UNKNOWN)
+		return NULL;
+
+	for (i=0; conn_str[i].string; i++) {
+		if (conn_str[i].type == conn_type)
+			return conn_str[i].string;
+	}
+
+	return NULL;
 }
 
 osync_bool osync_plugin_connection_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlag flag)

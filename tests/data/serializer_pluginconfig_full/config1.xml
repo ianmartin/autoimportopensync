@@ -11,6 +11,7 @@
     </AdvancedOption>
   </AdvancedOptions>
   <Connection>
+    <ActiveConnection>Bluetooth</ActiveConnection>
     <Bluetooth>
       <MAC>00:00:00:00:00:00</MAC>
       <RFCommChannel>11</RFCommChannel>

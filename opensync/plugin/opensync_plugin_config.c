@@ -29,6 +29,7 @@
 #include "opensync_plugin_advancedoptions_private.h"	/* FIXME: direct access to private header */
 #include "opensync_plugin_authentication_private.h"	/* FIXME: direct access to private header */
 #include "opensync_plugin_connection_private.h"		/* FIXME: direct access to private header */
+#include "opensync_plugin_connection_internals.h"
 #include "opensync_plugin_localization_private.h"	/* FIXME: direct access to private header */
 #include "opensync_plugin_resource_private.h"		/* FIXME: direct access to private header */
 
@@ -393,6 +394,32 @@ error:
 	return FALSE;
 }
 
+static osync_bool _osync_plugin_config_parse_active_connection(OSyncPluginConnection *conn, xmlNode *cur, OSyncError **error)
+{
+	/* If ActiveConnection is empty, this could  be the very first
+	   configuration. Just accept without noise. */
+	if (!cur)
+		return TRUE;
+
+	if (!xmlStrcmp(cur->content, (const xmlChar *)"Bluetooth")) {
+		osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
+	} else if (!xmlStrcmp(cur->content, (const xmlChar *)"USB")) {
+		osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
+	} else if (!xmlStrcmp(cur->content, (const xmlChar *)"IrDA")) {
+		osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
+	} else if (!xmlStrcmp(cur->content, (const xmlChar *)"Network")) {
+		osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
+	} else if (!xmlStrcmp(cur->content, (const xmlChar *)"Serial")) {
+		osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
+	} else {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->content);
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+
+
 static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
 
@@ -409,26 +436,22 @@ static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *confi
 
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
-
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"ActiveConnection")) {
+			ret = _osync_plugin_config_parse_active_connection(conn, cur->xmlChildrenNode, error);
+		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Bluetooth")) {
 			conn->supported |= OSYNC_PLUGIN_CONNECTION_BLUETOOTH;
-			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH);
 			ret = _osync_plugin_config_parse_connection_bluetooth(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"USB")) {
 			conn->supported |= OSYNC_PLUGIN_CONNECTION_USB;
-			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_USB);
 			ret = _osync_plugin_config_parse_connection_usb(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"IrDA")) {
 			conn->supported |= OSYNC_PLUGIN_CONNECTION_IRDA;
-			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_IRDA);
 			ret = _osync_plugin_config_parse_connection_irda(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Network")) {
 			conn->supported |= OSYNC_PLUGIN_CONNECTION_NETWORK;
-			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_NETWORK);
 			ret = _osync_plugin_config_parse_connection_network(conn, cur->xmlChildrenNode, error);
 		} else if (!xmlStrcmp(cur->name, (const xmlChar *)"Serial")) {
 			conn->supported |= OSYNC_PLUGIN_CONNECTION_SERIAL;
-			osync_plugin_connection_set_type(conn, OSYNC_PLUGIN_CONNECTION_SERIAL);
 			ret = _osync_plugin_config_parse_connection_serial(conn, cur->xmlChildrenNode, error);
 		} else {
 			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unknown configuration field \"%s\"", cur->name);
@@ -795,123 +818,125 @@ static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPl
 	if (!node)
 		goto error_nomemory;
 
-	switch (osync_plugin_connection_get_type(conn)) {
-		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
+	/* Active Connection */
+	OSyncPluginConnectionType conn_type = osync_plugin_connection_get_type(conn);
+	const char *conn_str = osync_plugin_connection_get_type_string(conn_type);
+	typenode = xmlNewChild(node, NULL, BAD_CAST "ActiveConnection", BAD_CAST conn_str);
+	if (!typenode)
+		goto error_nomemory;
 
-			typenode = xmlNewChild(node, NULL, (xmlChar*)"Bluetooth", NULL);
-			if (!typenode)
-				goto error_nomemory;
+	/* Bluetooth */
+	if (osync_plugin_connection_is_supported(conn, OSYNC_PLUGIN_CONNECTION_BLUETOOTH)) {
+		typenode = xmlNewChild(node, NULL, (xmlChar*)"Bluetooth", NULL);
+		if (!typenode)
+			goto error_nomemory;
 
-			mac = osync_plugin_connection_bt_get_addr(conn);
-			if (mac)
-				xmlNewChild(typenode, NULL, (xmlChar*)"MAC", (xmlChar*)mac);
+		mac = osync_plugin_connection_bt_get_addr(conn);
+		if (mac)
+			xmlNewChild(typenode, NULL, (xmlChar*)"MAC", (xmlChar*)mac);
 
-			rfcomm_channel = osync_plugin_connection_bt_get_channel(conn);
-			if (rfcomm_channel) {
-				str = g_strdup_printf("%u", rfcomm_channel);
-				xmlNewChild(typenode, NULL, (xmlChar*)"RFCommChannel", (xmlChar*)str);
-				g_free(str);
-			}
+		rfcomm_channel = osync_plugin_connection_bt_get_channel(conn);
+		if (rfcomm_channel) {
+			str = g_strdup_printf("%u", rfcomm_channel);
+			xmlNewChild(typenode, NULL, (xmlChar*)"RFCommChannel", (xmlChar*)str);
+			g_free(str);
+		}
 
-			sdpuuid = osync_plugin_connection_bt_get_sdpuuid(conn);
-			if (sdpuuid)
-				xmlNewChild(typenode, NULL, (xmlChar*)"SDPUUID", (xmlChar*)sdpuuid);
-
-			break;
-		case OSYNC_PLUGIN_CONNECTION_USB:
-
-			typenode = xmlNewChild(node, NULL, (xmlChar*)"USB", NULL);
-			if (!typenode)
-				goto error_nomemory;
-
-			vendorid = osync_plugin_connection_usb_get_vendorid(conn);
-			if (vendorid) {
-				str = g_strdup(vendorid);
-				xmlNewChild(typenode, NULL, (xmlChar*)"VendorID", (xmlChar*)str);
-				g_free(str);
-			}
-
-			productid = osync_plugin_connection_usb_get_productid(conn);
-			if (productid) {
-				str = g_strdup(productid);
-				xmlNewChild(typenode, NULL, (xmlChar*)"ProductID", (xmlChar*)str);
-				g_free(str);
-			}
-
-			interface = osync_plugin_connection_usb_get_interface(conn);
-			if (interface) {
-				str = g_strdup_printf("%u", interface);
-				xmlNewChild(typenode, NULL, (xmlChar*)"Interface", (xmlChar*)str);
-				g_free(str);
-			}
-
-			break;
-		case OSYNC_PLUGIN_CONNECTION_NETWORK:
-
-			typenode = xmlNewChild(node, NULL, (xmlChar*)"Network", NULL);
-			if (!typenode)
-				goto error_nomemory;
-
-			address = osync_plugin_connection_net_get_address(conn);
-			if (address)
-				xmlNewChild(typenode, NULL, (xmlChar*)"Address", (xmlChar*)address);
-
-			port = osync_plugin_connection_net_get_port(conn);
-			if (port) {
-				str = g_strdup_printf("%u", port);
-				xmlNewChild(typenode, NULL, (xmlChar*)"Port", (xmlChar*)str);
-				g_free(str);
-			}
-
-			protocol = osync_plugin_connection_net_get_protocol(conn);
-			if (protocol)
-				xmlNewChild(typenode, NULL, (xmlChar*)"Protocol", (xmlChar*)protocol);
-
-			dnssd = osync_plugin_connection_net_get_dnssd(conn);
-			if (dnssd)
-				xmlNewChild(typenode, NULL, (xmlChar*)"DNSSD", (xmlChar*)dnssd);
-
-			break;
-		case OSYNC_PLUGIN_CONNECTION_SERIAL:
-			typenode = xmlNewChild(node, NULL, (xmlChar*)"Serial", NULL);
-			if (!typenode)
-				goto error_nomemory;
-
-			speed = osync_plugin_connection_serial_get_speed(conn);
-			if (speed) {
-				str = g_strdup_printf("%u", speed);
-				xmlNewChild(typenode, NULL, (xmlChar*)"Speed", (xmlChar*)str);
-				g_free(str);
-			}
-
-			devicenode = osync_plugin_connection_serial_get_devicenode(conn);
-			if (devicenode)
-				xmlNewChild(typenode, NULL, (xmlChar*)"DeviceNode", (xmlChar*)devicenode);
-
-			break;
-		case OSYNC_PLUGIN_CONNECTION_IRDA:
-			typenode = xmlNewChild(node, NULL, (xmlChar*)"IrDA", NULL);
-			if (!typenode)
-				goto error_nomemory;
-
-			service = osync_plugin_connection_irda_get_service(conn);
-			if (service)
-				xmlNewChild(typenode, NULL, (xmlChar*)"Service", (xmlChar*)service);
-
-			break;
-		case OSYNC_PLUGIN_CONNECTION_UNKNOWN:
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown connection type is configured. Can't store configuration.");
-			goto error;
-			break;
+		sdpuuid = osync_plugin_connection_bt_get_sdpuuid(conn);
+		if (sdpuuid)
+			xmlNewChild(typenode, NULL, (xmlChar*)"SDPUUID", (xmlChar*)sdpuuid);
 	}
 
+	/* USB */
+	if (osync_plugin_connection_is_supported(conn, OSYNC_PLUGIN_CONNECTION_USB)) {
+		typenode = xmlNewChild(node, NULL, (xmlChar*)"USB", NULL);
+		if (!typenode)
+			goto error_nomemory;
+
+		vendorid = osync_plugin_connection_usb_get_vendorid(conn);
+		if (vendorid) {
+			str = g_strdup(vendorid);
+			xmlNewChild(typenode, NULL, (xmlChar*)"VendorID", (xmlChar*)str);
+			g_free(str);
+		}
+
+		productid = osync_plugin_connection_usb_get_productid(conn);
+		if (productid) {
+			str = g_strdup(productid);
+			xmlNewChild(typenode, NULL, (xmlChar*)"ProductID", (xmlChar*)str);
+			g_free(str);
+		}
+
+		interface = osync_plugin_connection_usb_get_interface(conn);
+		if (interface) {
+			str = g_strdup_printf("%u", interface);
+			xmlNewChild(typenode, NULL, (xmlChar*)"Interface", (xmlChar*)str);
+			g_free(str);
+		}
+	}
+
+	/* Network */
+	if (osync_plugin_connection_is_supported(conn, OSYNC_PLUGIN_CONNECTION_NETWORK)) {
+		typenode = xmlNewChild(node, NULL, (xmlChar*)"Network", NULL);
+		if (!typenode)
+			goto error_nomemory;
+
+		address = osync_plugin_connection_net_get_address(conn);
+		if (address)
+			xmlNewChild(typenode, NULL, (xmlChar*)"Address", (xmlChar*)address);
+
+		port = osync_plugin_connection_net_get_port(conn);
+		if (port) {
+			str = g_strdup_printf("%u", port);
+			xmlNewChild(typenode, NULL, (xmlChar*)"Port", (xmlChar*)str);
+			g_free(str);
+		}
+
+		protocol = osync_plugin_connection_net_get_protocol(conn);
+		if (protocol)
+			xmlNewChild(typenode, NULL, (xmlChar*)"Protocol", (xmlChar*)protocol);
+
+		dnssd = osync_plugin_connection_net_get_dnssd(conn);
+		if (dnssd)
+			xmlNewChild(typenode, NULL, (xmlChar*)"DNSSD", (xmlChar*)dnssd);
+	}
+
+	/* Serial */
+	if (osync_plugin_connection_is_supported(conn, OSYNC_PLUGIN_CONNECTION_SERIAL)) {
+		typenode = xmlNewChild(node, NULL, (xmlChar*)"Serial", NULL);
+		if (!typenode)
+			goto error_nomemory;
+
+		speed = osync_plugin_connection_serial_get_speed(conn);
+		if (speed) {
+			str = g_strdup_printf("%u", speed);
+			xmlNewChild(typenode, NULL, (xmlChar*)"Speed", (xmlChar*)str);
+			g_free(str);
+		}
+
+		devicenode = osync_plugin_connection_serial_get_devicenode(conn);
+		if (devicenode)
+			xmlNewChild(typenode, NULL, (xmlChar*)"DeviceNode", (xmlChar*)devicenode);
+	}
+
+
+	/* IrDA */
+	if (osync_plugin_connection_is_supported(conn, OSYNC_PLUGIN_CONNECTION_IRDA)) {
+		typenode = xmlNewChild(node, NULL, (xmlChar*)"IrDA", NULL);
+		if (!typenode)
+			goto error_nomemory;
+
+		service = osync_plugin_connection_irda_get_service(conn);
+		if (service)
+			xmlNewChild(typenode, NULL, (xmlChar*)"Service", (xmlChar*)service);
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error_nomemory:	
 	osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
-error:
+/* error: */
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 

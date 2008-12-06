@@ -148,13 +148,14 @@
   </xsd:complexType>
 
   <xsd:complexType name="Connection">
-    <xsd:sequence>
+    <xsd:all>
+      <xsd:element maxOccurs="1" minOccurs="1" name="ActiveConnection" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Bluetooth" type="ConnectionBluetooth" />
-      <xsd:element maxOccurs="1" minOccurs="0" name="USB" type="ConnectionUSB" />
       <xsd:element maxOccurs="1" minOccurs="0" name="IrDA" type="ConnectionIrDA" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Network" type="ConnectionNetwork" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Serial" type="ConnectionSerial" />
-    </xsd:sequence>
+      <xsd:element maxOccurs="1" minOccurs="0" name="USB" type="ConnectionUSB" />
+    </xsd:all>
   </xsd:complexType>
 
 </xsd:schema>
