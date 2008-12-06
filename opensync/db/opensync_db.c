@@ -93,7 +93,7 @@ int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 	if (sqlite3_get_table(db->sqlite3db, query, &result, &num, NULL, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable count result of query: %s", errmsg);
 		sqlite3_free_table(result);
-		g_free(errmsg);
+		sqlite3_free(errmsg);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return -1;
 	}
@@ -115,7 +115,7 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 	if (sqlite3_exec(db->sqlite3db, query, NULL, NULL, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to execute simple query: %s", errmsg);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg);
-		g_free(errmsg);
+		sqlite3_free(errmsg);
 		return FALSE;
 	}
 
@@ -138,7 +138,7 @@ OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **err
 
 	if (sqlite3_get_table(db->sqlite3db, query, &result, &numrows, &numcolumns, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to query table: %s", errmsg);
-		g_free(errmsg);
+		sqlite3_free(errmsg);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
