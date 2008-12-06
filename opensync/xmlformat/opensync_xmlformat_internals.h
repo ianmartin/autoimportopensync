@@ -45,6 +45,13 @@ const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat);
  */
 const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat);
 
+
+/**
+ * @brief Mark/Taint the xmlformat as unsorted
+ * @param xmlformat The pointer to a xmlformat object
+ */
+void osync_xmlformat_set_unsorted(OSyncXMLFormat *xmlformat);
+
 /*@}*/
 
 #endif /* OPENSYNC_XMLFORMAT_INTERNAL_H_ */

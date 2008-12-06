@@ -156,10 +156,10 @@ OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, O
 		return NULL;
 	}
 
-	// XMLFormat entry got added - not sure if it is still sorted
-	xmlformat->sorted = FALSE;
+	/* XMLFormat entry got added - not sure if it is still sorted */
+	osync_xmlformat_set_unsorted(xmlformat);
 
-	// This XMLField has no keys, so it's for sure it's sorted
+	/* This XMLField has no keys, so it's for sure it's sorted */
 	xmlfield->sorted = TRUE;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfield);

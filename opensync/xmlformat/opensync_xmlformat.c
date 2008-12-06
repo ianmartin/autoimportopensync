@@ -315,6 +315,16 @@ osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat)
 	return TRUE;
 }
 
+void osync_xmlformat_set_unsorted(OSyncXMLFormat *xmlformat)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
+	osync_assert(xmlformat);
+
+	xmlformat->sorted = FALSE;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, source, destination);
