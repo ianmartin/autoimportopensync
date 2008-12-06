@@ -51,7 +51,7 @@ static osync_bool osync_archive_create_changes(OSyncDB *db, const char *objtype,
 		return TRUE;
 	}
 
-	const char *query = "CREATE TABLE tbl_changes (objtype VARCHAR(64), id INTEGER, uid VARCHAR, memberid INTEGER, mappingid INTEGERi, PRIMARY KEY (objtype, id) )";
+	const char *query = "CREATE TABLE tbl_changes (objtype VARCHAR(64), id INTEGER, uid VARCHAR, memberid INTEGER, mappingid INTEGER, PRIMARY KEY (objtype, id) )";
 	if (!osync_db_query(db, query, error)) {
 		goto error;
 	}
