@@ -23,8 +23,29 @@
 #ifndef OPENSYNC_XMLFORMAT_INTERNALS_H_
 #define OPENSYNC_XMLFORMAT_INTERNALS_H_
 
+/**
+ * @defgroup OSyncXMLFormatPrivateAPI OpenSync XMLFormat Internals
+ * @ingroup OSyncPrivate
+ * @brief The private part of the OSyncXMLFormat
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Get the name of the root node in a xmlformat
+ * @param xmlformat The pointer to a xmlformat object
+ * @return The name of the root node of the xmlformat
+ */
 const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat);
+
+/**
+ * @brief Get the objtype of a xmlformat
+ * @param xmlformat The pointer to a xmlformat object
+ * @return The objtype of the xmlformat
+ */
 const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat);
+
+/*@}*/
 
 #endif /* OPENSYNC_XMLFORMAT_INTERNAL_H_ */
 

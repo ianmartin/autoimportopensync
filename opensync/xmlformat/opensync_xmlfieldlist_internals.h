@@ -23,8 +23,35 @@
 #ifndef OPENSYNC_XMLFIELDLIST_INTERNALS_H_
 #define OPENSYNC_XMLFIELDLIST_INTERNALS_H_
 
+/**
+ * @defgroup OSyncXMLFieldListPrivateAPI OpenSync XMLFieldList Internals
+ * @ingroup OSyncPrivate
+ * @brief The private part of the OSyncXMLFieldList
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Creates a new xmlfieldlist object
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated xmlfieldlist object or NULL in case of error
+ */
 OSyncXMLFieldList *osync_xmlfieldlist_new(OSyncError **error);
+
+/**
+ * @brief Adds a xmlfield pointer to the end of the xmlfieldlist
+ * @param xmlfieldlist The pointer to a xmlfieldlist object
+ * @param xmlfield The xmlfield pointer to add to the xmlfieldlist 
+ */
 void osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xmlfield);
+
+/**
+ * @brief Removes the xmlfield pointer at the given index from the xmlfieldlist.
+ * @param xmlfieldlist The pointer to a xmlfieldlist object
+ * @param index The index of the xmlfield pointer to remove 
+ */
 void osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index);
+
+/*@}*/
 
 #endif /*OPENSYNC_XMLFIELDLIST_INTERNALS_H_*/
