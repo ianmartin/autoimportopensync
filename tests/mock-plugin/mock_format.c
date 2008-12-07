@@ -26,6 +26,26 @@
 #include <glib.h>
 #include "mock_format.h"
 
+
+static osync_bool mock_format_get_error(const char *domain)
+{
+        const char *env = g_getenv(domain);
+
+        if (!env)
+                return FALSE;
+
+        char *chancestr = g_strdup_printf("%s_PROB", domain);
+        const char *chance = g_getenv(chancestr);
+        g_free(chancestr);
+        if (!chance)
+                return TRUE;
+        int prob = atoi(chance);
+        if (prob >= g_random_int_range(0, 100))
+                return TRUE;
+
+        return FALSE;
+}
+
 static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i)", __func__, leftdata, leftsize, rightdata, rightsize);
@@ -41,7 +61,7 @@ static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsi
 	osync_trace(TRACE_INTERNAL, "Comparing %s and %s", leftfile->path, rightfile->path);
 			
 	
-	if (!strcmp(leftfile->path, rightfile->path)) {
+	if (mock_format_get_error("MOCK_FORMAT_PATH_COMPARE_NO") || !strcmp(leftfile->path, rightfile->path)) {
 		if (leftfile->size == rightfile->size) {
 			if (leftfile->size == 0 || !memcmp(leftfile->data, rightfile->data, rightfile->size)) {
 				osync_trace(TRACE_EXIT, "%s: Same", __func__);

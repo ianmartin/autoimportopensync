@@ -27,6 +27,8 @@ static void reset_env(void)
 	unsetenv("OSYNC_NOMEMORY");
 	unsetenv("MOCK_SYNC_EXPECT_COMMIT_ALWAYS_ADDED");
 	unsetenv("MOCK_SYNC_ALWAYS_CHANGETYPE_MODIFIED");
+
+	unsetenv("MOCK_FORMAT_PATH_COMPARE_NO");
 }
 
 
