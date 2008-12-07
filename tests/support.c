@@ -25,6 +25,8 @@ static void reset_env(void)
 	unsetenv("MAINSINK_CONNECT");
 
 	unsetenv("OSYNC_NOMEMORY");
+	unsetenv("MOCK_SYNC_EXPECT_COMMIT_ALWAYS_ADDED");
+	unsetenv("MOCK_SYNC_ALWAYS_CHANGETYPE_MODIFIED");
 }
 
 
@@ -197,39 +199,6 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 	fail(NULL);
 
 out:
-	/*OSyncMember *member = osync_member_from_id(maptable->group, memberid);
-	OSyncMappingView *view = osengine_mappingtable_find_view(maptable, member);
-	mark_point();
-	if (mappingid != -1) {
-		mapping = g_list_nth_data(maptable->mappings, mappingid);
-	} else {
-		GList *m;
-		for (m = maptable->mappings; m; m = m->next) {
-			mapping = m->data;
-			OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, NULL, view);
-			if (!entry)
-				continue;
-			OSyncChange *change = entry->change;
-			fail_unless(change != NULL, NULL);
-			if (!strcmp(osync_change_get_uid(change), uid))
-				break;
-		}
-	}
-	fail_unless(mapping != NULL, NULL);
-	fail_unless(osengine_mapping_num_changes(mapping) == numentries, "osengine_mapping_num_changes(mapping) == numentries for %s, %i: %i != %i", uid, memberid, osengine_mapping_num_changes(mapping), numentries);*/
-	
-	
-	
-	/*OSyncChange *change = osengine_mapping_find_entry(mapping, NULL, view)->change;
-	fail_unless(change != NULL, NULL);
-	if (format)
-		fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), format), NULL);
-	if (objecttype)
-		fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), objecttype), NULL);
-	if (uid && strcmp(osync_change_get_uid(change), uid)) {
-		printf("uid mismatch: %s != %s for member %i and mapping %i\n", osync_change_get_uid(change), uid, memberid, mappingid);
-		fail("uid mismatch");
-	}*/
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

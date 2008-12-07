@@ -174,7 +174,6 @@ typedef struct OSyncClientProxy OSyncClientProxy;
 /* Mapping component */
 typedef struct OSyncMapping OSyncMapping;
 typedef struct OSyncMappingTable OSyncMappingTable;
-typedef struct OSyncMappingView OSyncMappingView;
 typedef struct OSyncMappingEntry OSyncMappingEntry;
 typedef struct OSyncMappingEngine OSyncMappingEngine;
 

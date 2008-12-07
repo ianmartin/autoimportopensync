@@ -201,12 +201,6 @@ void osync_mapping_table_close(OSyncMappingTable *table)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 
 	osync_assert(table);
-
-       	/*while (table->views) {
-       		OSyncMappingView *view = table->views->data;
-       		osync_mapping_view_unref(view);
-       		table->views = g_list_remove(table->views, view);
-       	}*/
        	
        	while (table->mappings) {
        		OSyncMapping *mapping = table->mappings->data;
@@ -216,16 +210,6 @@ void osync_mapping_table_close(OSyncMappingTable *table)
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
-
-/*void osync_mapping_table_add_view(OSyncMappingTable *table, OSyncMappingView *view)
-{
-	osync_assert(table);
-	osync_assert(view);
-	
-	table->views = g_list_append(table->views, view);
-	osync_mapping_view_ref(view);
-}*/
-
 
 /**
  * @brief Search for the mapping object with the mapping id 
