@@ -139,7 +139,7 @@ OSYNC_EXPORT OSyncPluginAuthentication *osync_plugin_config_get_authentication(O
 /*!@brief Set the authentication configuration
  *
  * @param config An OSyncPluginConfig
- * @param option The new authentication settings as an OSyncPluginAuthentication
+ * @param authentication The new authentication settings as an OSyncPluginAuthentication
  */
 OSYNC_EXPORT void osync_plugin_config_set_authentication(OSyncPluginConfig *config, OSyncPluginAuthentication *authentication);
 
