@@ -41,6 +41,7 @@ char *formatpath = NULL;
 char *pluginname = NULL;
 char *configfile = NULL;
 char *configdir = NULL;
+char *syncgroup = NULL;
 osync_bool pluginlist= FALSE;
 GList *sinks = NULL;
 GList *cmdlist = NULL;
@@ -130,6 +131,7 @@ static void usage(const char *name)
 	fprintf (stderr, "Configuration options:\n");
 	fprintf (stderr, "[--config] \tSet config file\n");
 	fprintf (stderr, "[--configdir] \tSet different config directory. Default: ~./opensync\n");
+	fprintf (stderr, "[--syncgroup] \tSet the name of the sync group. Default: osyncplugin\n");
 	
 	fprintf (stderr, "Plugin options:\n");
 	fprintf (stderr, "[--plugin] \tSet plugin\n");
@@ -177,6 +179,11 @@ static void parse_args(int argc, char **argv) {
 			if (!configdir)
 				configdir = strdup(argv[i+1]);
 
+			i++;
+			continue;
+		} else if (!strcmp(arg, "--syncgroup")) {
+		        if (!syncgroup)
+			        syncgroup = strdup(argv[i+1]);
 			i++;
 			continue;
 		} else if (!strcmp(arg, "--plugin") || !strcmp(arg, "-p")) {
@@ -404,6 +411,7 @@ static osync_bool init(OSyncError **error) {
 	osync_plugin_info_set_configdir(plugin_info, configdir);
 	osync_plugin_info_set_loop(plugin_info, ctx);
 	osync_plugin_info_set_format_env(plugin_info, format_env);
+	osync_plugin_info_set_groupname(plugin_info, syncgroup);
 
 	return TRUE;
 
@@ -1217,6 +1225,9 @@ int main(int argc, char **argv) {
 		g_thread_init(NULL);
 
 	parse_args(argc, argv);
+	/* Set defaults if not set on the command line */
+	if (!syncgroup) 
+	        syncgroup = strdup("osyncplugin");
 	
 	if (pluginlist) {
 		if (!plugin_list(&error))
