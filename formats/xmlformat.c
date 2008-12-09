@@ -33,14 +33,15 @@ void destroy_xmlformat(char *input, unsigned int inpsize)
 
 static osync_bool duplicate_xmlformat(const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i, %p, %p, %p, %p, %p)", __func__, uid, input, insize, newuid, output, outsize, dirty, error);
-	
 	char *buffer = NULL;
 	unsigned int size;
+	OSyncXMLFormat *xmlformat = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i, %p, %p, %p, %p, %p)", __func__, uid, input, insize, newuid, output, outsize, dirty, error);
 	
 	osync_xmlformat_assemble((OSyncXMLFormat *) input, &buffer, &size);
 
-	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, error);
+	xmlformat = osync_xmlformat_parse(buffer, size, error);
 	if (!xmlformat) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -56,8 +57,8 @@ static osync_bool duplicate_xmlformat(const char *uid, const char *input, unsign
 
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, input, inpsize, output, outpsize, error);
 	OSyncXMLFormat *xmlformat = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, input, inpsize, output, outpsize, error);
 
 	if (!osync_xmlformat_copy((OSyncXMLFormat *) input, &xmlformat, error) || !xmlformat) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -103,9 +104,10 @@ osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned in
 {
 	void *buffer = NULL;
 	unsigned int size = 0;
+	OSyncXMLFormat *xmlformat = NULL;
 	osync_message_read_buffer(message, &buffer, (int *)&size);
 	
-	OSyncXMLFormat *xmlformat = osync_xmlformat_parse((char *)buffer, size, error);
+	xmlformat = osync_xmlformat_parse((char *)buffer, size, error);
 	if (!xmlformat) {
 		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -121,8 +123,6 @@ osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned in
 
 static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i)", __func__, leftdata, leftsize, rightdata, rightsize);
-	
 	char* keys_content[] =  {"Content", NULL};
 	char* keys_name[] = {"FirstName", "LastName", NULL};
 	OSyncXMLPoints points[] = {
@@ -134,8 +134,11 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
 	};
+	OSyncConvCmpResult ret;
 
-	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i)", __func__, leftdata, leftsize, rightdata, rightsize);
+	
+	ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 		
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -151,8 +154,6 @@ static void create_contact(char **data, unsigned int *size)
 
 static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
 		{"Alarm",		-1,     keys_content}, // Not implemented
@@ -168,8 +169,11 @@ static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int lefts
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
 	};
+	OSyncConvCmpResult ret;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
 	
-	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -185,8 +189,6 @@ void create_event(char **data, unsigned int *size)
 
 static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
 		{"DateCalendarCreated", -1,     keys_content},	// Not in vtodo10
@@ -202,8 +204,11 @@ static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsi
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
 	};
+	OSyncConvCmpResult ret;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
 	
-	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -219,8 +224,6 @@ static void create_todo(char **data, unsigned int *size)
 
 static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
 		{"Class",		-1,     keys_content},	// fixme
@@ -234,8 +237,11 @@ static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsi
 		{"Uid", 		-1, 	keys_content},
 		{NULL}
 	};
+	OSyncConvCmpResult ret;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
+
 	
-	OSyncConvCmpResult ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+        ret = xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -251,26 +257,32 @@ static void create_note(char **data, unsigned int *size)
 
 static time_t get_revision(const char *data, unsigned int size, const char *attribute, OSyncError **error)
 {	
+        OSyncXMLFieldList *fieldlist = NULL;
+        int length = 0;
+        OSyncXMLField *xmlfield = NULL;
+        const char *revision = NULL;
+        time_t time;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
 	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, attribute, error, NULL);
+	fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, attribute, error, NULL);
 	if (!fieldlist)
 		goto error;
 
-	int length = osync_xmlfieldlist_get_length(fieldlist);
+	length = osync_xmlfieldlist_get_length(fieldlist);
 	if (length != 1) {
 		osync_xmlfieldlist_free(fieldlist);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
 		goto error;
 	}
 
-	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
+	xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
 	osync_xmlfieldlist_free(fieldlist);
 	
-	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
+	revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
 	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
 	//time_t time = vformat_time_to_unix(revision);
-	time_t time = osync_time_vtime2unix(revision, 0);
+	time = osync_time_vtime2unix(revision, 0);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
 	return time;
@@ -303,9 +315,10 @@ static time_t get_todo_revision(const char *data, unsigned int size, OSyncError 
 osync_bool validate_xmlformat(const char *data, unsigned int size, OSyncError **error)
 {
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *) data;
+        OSyncXMLFormatSchema *schema = NULL;
 	osync_assert(xmlformat);
 	
-	OSyncXMLFormatSchema *schema = osync_xmlformat_schema_get_instance(xmlformat, error);
+	schema = osync_xmlformat_schema_get_instance(xmlformat, error);
 
 	return osync_xmlformat_schema_validate(schema, xmlformat, error);
 }

@@ -21,11 +21,14 @@
 #ifndef _FILE_H
 #define _FILE_H
 
+#ifndef _WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif //_WIN32
 
 #ifdef _WIN32
+#define mode_t int
 #define uid_t int
 #define gid_t int
 #endif //_WIN32

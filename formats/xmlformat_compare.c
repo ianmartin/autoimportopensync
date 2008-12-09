@@ -71,8 +71,9 @@ int xmlformat_get_points(OSyncXMLPoints *points, int* cur_pos, int basic_points,
  * @returns The points for the fieldname. If the field should be ignored 0 points got retunred.
  */
 static int xmlformat_subtract_points(OSyncXMLField *xmlfield, OSyncXMLPoints *points, int *cur_pos, int basic_points, int *same) {
+        int p = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, xmlfield, points, cur_pos, basic_points, same);
-	int p = xmlformat_get_points(points, cur_pos, basic_points, osync_xmlfield_get_name(xmlfield));
+	p = xmlformat_get_points(points, cur_pos, basic_points, osync_xmlfield_get_name(xmlfield));
 
 	/* Stay with SAME as compare result and don't substract any points - if fields should be ignored */
 	if (p != -1) {
@@ -108,12 +109,15 @@ static xmlChar *xml_node_get_content(xmlNodePtr node)
  */
 osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 {
+	int i;	
+	osync_bool same;
+	xmlNodePtr key1 = NULL;
+	xmlNodePtr key2 = NULL;
+
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, xmlfield1, xmlfield2);
 	osync_assert(xmlfield1);
 	osync_assert(xmlfield2);
-	
-	int i;	
-	osync_bool same;
 	
 	if(strcmp(osync_xmlfield_get_name(xmlfield1), osync_xmlfield_get_name(xmlfield2))) {
 		osync_trace(TRACE_EXIT, "%s: %i", __func__, FALSE);
@@ -121,11 +125,15 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 	}
 
 	same = TRUE;
-	xmlNodePtr key1 = xmlfield1->node->children;
-	xmlNodePtr key2 = xmlfield2->node->children;
+	key1 = xmlfield1->node->children;
+	key2 = xmlfield2->node->children;
 	
 	while(same)
 	{
+		GSList *keylist1 = NULL;
+		GSList *keylist2 = NULL;
+                const char *curkeyname = NULL;
+
 		if(key1 == NULL && key2 == NULL) {
 			break;
 		}
@@ -135,12 +143,7 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 			break;	
 		}
 		
-		GSList *keylist1;
-		GSList *keylist2;
-		keylist1 = NULL;
-		keylist2 = NULL;
-		
-		const char *curkeyname = (const char *)key1->name;
+		curkeyname = (const char *)key1->name;
 		do {
 			keylist1 = g_slist_prepend(keylist1, key1);
 			key1 = key1->next;
@@ -158,6 +161,9 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 		} while(i == 0);	
 		
 		do{
+			GSList *cur_list1 = NULL;
+			GSList *cur_list2 = NULL;
+
 			/* both lists must have the same length */	
 			if(g_slist_length(keylist1) != g_slist_length(keylist2)) {
 				osync_trace(TRACE_INTERNAL, "It's not the same anymore...");
@@ -165,9 +171,6 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 				break;
 			}
 						
-			GSList *cur_list1;
-			GSList *cur_list2;
-			
 			do {
 				cur_list1 = keylist1;
 				cur_list2 = keylist2;
@@ -199,11 +202,12 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
 	
 	/* now we check if the attributes are equal */
 	do {
+                int i1 = 0, i2 = 0;
 		if(!same)
 			break;
 		
-		int i1 =osync_xmlfield_get_attr_count(xmlfield1);
-		int i2 =osync_xmlfield_get_attr_count(xmlfield2);
+		i1 =osync_xmlfield_get_attr_count(xmlfield1);
+		i2 =osync_xmlfield_get_attr_count(xmlfield2);
 		
 		if(i1 != i2) {
 			same = FALSE;
@@ -232,22 +236,25 @@ osync_bool xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
  */
 osync_bool xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[])
 {
+	osync_bool res = TRUE;
+	xmlNodePtr node1, node2;
+	int i;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, xmlfield1, xmlfield2, keys);
 	osync_assert(xmlfield1);
 	osync_assert(xmlfield2);
 	
-	osync_bool res = TRUE;
 	if(strcmp((const char *) osync_xmlfield_get_name(xmlfield1), (const char *) osync_xmlfield_get_name(xmlfield2)) != 0)
 		res = FALSE;
 
-	xmlNodePtr node1, node2;
 	node1 = xmlfield1->node->children;
 	node2 = xmlfield2->node->children;
 
-	int i;
 	for(i=0; keys[i]; i++) {
 		GSList *list1;
 		GSList *list2;
+		GSList *cur_list1;
+		GSList *cur_list2;
+
 		list1 = NULL;
 		list2 = NULL;
 		
@@ -262,9 +269,6 @@ osync_bool xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xml
 				list2 = g_slist_prepend(list2, node2);
 			node2 = node2->next;
 		};
-		
-		GSList *cur_list1;
-		GSList *cur_list2;
 		
 		while(list1 != NULL)
 		{
@@ -317,17 +321,19 @@ osync_bool xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xml
  */
 OSyncConvCmpResult xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int threshold)
 {
+	int res, collected_points, cur_pos;
+	OSyncXMLField *xmlfield1 = NULL;
+	OSyncXMLField *xmlfield2 = NULL;
+	osync_bool same = TRUE;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %i)", __func__, xmlformat1, xmlformat2, points, basic_points, threshold);
 
-	int res, collected_points, cur_pos;
-	OSyncXMLField *xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
-	OSyncXMLField *xmlfield2 = osync_xmlformat_get_first_field(xmlformat2);
+	xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
+	xmlfield2 = osync_xmlformat_get_first_field(xmlformat2);
 
 	cur_pos = 0;
 	collected_points = 0;
 
-	osync_bool same = TRUE;
-	
 	while(xmlfield1 != NULL || xmlfield2 != NULL)
 	{
 
@@ -400,6 +406,9 @@ OSyncConvCmpResult xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat 
 			
 				/* if same then compare and give points*/
 				do {
+					GSList *cur_list1;
+					GSList *cur_list2;
+
 					if(!same)
 						break;
 						
@@ -410,8 +419,6 @@ OSyncConvCmpResult xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat 
 						break;
 					}
 					
-					GSList *cur_list1;
-					GSList *cur_list2;
 					do {
 						cur_list1 = fieldlist1;
 						cur_list2 = fieldlist2;
@@ -441,6 +448,11 @@ OSyncConvCmpResult xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat 
 				
 				/* if similar then compare and give points*/
 				do {
+					GSList *cur_list1;
+					GSList *cur_list2;
+					osync_bool found;
+					int subtracted_count;
+
 					if(same)
 						break;
 					/* if no points to add or to subtract we need no compair of similarity */
@@ -452,10 +464,6 @@ OSyncConvCmpResult xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat 
 						break;
 					}
 					
-					GSList *cur_list1;
-					GSList *cur_list2;
-					osync_bool found;
-					int subtracted_count;
 					subtracted_count = 0;
 					do {
 						found = FALSE;

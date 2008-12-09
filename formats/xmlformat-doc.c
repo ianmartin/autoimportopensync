@@ -38,9 +38,14 @@ osync_bool convert_func(char *input, unsigned int inpsize, char **output, unsign
 
 static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *data, int size)
 {
+        GString *string = NULL;
+        xmlDocPtr doc = NULL;
+        xmlNodePtr cur = NULL;
+        int ret = 0;
+
 	osync_assert(objtype);
 
-	GString *string = g_string_new("<?xml version=\"*\"?>*");
+	string = g_string_new("<?xml version=\"*\"?>*");
 	g_string_append(string, "<");
 	g_string_append(string, objtype);
 	g_string_append(string, ">*");
@@ -48,15 +53,15 @@ static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *dat
 		return FALSE;
 
 
-	xmlDocPtr doc = xmlReadMemory(data, size, NULL, NULL, XML_PARSE_NOBLANKS);
+	doc = xmlReadMemory(data, size, NULL, NULL, XML_PARSE_NOBLANKS);
 	if (!doc)
 		return FALSE;
 		
-	xmlNodePtr cur = xmlDocGetRootElement(doc);
+	cur = xmlDocGetRootElement(doc);
 	if (!cur)
 		return FALSE;
 
-	int ret = xmlStrcmp(BAD_CAST objtype, cur->name);
+	xmlStrcmp(BAD_CAST objtype, cur->name);
 
 	if (ret)
 		return FALSE;
@@ -93,8 +98,8 @@ static osync_bool from_xml(char *input, unsigned int inpsize, char **output, uns
 
 static osync_bool to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
-	*free_input = TRUE;
 	OSyncXMLFormat *ret = osync_xmlformat_parse(input, inpsize, error);
+	*free_input = TRUE;
 	if (!ret)
 		return FALSE;
 	*output = (char *)ret;

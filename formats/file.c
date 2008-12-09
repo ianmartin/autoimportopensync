@@ -27,12 +27,12 @@
 
 static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
+	OSyncFileFormat *leftfile = (OSyncFileFormat *)leftdata;
+	OSyncFileFormat *rightfile = (OSyncFileFormat *)rightdata;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i)", __func__, leftdata, leftsize, rightdata, rightsize);
 	osync_assert(leftdata);
 	osync_assert(rightdata);
-	
-	OSyncFileFormat *leftfile = (OSyncFileFormat *)leftdata;
-	OSyncFileFormat *rightfile = (OSyncFileFormat *)rightdata;
 	
 	osync_assert(rightfile->path);
 	osync_assert(leftfile->path);
@@ -58,13 +58,14 @@ static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsi
 
 static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
+        OSyncFileFormat *file = (OSyncFileFormat *)input;
+	char *plaindata = NULL;
 	osync_trace(TRACE_INTERNAL, "Converting file to plain");
 	
 	*free_input = TRUE;
-	OSyncFileFormat *file = (OSyncFileFormat *)input;
 
 	/* Add a \0 to make a usable plain (text) format. input gets freed by destroy_func() */
-	char *plaindata = osync_try_malloc0(file->size + 1, error);
+	plaindata = osync_try_malloc0(file->size + 1, error);
 	memcpy(plaindata, file->data, file->size);
 
 	*output = plaindata; 
@@ -75,10 +76,11 @@ static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **o
 
 static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
+        OSyncFileFormat *file = NULL;
 	osync_trace(TRACE_INTERNAL, "Converting plain to file");
 	
 	*free_input = FALSE;
-	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
+	file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
 	if (!file)
 		return FALSE;
 	file->path = osync_rand_str(g_random_int_range(1, 100));
@@ -139,10 +141,12 @@ static osync_bool copy_file(const char *input, unsigned int inpsize, char **outp
 
 static time_t revision_file(const char *input, unsigned int inpsize, OSyncError **error)
 {
+	OSyncFileFormat *file = (OSyncFileFormat *)input;
+	time_t lastmod;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, input, inpsize, error);
 	
-	OSyncFileFormat *file = (OSyncFileFormat *)input;
-	time_t lastmod = file->last_mod;
+	lastmod = file->last_mod;
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, lastmod);
 	return lastmod;
@@ -158,9 +162,8 @@ static char *print_file(const char *data, unsigned int size)
 
 static osync_bool marshal_file(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, input, inpsize, message, error);
-	
 	OSyncFileFormat *file = (OSyncFileFormat *)input;
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, input, inpsize, message, error);
 	
 	osync_message_write_string(message, file->path);
 	osync_message_write_buffer(message, file->data, file->size);
@@ -171,9 +174,10 @@ static osync_bool marshal_file(const char *input, unsigned int inpsize, OSyncMes
 
 static osync_bool demarshal_file(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
+        OSyncFileFormat *file = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, message, output, outpsize, error);
 	
-	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
+	file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
 	if (!file)
 		goto error;
 	
@@ -216,18 +220,21 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
 	OSyncObjFormat *file = osync_format_env_find_objformat(env, "file");
+	OSyncObjFormat *plain = NULL;
+	OSyncFormatConverter *conv = NULL;
+
 	if (!file) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find file format");
 		return FALSE;
 	}
 	
-	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
+	plain = osync_format_env_find_objformat(env, "plain");
 	if (!plain) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plain format");
 		return FALSE;
 	}
 	
-	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_DECAP, file, plain, conv_file_to_plain, error);
+	conv = osync_converter_new(OSYNC_CONVERTER_DECAP, file, plain, conv_file_to_plain, error);
 	if (!conv)
 		return FALSE;
 	

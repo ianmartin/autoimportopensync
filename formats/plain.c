@@ -58,10 +58,11 @@ static osync_bool copy_plain(const char *input, unsigned int inpsize, char **out
 static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
 	const char *body = NULL;
-	*free_input = TRUE;
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
 	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Description", error, NULL);
 	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(xmlfieldlist, 0);
+
+	*free_input = TRUE;
 	body = osync_xmlfield_get_key_value(xmlfield, "Content");
 	if (!body) {
 		body = "";
@@ -73,14 +74,17 @@ static osync_bool conv_xmlformatnote_to_memo(char *input, unsigned int inpsize, 
 
 static osync_bool conv_memo_to_xmlformatnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, void *userdata, OSyncError **error)
 {
-	*free_input = TRUE;
 	GString *str;
 	const char *p;
+	OSyncXMLFormat *ret = NULL;
+	OSyncXMLField *field = NULL;
+
+	*free_input = TRUE;
 
 	str = g_string_new("");
 
-	OSyncXMLFormat *ret = osync_xmlformat_new("note", error);
-	OSyncXMLField *field = osync_xmlfield_new(ret, "Description", error);
+	ret = osync_xmlformat_new("note", error);
+	field = osync_xmlfield_new(ret, "Description", error);
 	for (p = input; p && *p; p++) {
 		switch (*p) {
                 case '\r':
@@ -139,16 +143,17 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
 	OSyncObjFormat *memo = osync_format_env_find_objformat(env, "memo");
+        OSyncObjFormat *xmlformatnote = osync_format_env_find_objformat(env, "xmlformat-note");
+	OSyncFormatConverter *conv = NULL;
 	if (!memo) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find memo format");
 		return FALSE;
 	}
-	OSyncObjFormat *xmlformatnote = osync_format_env_find_objformat(env, "xmlformat-note");
 	if (!xmlformatnote) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xmlformat-note format");
 		return FALSE;
 	}	
-	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformatnote, memo, conv_xmlformatnote_to_memo, error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformatnote, memo, conv_xmlformatnote_to_memo, error);
 	if (!conv)
 		return FALSE;
 	
