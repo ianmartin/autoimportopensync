@@ -18,7 +18,7 @@
 
 void conflict_callback_fail(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, void *userdata)
 {
-	fail();
+	fail(NULL);
 }
 
 /* Functional Test: Mapping with multiple SAME&SIMILAR entries
