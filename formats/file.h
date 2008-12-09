@@ -34,17 +34,17 @@
 #endif //_WIN32
 
 typedef struct OSyncFileFormat {
-	/** The mode of this file. See man fstat for explanation */
-	mode_t mode;
-	/** The id of the user (owner) of this file */
-	uid_t userid;
-	/** The id of the owning group of this file */
-	gid_t groupid;
-	/** Time of the last modification */
-	time_t last_mod;
-    char *path;
-    char *data;
-    unsigned int size;
+  /** The mode of this file. See man fstat for explanation */
+  mode_t mode;
+  /** The id of the user (owner) of this file */
+  uid_t userid;
+  /** The id of the owning group of this file */
+  gid_t groupid;
+  /** Time of the last modification */
+  time_t last_mod;
+  char *path;
+  char *data;
+  unsigned int size;
 } OSyncFileFormat;
 
 #endif //_FILE_H
