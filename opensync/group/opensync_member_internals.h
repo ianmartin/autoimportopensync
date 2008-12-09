@@ -48,9 +48,8 @@ struct OSyncMember {
 #endif /* OPENSYNC_UNITTESTS */
 };
 
-
 #ifdef OPENSYNC_UNITTESTS
-void osync_member_set_schemadir(OSyncMember *member, const char *schemadir);
-#endif /* OPENSYNC_UNITTESTS */
+OSYNC_TEST_EXPORT void osync_member_set_schemadir(OSyncMember *member, const char *schemadir);
+#endif
 
 #endif /* _OPENSYNC_MEMBER_INTERNALS_H_ */

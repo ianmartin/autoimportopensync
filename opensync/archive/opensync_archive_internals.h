@@ -26,7 +26,7 @@
 #define OPENSYNC_ARCHIVE_INTERNALS_H_
 
 #include <opensync/opensync_list.h>
-
+  
 /**
  * @defgroup OSyncArchiveInternal OpenSync Archive Module Internals
  * @ingroup OSyncPrivate
@@ -36,6 +36,7 @@
  * 
  */
 /*@{*/
+
 
 /**
  * @brief Stores data of an entry in the group archive database (blob).
@@ -48,7 +49,7 @@
  * @param error Pointer to an error struct
  * @return Returns TRUE on success otherwise FALSE
  */
-osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, const char *objtype, const char *data, unsigned int size, OSyncError **error);
+OSYNC_TEST_EXPORT osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, const char *objtype, const char *data, unsigned int size, OSyncError **error);
 
 /**
  * @brief Loads data of an entry which is stored in the group archive database (blob).
@@ -61,7 +62,7 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, long long int id, cons
  * @param error Pointer to an error struct
  * @return Returns 0 if no data is present else 1. On error -1.
  */ 
-int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error);
+OSYNC_TEST_EXPORT int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error);
 
 /**
  * @brief Saves an entry in the group archive. 
@@ -75,7 +76,7 @@ int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *
  * @param error Pointer to an error struct
  * @return Returns number of entries in archive group database. 0 on error. 
  */
-long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error);
+OSYNC_TEST_EXPORT long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error);
 
 /**
  * @brief Deletes an entry from a group archive.

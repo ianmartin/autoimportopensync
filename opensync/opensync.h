@@ -56,8 +56,17 @@
 #define OSYNC_EXPORT
 #endif
 
-OPENSYNC_BEGIN_DECLS
+/* Some symbols are only exported in the opensync    */
+/* testing library                                   */
+/* opensync_testing_EXPORTS is defined from CMAKE    */
+/* when the build target is the testing library      */
+#ifdef opensync_testing_EXPORTS
+#define OSYNC_TEST_EXPORT OSYNC_EXPORT
+#else
+#define OSYNC_TEST_EXPORT
+#endif
 
+OPENSYNC_BEGIN_DECLS
 
 /**************************************************************
  * Versions 

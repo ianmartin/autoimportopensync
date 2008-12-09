@@ -23,7 +23,7 @@
 #ifndef OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
 #define OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_
 
-OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error);
-OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error); 
+OSYNC_TEST_EXPORT OSyncXMLFormatSchema *osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error);
+OSYNC_TEST_EXPORT OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error); 
 
 #endif /* OPENSYNC_XMLFORMAT_SCHEMA_INTERNALS_H_ */

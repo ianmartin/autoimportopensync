@@ -29,13 +29,12 @@ typedef struct OSyncThread {
 	GMainLoop *loop;
 } OSyncThread;
 
-OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error);
-void osync_thread_free(OSyncThread *thread);
-void osync_thread_start(OSyncThread *thread);
-void osync_thread_stop(OSyncThread *thread);
-void osync_thread_exit(OSyncThread *thread, int retval);
-
-OSyncThread *osync_thread_create(GThreadFunc func, void *userdata, OSyncError **error);
+OSYNC_TEST_EXPORT OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error);
+OSYNC_TEST_EXPORT void osync_thread_free(OSyncThread *thread);
+OSYNC_TEST_EXPORT void osync_thread_start(OSyncThread *thread);
+OSYNC_TEST_EXPORT void osync_thread_stop(OSyncThread *thread);
+OSYNC_TEST_EXPORT void osync_thread_exit(OSyncThread *thread, int retval);
+OSYNC_TEST_EXPORT OSyncThread *osync_thread_create(GThreadFunc func, void *userdata, OSyncError **error);
 
 int osync_bitcount(unsigned int u);
 

@@ -27,7 +27,7 @@ typedef struct OSyncCapabilitiesObjType OSyncCapabilitiesObjType;
 
 OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, const char *objtype);
 
-void osync_capabilities_sort(OSyncCapabilities *capabilities);
+OSYNC_TEST_EXPORT void osync_capabilities_sort(OSyncCapabilities *capabilities);
 
 OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error);
 osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member);

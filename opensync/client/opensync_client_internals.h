@@ -1,3 +1,4 @@
+
 /*
  * libopensync - A synchronization framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
@@ -21,10 +22,10 @@
 #ifndef OPENSYNC_CLIENT_INTERNALS_H_
 #define OPENSYNC_CLIENT_INTERNALS_H_
 
-void osync_client_shutdown(OSyncClient *client);
-void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
+OSYNC_TEST_EXPORT void osync_client_shutdown(OSyncClient *client);
+OSYNC_TEST_EXPORT void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
 void osync_client_disconnect(OSyncClient *client);
 
-osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error);
+OSYNC_TEST_EXPORT osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error);
 
 #endif /*OPENSYNC_CLIENT_INTERNALS_H_*/

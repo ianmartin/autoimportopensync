@@ -21,9 +21,9 @@
 #ifndef _OPENSYNC_UPDATER_INTERNALS_H
 #define _OPENSYNC_UPDATER_INTERNALS_H 
 
-void osync_updater_set_group_version(OSyncUpdater *updater, int major);
-void osync_updater_set_member_version(OSyncUpdater *updater, int major);
-void osync_updater_set_plugin_version(OSyncUpdater *updater, int major);
+OSYNC_TEST_EXPORT void osync_updater_set_group_version(OSyncUpdater *updater, int major);
+OSYNC_TEST_EXPORT void osync_updater_set_member_version(OSyncUpdater *updater, int major);
+OSYNC_TEST_EXPORT void osync_updater_set_plugin_version(OSyncUpdater *updater, int major);
 
 #endif /*  _OPENSYNC_UPDATER_INTERNALS_H */
 

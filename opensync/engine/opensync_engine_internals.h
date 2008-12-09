@@ -28,7 +28,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event);
 OSyncClientProxy *osync_engine_find_proxy(OSyncEngine *engine, OSyncMember *member);
 
 OSyncArchive *osync_engine_get_archive(OSyncEngine *engine);
-OSyncGroup *osync_engine_get_group(OSyncEngine *engine);
+OSYNC_TEST_EXPORT OSyncGroup *osync_engine_get_group(OSyncEngine *engine);
 
 OSyncObjEngine *osync_engine_nth_objengine(OSyncEngine *engine, int nth);
 int osync_engine_num_objengine(OSyncEngine *engine);
@@ -36,11 +36,9 @@ int osync_engine_num_objengine(OSyncEngine *engine);
 OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth);
 int osync_engine_num_proxies(OSyncEngine *engine);
 
-void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
-void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
+OSYNC_TEST_EXPORT void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
+OSYNC_TEST_EXPORT void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
 
-#ifdef OPENSYNC_UNITTESTS
-void osync_engine_set_schemadir(OSyncEngine *engine, const char *schema_dir);
-#endif /* OPENSYNC_UNITTESTS */
+OSYNC_TEST_EXPORT void osync_engine_set_schemadir(OSyncEngine *engine, const char *schema_dir);
 
 #endif /*OPENSYNC_ENGINE_INTERNALS_H_*/
