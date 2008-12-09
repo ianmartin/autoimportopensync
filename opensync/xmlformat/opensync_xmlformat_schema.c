@@ -59,6 +59,8 @@ static void _osync_xmlformat_schema_unlock_mutex() {
  */
 OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error) {
 	OSyncXMLFormatSchema * osyncschema = NULL;
+	char *schemafilepath = NULL;
+ 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, xmlformat, path, error);
 	
@@ -72,7 +74,7 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, con
 	}
 	osyncschema->objtype = g_strdup(osync_xmlformat_get_objtype(xmlformat));
 
-	char *schemafilepath = g_strdup_printf("%s%c%s%s%s",
+	schemafilepath = g_strdup_printf("%s%c%s%s%s",
 		path ? path : OPENSYNC_SCHEMASDIR,
 		G_DIR_SEPARATOR,
 		"xmlformat-",
@@ -81,8 +83,6 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, con
 
 	osyncschema->ref_count = 1;
 
- 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
-	
  	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
 	g_free(schemafilepath);
 	if ( xmlSchemaParserCtxt == NULL ) {
@@ -167,11 +167,10 @@ OSyncXMLFormatSchema * osync_xmlformat_schema_get_instance(OSyncXMLFormat *xmlfo
 
 osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXMLFormat *xmlformat, OSyncError **error)
 {
+	int rc = 0;
 	osync_assert(xmlformat);
 	osync_assert(schema);
 	
-	int rc = 0;
-
 	/* Validate the document */
 	rc = xmlSchemaValidateDoc(schema->context, xmlformat->doc);
 

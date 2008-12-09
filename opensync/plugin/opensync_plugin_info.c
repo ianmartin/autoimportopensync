@@ -141,11 +141,11 @@ const char *osync_plugin_info_get_groupname(OSyncPluginInfo *info)
 
 OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, info, name);
 	GList *p;
+	OSyncObjTypeSink *sink = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, info, name);
 	osync_assert(info);
 
-	OSyncObjTypeSink *sink = NULL;
 	for (p = info->objtypes; p; p = p->next) {
 		sink = p->data;
 		if (g_ascii_strcasecmp(osync_objtype_sink_get_name(sink), name) == 0)

@@ -31,7 +31,9 @@
 #include "config.h"
 
 #include <errno.h>
+#ifndef _WIN32
 extern int errno;
+#endif
 
 
 #define osync_return_if_fail(condition) do {                                            \

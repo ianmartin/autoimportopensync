@@ -80,9 +80,6 @@ static int _osync_version_match(char *pattern, char* string, OSyncError **error)
 		g_free(errbuf);
 		goto error;
 	}
-#else //_WIN32
-#warning "_osync_version_match will allways match"
-#endif
 	return 1;
 
 error_and_free:	
@@ -90,6 +87,10 @@ error_and_free:
 	g_free(preg);
 error:
 	return -1;
+
+#else //_WIN32
+	return 1;
+#endif
 }
 
 /**
@@ -129,6 +130,9 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error, const char *
 	}
 	
 	while ((de = g_dir_read_name(dir))) {
+                char *schemafilepath = NULL;
+ 		osync_bool res;
+
 		filename = g_strdup_printf ("%s%c%s", descpath, G_DIR_SEPARATOR, de);
 		
 		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.xml", filename)) {
@@ -150,8 +154,8 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error, const char *
 			continue;
 		}
 
-		char *schemafilepath = g_strdup_printf("%s%c%s", schemapath, G_DIR_SEPARATOR, "descriptions.xsd");
- 		osync_bool res = osync_xml_validate_document(doc, schemafilepath);
+		schemafilepath = g_strdup_printf("%s%c%s", schemapath, G_DIR_SEPARATOR, "descriptions.xsd");
+ 		res = osync_xml_validate_document(doc, schemafilepath);
  		g_free(schemafilepath);
 
 		if(res == FALSE) {
@@ -164,8 +168,9 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error, const char *
 		
 			version = osync_version_new(error);
 			if(!version) {
+                                OSyncList *cur = NULL;
 				osync_xml_free_doc(doc);
-				OSyncList *cur = osync_list_first(versions);
+				cur = osync_list_first(versions);
 				while(cur) {
 					osync_version_unref(cur->data);
 					cur = cur->next;	
@@ -223,9 +228,10 @@ error:
  */
 OSyncVersion *osync_version_new(OSyncError **error)
 {
+        OSyncVersion *version = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncVersion *version = osync_try_malloc0(sizeof(OSyncVersion), error);
+	version = osync_try_malloc0(sizeof(OSyncVersion), error);
 	if(!version) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -503,12 +509,11 @@ void osync_version_set_identifier(OSyncVersion *version, const char *identifier)
  */
 int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error)
 {
+	int ret;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, pattern, version, error);
 
 	osync_assert(pattern);
 	osync_assert(version);
-	
-	int ret;
 	
 	ret = _osync_version_match(osync_version_get_plugin(pattern), osync_version_get_plugin(version), error);
 	if(ret <= 0)
@@ -566,20 +571,20 @@ OSyncList *osync_version_load_from_default_descriptions(OSyncError **error)
  */
 OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, version, error);
-
-	osync_assert(version);
-
 	int priority = -1;
 	OSyncVersion *winner = NULL;
 	OSyncCapabilities *capabilities = NULL;
+        OSyncList *versions = NULL;
+        OSyncList *cur = NULL;
 
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, version, error);
+	osync_assert(version);
 
-	OSyncList *versions = osync_version_load_from_default_descriptions(error);
+	versions = osync_version_load_from_default_descriptions(error);
 	if (*error) /* versions can be null */
 		goto error;
 
-	OSyncList *cur = osync_list_first(versions);
+	cur = osync_list_first(versions);
 	while(cur) {
 		int curpriority = osync_version_matches(cur->data, version, error);
 		if (curpriority == -1) {

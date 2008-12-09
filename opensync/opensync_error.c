@@ -204,14 +204,14 @@ const char *osync_error_print(OSyncError **error)
  */
 char *osync_error_print_stack(OSyncError **error)
 {
+        char *submessage = NULL;
+        char *message = NULL;
 	if (!osync_error_is_set(error))
 		return NULL;
 		
-	char *submessage = NULL;
 	if ((*error)->child)
 		submessage = osync_error_print_stack(&((*error)->child));
 	
-	char *message = NULL;
 	if (submessage) {
 		message = g_strdup_printf("NEXT ERROR: \"%s\"; %s", (*error)->message, submessage);
 		g_free(submessage);

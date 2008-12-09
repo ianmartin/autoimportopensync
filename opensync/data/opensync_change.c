@@ -193,17 +193,16 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
 
 osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncError **error)
 {
-	osync_assert(change);
-	
-	OSyncData *data = change->data;
-	osync_assert(data);
-	
+        OSyncData *data = NULL;
 	char *newuid = NULL;
 	char *output = NULL;
 	unsigned int outsize = 0;
-	
 	char *input = NULL;
 	unsigned int insize = 0;
+
+	osync_assert(change);
+	data = change->data;
+	osync_assert(data);
 	osync_data_get_data(data, &input, &insize);
 	
 	if (!osync_objformat_duplicate(osync_data_get_objformat(data), osync_change_get_uid(change), input, insize, &newuid, &output, &outsize, dirty, error))

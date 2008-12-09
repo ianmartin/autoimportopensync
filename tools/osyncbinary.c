@@ -24,9 +24,9 @@ osync_bool convert_hex(const char *input, unsigned int inpsize, char **output, u
 	GString *string = g_string_new("");
 	unsigned int character = 0;
 	for (i = 0; i < inpsize - 1; i = i + 2) {
+		char tmp[3];
 		printf("Current char is %c%c\n", input[i], input[i + 1]);
 		
-		char tmp[3];
 		tmp[0] = input[i];
 		tmp[1] = input[i + 1];
 		tmp[2] = 0;
@@ -46,6 +46,7 @@ osync_bool convert_bin(const char *input, unsigned int inpsize, char **output, u
 	GString *string = g_string_new("");
 	
 	for (i = 0; i < inpsize; i++) {
+		unsigned int character = 0;
 		printf("\nCurrent char is %i (%c)\n", input[i], input[i]);
 		if (input[i] == '\r' || input[i] == '\n') {
 			printf("Invalid input\n");
@@ -54,7 +55,6 @@ osync_bool convert_bin(const char *input, unsigned int inpsize, char **output, u
 		
 		//char string1[2] = "";
 		//char string2[3] = "";
-		unsigned int character = 0;
 		//int ret = ;
 		printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
 		printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
@@ -88,11 +88,18 @@ int main (int argc, char *argv[])
 	OSyncError *error = NULL;
 	
 	osync_bool hex = FALSE;
+	int i = 1;
+	char *input = NULL;
+	char *output = NULL;
+	char *buffer = NULL;
+	unsigned int size = 0;
+	char **array = NULL;
+	char *outbuffer = NULL;
+	unsigned int outsize = 0;
 	
 	if (argc < 3)
 		usage (argv[0], 1);
 
-	int i = 1;
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
 		if (!strcmp (arg, "--hex")) {
@@ -104,27 +111,23 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	char *input = argv[i];
-	char *output = argv[i + 1];
+	input = argv[i];
+	output = argv[i + 1];
 	
 	printf("input %s output %s\n", input, output);
 	
-	char *buffer = NULL;
-	unsigned int size = 0;
 	if (!osync_file_read(input, &buffer, &size, &error)) {
 		fprintf(stderr, "%s\n", osync_error_print(&error));
 		osync_error_unref(&error);
 		return 1;
 	}
 	
-	char **array = g_strsplit(buffer, "\n", 0);
+	array = g_strsplit(buffer, "\n", 0);
 	g_free(buffer);
 	buffer = g_strjoinv(NULL, array);
 	size = strlen(buffer) + 1;
 	g_strfreev(array);
 	
-	char *outbuffer = NULL;
-	unsigned int outsize = 0;
 	if (hex) {
 		if (!convert_hex(buffer, size, &outbuffer, &outsize)) {
 			fprintf(stderr, "Unable to convert");

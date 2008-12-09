@@ -38,11 +38,12 @@
 
 OSyncMappingEntryEngine *osync_entry_engine_new(OSyncMappingEntry *entry, OSyncMappingEngine *mapping_engine, OSyncSinkEngine *sink_engine, OSyncObjEngine *objengine, OSyncError **error)
 {
+        OSyncMappingEntryEngine *engine = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, entry, mapping_engine, sink_engine, objengine, error);
 	osync_assert(sink_engine);
 	osync_assert(entry);
 	
-	OSyncMappingEntryEngine *engine = osync_try_malloc0(sizeof(OSyncMappingEntryEngine), error);
+	engine = osync_try_malloc0(sizeof(OSyncMappingEntryEngine), error);
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
@@ -95,12 +96,14 @@ void osync_entry_engine_unref(OSyncMappingEntryEngine *engine)
 
 osync_bool osync_entry_engine_matches(OSyncMappingEntryEngine *engine, OSyncChange *change)
 {
+        OSyncMappingEntry *entry = NULL;
+	const char *mapping_entry_uid = NULL; 
 	osync_assert(engine);
 	osync_assert(engine->entry);
 	osync_assert(change);
 	
-	OSyncMappingEntry *entry = engine->entry;
-	const char *mapping_entry_uid = osync_mapping_entry_get_uid(entry); 
+	entry = engine->entry;
+	mapping_entry_uid = osync_mapping_entry_get_uid(entry); 
 	osync_assert(mapping_entry_uid);
 	
 	if (!strcmp(mapping_entry_uid, osync_change_get_uid(change)))

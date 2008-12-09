@@ -148,12 +148,12 @@ error:
  */
 static void _osync_format_env_converter_initialize(OSyncFormatEnv *env, OSyncError **error)
 {
+	OSyncFormatConverter *converter = NULL;
+	int i,numconverters;
 	osync_assert(env);
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	
-	OSyncFormatConverter *converter = NULL;
-	int i,numconverters;
 	numconverters = osync_format_env_num_converters(env);
 	
 	for (i = 0; i < numconverters; i++ ) {
@@ -172,12 +172,12 @@ static void _osync_format_env_converter_initialize(OSyncFormatEnv *env, OSyncErr
  */
 static void _osync_format_env_converter_finalize(OSyncFormatEnv *env)
 {
-	osync_assert(env);
-	
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
-	
 	OSyncFormatConverter *converter = NULL;
 	int i,numconverters;
+
+	osync_assert(env);	
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+
 	numconverters = osync_format_env_num_converters(env);
 	
 	for (i = 0; i < numconverters; i++ ) {
@@ -354,10 +354,11 @@ static osync_bool _validate_path_with_detector(OSyncFormatConverterPathVertice *
 	OSyncList *cs = NULL;
 	OSyncList *cd = NULL;
 	osync_bool has_nondetector = FALSE;
+        OSyncList *converters_seeknondetectors = NULL;
 	osync_trace(TRACE_INTERNAL, "Converter %s to %s type %i", osync_objformat_get_name(osync_converter_get_sourceformat(converter)), osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_converter_get_type(converter));
 
 	/* We search the converters for the given conversion to see if there are other converters than "detector" for this conversion */
-	OSyncList *converters_seeknondetectors = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
+	converters_seeknondetectors = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
 	for(cd = converters_seeknondetectors; cd ; cd = cd->next) {
 		OSyncFormatConverter *converter_seeknondetectors = cd->data;
 		if ( converter_seeknondetectors && (osync_converter_get_type(converter_seeknondetectors) != OSYNC_CONVERTER_DETECTOR) ) {
@@ -368,6 +369,7 @@ static osync_bool _validate_path_with_detector(OSyncFormatConverterPathVertice *
 	}
 
 	if (has_nondetector) {
+                OSyncList *converters_sameformat = NULL;
 		/*  There were other converters than the detector (if there is a detector at all) for the given conversion. */
 
 		/* Skip the detector : it will be handled when processing the non detector converter
@@ -379,7 +381,7 @@ static osync_bool _validate_path_with_detector(OSyncFormatConverterPathVertice *
 		/* Looking after detector for non detector converter.
 		   If there was a detector converter for the same conversion as the non detector converter and the detection fails force the failure
 		   of the non detector converter */
-		OSyncList *converters_sameformat = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
+		converters_sameformat = osync_format_env_find_converters(env, osync_converter_get_sourceformat(converter), osync_converter_get_targetformat(converter));
 		for(cs = converters_sameformat; cs ; cs = cs->next) {
 			OSyncFormatConverter *converter_sameformat = cs->data;
 			if ( converter_sameformat && (osync_converter_get_type(converter_sameformat) == OSYNC_CONVERTER_DETECTOR) ) {
@@ -426,6 +428,7 @@ static OSyncFormatConverterPathVertice *_get_next_vertice_neighbour(OSyncFormatE
 	 * Valid neighbours are the once that are reachable by a conversion. So
 	 * we now go through all converters and check if they are valid */
 	for (c = tree->unused; c; c = c->next) {
+                OSyncObjFormat *sourceformat = NULL, *targetformat = NULL;
 		converter = c->data;
 		fmt_target = osync_converter_get_targetformat(converter);
 		
@@ -461,8 +464,8 @@ static OSyncFormatConverterPathVertice *_get_next_vertice_neighbour(OSyncFormatE
 		
 		neigh->objtype_changes = ve->objtype_changes;
 		
-		OSyncObjFormat *sourceformat = osync_converter_get_sourceformat(converter);
-		OSyncObjFormat *targetformat = osync_converter_get_targetformat(converter);
+		sourceformat = osync_converter_get_sourceformat(converter);
+		targetformat = osync_converter_get_targetformat(converter);
 		
 		source_objtype = osync_objformat_get_objtype(sourceformat);
 		target_objtype = osync_objformat_get_objtype(targetformat);
@@ -571,15 +574,18 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		GString *string = g_string_new("");
 		guint size = g_list_length(tree->search);
 		guint count = 0;
+		guint neighbour_id = 0;
+		OSyncFormatConverterPathVertice *current = NULL;
+		OSyncFormatConverterPath *path_tmp = NULL;
 		for (v = tree->search; v; v = v->next) {
-			count ++;
 			OSyncFormatConverterPathVertice *vertice = v->data;
 			GString *string2 = g_string_new("");
 			guint size2 = g_list_length(vertice->path);
 			guint count2 = 0;
+			count ++;
 			for (e = vertice->path; e; e = e->next) {
-				count2 ++;
 				OSyncFormatConverter *edge = e->data;
+				count2 ++;
 				if (count2 == 1) {
 					  g_string_append(string2, osync_objformat_get_name(osync_converter_get_sourceformat(edge)));
 					  g_string_append(string2, " -> ");
@@ -603,7 +609,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 
 		/* Get the first OSyncFormatConverterPathVertice from the search queue
 		 * and remove it from the queue */
-		OSyncFormatConverterPathVertice *current = tree->search->data;
+		current = tree->search->data;
 		tree->search = g_list_remove(tree->search, current);
 		
 		/* log current OSyncFormatConverterPathVertice */
@@ -611,8 +617,8 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		size = g_list_length(current->path);
 		count = 0;
 		for (e = current->path; e; e = e->next) {
-			count ++;
 			OSyncFormatConverter *edge = e->data;
+			count ++;
 			if (count == 1) {
 				  g_string_append(string, osync_objformat_get_name(osync_converter_get_sourceformat(edge)));
 				  g_string_append(string, " -> ");
@@ -624,7 +630,6 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		osync_trace(TRACE_INTERNAL, "Next vertice : %s (%s).", osync_objformat_get_name(current->format), string->str);
 		g_string_free(string, TRUE);
 
-		guint neighbour_id = 0;
 		current->neighbour_id = 0;
 		vertice_id++; // current OSyncFormatConverterPathVertice id for its neighbours
 
@@ -664,7 +669,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 
 		/* Convert the "current" data to the last edge found in the "current" conversion path  */
 		current->data = osync_data_clone(sourcedata, error);
-		OSyncFormatConverterPath *path_tmp = osync_converter_path_new(error);
+		path_tmp = osync_converter_path_new(error);
 		if (!path_tmp)
 			goto error;
 		for (e = current->path; e; e = e->next) {
@@ -679,6 +684,10 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 
 		/* Find all the neighboors or "current" at its current conversion point */
 		while ((neighbour = _get_next_vertice_neighbour(env, tree, current, error))) {
+			GString *string = g_string_new("");
+			guint size = g_list_length(neighbour->path);
+			guint count = 0;
+
 			neighbour->id = vertice_id;
 			neighbour_id++;
 			neighbour->neighbour_id = neighbour_id;
@@ -690,12 +699,9 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 				neighbour->preferred = TRUE;
 
 			/* log neighbour to be added to the tree search list */
-			GString *string = g_string_new("");
-			guint size = g_list_length(neighbour->path);
-			guint count = 0;
 			for (e = neighbour->path; e; e = e->next) {
-				count ++;
 				OSyncFormatConverter *edge = e->data;
+				count ++;
 				if (count == 1) {
 					  g_string_append(string, osync_objformat_get_name(osync_converter_get_sourceformat(edge)));
 					  g_string_append(string, " -> ");
@@ -1159,13 +1165,12 @@ OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyn
 	   Each DECAP triggers a new detection.
 	 */
 	while (TRUE) {
+		OSyncFormatConverter *converter = NULL;
 		if ((detected_format = osync_format_env_detect_objformat(env, new_data))) {
 			/* We detected the format. So we replace the original format. */
 			osync_data_set_objformat(new_data, detected_format);
 		} else
 			detected_format = osync_data_get_objformat(new_data);
-		
-		OSyncFormatConverter *converter = NULL;
 		/* Try to decap the change */
 		for (d = env->converters; d; d = d->next) {
 			converter = d->data;
@@ -1272,9 +1277,10 @@ osync_bool osync_format_env_convert(OSyncFormatEnv *env, OSyncFormatConverterPat
 OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
+	OSyncData *sourcedata = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %p)", __func__, env, sourceformat, targetformat, targetformat ? osync_objformat_get_name(targetformat) : "NONE", error);
 
-	OSyncData *sourcedata = osync_data_new(NULL, 0, sourceformat, error);
+	sourcedata = osync_data_new(NULL, 0, sourceformat, error);
 	if (!sourcedata)
 		goto error;
 
@@ -1332,9 +1338,10 @@ OSyncFormatConverterPath *osync_format_env_find_path_with_detectors(OSyncFormatE
 OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncList *targets, OSyncError **error)
 {
 	OSyncFormatConverterPath *path = NULL;
+	OSyncData *sourcedata = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, sourceformat, targets, error);
 	
-	OSyncData *sourcedata = osync_data_new(NULL, 0, sourceformat, error);
+	sourcedata = osync_data_new(NULL, 0, sourceformat, error);
 	if (!sourcedata)
 		goto error;
 
@@ -1371,8 +1378,8 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats_with_detectors(OSyn
 	guint count = 0;
 	
 	for (t = targets; t; t = t->next) {
-		count ++;
 		OSyncObjFormatSink *format_sink = t->data;
+		count ++;
 		g_string_append(string, osync_objformat_sink_get_objformat(format_sink));
 		if (size > 1 && count < size)
 			g_string_append(string, " - ");

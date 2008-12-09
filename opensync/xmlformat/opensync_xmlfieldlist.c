@@ -30,9 +30,10 @@
 
 OSyncXMLFieldList *osync_xmlfieldlist_new(OSyncError **error)
 {
+        OSyncXMLFieldList *xmlfieldlist = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncXMLFieldList *xmlfieldlist = osync_try_malloc0(sizeof(OSyncXMLFieldList), error);
+	xmlfieldlist = osync_try_malloc0(sizeof(OSyncXMLFieldList), error);
 	if(!xmlfieldlist) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;

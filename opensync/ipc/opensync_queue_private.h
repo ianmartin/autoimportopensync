@@ -24,9 +24,9 @@
 #include <fcntl.h>
 #ifndef _WIN32
 #include <sys/poll.h>
+#include <sys/time.h>
 #endif //_WIN32
 
-#include <sys/time.h>
 #include <signal.h>
 
 /**

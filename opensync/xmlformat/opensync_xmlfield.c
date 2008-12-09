@@ -142,13 +142,15 @@ void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXML
 
 OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error)
 {
+        xmlNodePtr node = NULL;
+        OSyncXMLField *xmlfield = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, xmlformat, name, error);
 	osync_assert(xmlformat);
 	osync_assert(name);
 	
-	xmlNodePtr node = xmlNewTextChild(xmlDocGetRootElement(xmlformat->doc), NULL, BAD_CAST name, NULL);
+	node = xmlNewTextChild(xmlDocGetRootElement(xmlformat->doc), NULL, BAD_CAST name, NULL);
 	
-	OSyncXMLField *xmlfield = osync_xmlfield_new_node(xmlformat, node, error);
+	xmlfield = osync_xmlfield_new_node(xmlformat, node, error);
 	if(!xmlfield) {
 		xmlUnlinkNode(node);
 		xmlFreeNode(node);
@@ -190,10 +192,11 @@ OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield)
 
 const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
 {
+	xmlAttrPtr prop;
+
 	osync_assert(xmlfield);
 	osync_assert(attr);
 	
-	xmlAttrPtr prop;
 	prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
 	if(prop == NULL)
 		return NULL;
@@ -213,10 +216,12 @@ void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const ch
 
 int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfield);
-	
 	int count;
-	xmlAttrPtr attr = xmlfield->node->properties;
+	xmlAttrPtr attr = NULL;
+
+	osync_assert(xmlfield);
+
+	attr = xmlfield->node->properties;
 	
 	for(count=0; attr != NULL; count++)
 		attr = attr->next;
@@ -225,10 +230,12 @@ int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield)
 
 const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
 {
+	int count;
+	xmlAttrPtr attr = NULL;
+
 	osync_assert(xmlfield);
 	
-	int count;
-	xmlAttrPtr attr = xmlfield->node->properties;
+	attr = xmlfield->node->properties;
 	
 	for(count=0; attr != NULL; count++) {
 		if(count == nth)
@@ -240,10 +247,12 @@ const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
 
 const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 {
+	int count;
+	xmlAttrPtr attr = NULL;
+
 	osync_assert(xmlfield);
 	
-	int count;
-	xmlAttrPtr attr = xmlfield->node->properties;
+	attr = xmlfield->node->properties;
 	
 	for(count=0; attr != NULL; count++) {
 		if(count == nth)
@@ -257,10 +266,11 @@ const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 
 const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *key)
 {
+        xmlNodePtr cur = NULL;
 	osync_assert(xmlfield);
 	osync_assert(key);
 	
-	xmlNodePtr cur = xmlfield->node->children;
+	cur = xmlfield->node->children;
 	for(; cur != NULL; cur = cur->next) {
 		if(!xmlStrcmp(cur->name, BAD_CAST key))
 				return (const char *)osync_xml_node_get_content(cur);
@@ -272,6 +282,7 @@ const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *ke
 
 void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, const char *value)
 {
+        xmlNodePtr cur = NULL;
 	osync_assert(xmlfield);
 	osync_assert(key);
 
@@ -279,7 +290,7 @@ void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, cons
 	if (!value || strlen(value) == 0)
 		return;
 
-	xmlNodePtr cur = xmlfield->node->children;
+	cur = xmlfield->node->children;
 	for(; cur != NULL; cur = cur->next) {
 		if(!xmlStrcmp(cur->name, BAD_CAST key)) {
 			xmlNodeSetContent(xmlfield->node, BAD_CAST value);
@@ -305,10 +316,12 @@ void osync_xmlfield_add_key_value(OSyncXMLField *xmlfield, const char *key, cons
 
 int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 {
+	int count;
+	xmlNodePtr child = NULL;
+
 	osync_assert(xmlfield);
 	
-	int count;
-	xmlNodePtr child = xmlfield->node->children;
+	child = xmlfield->node->children;
 	
 	for(count=0; child != NULL; count++) {
 		child = child->next;
@@ -318,10 +331,12 @@ int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 
 const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
 {
+	int count;
+	xmlNodePtr child = NULL;
+
 	osync_assert(xmlfield);
 	
-	int count;
-	xmlNodePtr child = xmlfield->node->children;
+	child = xmlfield->node->children;
 	
 	for(count=0; child != NULL; count++) {
 		if(count == nth)
@@ -333,10 +348,12 @@ const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
 
 const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 {
+	int count;
+	xmlNodePtr child = NULL;
+
 	osync_assert(xmlfield);
 	
-	int count;
-	xmlNodePtr child = xmlfield->node->children;
+	child = xmlfield->node->children;
 	
 	for(count=0; child != NULL; count++) {
 		if(count == nth)
@@ -350,11 +367,13 @@ const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 
 void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const char *value)
 {
+	int count;
+	xmlNodePtr cur = NULL;
+
 	osync_assert(xmlfield);
 	osync_assert(value);
 	
-	int count;
-	xmlNodePtr cur = xmlfield->node->children;
+	cur = xmlfield->node->children;
 	
 	for(count = 0; cur != NULL ; count++) {
 		if(count == nth)
@@ -365,11 +384,13 @@ void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const ch
 
 void osync_xmlfield_sort(OSyncXMLField *xmlfield)
 {
+	int index, count;
+	void **list = NULL;
+	xmlNodePtr cur = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
 	osync_assert(xmlfield);
 	
-	int index, count;
-
 	if (xmlfield->sorted) {
 		osync_trace(TRACE_INTERNAL, "already sorted");
 		goto end;
@@ -381,9 +402,9 @@ void osync_xmlfield_sort(OSyncXMLField *xmlfield)
 		goto end;
 	}
 	
-	void **list = g_malloc0(sizeof(xmlNodePtr) * count);
+	list = g_malloc0(sizeof(xmlNodePtr) * count);
 	
-	xmlNodePtr cur = xmlfield->node->children;
+	cur = xmlfield->node->children;
 	for (index=0; cur != NULL; index++) {
 		xmlNodePtr tmp = cur;
 		list[index] = cur;

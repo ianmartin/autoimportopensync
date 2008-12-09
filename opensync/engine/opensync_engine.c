@@ -60,8 +60,8 @@ static void osync_engine_set_error(OSyncEngine *engine, OSyncError *error)
 
 static void _finalize_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
+        OSyncEngine *engine = userdata;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
-	OSyncEngine *engine = userdata;
 	
 	if (error) {
 		osync_engine_set_error(engine, error);
@@ -99,10 +99,11 @@ static OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, co
 
 static int _osync_engine_get_proxy_position(OSyncEngine *engine, OSyncClientProxy *proxy)
 {
+        int ret = 0;
 	osync_assert(engine);
 	osync_assert(proxy);
 
-	int ret = g_list_index(engine->proxies, proxy);
+	ret = g_list_index(engine->proxies, proxy);
 
 	osync_assert(ret >= 0);
 
@@ -119,10 +120,11 @@ static osync_bool _osync_engine_is_proxy_connected(OSyncEngine *engine, OSyncCli
 
 static int _osync_engine_get_objengine_position(OSyncEngine *engine, OSyncObjEngine *objengine)
 {
+        int ret = 0;
 	osync_assert(engine);
 	osync_assert(objengine);
 
-	int ret = g_list_index(engine->object_engines, objengine);
+	ret = g_list_index(engine->object_engines, objengine);
 
 	osync_assert(ret >= 0);
 
@@ -145,14 +147,16 @@ static void _osync_engine_finalize_internal_schemas(OSyncEngine *engine)
 
 static void _osync_engine_set_internal_schema(OSyncEngine *engine, const char *objtype, OSyncError **error) 
 {
+        OSyncXMLFormat *xmlformat = NULL;
+        OSyncXMLFormatSchema *schema = NULL;
 	osync_trace(TRACE_INTERNAL, "Setting internal schema for objtype %s", objtype);
 
 	// init OSyncXMLFormatSchemas
-	OSyncXMLFormat *xmlformat = osync_xmlformat_new(objtype, NULL);
+	xmlformat = osync_xmlformat_new(objtype, NULL);
 #ifdef OPENSYNC_UNITTESTS
-	OSyncXMLFormatSchema *schema = osync_xmlformat_schema_get_instance_with_path(xmlformat, engine->schema_dir, error);
+	schema = osync_xmlformat_schema_get_instance_with_path(xmlformat, engine->schema_dir, error);
 #else
-	OSyncXMLFormatSchema *schema = osync_xmlformat_schema_get_instance(xmlformat, error);
+	schema = osync_xmlformat_schema_get_instance(xmlformat, error);
 #endif
 	osync_xmlformat_unref(xmlformat);
 	g_hash_table_insert(engine->internalSchemas, g_strdup(objtype), schema);
@@ -190,34 +194,46 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	OSyncEngine *engine = userdata;
 	OSyncError *error = NULL;
 	osync_bool found = FALSE;
+        OSyncMember *member = NULL;
+        long long int memberid = 0;
+        const char *uid = NULL;
+        OSyncChangeType changetype = 0;
+        const char *format = NULL;
+        const char *objtype = NULL;
+        OSyncObjTypeSink *objtype_sink = NULL;
+        char *member_objtype = NULL;
+        OSyncData *data = NULL;
+        OSyncObjFormat *internalFormat = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 
-	OSyncMember *member = osync_client_proxy_get_member(proxy);
-	long long int memberid = osync_member_get_id(member);
-	const char *uid = osync_change_get_uid(change);		
-	OSyncChangeType changetype = osync_change_get_changetype(change);
-	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
-	const char *objtype = osync_change_get_objtype(change);
+	member = osync_client_proxy_get_member(proxy);
+	memberid = osync_member_get_id(member);
+	uid = osync_change_get_uid(change);		
+	changetype = osync_change_get_changetype(change);
+	format = osync_objformat_get_name(osync_change_get_objformat(change));
+	objtype = osync_change_get_objtype(change);
 
-	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype);
+	objtype_sink = osync_member_find_objtype_sink(member, objtype);
 
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
-	char *member_objtype = g_strdup_printf("%lli_%s", memberid, objtype); 
+	member_objtype = g_strdup_printf("%lli_%s", memberid, objtype); 
 
-	OSyncData *data = osync_change_get_data(change);
+	data = osync_change_get_data(change);
 
 	/* Convert the format to the internal format */
-	OSyncObjFormat *internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
+	internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
 	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change));
 
 	/* Only convert if the engine is allowed to convert and if a internal format is available. 
 	   The reason that the engine isn't allowed to convert could be backup. dumping the changes. 
 	   Do not convert anything if the chagetype is DELETED. */
 	if (internalFormat && osync_group_get_converter_enabled(engine->group) && (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED)) {
+                OSyncFormatConverterPath *path = NULL;
+                OSyncObjFormatSink *formatsink = NULL;
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 
-		OSyncFormatConverterPath *path = _osync_engine_get_converter_path(engine, member_objtype);
+		path = _osync_engine_get_converter_path(engine, member_objtype);
 		if(!path) {
 			path = osync_format_env_find_path_with_detectors(engine->formatenv, osync_change_get_data(change), internalFormat, NULL, &error);
 			_osync_engine_set_converter_path(engine, member_objtype, path);
@@ -226,7 +242,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		if (!path)
 			goto error;
 	
-		OSyncObjFormatSink *formatsink = osync_objtype_sink_find_objformat_sink(objtype_sink, internalFormat);
+		formatsink = osync_objtype_sink_find_objformat_sink(objtype_sink, internalFormat);
 		if (formatsink) {
 			const char *config = osync_objformat_sink_get_config(formatsink); 
 			osync_converter_path_set_config(path, config);
@@ -245,16 +261,18 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		( !strncmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-", 10)))
 
 	{
-		osync_trace(TRACE_INTERNAL, "Merge the XMLFormat.");
 		char *buffer = NULL;
 		unsigned int xmlformat_size = 0, size = 0;
 		OSyncXMLFormat *xmlformat = NULL;
 		OSyncXMLFormat *xmlformat_entire = NULL;
+                const char *objtype = NULL;
+                OSyncMerger *merger = NULL;
+                osync_trace(TRACE_INTERNAL, "Merge the XMLFormat.");
 
-		const char *objtype = osync_change_get_objtype(change);
+		objtype = osync_change_get_objtype(change);
 		
-		OSyncMember *member = osync_client_proxy_get_member(proxy);
-		OSyncMerger *merger = osync_member_get_merger(member);
+		member = osync_client_proxy_get_member(proxy);
+		merger = osync_member_get_merger(member);
 		if(merger) {
 			/* TODO: Merger save the archive data with the member so we have to load it only for one time*/
 			// osync_archive_load_data() is fetching the mappingid by uid in the db
@@ -279,7 +297,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	}
 	
 	/* Search for the correct objengine */
-	GList * o = NULL;
+	{GList * o = NULL;
 	for (o = engine->object_engines; o; o = o->next) {
 		OSyncObjEngine *objengine = o->data;
 		if (!strcmp(osync_change_get_objtype(change), osync_obj_engine_get_objtype(objengine))) {
@@ -288,7 +306,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 				goto error;
 			break;
 		}	
-	}
+	}}
 	
 	if (!found) {
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to find engine which can handle objtype %s", osync_change_get_objtype(change));
@@ -331,9 +349,10 @@ static gboolean _command_dispatch(GSource *source, GSourceFunc callback, gpointe
 
 osync_bool osync_engine_mapping_solve(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncChange *change, OSyncError **error)
 {
+        OSyncEngineCommand *cmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, mapping_engine, change, error);
 	
-	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -352,9 +371,10 @@ osync_bool osync_engine_mapping_solve(OSyncEngine *engine, OSyncMappingEngine *m
 
 osync_bool osync_engine_mapping_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error)
 {
+        OSyncEngineCommand *cmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, mapping_engine, error);
 	
-	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -372,9 +392,10 @@ osync_bool osync_engine_mapping_duplicate(OSyncEngine *engine, OSyncMappingEngin
 
 osync_bool osync_engine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error)
 {
+        OSyncEngineCommand *cmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, mapping_engine, error);
 	
-	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -392,9 +413,10 @@ osync_bool osync_engine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMappin
 
 osync_bool osync_engine_mapping_use_latest(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error)
 {
+        OSyncEngineCommand *cmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, mapping_engine, error);
 	
-	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -421,10 +443,14 @@ osync_bool osync_engine_mapping_use_latest(OSyncEngine *engine, OSyncMappingEngi
  */
 OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 {
+        OSyncEngine *engine = NULL;
+        OSyncEngine **engineptr = NULL;
+        char *enginesdir = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	g_assert(group);
 	
-	OSyncEngine *engine = osync_try_malloc0(sizeof(OSyncEngine), error);
+	engine = osync_try_malloc0(sizeof(OSyncEngine), error);
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
@@ -467,14 +493,14 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 
 	/* Overwriting pointer of callback_data of GSource (->command_source) with engine 
 	   FIXME: Make it work without such dirty hacks to inject pointers to a private struct */ 
-	OSyncEngine **engineptr = (OSyncEngine **)(engine->command_source + 1); 
+	engineptr = (OSyncEngine **)(engine->command_source + 1); 
 	*engineptr = engine;
 
 	g_source_set_callback(engine->command_source, NULL, engine, NULL);
 	g_source_attach(engine->command_source, engine->context);
 	g_main_context_ref(engine->context);
 
-	char *enginesdir = g_strdup_printf("%s%cengines", osync_group_get_configdir(group), G_DIR_SEPARATOR);
+	enginesdir = g_strdup_printf("%s%cengines", osync_group_get_configdir(group), G_DIR_SEPARATOR);
 	engine->engine_path = g_strdup_printf("%s%cenginepipe", enginesdir, G_DIR_SEPARATOR);
 	
 	if (g_mkdir_with_parents(enginesdir, 0755) < 0) {
@@ -654,6 +680,7 @@ static void _osync_engine_stop(OSyncEngine *engine)
 
 static osync_bool _osync_engine_finalize_member(OSyncEngine *engine, OSyncClientProxy *proxy, OSyncError **error)
 {
+        unsigned int i = 2000;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, proxy, error);
 		
 	engine->busy = TRUE;
@@ -662,7 +689,6 @@ static osync_bool _osync_engine_finalize_member(OSyncEngine *engine, OSyncClient
 		goto error;
 	
 	//FIXME
-	unsigned int i = 2000;
 	while (engine->busy && i > 0) { g_usleep(1000); g_main_context_iteration(engine->context, FALSE); i--; }
 	osync_trace(TRACE_INTERNAL, "Done waiting");
 	
@@ -684,10 +710,12 @@ error:
 static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OSyncMember *member, OSyncError **error)
 {
 	OSyncPluginConfig *config = NULL;
+        OSyncPlugin *plugin = NULL;
+        OSyncClientProxy *proxy = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 
-	OSyncPlugin *plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
+	plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
 	if (!plugin) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", osync_member_get_pluginname(member));
 		goto error;
@@ -716,7 +744,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 			goto error;
 	}
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(engine->formatenv, member, error);
+	proxy = osync_client_proxy_new(engine->formatenv, member, error);
 	if (!proxy)
 		goto error;
 		
@@ -890,13 +918,14 @@ static osync_bool _osync_engine_generate_disconnected_event(OSyncEngine *engine)
 
 static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userdata, osync_bool slowsync, OSyncError *error)
 {
+        GList *o = NULL;
+	OSyncEngine *engine = NULL;
+	int position = 0;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, proxy, userdata, slowsync, error);
 
-	GList *o = NULL;
-	OSyncEngine *engine = userdata;
-
-	int position = _osync_engine_get_proxy_position(engine, proxy);
+	engine = userdata;
+	position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
 		osync_engine_set_error(engine, error);
@@ -923,9 +952,10 @@ static void _osync_engine_connect_callback(OSyncClientProxy *proxy, void *userda
 static void _osync_engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
+        int position = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int position = _osync_engine_get_proxy_position(engine, proxy);
+	position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
 		osync_engine_set_error(engine, error);
@@ -944,9 +974,10 @@ static void _osync_engine_disconnect_callback(OSyncClientProxy *proxy, void *use
 static void _osync_engine_get_changes_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
+        int position = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int position = _osync_engine_get_proxy_position(engine, proxy);
+	position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
 		osync_engine_set_error(engine, error);
@@ -965,9 +996,10 @@ static void _osync_engine_get_changes_callback(OSyncClientProxy *proxy, void *us
 static void _osync_engine_written_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
+        int position = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int position = _osync_engine_get_proxy_position(engine, proxy);
+	position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
 		osync_engine_set_error(engine, error);
@@ -986,9 +1018,10 @@ static void _osync_engine_written_callback(OSyncClientProxy *proxy, void *userda
 static void _osync_engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncEngine *engine = userdata;
+        int position = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
-	int position = _osync_engine_get_proxy_position(engine, proxy);
+	position = _osync_engine_get_proxy_position(engine, proxy);
 	
 	if (error) {
 		osync_engine_set_error(engine, error);
@@ -1069,9 +1102,10 @@ static void _osync_engine_generate_event(OSyncEngine *engine, OSyncEngineEvent e
 static void _osync_engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent event, OSyncError *error, void *userdata)
 {
 	OSyncEngine *engine = userdata;
+        int position = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, objengine, event, error, userdata);
 
-	int position = _osync_engine_get_objengine_position(engine, objengine);
+	position = _osync_engine_get_objengine_position(engine, objengine);
 	
 	if (error)
 		_osync_engine_get_objengine_error(engine, objengine, position, error);
@@ -1145,16 +1179,17 @@ error:
 
 osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 {
+        osync_bool prev_sync_unclean = FALSE;
+        OSyncGroup *group = NULL;
+        int i = 0, num = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
-
-	osync_bool prev_sync_unclean = FALSE;
 
 	if (engine->state != OSYNC_ENGINE_STATE_UNINITIALIZED) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not uninitialized: %i", engine->state);
 		goto error;
 	}
 	
-	OSyncGroup *group = engine->group;
+	group = engine->group;
 
 	if (osync_group_num_members(group) < 2) {
 		//Not enough members!
@@ -1188,7 +1223,6 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		goto error_finalize;
 		
 	osync_trace(TRACE_INTERNAL, "Spawning clients");
-	int i;
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		OSyncMember *member = osync_group_nth_member(group, i);
 		if (!_osync_engine_initialize_member(engine, member, error))
@@ -1196,7 +1230,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	}
 	
 	/* Lets see which objtypes are synchronizable in this group */
-	int num = osync_group_num_objtypes(engine->group);
+	num = osync_group_num_objtypes(engine->group);
 	if (num == 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
 		goto error;
@@ -1204,12 +1238,13 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 
 	for (i = 0; i < num; i++) {
 		const char *objtype = osync_group_nth_objtype(engine->group, i);
+                OSyncObjEngine *objengine = NULL;
 
 		/* Respect if the object type is disabled */
 		if (!osync_group_objtype_enabled(engine->group, objtype))
 			continue;
 
-		OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, error);
+		objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, error);
 		if (!objengine)
 			goto error;
 
@@ -1236,6 +1271,7 @@ error:
 
 osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 {
+        OSyncClientProxy *proxy = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	
 	if (engine->state != OSYNC_ENGINE_STATE_INITIALIZED) {
@@ -1251,7 +1287,6 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 		engine->object_engines = g_list_remove(engine->object_engines, engine->object_engines->data);
 	}
 	
-	OSyncClientProxy *proxy = NULL;
 	while (engine->proxies) {
 		proxy = engine->proxies->data;
 		if (!_osync_engine_finalize_member(engine, proxy, error))
@@ -1530,6 +1565,7 @@ error:
  */
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
+        OSyncEngineCommand *cmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	osync_assert(engine);
 	
@@ -1538,7 +1574,7 @@ osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 		goto error;
 	}
 
-	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd)
 		goto error;
 	cmd->cmd = OSYNC_ENGINE_COMMAND_CONNECT;
@@ -1637,6 +1673,8 @@ osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
  */
 osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSyncError **error)
 {
+        OSyncClientProxy *proxy = NULL;
+        OSyncEngineCommand *cmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 	osync_assert(engine);
 	
@@ -1655,11 +1693,11 @@ osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSync
 	if (!_osync_engine_initialize_formats(engine, error))
 		goto error;
 	
-	OSyncClientProxy *proxy = _osync_engine_initialize_member(engine, member, error);
+	proxy = _osync_engine_initialize_member(engine, member, error);
 	if (!proxy)
 		goto error;
 
-	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd)
 		goto error;
 
@@ -1899,9 +1937,8 @@ void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (
  */
 osync_bool osync_engine_abort(OSyncEngine *engine, OSyncError **error)
 {
+        OSyncEngineCommand *pending_command, *cmd;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
-	
-	OSyncEngineCommand *pending_command, *cmd;
 
 	if (engine->state != OSYNC_ENGINE_STATE_INITIALIZED) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not in state initialized: %i", engine->state);

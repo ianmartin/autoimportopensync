@@ -105,8 +105,10 @@ void _osync_member_parse_timeout(xmlNode *cur, OSyncObjTypeSink *sink)
  */
 static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **error)
 {
+        OSyncObjTypeSink *sink = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
-	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
+
+	sink = osync_objtype_sink_new(NULL, error);
 	if (!sink) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -437,6 +439,7 @@ OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **err
 {
 	char *filename = NULL;
 	const char *schemadir = NULL;
+        OSyncPluginConfig *config = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	osync_assert(member);
@@ -454,7 +457,7 @@ OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **err
 		goto error;
 	}
 
-	OSyncPluginConfig *config = osync_plugin_config_new(error);
+	config = osync_plugin_config_new(error);
 	if (!config)
 		goto error;
 
@@ -584,11 +587,12 @@ error:
 
 static osync_bool _osync_member_save_sink_add_timeout(xmlNode *cur, const char *timeoutname, unsigned int timeout, OSyncError **error)
 {
+        char *str = NULL;
 	/* Skip if no custom timeout got set */
 	if (!timeout)
 		return TRUE;
 
-	char *str = g_strdup_printf("%u", timeout);
+	str = g_strdup_printf("%u", timeout);
 	xmlNewChild(cur, NULL, (xmlChar*)timeoutname, BAD_CAST str);
 	g_free(str);
 
@@ -668,6 +672,9 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
 	xmlDocPtr doc = NULL;
+        char *version_str = NULL;
+        GList *o = NULL;
+        OSyncCapabilities* capabilities = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	osync_assert(member);
@@ -683,7 +690,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 
-	char *version_str = g_strdup_printf("%u.%u", OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION);
+	version_str = g_strdup_printf("%u.%u", OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION);
 	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
 	g_free(version_str);
 
@@ -697,7 +704,6 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	}
 	
 	//The objtypes
-	GList *o = NULL;
 	for (o = member->objtypes; o; o = o->next) {
 		OSyncObjTypeSink *sink = o->data;
 
@@ -727,7 +733,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		g_free(filename);
 	}
 	
-	OSyncCapabilities* capabilities = osync_member_get_capabilities(member);
+	capabilities = osync_member_get_capabilities(member);
 	if(capabilities) {
 		if(!osync_capabilities_member_set_capabilities(member, capabilities, error)) {
 			goto error;
@@ -790,9 +796,10 @@ long long int osync_member_get_id(OSyncMember *member)
  */
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtype)
 {
+	GList *o;
+
 	osync_assert(member);
 
-	GList *o;
 	for (o = member->objtypes; o; o = o->next) {
 		OSyncObjTypeSink *sink = o->data;
 		if (!strcmp(osync_objtype_sink_get_name(sink), objtype)) {
@@ -812,11 +819,12 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
 void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format)
 {
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+        OSyncObjFormatSink *format_sink = NULL;
 	if (!sink)
 		return;
 	
 	/* TODO: handle error */
-	OSyncObjFormatSink *format_sink = osync_objformat_sink_new(format, NULL);
+	format_sink = osync_objformat_sink_new(format, NULL);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
 	osync_objformat_sink_unref(format_sink);
 }
@@ -832,10 +840,11 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
 void osync_member_add_objformat_with_config(OSyncMember *member, const char *objtype, const char *format, const char *format_config)
 {
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+        OSyncObjFormatSink *format_sink = NULL;
 	if (!sink)
 		return;
 	
-	OSyncObjFormatSink *format_sink = osync_objformat_sink_new(format, NULL);
+	format_sink = osync_objformat_sink_new(format, NULL);
 	osync_objformat_sink_set_config(format_sink, format_config);
 	osync_objtype_sink_add_objformat_sink(sink, format_sink);
 	osync_objformat_sink_unref(format_sink);
@@ -995,8 +1004,9 @@ osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities 
 		osync_capabilities_unref(member->capabilities);
 	member->capabilities = capabilities;
 	if(capabilities) {
+                OSyncMerger* merger = NULL;
 		osync_capabilities_ref(member->capabilities);
-		OSyncMerger* merger = osync_merger_new(member->capabilities, error);
+		merger = osync_merger_new(member->capabilities, error);
 		if(!merger)
 			return FALSE;
 		_osync_member_set_merger(member, merger);
@@ -1060,9 +1070,6 @@ OSyncObjTypeSink *osync_member_get_main_sink(OSyncMember *member)
  */
 osync_bool osync_member_config_is_uptodate(OSyncMember *member)
 {
-	osync_assert(member);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
-
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 	OSyncError *error = NULL;
@@ -1070,8 +1077,12 @@ osync_bool osync_member_config_is_uptodate(OSyncMember *member)
 	unsigned int version_minor;
 	xmlChar *version_str = NULL;
 	osync_bool uptodate = FALSE;
+        char *config = NULL;
 
-	char *config = g_strdup_printf("%s%c%s",
+	osync_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+
+	config = g_strdup_printf("%s%c%s",
 			osync_member_get_configdir(member),
 			G_DIR_SEPARATOR, "syncmember.conf");
 	
@@ -1112,9 +1123,6 @@ end:
  */
 osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 {
-	osync_assert(member);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
-
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
 	OSyncError *error = NULL;
@@ -1122,8 +1130,12 @@ osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 	unsigned int version_minor;
 	xmlChar *version_str = NULL;
 	osync_bool uptodate = FALSE;
+        char *config = NULL;
 
-	char *config = g_strdup_printf("%s%c%s",
+	osync_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+
+	config = g_strdup_printf("%s%c%s",
 			osync_member_get_configdir(member),
 			G_DIR_SEPARATOR, osync_member_get_pluginname(member));
 	

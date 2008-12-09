@@ -23,7 +23,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #include <glib.h>
 
@@ -333,10 +335,9 @@ static void parse_args(int argc, char **argv) {
  */
 
 static osync_bool init(OSyncError **error) {
+	OSyncPluginConfig *config;
 	assert(!plugin);
 	assert(!plugin_env);
-
-	OSyncPluginConfig *config;
 
 	if (!(plugin_env = osync_plugin_env_new(error)))
 		goto error;
@@ -363,6 +364,7 @@ static osync_bool init(OSyncError **error) {
 		goto error_free_plugininfo;
 
         if (osync_plugin_get_config_type(plugin) != OSYNC_PLUGIN_NO_CONFIGURATION && configfile) {
+		OSyncList *r = NULL;
 		if (!osync_plugin_config_file_load(config, configfile, NULL, error))
 			goto error_free_pluginconfig;
 
@@ -370,7 +372,6 @@ static osync_bool init(OSyncError **error) {
 
 		/** Redudant(aka. stolen) code from opensync/client/opensync_client.c */
 		/* Enable active sinks */
-		OSyncList *r = NULL;
 
 		if (config)
 			r = osync_plugin_config_get_resources(config);
@@ -380,6 +381,7 @@ static osync_bool init(OSyncError **error) {
 			OSyncObjTypeSink *sink;
 
 			const char *objtype = osync_plugin_resource_get_objtype(res); 
+			OSyncList *o = NULL;
 			/* Check for ObjType sink */
 			if (!(sink = osync_plugin_info_find_objtype(plugin_info, objtype))) {
 				sink = osync_objtype_sink_new(objtype, error);
@@ -389,7 +391,7 @@ static osync_bool init(OSyncError **error) {
 				osync_plugin_info_add_objtype(plugin_info, sink);
 			}
 
-			OSyncList *o = osync_plugin_resource_get_objformat_sinks(res);
+			o = osync_plugin_resource_get_objformat_sinks(res);
 			for (; o; o = o->next) {
 				OSyncObjFormatSink *format_sink = (OSyncObjFormatSink *) o->data; 
 				osync_objtype_sink_add_objformat_sink(sink, format_sink);
@@ -456,9 +458,10 @@ static void finalize_plugin(void **plugin_data)
 
 static OSyncObjTypeSink *find_sink(const char *objtype, OSyncError **error)
 {
+        OSyncObjTypeSink *sink = NULL;
 	assert(objtype);
 
-	OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(plugin_info, objtype);
+	sink = osync_plugin_info_find_objtype(plugin_info, objtype);
 	if (!sink) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
 		return NULL;
@@ -474,9 +477,8 @@ static OSyncObjTypeSink *get_main_sink()
 
 static const char *_osyncplugin_changetype_str(OSyncChange *change)
 {
-	assert(change);
-
 	const char *type;
+	assert(change);
 
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_ADDED:
@@ -538,6 +540,7 @@ static void _osyncplugin_ctx_callback_getchanges(void *user_data, OSyncError *er
 
 static osync_bool get_changes_sink(Command *cmd, OSyncObjTypeSink *sink, SyncType type, void *plugin_data, OSyncError **error)
 {
+        OSyncContext *context = NULL;
 	assert(sink);
 
 	switch (type) {
@@ -551,7 +554,7 @@ static osync_bool get_changes_sink(Command *cmd, OSyncObjTypeSink *sink, SyncTyp
 			break;
 	}
 
-	OSyncContext *context = osync_context_new(error);
+	context = osync_context_new(error);
 	if (!context)
 		goto error;
 
@@ -612,12 +615,14 @@ error:
 
 static void _osyncplugin_ctx_callback_connect(void *user_data, OSyncError *error)
 {
+	OSyncError *locerror = NULL;
+	Command *cmd = NULL;
+	OSyncObjTypeSink *sink = NULL;
+
 	assert(user_data);
 
-	OSyncError *locerror = NULL;
-
-	Command *cmd = (Command *) user_data;		
-	OSyncObjTypeSink *sink = cmd->sink;
+	cmd = (Command *) user_data;		
+	sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
@@ -644,11 +649,11 @@ error:
 }
 
 static osync_bool connect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
-
+        OSyncContext *context = NULL;
 	assert(sink);
 	assert(cmd);
 
-	OSyncContext *context = osync_context_new(error);
+	context = osync_context_new(error);
 	if (!context)
 		goto error;
 
@@ -668,9 +673,8 @@ error:
 	return FALSE;
 }
 
-static osync_bool connect(Command *cmd, void *plugin_data, OSyncError **error)
-{
-	
+static osync_bool connect_plugin(Command *cmd, void *plugin_data, OSyncError **error)
+{	
 	unsigned int i, num;
 	OSyncObjTypeSink *sink = NULL;
 	const char *objtype = cmd->arg;
@@ -704,12 +708,14 @@ error:
 
 static void _osyncplugin_ctx_callback_disconnect(void *user_data, OSyncError *error)
 {
+	OSyncError *locerror = NULL;
+	Command *cmd = NULL;
+	OSyncObjTypeSink *sink = NULL;
+
 	assert(user_data);
 
-	OSyncError *locerror = NULL;
-
-	Command *cmd = (Command *) user_data;		
-	OSyncObjTypeSink *sink = cmd->sink;
+	cmd = (Command *) user_data;		
+	sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
@@ -735,11 +741,10 @@ error:
 }
 
 static osync_bool disconnect_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
-
+	OSyncContext *context = osync_context_new(error);
 	assert(sink);
 	assert(cmd);
 
-	OSyncContext *context = osync_context_new(error);
 	if (!context)
 		goto error;
 
@@ -795,12 +800,14 @@ error:
 
 static void _osyncplugin_ctx_callback_commit_change(void *user_data, OSyncError *error)
 {
+	OSyncError *locerror = NULL;
+	Command *cmd = NULL;
+	OSyncObjTypeSink *sink = NULL;
+
 	assert(user_data);
 
-	OSyncError *locerror = NULL;
-
-	Command *cmd = (Command *) user_data;		
-	OSyncObjTypeSink *sink = cmd->sink;
+	cmd = (Command *) user_data;		
+	sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
@@ -820,11 +827,11 @@ error:
 }
 
 static osync_bool commit_sink(Command *cmd, OSyncObjTypeSink *sink, OSyncChange *change, void *plugin_data, OSyncError **error) {
-
+        OSyncContext *context = NULL;
 	assert(sink);
 	assert(change);
 
-	OSyncContext *context = osync_context_new(error);
+	context = osync_context_new(error);
 	if (!context)
 		goto error;
 
@@ -851,11 +858,11 @@ error:
 
 static osync_bool commit(Command *cmd, OSyncChange *change, void *plugin_data, OSyncError **error)
 {
-	assert(change);
-
 	int i, num;
 	OSyncObjTypeSink *sink = NULL;
 	const char *objtype = cmd->arg;
+
+	assert(change);
 
 	if (objtype) {
 		sink = find_sink(objtype, error);
@@ -912,12 +919,13 @@ error:
 
 static void _osyncplugin_ctx_callback_syncdone(void *user_data, OSyncError *error)
 {
+	OSyncError *locerror = NULL;
+	Command *cmd = (Command *) user_data;		
+	OSyncObjTypeSink *sink = NULL;
+
 	assert(user_data);
 
-	OSyncError *locerror = NULL;
-
-	Command *cmd = (Command *) user_data;		
-	OSyncObjTypeSink *sink = cmd->sink;
+	sink = cmd->sink;
 
 	if (error) {
 		osync_error_set_from_error(&locerror, &error);
@@ -936,11 +944,11 @@ error:
 }
 
 static osync_bool syncdone_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
-
+        OSyncContext *context = NULL;
 	assert(sink);
 	assert(cmd);
 
-	OSyncContext *context = osync_context_new(error);
+	context = osync_context_new(error);
 	if (!context)
 		goto error;
 
@@ -996,10 +1004,11 @@ error:
 
 static void _osyncplugin_ctx_callback_committedall(void *user_data, OSyncError *error)
 {
-	assert(user_data);
-
 	OSyncError *locerror = NULL;
 	Command *cmd = (Command *) user_data;		
+
+	assert(user_data);
+
 	//OSyncObjTypeSink *sink = cmd->sink;
 
 	if (error) {
@@ -1019,11 +1028,11 @@ error:
 }
 
 static osync_bool committedall_sink(Command *cmd, OSyncObjTypeSink *sink, void *plugin_data, OSyncError **error) {
-
+	OSyncContext *context = NULL;
 	assert(sink);
 	assert(cmd);
 
-	OSyncContext *context = osync_context_new(error);
+	context = osync_context_new(error);
 	if (!context)
 		goto error;
 	
@@ -1102,7 +1111,7 @@ static osync_bool run_command(Command *cmd, void **plugin_data, OSyncError **err
 			finalize_plugin(plugin_data);
 			break;
 		case CMD_CONNECT:
-			if (!connect(cmd, *plugin_data, error))
+			if (!connect_plugin(cmd, *plugin_data, error))
 				goto error;
 			break;
 		case CMD_DISCONNECT:

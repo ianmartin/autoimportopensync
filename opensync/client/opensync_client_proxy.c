@@ -39,19 +39,21 @@
 #include "opensync-client.h"
 #include "opensync_client_internals.h"
 
-#include "opensync_client_proxy_internals.h"
-#include "opensync_client_proxy_private.h"
-
-
+#ifndef _WIN32
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#endif /* _WIN32 */
 
 #ifdef _WIN32
 /* Historical signals specified by POSIX. */
 #define SIGKILL 9   /* Kill (cannot be blocked, caught, or ignored).  */
 #define SIGTERM 15	/* can be caught and interpreted or ignored by the process */
+typedef int pid_t;
 #endif //_WIN32
+
+#include "opensync_client_proxy_internals.h"
+#include "opensync_client_proxy_private.h"
 
 typedef struct callContext {
 	OSyncClientProxy *proxy;
@@ -315,6 +317,17 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 	OSyncError *locerror = NULL;
 	OSyncVersion *version = NULL;
 	OSyncCapabilities *capabilities = NULL;
+        unsigned int num_sinks = 0;
+        unsigned int i = 0;
+        OSyncObjTypeSink *sink = NULL;
+        int sent_version = 0;
+        char* str = NULL;
+        int sent_capabilities = 0;
+        OSyncMember *member = NULL;
+        OSyncCapabilities *version_cap = NULL; 
+        unsigned int num_res = 0;
+	OSyncPluginConfig *config = NULL;
+        OSyncPluginResource *resource = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
 	
@@ -322,14 +335,11 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 		
 		osync_message_read_int(message, &proxy->has_main_sink);
 		
-		unsigned int num_sinks = 0;
 		osync_message_read_uint(message, &num_sinks);
 		
 		osync_trace(TRACE_INTERNAL, "main sink?: %i, num objs?: %i", proxy->has_main_sink, num_sinks);
 		
-		unsigned int i = 0;
 		for (i = 0; i < num_sinks; i++) {
-			OSyncObjTypeSink *sink = NULL;
 			if (!osync_demarshal_objtype_sink(message, &sink, &locerror))
 				goto error;
 
@@ -340,10 +350,8 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 		}
 		
 		/* Merger - Set the capabilities */
-		int sent_version;
 		osync_message_read_int(message, &sent_version);
 		if (sent_version) {
-			char* str;
 			version = osync_version_new(&locerror);
 			if(!version) {
 				goto error;
@@ -375,10 +383,8 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			g_free(str);	
 		}
 				
-		int sent_capabilities;
 		osync_message_read_int(message, &sent_capabilities);
 		if (sent_capabilities) {
-			char* str;
 			osync_message_read_string(message, &str);
 			capabilities = osync_capabilities_parse(str, strlen(str), &locerror);
 			g_free(str);
@@ -388,13 +394,12 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 		}
 		
 		/* we set the capabilities for the member only if they are not set yet */
- 		OSyncMember *member = osync_client_proxy_get_member(proxy);
+ 		member = osync_client_proxy_get_member(proxy);
  		if (member && osync_member_get_capabilities(member) == NULL)
  		{
 			osync_trace(TRACE_INTERNAL, "No capabilities set for the member right now. version: %p capabilities: %p\n", version, capabilities);
 
 			/* we take our own capabilities rather then from the client */ 
-			OSyncCapabilities *version_cap = NULL; 
 			if (version)
 				version_cap = osync_version_find_capabilities(version, &locerror);
 
@@ -423,15 +428,13 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 		if (member) {
 
 			/* Demarshal discovered resources */
-			unsigned int num_res;
-			OSyncPluginConfig *config = osync_member_get_config(member, &locerror);
+			config = osync_member_get_config(member, &locerror);
 			if (!config)
 				goto error;
 
 			osync_plugin_config_flush_resources(config);
 			osync_message_read_uint(message, &num_res);
 			for (i=0; i < num_res; i++) {
-				OSyncPluginResource *resource;
 				if (!osync_demarshal_pluginresource(message, &resource, &locerror))
 					goto error;
 
@@ -712,6 +715,7 @@ static void _osync_client_proxy_message_handler(OSyncMessage *message, void *use
 {
 	OSyncClientProxy *proxy = user_data;
 	OSyncError *error = NULL;
+        OSyncChange *change = NULL;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
 	
@@ -721,7 +725,6 @@ static void _osync_client_proxy_message_handler(OSyncMessage *message, void *use
 		case OSYNC_MESSAGE_READ_CHANGE:
 
 			osync_assert(proxy->change_callback);
-			OSyncChange *change = NULL;
 			
 			if (!osync_demarshal_change(message, &change, proxy->formatenv, &error))
 				goto error;
@@ -781,6 +784,7 @@ OSyncClientProxy *osync_client_proxy_ref(OSyncClientProxy *proxy)
 
 void osync_client_proxy_unref(OSyncClientProxy *proxy)
 {
+        OSyncObjTypeSink *sink = NULL;
 	osync_assert(proxy);
 	
 	if (g_atomic_int_dec_and_test(&(proxy->ref_count))) {
@@ -791,7 +795,7 @@ void osync_client_proxy_unref(OSyncClientProxy *proxy)
 			osync_member_unref(proxy->member);
 		
 		while (proxy->objtypes) {
-			OSyncObjTypeSink *sink = proxy->objtypes->data;
+			sink = proxy->objtypes->data;
 			osync_objtype_sink_unref(sink);
 			proxy->objtypes = g_list_remove(proxy->objtypes, sink);
 		}
@@ -832,6 +836,10 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 	OSyncQueue *read2 = NULL;
 	OSyncQueue *write1 = NULL;
 	OSyncQueue *write2 = NULL;
+        pid_t cpid = 0;
+        char *readfd = NULL;
+        char *writefd = NULL;
+        char *name = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p)", __func__, proxy, type, path, error);
 	osync_assert(proxy);
@@ -878,7 +886,8 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 
 			//if (!osync_queue_exists(proxy->outgoing) || !osync_queue_is_alive(proxy->outgoing)) {
 			if (!proxy->outgoing || !osync_queue_exists(proxy->outgoing) || !osync_queue_is_alive(proxy->outgoing)) {
-				pid_t cpid = fork();
+#ifndef _WIN32
+				cpid = fork();
 				if (cpid == 0) {
 					osync_trace_reset_indent();
 					
@@ -889,8 +898,8 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 					osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 					//char *memberstring = g_strdup_printf("%lli", osync_member_get_id(proxy->member));
 					//execlp("osplugin", "osplugin", osync_group_get_configdir(osync_member_get_group(osync_proxy_get_member(proxy)), memberstring, NULL);
-					char *readfd = g_strdup_printf("%i", osync_queue_get_fd(read1));
-					char *writefd = g_strdup_printf("%i", osync_queue_get_fd(write2));
+					readfd = g_strdup_printf("%i", osync_queue_get_fd(read1));
+					writefd = g_strdup_printf("%i", osync_queue_get_fd(write2));
 					execlp(OSPLUGIN, "osplugin", "-f", readfd, writefd, NULL);
 
 					if (errno == ENOENT) {
@@ -916,6 +925,7 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 				//}
 			
 				osync_trace(TRACE_INTERNAL, "Queue was created");
+#endif //_WIN32
 			}
 	
 			//if (proxy->child_pid) {
@@ -932,7 +942,7 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 		if (!osync_queue_connect(proxy->outgoing, OSYNC_QUEUE_SENDER, error))
 			goto error;
 	} else {
-		char *name = g_strdup_printf("%s%cpluginpipe", path, G_DIR_SEPARATOR);
+		name = g_strdup_printf("%s%cpluginpipe", path, G_DIR_SEPARATOR);
 		proxy->outgoing = osync_queue_new(name, error);
 		g_free(name);
 		if (!proxy->outgoing)
@@ -978,6 +988,7 @@ error:
 osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **error)
 {
 	OSyncMessage *message = NULL;
+        int status = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, proxy, error);
 	
 	/* We first disconnect our reading queue. This will generate a HUP
@@ -1004,7 +1015,7 @@ osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **err
 		osync_client_unref(proxy->client);
 	} else if (proxy->type == OSYNC_START_TYPE_PROCESS) {
 		if (proxy->child_pid) {
-			int status;
+#ifndef _WIN32
 			if (waitpid(proxy->child_pid, &status, 0) == -1) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Error waiting for osplugin process: %s", g_strerror(errno));
 				goto error;
@@ -1014,6 +1025,7 @@ osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **err
 				osync_trace(TRACE_INTERNAL, "Child has exited abnormally");
 			else if (WEXITSTATUS(status) != 0)
 				osync_trace(TRACE_INTERNAL, "Child has returned non-zero exit status (%d)", WEXITSTATUS(status));
+#endif //_WIN32
 
 			//if (!osync_client_remove_pidfile(client, error))
 			//	goto error;
@@ -1069,12 +1081,16 @@ static osync_bool osync_client_proxy_check_resource(OSyncClientProxy *proxy, OSy
 
 osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, OSyncPluginConfig *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
+        callContext *ctx = NULL;
+        int haspluginconfig = config ? TRUE : FALSE;
+        OSyncMessage *message = NULL;
+        long long int memberid = 0; 
+	
+        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
 	osync_assert(proxy);
 	
-	int haspluginconfig = config ? TRUE : FALSE;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
@@ -1082,7 +1098,7 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	ctx->init_callback = callback;
 	ctx->init_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, error);
 	if (!message)
 		goto error;
 	
@@ -1101,6 +1117,9 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 		OSyncList *r = osync_plugin_config_get_resources(config);
 		for (; r; r = r->next) {
 			OSyncPluginResource *res = r->data;
+			const char *objtype = NULL;
+			OSyncObjTypeSink *sink = NULL;
+
 
 			if (!osync_plugin_resource_is_enabled(res))
 				continue;
@@ -1108,8 +1127,8 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 			if (!osync_client_proxy_check_resource(proxy, res, error))
 				goto error;
 
-			const char *objtype = osync_plugin_resource_get_objtype(res);
-			OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+			objtype = osync_plugin_resource_get_objtype(res);
+			sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 			 /* TODO: In discovery phase *sink COULD be NULL. Review if this is correct behavior. */
 			if (sink) {
 				osync_objtype_sink_ref(sink);
@@ -1120,7 +1139,6 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 
 #ifdef OPENSYNC_UNITTESTS
 	// Introduced (only) for testing/debugging purpose (mock-sync)
-	long long int memberid = 0; 
 
 	if (proxy->member)
 		memberid = osync_member_get_id(proxy->member);
@@ -1165,9 +1183,12 @@ void osync_client_proxy_set_initialize_timeout(OSyncClientProxy *proxy, unsigned
 
 osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error)
 {
+        callContext *ctx = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, proxy, callback, userdata, error);
 	
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
@@ -1175,7 +1196,7 @@ osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb call
 	ctx->fin_callback = callback;
 	ctx->fin_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_FINALIZE, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_FINALIZE, 0, error);
 	if (!message)
 		goto error;
 
@@ -1210,9 +1231,12 @@ void osync_client_proxy_set_finalize_timeout(OSyncClientProxy *proxy, unsigned i
 
 osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error)
 {
+        callContext *ctx = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, proxy, callback, userdata, error);
 	
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
@@ -1220,7 +1244,7 @@ osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb call
 	ctx->discover_callback = callback;
 	ctx->discover_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_DISCOVER, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_DISCOVER, 0, error);
 	if (!message)
 		goto error;
 
@@ -1267,10 +1291,13 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 
 OSyncObjTypeSink *osync_client_proxy_find_objtype_sink(OSyncClientProxy *proxy, const char *objtype)
 {
+        GList *o = NULL;
+        OSyncObjTypeSink *sink = NULL;
+
 	osync_assert(proxy);
-	GList *o;
+
 	for (o = proxy->objtypes; o; o = o->next) {
-		OSyncObjTypeSink *sink = o->data;
+		sink = o->data;
 		if (!objtype && !osync_objtype_sink_get_name(sink))
 			return sink;
 
@@ -1288,11 +1315,16 @@ OSyncObjTypeSink *osync_client_proxy_find_objtype_sink(OSyncClientProxy *proxy, 
 
 osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
 	
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_CONNECT;
+        osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
+	
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_CONNECT;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
@@ -1300,11 +1332,11 @@ osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callba
 	ctx->connect_callback = callback;
 	ctx->connect_callback_data = userdata;
 	
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
 		timeout = osync_objtype_sink_get_connect_timeout_or_default(sink); 
 
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_CONNECT, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_CONNECT, 0, error);
 	if (!message)
 		goto error_free_context;
 	
@@ -1333,15 +1365,20 @@ error:
 
 osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_DISCONNECT;
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_DISCONNECT;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
 		timeout = osync_objtype_sink_get_disconnect_timeout_or_default(sink); 
 
@@ -1349,7 +1386,7 @@ osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb 
 	ctx->disconnect_callback = callback;
 	ctx->disconnect_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_DISCONNECT, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_DISCONNECT, 0, error);
 	if (!message)
 		goto error_free_context;
 	
@@ -1376,15 +1413,20 @@ error:
 
 osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, void *userdata, OSyncChange *change, OSyncError **error)
 {
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, proxy, callback, userdata, change, error);
 	
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_READ;
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_READ;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
+	sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
 	if (sink)
 		timeout = osync_objtype_sink_get_read_timeout_or_default(sink); 
 
@@ -1392,7 +1434,7 @@ osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, vo
 	ctx->read_callback = callback;
 	ctx->read_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_READ_CHANGE, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_READ_CHANGE, 0, error);
 	if (!message)
 		goto error_free_context;
 	
@@ -1420,15 +1462,20 @@ error:
 
 osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %i, %p)", __func__, proxy, callback, userdata, objtype, slowsync, error);
 	
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_GETCHANGES;
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_GETCHANGES;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
 		timeout = osync_objtype_sink_get_getchanges_timeout_or_default(sink); 
 
@@ -1436,7 +1483,7 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 	ctx->get_changes_callback = callback;
 	ctx->get_changes_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_GET_CHANGES, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_GET_CHANGES, 0, error);
 	if (!message)
 		goto error_free_context;
 	
@@ -1464,17 +1511,22 @@ error:
 
 osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_change_cb callback, void *userdata, OSyncChange *change, OSyncError **error)
 {
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, proxy, callback, userdata, change, error);
 	osync_assert(proxy);
 	osync_assert(change);
 
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_COMMIT;
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_COMMIT;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
+	sink = osync_client_proxy_find_objtype_sink(proxy, osync_change_get_objtype(change));
 	if (sink)
 		timeout = osync_objtype_sink_get_commit_timeout_or_default(sink); 
 	
@@ -1482,7 +1534,7 @@ osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_chan
 	ctx->commit_change_callback = callback;
 	ctx->commit_change_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMIT_CHANGE, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_COMMIT_CHANGE, 0, error);
 	if (!message)
 		goto error_free_context;
 	
@@ -1510,16 +1562,21 @@ error:
 
 osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	osync_assert(proxy);
 
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_COMMITTEDALL;
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_COMMITTEDALL;
 	
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 	
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
 		timeout = osync_objtype_sink_get_committedall_timeout_or_default(sink); 
 
@@ -1527,7 +1584,7 @@ osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_a
 	ctx->committed_all_callback = callback;
 	ctx->committed_all_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMITTED_ALL, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_COMMITTED_ALL, 0, error);
 	if (!message)
 		goto error_free_context;
 	
@@ -1554,16 +1611,21 @@ error:
 
 osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
+        int timeout = 0;
+        callContext *ctx = NULL;
+        OSyncObjTypeSink *sink = NULL;
+        OSyncMessage *message = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	osync_assert(proxy);
 
-	int timeout = OSYNC_CLIENT_PROXY_TIMEOUT_SYNCDONE;
+	timeout = OSYNC_CLIENT_PROXY_TIMEOUT_SYNCDONE;
 
-	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
 		goto error;
 
-	OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+	sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
 	if (sink)
 		timeout = osync_objtype_sink_get_syncdone_timeout_or_default(sink); 
 
@@ -1571,7 +1633,7 @@ osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb ca
 	ctx->sync_done_callback = callback;
 	ctx->sync_done_callback_data = userdata;
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_SYNC_DONE, 0, error);
+	message = osync_message_new(OSYNC_MESSAGE_SYNC_DONE, 0, error);
 	if (!message)
 		goto error_free_context;
 	

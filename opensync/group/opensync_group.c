@@ -68,6 +68,8 @@ static int flock(int fd, int operation)
        return fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &flock);
 }
 #endif //NOT_HAVE_FLOCK
+#else  //not defined _WIN32
+#include <io.h> /* For close() */
 #endif //not defined _WIN32
 
 /**
@@ -210,11 +212,12 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 		for (i = 0; i < num_member; i++) {
 			const char *objtype = osync_member_nth_objtype(member, i);
 			if (objtype != NULL) {
+                                int num = 0;
 				/* For each objtype, add 1 to the hashtable. If the objtype is
 			 	* the special objtype "data", add 1 to all objtypes */
 				if(!strcmp(objtype, "data"))
 					num_data++;
-				int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
+				num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
 				g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
 			}
 		}
@@ -415,9 +418,13 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 			} else
 				osync_trace(TRACE_INTERNAL, "error setting lock: %s", g_strerror(errno));
 		} else
+#else /* _WIN32 */
+                /* Windows cannot delete files which are open. When doing the backup, the lock file */
+                /* would be open */
+                close(group->lock_fd); 
 #endif
-			osync_trace(TRACE_INTERNAL, "Successfully locked");
-	}
+		osync_trace(TRACE_INTERNAL, "Successfully locked");
+	} /* g_open */
 	
 	g_free(lockfile);
 	
@@ -458,10 +465,8 @@ void osync_group_unlock(OSyncGroup *group)
     
 #ifndef _WIN32
 	flock(group->lock_fd, LOCK_UN);
+        close(group->lock_fd);	
 #endif
-
-	close(group->lock_fd);
-	
 	group->lock_fd = 0;
 	
 	lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
@@ -517,6 +522,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	int i;
 	xmlDocPtr doc;
 	char *tmstr = NULL;
+        char *version_str = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	osync_assert(group);
@@ -538,7 +544,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 
-	char *version_str = g_strdup_printf("%u.%u", OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION);
+	version_str = g_strdup_printf("%u.%u", OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION);
 	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
 	g_free(version_str);
 	
@@ -641,11 +647,10 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
  */
 osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
-
 	OSyncDB *db = NULL;
 	GList *m = NULL;
 	char *path = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 
 	osync_assert(group);
 
@@ -1234,9 +1239,6 @@ void osync_group_set_converter_enabled(OSyncGroup *group, osync_bool converter_e
  */
 osync_bool osync_group_is_uptodate(OSyncGroup *group)
 {
-	osync_assert(group);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
-
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
 	OSyncError *error = NULL;
@@ -1244,9 +1246,20 @@ osync_bool osync_group_is_uptodate(OSyncGroup *group)
 	unsigned int version_minor;
 	xmlChar *version_str = NULL;
 	osync_bool uptodate = FALSE;
+        char *config = NULL; 
+        const char *configdir = NULL;
 
-	char *config = g_strdup_printf("%s%c%s",
-			osync_group_get_configdir(group),
+	osync_assert(group);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+        
+        configdir = osync_group_get_configdir(group);
+        if (!configdir){
+          osync_trace(TRACE_EXIT, "%s(%p) - No configdir set", __func__, group);
+          return FALSE;
+        }
+
+	config = g_strdup_printf("%s%c%s",
+			configdir,
 			G_DIR_SEPARATOR, "syncgroup.conf");
 	
 	/* If syncgroup isn't present, we assume that update is required. */

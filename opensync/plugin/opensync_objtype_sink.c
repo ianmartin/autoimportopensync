@@ -125,10 +125,11 @@ OSyncObjFormatSink *osync_objtype_sink_nth_objformat_sink(OSyncObjTypeSink *sink
 
 OSyncObjFormatSink *osync_objtype_sink_find_objformat_sink(OSyncObjTypeSink *sink, OSyncObjFormat *objformat)
 {
+        OSyncList *f = NULL;
 	osync_assert(sink);
 	osync_assert(objformat);
 
-	OSyncList *f = sink->objformatsinks;
+	f = sink->objformatsinks;
 	for (; f; f = f->next) {
 		OSyncObjFormatSink *formatsink = f->data;
 		const char *objformat_name = osync_objformat_get_name(objformat);

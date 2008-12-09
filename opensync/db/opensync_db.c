@@ -33,9 +33,10 @@ static void _osync_db_trace(void *data, const char *query)
 
 OSyncDB *osync_db_new(OSyncError **error)
 {
+        OSyncDB *db = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 
-	OSyncDB *db = osync_try_malloc0(sizeof(OSyncDB), error);
+	db = osync_try_malloc0(sizeof(OSyncDB), error);
 	if (!db) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -64,11 +65,12 @@ osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error)
 
 osync_bool osync_db_close(OSyncDB *db, OSyncError **error)
 {
+        int rc = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
 
 	osync_assert(db);
 	
-	int rc = sqlite3_close(db->sqlite3db);
+	rc = sqlite3_close(db->sqlite3db);
 	if (rc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot close database: %s", sqlite3_errmsg(db->sqlite3db));
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db));
@@ -81,14 +83,12 @@ osync_bool osync_db_close(OSyncDB *db, OSyncError **error)
 
 int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
-	
-	osync_assert(db);
-	osync_assert(query);
-
 	int num;
 	char **result = NULL;
 	char *errmsg = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);	
+	osync_assert(db);
+	osync_assert(query);
 
 	if (sqlite3_get_table(db->sqlite3db, query, &result, &num, NULL, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable count result of query: %s", errmsg);
@@ -105,12 +105,11 @@ int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 
 osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 {
+        char *errmsg = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
 	
 	osync_assert(db);
 	osync_assert(query);
-
-	char *errmsg = NULL;
 
 	if (sqlite3_exec(db->sqlite3db, query, NULL, NULL, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to execute simple query: %s", errmsg);
@@ -125,16 +124,15 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 
 OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
-	
-	osync_assert(db);
-	osync_assert(query);
-
 	OSyncList *table = NULL;
 	int i, j, column_count = 0;
 	int numrows = 0, numcolumns = 0;
 	char **result = NULL;
 	char *errmsg = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);	
+	osync_assert(db);
+	osync_assert(query);
 
 	if (sqlite3_get_table(db->sqlite3db, query, &result, &numrows, &numcolumns, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to query table: %s", errmsg);
@@ -170,9 +168,9 @@ OSyncList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **err
 }
 
 void osync_db_free_list(OSyncList *list) {
+        OSyncList *row;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, list);
 
-	OSyncList *row;
 	for (row = list; row; row = row->next) {
 		osync_list_foreach((OSyncList *) row->data, (GFunc) g_free, NULL);
 		osync_list_free((OSyncList *) row->data);
@@ -185,13 +183,13 @@ void osync_db_free_list(OSyncList *list) {
 
 char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error)
 {
+	char *result = NULL;
+	sqlite3_stmt *ppStmt = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
 
 	osync_assert(db);
 	osync_assert(query);
-	
-	char *result = NULL;
-	sqlite3_stmt *ppStmt = NULL;
 
 	if (sqlite3_prepare(db->sqlite3db, query, -1, &ppStmt, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Query Error: %s", sqlite3_errmsg(db->sqlite3db));
@@ -225,13 +223,13 @@ error:
 
 int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error)
 {
+	int result = 0;
+	sqlite3_stmt *ppStmt = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
 
 	osync_assert(db);
 	osync_assert(query);
-	
-	int result = 0;
-	sqlite3_stmt *ppStmt = NULL;
 
 	if (sqlite3_prepare(db->sqlite3db, query, -1, &ppStmt, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Query Error: %s", sqlite3_errmsg(db->sqlite3db));
@@ -264,12 +262,13 @@ error:
 
 osync_bool osync_db_reset_table(OSyncDB *db, const char *tablename, OSyncError **error)
 {
+        char *query = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
 
 	osync_assert(db);
 	osync_assert(tablename);
 	
-	char *query = g_strdup_printf("DELETE FROM %s", tablename);
+	query = g_strdup_printf("DELETE FROM %s", tablename);
 
 	if (!osync_db_query(db, query, error))
 		goto error;
@@ -286,12 +285,13 @@ error:
 
 osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error)
 {
+	sqlite3_stmt *ppStmt = NULL;
+	char *query = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
 
 	osync_assert(db);
 
-	sqlite3_stmt *ppStmt = NULL;
-	char *query = g_strdup("SELECT name FROM (SELECT * FROM sqlite_master) WHERE type='table'");
+	query = g_strdup("SELECT name FROM (SELECT * FROM sqlite_master) WHERE type='table'");
 
 	if (sqlite3_prepare(db->sqlite3db, query, -1, &ppStmt, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Query Error: %s", sqlite3_errmsg(db->sqlite3db));
@@ -317,11 +317,11 @@ error:
 
 osync_bool osync_db_reset_full_by_path(const char *path, OSyncError **error)
 {
+        OSyncDB *db = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, path, error);
 
 	osync_assert(path);
 
-	OSyncDB *db = NULL;
 	if (!osync_db_open(db, path, error))
 		goto error;
 
@@ -338,14 +338,15 @@ error:
 
 int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error)
 {
+        sqlite3_stmt *ppStmt = NULL;
+	char *query = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
 
 	osync_assert(db);
 	osync_assert(tablename);
-	
-	sqlite3_stmt *ppStmt = NULL;
 
-	char *query = g_strdup_printf("SELECT name FROM (SELECT * FROM sqlite_master UNION ALL SELECT * FROM sqlite_temp_master) WHERE type='table' AND name='%s'",
+	query = g_strdup_printf("SELECT name FROM (SELECT * FROM sqlite_master UNION ALL SELECT * FROM sqlite_temp_master) WHERE type='table' AND name='%s'",
 			tablename);
 
 	if (sqlite3_prepare(db->sqlite3db, query, -1, &ppStmt, NULL) != SQLITE_OK) {
@@ -375,6 +376,9 @@ int osync_db_table_exists(OSyncDB *db, const char *tablename, OSyncError **error
 
 osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error)
 {
+        sqlite3_stmt *sqlite_stmt = NULL;
+        int rc = 0;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %u, %p)", __func__, db, query, size, error);
 	osync_trace(TRACE_SENSITIVE, "data parameter : %s", data);
 
@@ -383,9 +387,7 @@ osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, 
 	osync_assert(data);
 	osync_assert(size);
 
-	sqlite3_stmt *sqlite_stmt = NULL;
-
-	int rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
+	rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
 	if(rc != SQLITE_OK)
 		goto error_msg;
 
@@ -423,6 +425,10 @@ error:
 
 int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error)
 {
+        sqlite3_stmt *sqlite_stmt = NULL;
+        int rc = 0;
+        const char *tmp = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, db, query, data, size, error);
 
 	osync_assert(db);
@@ -430,9 +436,7 @@ int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int 
 	osync_assert(data);
 	osync_assert(size);
 
-	sqlite3_stmt *sqlite_stmt = NULL;
-
-	int rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
+	rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
 	if(rc != SQLITE_OK)
 		goto error_msg;
 	
@@ -444,7 +448,7 @@ int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int 
 		return 0;
 	}
 	
-	const char *tmp = sqlite3_column_blob(sqlite_stmt, 0);
+	tmp = sqlite3_column_blob(sqlite_stmt, 0);
 	*size = sqlite3_column_bytes(sqlite_stmt, 0);
 	if (*size == 0) {
 		sqlite3_reset(sqlite_stmt);

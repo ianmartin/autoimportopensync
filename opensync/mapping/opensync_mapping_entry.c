@@ -29,9 +29,10 @@
 
 OSyncMappingEntry *osync_mapping_entry_new(OSyncError **error)
 {
+        OSyncMappingEntry *entry = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncMappingEntry *entry = osync_try_malloc0(sizeof(OSyncMappingEntry), error);
+	entry = osync_try_malloc0(sizeof(OSyncMappingEntry), error);
 	if (!entry)
 		goto error;
 	entry->ref_count = 1;

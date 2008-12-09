@@ -77,14 +77,14 @@ static void osync_updater_set_error(OSyncUpdater *updater, OSyncError *error)
  */
 static osync_bool osync_updater_stylesheet_process(OSyncUpdater *updater, const char *config, const char *stylesheet, OSyncError **error)
 {
+	xmlDocPtr result = NULL, doc = NULL, style = NULL;
+	xsltTransformContextPtr ctxt = NULL;
+	xsltStylesheetPtr cur = NULL;
+
 	osync_assert(updater);
 	osync_assert(config);
 	osync_assert(stylesheet);
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, updater, config, stylesheet, error);
-
-	xmlDocPtr result = NULL, doc = NULL, style = NULL;
-	xsltTransformContextPtr ctxt = NULL;
-	xsltStylesheetPtr cur = NULL;
 
 	/* Register EXSLT extension.
 	   Required for exslt:node-set($rtf) */
@@ -92,19 +92,19 @@ static osync_bool osync_updater_stylesheet_process(OSyncUpdater *updater, const 
 
 	style = xmlReadFile(stylesheet, NULL, XSLT_PARSE_OPTIONS);
 	if (!style) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't read update stylesheet file: %s", stylesheet);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not read update stylesheet file: %s", stylesheet);
 		goto error;
 	}
 
 	doc = xmlReadFile(config, NULL, XSLT_PARSE_OPTIONS);
 	if (!doc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't read update stylesheet file: %s", config);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not read update stylesheet file: %s", config);
 		goto error;
 	}
 
 	cur = xsltParseStylesheetDoc(style);
 	if (!cur || cur->errors) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load update stylesheet.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not load update stylesheet.");
 		goto error;
 	}
 
@@ -164,17 +164,18 @@ error:
  */
 static osync_bool osync_updater_process_plugin_config(OSyncUpdater *updater, OSyncMember *member, OSyncError **error)
 {
-	osync_assert(updater);
-	osync_assert(member);
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, updater, member, error);
 	const char *configdir;
 	char *plugin_config = NULL;
 	char *update_stylesheet = NULL;
 
+	osync_assert(updater);
+	osync_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, updater, member, error);
+
 	/* Member configuration directory */
 	configdir = osync_member_get_configdir(member);
 	if (!configdir) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find member's configuration directory.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find member configuration directory.");
 		goto error;
 	}
 
@@ -183,7 +184,7 @@ static osync_bool osync_updater_process_plugin_config(OSyncUpdater *updater, OSy
 			osync_member_get_pluginname(member));
 
 	if (!plugin_config) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get enough memory to build plugin configuration path.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get enough memory to build plugin configuration path.");
 		goto error;
 	}
 
@@ -197,12 +198,12 @@ static osync_bool osync_updater_process_plugin_config(OSyncUpdater *updater, OSy
 			updater->plugin_version, OSYNC_UPDATER_SUFFIX);
 
 	if (!update_stylesheet) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get enough memory to build plugin update stylesheet path.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get enough memory to build plugin update stylesheet path.");
 		goto error;
 	}
 
 	if (!g_file_test(update_stylesheet, G_FILE_TEST_IS_REGULAR)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find update stylesheet for \"%s\" plugin in directory: %s", osync_member_get_pluginname(member), updater->updatesdir);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find update stylesheet for \"%s\" plugin in directory: %s", osync_member_get_pluginname(member), updater->updatesdir);
 		goto error;
 	}
 
@@ -237,28 +238,29 @@ error:
  */
 static osync_bool osync_updater_process_member_config(OSyncUpdater *updater, OSyncMember *member, OSyncError **error)
 {
-	osync_assert(updater);
-	osync_assert(member);
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, updater, member, error);
 	const char *configdir;
 	char *member_config = NULL;
 	char *update_stylesheet = NULL;
 
+	osync_assert(updater);
+	osync_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, updater, member, error);
+
 	/* Member configuration directory */
 	configdir = osync_member_get_configdir(member);
 	if (!configdir) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find member's configuration directory.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnot find member configuration directory.");
 		goto error;
 	}
 
 	member_config = g_strdup_printf("%s%csyncmember.conf", configdir, G_DIR_SEPARATOR);
 	if (!member_config) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get enough memory to build member configuration path.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get enough memory to build member configuration path.");
 		goto error;
 	}
 
 	if (!g_file_test(member_config, G_FILE_TEST_IS_REGULAR)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find member's configuration file: %s", member_config);
+                osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find member configuration file %s", member_config);
 		goto error;
 	}
 
@@ -267,12 +269,12 @@ static osync_bool osync_updater_process_member_config(OSyncUpdater *updater, OSy
 			updater->member_version, OSYNC_UPDATER_SUFFIX);
 
 	if (!update_stylesheet) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get enough memory to build member configuration update stylesheet path.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get enough memory to build member configuration update stylesheet path.");
 		goto error;
 	}
 
 	if (!g_file_test(update_stylesheet, G_FILE_TEST_IS_REGULAR)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find update stylesheet for member configuratoin in directory: %s", updater->updatesdir);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find update stylesheet for member configuration in directory: %s", updater->updatesdir);
 		goto error;
 	}
 
@@ -305,11 +307,14 @@ error:
  */
 static osync_bool osync_updater_process_member(OSyncUpdater *updater, int nthmember, OSyncError **error)
 {
+        OSyncMember *member = NULL;
 	osync_assert(updater);
 	osync_trace(TRACE_ENTRY, "%s(%p, %u, %p)", __func__, updater, nthmember, error);
-	OSyncMember *member = osync_group_nth_member(updater->group, nthmember);
+
+	osync_trace(TRACE_INTERNAL, "%s: %s", __func__, osync_error_print(error));
+	member = osync_group_nth_member(updater->group, nthmember);
 	if (!member) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find #%i member in this group.", nthmember);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find #%i member in this group.", nthmember);
 		goto error;
 	}
 
@@ -336,28 +341,28 @@ error:
  */
 static osync_bool osync_updater_process_group(OSyncUpdater *updater, OSyncError **error)
 {
-	osync_assert(updater);
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, updater, error);
-
 	const char *configdir;
 	char *group_config = NULL;
 	char *update_stylesheet = NULL;
 
+	osync_assert(updater);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, updater, error);
+
 	/* Group configuration directory */
 	configdir = osync_group_get_configdir(updater->group);
 	if (!configdir) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find group configuration directory.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find group configuration directory.");
 		goto error;
 	}
 
 	group_config = g_strdup_printf("%s%c%s", configdir, G_DIR_SEPARATOR, "syncgroup.conf");
 	if (!group_config) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get enough memory to build group configuration path.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get enough memory to build group configuration path.");
 		goto error;
 	}
 
 	if (!g_file_test(group_config, G_FILE_TEST_IS_REGULAR)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find group configuration file: %s", group_config);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find group configuration file: %s", group_config);
 		goto error;
 	}
 
@@ -366,12 +371,12 @@ static osync_bool osync_updater_process_group(OSyncUpdater *updater, OSyncError 
 			updater->group_version, OSYNC_UPDATER_SUFFIX);
 
 	if (!update_stylesheet) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get enough memory to build group update stylesheet path.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get enough memory to build group update stylesheet path.");
 		goto error;
 	}
 
 	if (!g_file_test(update_stylesheet, G_FILE_TEST_IS_REGULAR)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't find update stylesheet for group configuration in directory: %s", updater->updatesdir);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find update stylesheet for group configuration in directory: %s", updater->updatesdir);
 		goto error;
 	}
 
@@ -408,24 +413,28 @@ error:
  */
 static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **error)
 {
-	osync_assert(updater);
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, updater, error);
-
 	GDir *dir = NULL, *member_dir = NULL;
 	GError *gerror = NULL;
 	const char *de = NULL, *member_de = NULL;
 	char *backup_groupdir = NULL;
 	struct stat orig_stat;
+        const char *orig_groupdir = NULL;
+	char *config, *copy_config, *content, *member_path;
+	gsize length;
 
-	const char *orig_groupdir = osync_group_get_configdir(updater->group);
 
-	backup_groupdir = g_strdup_printf("%s.bak", orig_groupdir);
+	osync_assert(updater);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, updater, error);
+
+	orig_groupdir = osync_group_get_configdir(updater->group);
 
 	/* Sanity check if group got loaded and has a configdir set */
 	if (!orig_groupdir) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "No group configuration directory set. Couldn't create Backup. Aborting.");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No group configuration directory set. Could not create Backup. Aborting.");
 		goto error;
 	}
+
+	backup_groupdir = g_strdup_printf("%s.bak", orig_groupdir);
 
 	/* #1 Move original group directory */
 	while (g_file_test(backup_groupdir, G_FILE_TEST_IS_DIR)) {
@@ -435,29 +444,27 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 	}
 
 	if (g_stat(orig_groupdir, &orig_stat) < 0) {
-		g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get information about group directory: %s",  gerror->message);
+                g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", orig_groupdir);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get information about group directory: %s",  gerror->message);
 		g_error_free(gerror);
 		goto error;
 	}
 
 	if (g_rename(orig_groupdir, backup_groupdir) < 0) {
-		g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't backup group directory: %s",  gerror->message);
+                g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", orig_groupdir);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not backup group directory: %s",  gerror->message);
 		g_error_free(gerror);
 		goto error;
 	}
 
 	if (g_mkdir(orig_groupdir, orig_stat.st_mode) < 0) { 
-		g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create new group directory: %s",  gerror->message);
+                g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", orig_groupdir);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not create new group directory: %s",  gerror->message);
 		g_error_free(gerror);
 		goto error;
 	}
 
 	/* #2 Copy group and member configurations */
-	char *config, *copy_config, *content, *member_path;
-	gsize length;
 	dir = g_dir_open(backup_groupdir, 0, &gerror);
 	if (!dir) {
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open group configdir %s", gerror->message);
@@ -473,8 +480,8 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 		}
 
 		if (g_stat(member_path, &orig_stat) < 0) {
-			g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't get information about member directory: %s",  gerror->message);
+                        g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", member_path);
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not get information about member directory: %s",  gerror->message);
 			g_error_free(gerror);
 			g_free(member_path);
 			goto error;
@@ -491,8 +498,8 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 
 		member_path = g_strdup_printf("%s%c%s%c", orig_groupdir, G_DIR_SEPARATOR, de, G_DIR_SEPARATOR);
 		if (g_mkdir(member_path, orig_stat.st_mode) < 0) { 
-			g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create new member directory: %s",  gerror->message);
+                        g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", member_path);
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not create new member directory: %s",  gerror->message);
 			g_error_free(gerror);
 			g_free(member_path);
 			goto error;
@@ -503,7 +510,8 @@ static char *osync_updater_create_backup(OSyncUpdater *updater, OSyncError **err
 			config = g_strdup_printf("%s%c%s%c%s", backup_groupdir, G_DIR_SEPARATOR, de, G_DIR_SEPARATOR, member_de);
 			
 			/* Only copy files ending with ".conf" */
-			if (!g_file_test(config, G_FILE_TEST_IS_REGULAR) || !sscanf(config, "%*s.conf")) {
+                        //			if (!g_file_test(config, G_FILE_TEST_IS_REGULAR) || !sscanf(config, "%*s.conf")) {
+			if (!g_file_test(config, G_FILE_TEST_IS_REGULAR) || !g_pattern_match_simple("*.conf", config)) {
 				g_free(config);
 				continue;
 			}
@@ -588,17 +596,21 @@ error:
  */
 static osync_bool osync_updater_restore_backup(OSyncUpdater *updater, const char *backup_path)
 {
-	osync_assert(updater);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, updater);
-
 	OSyncError *error = NULL;
 	GError *gerror = NULL;
 	char *backup_groupdir = NULL;
-	const char *groupdir = osync_group_get_configdir(updater->group);
+	const char *groupdir = NULL;
+        GDir *gdir = NULL, *mdir = NULL;
+        char *gdir_entry_path = NULL, *mdir_entry_path = NULL;
+        const char *gdir_entry = NULL, *mdir_entry = NULL;
+     
+	osync_assert(updater);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, updater);
 
+	groupdir = osync_group_get_configdir(updater->group);
 	/* Sanity check if group got loaded and a configdir is present */
 	if (!groupdir) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "No group configuration directory set. Couldn't restore Backup.");
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "No group configuration directory set. Could not restore Backup.");
 		goto error;
 	}
 
@@ -613,17 +625,16 @@ static osync_bool osync_updater_restore_backup(OSyncUpdater *updater, const char
 		backup_groupdir = g_strdup_printf("%s.bak", tmp);
 		g_free(tmp);
 	}
-
 	if (g_unlink(groupdir) < 0) {
-		g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Couldn't remove current group directory: %s",  gerror->message);
-		g_error_free(gerror);
+                g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", groupdir);
+          	osync_error_set(&error, OSYNC_ERROR_GENERIC, "Could not remove current group directory: %s",  gerror->message);
+          	g_error_free(gerror);
 		goto error;
 	}
 
 	if (g_rename(backup_groupdir, groupdir) < 0) {
-		g_set_error(&gerror, G_FILE_ERROR, errno, NULL);
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Couldn't restore backup group directory: %s",  gerror->message);
+                g_set_error(&gerror, G_FILE_ERROR, g_file_error_from_errno(errno), "%s", backup_groupdir);
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Could not restore backup group directory: %s",  gerror->message);
 		g_error_free(gerror);
 		goto error;
 	}
@@ -665,7 +676,7 @@ static void *osync_updater_run(void *userdata)
 
 	/* #1 Lock group */
 	if (osync_group_lock(updater->group) == OSYNC_LOCKED) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Group is locked. Can't process update on this group.");
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Group is locked. Can not process update on this group.");
 		goto error;
 	}
 
@@ -779,9 +790,9 @@ void osync_updater_set_plugin_version(OSyncUpdater *updater, int major)
  */
 OSyncUpdater *osync_updater_new(OSyncGroup *group, OSyncError **error)
 {
+	OSyncUpdater *updater = osync_try_malloc0(sizeof(OSyncUpdater), error);
 	osync_assert(group);
 
-	OSyncUpdater *updater = osync_try_malloc0(sizeof(OSyncUpdater), error);
 	if (!updater)
 		return NULL;
 
@@ -858,10 +869,9 @@ void osync_updater_set_callback(OSyncUpdater *updater, osync_updater_cb callback
  */
 osync_bool osync_updater_action_required(OSyncUpdater *updater)
 {
+	int i, num_members;
 	osync_assert(updater);
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, updater);
-
-	int i, num_members;
 
 	if (!osync_group_is_uptodate(updater->group)) {
 		osync_trace(TRACE_EXIT, "%s: The group requires action.", __func__);

@@ -52,11 +52,6 @@ static void usage (int ecode)
  * listen there until the engine tells us its locations in the init message */
 int main(int argc, char **argv)
 {
-	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
-	
-	if (argc != 2 && argc != 4)
-		usage(0);
-	
 	osync_bool usePipes = FALSE;
 	OSyncError *error = NULL;
 	char *pipe_path = NULL;
@@ -64,8 +59,13 @@ int main(int argc, char **argv)
 	int write_fd = 0;
 	OSyncQueue *incoming = NULL;
 	OSyncQueue *outgoing = NULL;
+	OSyncClient *client = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
 	
-	OSyncClient *client = osync_client_new(&error);
+	if (argc != 2 && argc != 4)
+		usage(0);
+	client = osync_client_new(&error);
 	if (!client)
 		goto error;
 	

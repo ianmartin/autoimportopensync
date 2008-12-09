@@ -46,10 +46,11 @@ const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat)
 
 OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error)
 {
+        OSyncXMLFormat *xmlformat = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, objtype, error);
 	osync_assert(objtype);
 	
-	OSyncXMLFormat *xmlformat = osync_try_malloc0(sizeof(OSyncXMLFormat), error);
+	xmlformat = osync_try_malloc0(sizeof(OSyncXMLFormat), error);
 	if(!xmlformat) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -70,10 +71,12 @@ OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error)
 
 OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSyncError **error)
 {
+        OSyncXMLFormat *xmlformat = NULL;
+	xmlNodePtr cur = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, buffer, size, error);
 	osync_assert(buffer);
 
-	OSyncXMLFormat *xmlformat = osync_try_malloc0(sizeof(OSyncXMLFormat), error);
+	xmlformat = osync_try_malloc0(sizeof(OSyncXMLFormat), error);
 	if(!xmlformat) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -93,7 +96,7 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 	xmlformat->child_count = 0;
 	xmlformat->doc->_private = xmlformat;
 		
-	xmlNodePtr cur = xmlDocGetRootElement(xmlformat->doc);
+	cur = xmlDocGetRootElement(xmlformat->doc);
 	cur = cur->children;
 	while (cur != NULL) {
 		OSyncXMLField *xmlfield = osync_xmlfield_new_node(xmlformat, cur, error);
@@ -145,14 +148,17 @@ OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat)
 
 OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error, ...)
 {
+	int index;
+	void *ret;
+	OSyncXMLField *cur, *key, *res;
+	OSyncXMLFieldList *xmlfieldlist = NULL;
+	void **liste = NULL;
+	osync_bool all_attr_equal;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, ...)", __func__, xmlformat, name, error);
 	osync_assert(xmlformat);
 	osync_assert(name);
 	
-	int index;
-	void *ret;
-	OSyncXMLField *cur, *key, *res;
-
 	/* Searching breaks if the xmlformat is not sorted (bsearch!).
 	   ASSERT in development builds (when NDEBUG is not defined) - see ticket #754. */
 	osync_assert(xmlformat->sorted);
@@ -161,11 +167,11 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 		goto error;
 	}
 
-	OSyncXMLFieldList *xmlfieldlist = osync_xmlfieldlist_new(error);
+	xmlfieldlist = osync_xmlfieldlist_new(error);
 	if (!xmlfieldlist)
 		goto error;
 
-	void **liste = osync_try_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count, error);
+	liste = osync_try_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count, error);
 	if (!liste)
 		goto error;
 
@@ -196,11 +202,10 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	/* we set the cur ptr to the first field from the fields with name name because -> bsearch -> more than one field with the same name*/
 	for (cur = res; cur->prev != NULL && !strcmp(osync_xmlfield_get_name(cur->prev), name); cur = cur->prev) ;
 
-	osync_bool all_attr_equal;
 	for (; cur != NULL && !strcmp(osync_xmlfield_get_name(cur), name); cur = cur->next) {
 		const char *attr, *value;
-		all_attr_equal = TRUE;
 		va_list args;
+		all_attr_equal = TRUE;
 		va_start(args, error);
 		do {
 			attr = va_arg(args, char *);
@@ -243,18 +248,19 @@ osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, un
 
 void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
-	osync_assert(xmlformat);
-	
 	int index;
 	OSyncXMLField *cur;
+	void **list = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
+	osync_assert(xmlformat);
 	
 	if(xmlformat->child_count <= 1) {
 		osync_trace(TRACE_INTERNAL, "child_count <= 1 - no need to sort");
 		goto end;
 	}
 	
-	void **list = g_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count);
+	list = g_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count);
 	
 	index = 0;
 	cur = osync_xmlformat_get_first_field(xmlformat);
@@ -293,10 +299,10 @@ end:
 
 osync_bool osync_xmlformat_is_sorted(OSyncXMLFormat *xmlformat)
 {
+	OSyncXMLField *cur, *prev = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
 	osync_assert(xmlformat);
-	
-	OSyncXMLField *cur, *prev = NULL;
 	
 	/* No need to check if sorted when 1 or less xmlfields */
 	if (xmlformat->child_count <= 1)
@@ -327,10 +333,10 @@ void osync_xmlformat_set_unsorted(OSyncXMLFormat *xmlformat)
 
 osync_bool osync_xmlformat_copy(OSyncXMLFormat *source, OSyncXMLFormat **destination, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, source, destination);
-
 	char *buffer = NULL;
 	unsigned int size;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, source, destination);
 
 	osync_xmlformat_assemble(source, &buffer, &size);
 	*destination = osync_xmlformat_parse(buffer, size, error);

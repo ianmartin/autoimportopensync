@@ -94,9 +94,8 @@ static char *osync_time_timestamp_remove_dash(const char *timestamp)
  
 char *osync_time_timestamp(const char *vtime)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
-
 	char *timestamp;
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
 
 	timestamp = osync_time_timestamp_remove_dash(vtime);
 
@@ -107,11 +106,11 @@ char *osync_time_timestamp(const char *vtime)
  
 char *osync_time_datestamp(const char *vtime)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
-
 	char *tmp;
 	const char *p;
 	GString *str = g_string_new ("");
+
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
 
 	tmp = osync_time_timestamp_remove_dash(vtime); 
 
@@ -163,9 +162,8 @@ osync_bool osync_time_isutc(const char *vtime)
  */
 char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime, time);
-
 	char *tmp = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime, time);
 	
 	// TODO
 
@@ -178,9 +176,8 @@ char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_ut
 
 struct tm *osync_time_vtime2tm(const char *vtime)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
-
 	struct tm *utime = g_malloc0(sizeof(struct tm));
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
 
 	utime->tm_year = 0;
 	utime->tm_mon = 0;
@@ -208,10 +205,10 @@ struct tm *osync_time_vtime2tm(const char *vtime)
 
 char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
 	GString *vtime = g_string_new("");
 	struct tm my_time = *time;
 	const char *tz = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
 
 	/* ask C library to clean up any anomalies */
 	if (is_utc) {
@@ -242,10 +239,10 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
 
 time_t osync_time_vtime2unix(const char *vtime, int offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %i)", __func__, vtime, offset);
 	struct tm *utime = NULL; 
 	time_t timestamp;
 	char *utc = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%s, %i)", __func__, vtime, offset);
 
 	utc = osync_time_vtime2utc(vtime, offset);
 	utime = osync_time_vtime2tm(utc);
@@ -261,9 +258,9 @@ time_t osync_time_vtime2unix(const char *vtime, int offset)
 
 char *osync_time_unix2vtime(const time_t *timestamp)
 {
-	osync_trace(TRACE_ENTRY, "%s(%lu)", __func__, *timestamp);
 	char *vtime;
 	struct tm utc;
+	osync_trace(TRACE_ENTRY, "%s(%lu)", __func__, *timestamp);
 
 	gmtime_r(timestamp, &utc);
 	vtime = osync_time_tm2vtime(&utc, TRUE);
@@ -300,12 +297,13 @@ time_t osync_time_utctm2unix(const struct tm *utctime)
 	struct tm *tmp = g_malloc0(sizeof(struct tm));
 	struct tm localnow;
 	struct tm check;
+	int tzdiff;
 
 	// calculate local timezone difference... this is only used
 	// to reduce the number of loops to find the correct match
 	time(&timestamp);
 	localtime_r(&timestamp, &localnow);
-	int tzdiff = osync_time_timezone_diff(&localnow);
+	tzdiff = osync_time_timezone_diff(&localnow);
 
 	// now loop, converting "local time" to time_t to utctm,
 	// and adjusting until there are no differences... this
@@ -382,12 +380,11 @@ struct tm *osync_time_unix2utctm(const time_t *timestamp)
   
 int osync_time_timezone_diff(const struct tm *local)
 {
-	osync_trace(TRACE_ENTRY, "%s()", __func__);
-
 	struct tm utime;
 	unsigned int lsecs, usecs;
 	long zonediff, daydiff = 0;
 	time_t timestamp;
+	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
 	/* convert local time to UTC */
 	timestamp = osync_time_localtm2unix(local);
@@ -442,8 +439,8 @@ int osync_time_timezone_diff(const struct tm *local)
  
 struct tm *osync_time_tm2utc(const struct tm *ltime, int offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, ltime, offset);
 	struct tm *tmtime = g_malloc0(sizeof(struct tm));
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, ltime, offset);
 
 	tmtime->tm_year = ltime->tm_year;
 	tmtime->tm_mon = ltime->tm_mon;
@@ -490,10 +487,9 @@ struct tm *osync_time_tm2localtime(const struct tm *utime, int offset)
  
 char *osync_time_vtime2utc(const char* localtime, int offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, localtime);
-
 	char *utc = NULL; 
 	struct tm *tm_local = NULL, *tm_utc = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, localtime);
 
 	if (strstr(localtime, "Z")) {
 		utc = g_strdup(localtime);
@@ -534,11 +530,10 @@ char *osync_time_vtime2localtime(const char* utc, int offset)
 
 int osync_time_utcoffset2sec(const char *offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset);
-
 	char csign = 0;
 	int seconds = 0, sign = 1;
 	int hours = 0, minutes = 0;
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset);
 
 	sscanf(offset, "%c%2d%2d", &csign, &hours, &minutes);
 
@@ -581,16 +576,18 @@ static void _convert_time_field(GString *entry, const char *field, osync_bool to
 	GString *stamp = g_string_new("");
 
 	if ((res = strstr(entry->str, field))) {
+		gssize pos = 0; 
+                struct tm *tm_stamp = NULL;
 		res += strlen(field);
 
 		for (i=0; res[i] != '\n' && res[i] != '\r'; i++)
 			stamp = g_string_append_c(stamp, res[i]);
 
-		gssize pos = res - entry->str; 
+		pos = res - entry->str; 
 		entry = g_string_erase(entry, pos, i);
 
 		// Get System offset to UTC
-		struct tm *tm_stamp = osync_time_vtime2tm(stamp->str);
+		tm_stamp = osync_time_vtime2tm(stamp->str);
 		tzdiff = osync_time_timezone_diff(tm_stamp);
 		g_free(tm_stamp);
 
@@ -637,10 +634,9 @@ char *osync_time_vcal2utc(const char *vcal)
 
 char *osync_time_sec2alarmdu(int seconds)
 {
-	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, seconds);
-
         char *tmp = NULL;
 	char *prefix = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, seconds);
 
 	if (!seconds) { 
 		tmp = g_strdup("PT0S");
@@ -699,12 +695,11 @@ end:
 
 int osync_time_alarmdu2sec(const char *alarm)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
-
         int i, secs, digits = 0;
         int is_digit = 0;
 	int sign = 1;	// when ical stamp doesn't start with '-' => seconds after event
         int days = 0, weeks = 0, hours = 0, minutes = 0, seconds = 0;
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
 
 	        for (i=0; i < (int) strlen(alarm); i++) {
 

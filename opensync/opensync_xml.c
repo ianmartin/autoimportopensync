@@ -66,11 +66,12 @@ void osync_xml_node_set(xmlNode *node, const char *name, const char *data, OSync
 
 xmlNode *osync_xml_node_add(xmlNode *parent, const char *name, const char *data)
 {
+        xmlNode *node = NULL;
 	if (!data)
 		return NULL;
 	if (strlen(data) == 0)
 		return NULL;
-	xmlNode *node = xmlNewTextChild(parent, NULL, (const xmlChar*)name, (const xmlChar*)data);
+	node = xmlNewTextChild(parent, NULL, (const xmlChar*)name, (const xmlChar*)data);
 	return node;
 }
 
@@ -112,8 +113,8 @@ xmlChar *osync_xml_find_node(xmlNode *parent, const char *name)
 
 xmlXPathObject *osync_xml_get_nodeset(xmlDoc *doc, const char *expression)
 {
-	xmlXPathContext *xpathCtx = NULL;
-	xmlXPathObject *xpathObj = NULL;
+    xmlXPathContext *xpathCtx = NULL;
+    xmlXPathObject *xpathObj = NULL;
     
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
@@ -145,11 +146,13 @@ void osync_xml_map_unknown_param(xmlNode *node, const char *paramname, const cha
 {
 	xmlNode *cur = node->xmlChildrenNode;
 	while (cur) {
+                xmlChar *name = NULL;
+                xmlChar *content = NULL;
 		if (xmlStrcmp(cur->name, (const xmlChar *)"UnknownParam"))
 			goto next;
 		
-		xmlChar *name = osync_xml_find_node(cur, "ParamName");
-		xmlChar *content = osync_xml_find_node(cur, "Content");
+		name = osync_xml_find_node(cur, "ParamName");
+		content = osync_xml_find_node(cur, "Content");
 		if (!xmlStrcmp(name, BAD_CAST paramname)) {
 			osync_xml_node_add(node, newname, (char *) content);
 			osync_xml_node_remove_unknown_mark(node);
@@ -188,6 +191,7 @@ osync_bool osync_xml_has_property(xmlNode *parent, const char *name)
 
 static osync_bool osync_xml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 {
+        xmlNode *rightstartnode = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p:%s, %p:%s)", __func__, leftnode, leftnode->name, rightnode, rightnode->name);
 	if (xmlStrcmp(leftnode->name, rightnode->name)) {
 		osync_trace(TRACE_EXIT, "%s: FALSE: Different Name", __func__);
@@ -196,7 +200,7 @@ static osync_bool osync_xml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 	
 	leftnode = leftnode->children;
 	rightnode = rightnode->children;
-	xmlNode *rightstartnode = rightnode;
+	rightstartnode = rightnode;
 	
 	if (!leftnode && !rightnode) {
 		osync_trace(TRACE_EXIT, "%s: TRUE. Both 0", __func__);
@@ -209,17 +213,19 @@ static osync_bool osync_xml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 	}
 	
 	do {
+                xmlChar *leftcontent = NULL;
 		if (!strcmp("UnknownParam", (char*)leftnode->name))
 			continue;
 		if (!strcmp("Order", (char*)leftnode->name))
 			continue;
 		rightnode = rightstartnode;
-		xmlChar *leftcontent = xmlNodeGetContent(leftnode);
+		leftcontent = xmlNodeGetContent(leftnode);
 		
 		do {
+                        xmlChar *rightcontent = NULL;
 			if (!strcmp("UnknownParam", (char*)rightnode->name))
 				continue;
-			xmlChar *rightcontent = xmlNodeGetContent(rightnode);
+			rightcontent = xmlNodeGetContent(rightnode);
 			
 			osync_trace(TRACE_INTERNAL, "leftcontent %s (%s), rightcontent %s (%s)", leftcontent, leftnode->name, rightcontent, rightnode->name);
 			if (leftcontent == rightcontent) {
@@ -249,17 +255,19 @@ static osync_bool osync_xml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 
 OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores, int default_score, int treshold)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, leftinpdoc, rightinpdoc, scores);
 	int z = 0, i = 0, n = 0;
 	int res_score = 0;
+	xmlDoc *leftdoc = NULL;
+	xmlDoc *rightdoc = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, leftinpdoc, rightinpdoc, scores);
 	
-	xmlDoc *leftdoc = xmlCopyDoc(leftinpdoc, TRUE);
-	xmlDoc *rightdoc = xmlCopyDoc(rightinpdoc, TRUE);
+	leftdoc = xmlCopyDoc(leftinpdoc, TRUE);
+	rightdoc = xmlCopyDoc(rightinpdoc, TRUE);
 	
 	osync_trace(TRACE_INTERNAL, "Comparing given score list");
 	while (scores && scores[z].path) {
 		OSyncXMLScore *score = &scores[z];
-		z++;
 		xmlXPathObject *leftxobj = osync_xml_get_nodeset(leftdoc, score->path);
 		xmlXPathObject *rightxobj = osync_xml_get_nodeset(rightdoc, score->path);
 		
@@ -268,6 +276,7 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
 		
 		int lsize = (lnodes) ? lnodes->nodeNr : 0;
 		int rsize = (rnodes) ? rnodes->nodeNr : 0;
+		z++;
 		osync_trace(TRACE_INTERNAL, "parsing next path %s", score->path);
 		
 		if (!score->value) {
@@ -287,10 +296,12 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
 				if (!lnodes->nodeTab[i])
 					continue;
 				for (n = 0; n < rsize; n++) {
+                                        xmlChar *lcontent = NULL;
+                                        xmlChar *rcontent = NULL;
 					if (!rnodes->nodeTab[n])
 						continue;
-					xmlChar *lcontent = osync_xml_find_node(lnodes->nodeTab[i], "Content");
-					xmlChar *rcontent = osync_xml_find_node(rnodes->nodeTab[n], "Content"); 
+					lcontent = osync_xml_find_node(lnodes->nodeTab[i], "Content");
+					rcontent = osync_xml_find_node(rnodes->nodeTab[n], "Content"); 
 					osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, lcontent, n, rnodes->nodeTab[n]->name, rcontent);
 					xmlFree(lcontent);
 					xmlFree(rcontent);
@@ -321,7 +332,8 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
 		xmlXPathFreeObject(leftxobj);
 		xmlXPathFreeObject(rightxobj);
 	}
-	
+
+	{ /* Block for new variables */
 	xmlXPathObject *leftxobj = osync_xml_get_nodeset(leftdoc, "/*/*");
 	xmlXPathObject *rightxobj = osync_xml_get_nodeset(rightdoc, "/*/*");
 	
@@ -330,16 +342,19 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
 	
 	int lsize = (lnodes) ? lnodes->nodeNr : 0;
 	int rsize = (rnodes) ? rnodes->nodeNr : 0;
-	
+        osync_bool same = TRUE;
 	osync_trace(TRACE_INTERNAL, "Comparing remaining list");
-	osync_bool same = TRUE;
+
 	for(i = 0; i < lsize; i++) {		
 		for (n = 0; n < rsize; n++) {
+                        xmlChar *lcontent = NULL;
+                        xmlChar *rcontent = NULL;
+
 			if (!rnodes->nodeTab[n])
 				continue;
 
-			xmlChar *lcontent = osync_xml_find_node(lnodes->nodeTab[i], "Content");
-			xmlChar *rcontent = osync_xml_find_node(rnodes->nodeTab[n], "Content"); 
+			lcontent = osync_xml_find_node(lnodes->nodeTab[i], "Content");
+			rcontent = osync_xml_find_node(rnodes->nodeTab[n], "Content"); 
 
 			osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, lcontent, n, rnodes->nodeTab[n]->name, rcontent);
 
@@ -386,12 +401,14 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
 
 	osync_xml_free_doc(leftdoc);
 	osync_xml_free_doc(rightdoc);	
+        
 
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
 	if (same) {
 		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
 		return OSYNC_CONV_DATA_SAME;
 	}
+        } /* Block for new variables */
 	if (res_score >= treshold) {
 		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
 		return OSYNC_CONV_DATA_SIMILAR;
@@ -407,9 +424,9 @@ OSyncConvCmpResult osync_xml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OS
  */
 char *osync_xml_write_to_string(xmlDoc *doc)
 {
-	xmlKeepBlanksDefault(0);
 	xmlChar *temp = NULL;
 	int size = 0;
+	xmlKeepBlanksDefault(0);
 	xmlDocDumpFormatMemoryEnc(doc, &temp, &size, NULL, 1);
 	return (char *)temp;
 }
@@ -438,9 +455,10 @@ osync_bool osync_xml_demarshal(OSyncMessage *message, char **output, unsigned in
 {
 	void *input = NULL;
 	int size = 0;
+        xmlDoc *doc = NULL;
 	osync_message_read_buffer(message, &input, &size);
 	
-	xmlDoc *doc = xmlParseMemory((char *)input, size);
+	doc = xmlParseMemory((char *)input, size);
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid XML data received");
 		goto error;
@@ -456,13 +474,13 @@ error:
 
 osync_bool osync_xml_validate_document(xmlDocPtr doc, char *schemafilepath)
 {
+	int rc = 0;
+ 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt = NULL;
+ 	xmlSchemaPtr xmlSchema = NULL;
+ 	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt = NULL;
+
 	osync_assert(doc);
 	osync_assert(schemafilepath);
-	
-	int rc = 0;
- 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
- 	xmlSchemaPtr xmlSchema;
- 	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt;
 	
  	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
  	xmlSchema = xmlSchemaParse(xmlSchemaParserCtxt);

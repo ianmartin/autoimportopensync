@@ -62,10 +62,11 @@
  */
 OSyncMerger *osync_merger_new(OSyncCapabilities *capabilities, OSyncError **error)
 {
+        OSyncMerger *merger = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, capabilities, error);
 	osync_assert(capabilities);
 	
-	OSyncMerger *merger = osync_try_malloc0(sizeof(OSyncMerger), error);
+	merger = osync_try_malloc0(sizeof(OSyncMerger), error);
 	if(!merger) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -250,7 +251,7 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	    After merging xmlformat is not sorted. Sorting is very expensive!
 	    Avoid it! Ticket: #754 */
 	 osync_assert(osync_xmlformat_is_sorted(xmlformat));
-
+         {
 #ifndef NDEBUG
 	 /* XXX Debugging only. Fix Merger and remove osync_xmlformat_assemble() */
 	 unsigned int size;
@@ -263,6 +264,7 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 #else
 	 osync_trace(TRACE_EXIT, "%s", __func__);
 #endif /* NDEBUG */
+         }
 
 }
 
@@ -312,6 +314,7 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 	 			
 	 			for(i=0; i < xmlfield_keys; i++)
 	 			{
+                                        int krc = 0;
 	 				if(j == capability_keys) {
 	 					for(; i < xmlfield_keys; i++) {
 	 						osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
@@ -320,7 +323,7 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 	 					break;
 	 				}
 	 				
-	 				int krc = strcmp(osync_xmlfield_get_nth_key_name(cur_xmlfield, i), osync_capability_get_nth_key(cur_capability, j));
+	 				krc = strcmp(osync_xmlfield_get_nth_key_name(cur_xmlfield, i), osync_capability_get_nth_key(cur_capability, j));
 	 				if(krc == 0) {
 	 					continue;
 	 				}	

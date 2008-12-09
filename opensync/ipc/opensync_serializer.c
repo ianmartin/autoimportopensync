@@ -34,8 +34,9 @@
 
 osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError **error)
 {
-	osync_assert(message);
-	osync_assert(data);
+        OSyncObjFormat *objformat = NULL;
+	char *input_data = NULL;
+	unsigned int input_size = 0;
 
 	/* Order:
 	 * 
@@ -48,15 +49,13 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 	osync_assert(data);
 	
 	/* Find the format */
-	OSyncObjFormat *objformat = osync_data_get_objformat(data);
+	objformat = osync_data_get_objformat(data);
 	
 	/* Write the format and objtype first */
 	osync_message_write_string(message, osync_objformat_get_name(objformat));
 	osync_message_write_string(message, osync_data_get_objtype(data));
 
 	/* Now we get the pointer to the data */
-	char *input_data = NULL;
-	unsigned int input_size = 0;
 	osync_data_get_data(data, &input_data, &input_size);
 	
 	if (input_size > 0) {
@@ -87,6 +86,13 @@ error:
 
 osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFormatEnv *env, OSyncError **error)
 {
+	char *objformat = NULL;
+	char *objtype = NULL;
+        OSyncObjFormat *format = NULL;
+	unsigned int input_size = 0;
+	char *input_data = NULL;
+	int has_data = 0;
+
 	osync_assert(message);
 	osync_assert(env);
 
@@ -98,22 +104,16 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 	 * data */
 	
 	/* Get the objtype and format */
-	char *objformat = NULL;
-	char *objtype = NULL;
 	osync_message_read_string(message, &objformat);
 	osync_message_read_string(message, &objtype);
 	
 	/* Search for the format */
-	OSyncObjFormat *format = osync_format_env_find_objformat(env, objformat);
+	format = osync_format_env_find_objformat(env, objformat);
 	if (!format) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objformat %s", objformat);
 		goto error;
 	}
 
-	unsigned int input_size = 0;
-	char *input_data = NULL;
-	
-	int has_data = 0;
 	osync_message_read_int(message, &has_data);
 	
 	if (has_data) {
@@ -151,6 +151,7 @@ error:
 
 osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyncError **error)
 {
+        OSyncData *data = NULL;
 	osync_assert(message);
 	osync_assert(change);
 
@@ -165,7 +166,7 @@ osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyn
 	osync_message_write_string(message, osync_change_get_hash(change));
 	osync_message_write_int(message, osync_change_get_changetype(change));
 	
-	OSyncData *data = osync_change_get_data(change);
+	data = osync_change_get_data(change);
 	if (!osync_marshal_data(message, data, error))
 		goto error;
 	
@@ -177,6 +178,11 @@ error:
 
 osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, OSyncFormatEnv *env, OSyncError **error)
 {
+	char *uid = NULL;
+	char *hash = NULL;
+	int change_type = OSYNC_CHANGE_TYPE_UNKNOWN;
+	OSyncData *data = NULL;
+
 	osync_assert(message);
 	osync_assert(env);
 
@@ -191,15 +197,10 @@ osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, O
 	if (!*change)
 		goto error;
 
-	char *uid = NULL;
-	char *hash = NULL;
-	int change_type = OSYNC_CHANGE_TYPE_UNKNOWN;
-	
  	osync_message_read_string(message, &uid);
 	osync_message_read_string(message, &hash);
 	osync_message_read_int(message, &change_type);
 
-	OSyncData *data = NULL;
 	if (!osync_demarshal_data(message, &data, env, error))
 		goto error_free_change;
 	
@@ -242,6 +243,9 @@ osync_bool osync_marshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSin
 
 osync_bool osync_demarshal_objformat_sink(OSyncMessage *message, OSyncObjFormatSink **sink, OSyncError **error)
 {
+	char *objformat_name = NULL;
+	char *objformat_sink_config = NULL;
+
 	osync_assert(message);
 
 	/* Order:
@@ -251,8 +255,6 @@ osync_bool osync_demarshal_objformat_sink(OSyncMessage *message, OSyncObjFormatS
 	 */
 	
 	/* Get the objtype and format */
-	char *objformat_name = NULL;
-	char *objformat_sink_config = NULL;
 	osync_message_read_string(message, &objformat_name);
 	
 	*sink = osync_objformat_sink_new(objformat_name, error);
@@ -272,6 +274,9 @@ error:
 
 osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *sink, OSyncError **error)
 {
+	int i = 0;
+	unsigned int num = 0;
+
 	osync_assert(message);
 	osync_assert(sink);
 
@@ -297,8 +302,7 @@ osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *s
 	 * 
 	 */
 	
-	int i = 0;
-	unsigned int num = osync_objtype_sink_num_objformat_sinks(sink);
+	num = osync_objtype_sink_num_objformat_sinks(sink);
 	osync_message_write_string(message, osync_objtype_sink_get_name(sink));
 
 	osync_message_write_int(message, osync_objtype_sink_get_function_read(sink));
@@ -339,6 +343,13 @@ error:
 
 osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink **sink, OSyncError **error)
 {
+	char *name = NULL;
+	char *preferred_format = NULL;
+	int num_formats = 0;
+	int enabled = 0, timeout = 0;
+	int read = 0, get_changes = 0, write = 0;
+	int i = 0;
+
 	osync_assert(message);
 
 	/* Order:
@@ -366,12 +377,6 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
 	*sink = osync_objtype_sink_new(NULL, error);
 	if (!*sink)
 		goto error;
-
-	char *name = NULL;
-	char *preferred_format = NULL;
-	int num_formats = 0;
-	int enabled = 0, timeout = 0;
-	int read = 0, get_changes = 0, write = 0;
 	
  	osync_message_read_string(message, &name);
  	osync_objtype_sink_set_name(*sink, name);
@@ -391,7 +396,6 @@ osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink 
  	g_free(preferred_format);
 
  	osync_message_read_int(message, &num_formats);
-	int i = 0;
 	for (i = 0; i < num_formats; i++) {
 		OSyncObjFormatSink *formatsink;
 		if (!osync_demarshal_objformat_sink(message, &formatsink, error)) 
@@ -444,9 +448,10 @@ void osync_marshal_error(OSyncMessage *message, OSyncError *error)
 	osync_assert(message);
 
 	if (error) {
+                const char *msg = NULL;
 		osync_message_write_int(message, 1);
 		osync_message_write_int(message, osync_error_get_type(&error));
-		const char *msg = osync_error_print(&error);
+		msg = osync_error_print(&error);
 		osync_message_write_string(message, msg);
 	} else {
 		osync_message_write_int(message, 0);
@@ -455,9 +460,8 @@ void osync_marshal_error(OSyncMessage *message, OSyncError *error)
 
 void osync_demarshal_error(OSyncMessage *message, OSyncError **error)
 {
-	osync_assert(message);
-
 	int hasError = 0;
+	osync_assert(message);
 
 	osync_message_read_int(message, &hasError);
 	
@@ -475,6 +479,7 @@ void osync_demarshal_error(OSyncMessage *message, OSyncError **error)
 
 osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConnection *conn, OSyncError **error)
 {
+        OSyncPluginConnectionType type;
 	osync_assert(message);
 	osync_assert(conn);
 
@@ -503,7 +508,7 @@ osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConn
 	 * irda_service (char *)
 	 */
 
-	OSyncPluginConnectionType type = osync_plugin_connection_get_type(conn);
+	type = osync_plugin_connection_get_type(conn);
 	osync_message_write_int(message, type);
 	switch(type) {
 		case OSYNC_PLUGIN_CONNECTION_BLUETOOTH:
@@ -539,6 +544,22 @@ osync_bool osync_marshal_pluginconnection(OSyncMessage *message, OSyncPluginConn
 
 osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginConnection **conn, OSyncError **error)
 {
+	int type; 
+
+	char *bt_address, *bt_sdpuuid;
+	unsigned int bt_channel;
+
+	char  *usb_vendorid, *usb_productid;
+	unsigned int usb_interface; 
+
+	unsigned int net_port;
+	char *net_address, *net_protocol, *net_dnssd;
+
+	unsigned int serial_speed;
+	char *serial_devicenode;
+
+	char *irda_service;
+
 	/* Order:
 	 *
 	 * type (int)
@@ -563,22 +584,6 @@ osync_bool osync_demarshal_pluginconnection(OSyncMessage *message, OSyncPluginCo
 	 * 
 	 * irda_service (char *)
 	 */
-	
-	int type; 
-
-	char *bt_address, *bt_sdpuuid;
-	unsigned int bt_channel;
-
-	char  *usb_vendorid, *usb_productid;
-	unsigned int usb_interface; 
-
-	unsigned int net_port;
-	char *net_address, *net_protocol, *net_dnssd;
-
-	unsigned int serial_speed;
-	char *serial_devicenode;
-
-	char *irda_service;
 
 	osync_message_read_int(message, &type);
 
@@ -658,6 +663,10 @@ error:
 
 osync_bool osync_marshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink *sink, OSyncError **error)
 {
+	unsigned int available_settings = 0;
+	const char *config = NULL;
+	const char *name = NULL;
+
 	osync_assert(message);
 	osync_assert(sink);
 
@@ -671,9 +680,8 @@ osync_bool osync_marshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink
 	 * config (string)
 	 */
 
-	unsigned int available_settings = 0;
-	const char *config = osync_objformat_sink_get_config(sink);
-	const char *name = osync_objformat_sink_get_objformat(sink);
+	config = osync_objformat_sink_get_config(sink);
+	name = osync_objformat_sink_get_objformat(sink);
 
 	osync_assert(name);
 	osync_message_write_string(message, name);
@@ -691,6 +699,10 @@ osync_bool osync_marshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink
 
 osync_bool osync_demarshal_objformatsink(OSyncMessage *message, OSyncObjFormatSink **sink, OSyncError **error)
 {
+	char *name = NULL;
+	char *config = NULL;
+	unsigned int available_settings = 0;
+
 	osync_assert(message);
 
 	/* Order:
@@ -702,11 +714,6 @@ osync_bool osync_demarshal_objformatsink(OSyncMessage *message, OSyncObjFormatSi
 	 * (optional)
 	 * config (string)
 	 */
-
-	char *name = NULL;
-	char *config = NULL;
-
-	unsigned int available_settings = 0;
 
 	osync_message_read_string(message, &name);
 	osync_assert(name);
@@ -738,6 +745,15 @@ error:
 
 osync_bool osync_marshal_pluginadvancedoption_param(OSyncMessage *message, OSyncPluginAdvancedOptionParameter *param, OSyncError **error)
 {
+	unsigned int available_subconfigs = 0;
+	const char *displayname = NULL;
+	const char *name = NULL;
+	unsigned int type = 0;
+	const char *value = NULL;
+	unsigned int num_valenum = 0;
+	unsigned int i;
+	OSyncList *valenum = NULL;
+
 	osync_assert(message);
 	osync_assert(param);
 
@@ -752,16 +768,6 @@ osync_bool osync_marshal_pluginadvancedoption_param(OSyncMessage *message, OSync
 	 * num_valenum (uint)
 	 * valenum (string list)
 	 */
-
-	unsigned int available_subconfigs = 0;
-	const char *displayname = NULL;
-	const char *name = NULL;
-	unsigned int type = 0;
-	const char *value = NULL;
-	unsigned int num_valenum = 0;
-	unsigned int i;
-	OSyncList *valenum = NULL;
-
 
 	displayname = osync_plugin_advancedoption_param_get_displayname(param);
 	if (displayname)
@@ -798,6 +804,20 @@ osync_bool osync_marshal_pluginadvancedoption_param(OSyncMessage *message, OSync
 
 osync_bool osync_marshal_pluginadvancedoption(OSyncMessage *message, OSyncPluginAdvancedOption *opt, OSyncError **error)
 {
+	unsigned int available_subconfigs = 0;
+	const char *displayname = NULL;
+	unsigned int maxoccurs = 0;
+	unsigned int maxsize = 0;
+	const char *name = NULL;
+	unsigned int type = 0;
+	const char *value = NULL;
+	unsigned int num_parameters = 0;
+	OSyncList *parameters;
+	const char *param = NULL;
+	unsigned int num_valenum = 0;
+	unsigned int i;
+	OSyncList *valenum = NULL;
+
 	osync_assert(message);
 	osync_assert(opt);
 
@@ -816,20 +836,6 @@ osync_bool osync_marshal_pluginadvancedoption(OSyncMessage *message, OSyncPlugin
 	 * num_valenum (uint)
 	 * valenum (string list)
 	 */
-
-	unsigned int available_subconfigs = 0;
-	const char *displayname = NULL;
-	unsigned int maxoccurs = 0;
-	unsigned int maxsize = 0;
-	const char *name = NULL;
-	unsigned int type = 0;
-	const char *value = NULL;
-	unsigned int num_parameters = 0;
-	OSyncList *parameters;
-	const char *param = NULL;
-	unsigned int num_valenum = 0;
-	unsigned int i;
-	OSyncList *valenum = NULL;
 
 	displayname = osync_plugin_advancedoption_get_displayname(opt);
 	if (displayname)
@@ -886,6 +892,13 @@ osync_bool osync_marshal_pluginadvancedoption(OSyncMessage *message, OSyncPlugin
 
 osync_bool osync_demarshal_pluginadvancedoption_param(OSyncMessage *message, OSyncPluginAdvancedOptionParameter **param, OSyncError **error)
 {
+	char *displayname = NULL;
+	char *name = NULL;
+	char *value = NULL;
+	unsigned int type;
+	unsigned int num_valenum;
+	unsigned int i;
+
 	/* Order:
 	 *
 	 * displayname (string)     (optional)
@@ -895,13 +908,6 @@ osync_bool osync_demarshal_pluginadvancedoption_param(OSyncMessage *message, OSy
 	 * num_valenum (uint)
 	 * valenum (string list)
 	 */
-
-	char *displayname = NULL;
-	char *name = NULL;
-	char *value = NULL;
-	unsigned int type;
-	unsigned int num_valenum;
-	unsigned int i;
 
 	*param = osync_plugin_advancedoption_param_new(error);
 	if (!*param)
@@ -1028,6 +1034,11 @@ error:
 
 osync_bool osync_marshal_pluginlocalization(OSyncMessage *message, OSyncPluginLocalization *local, OSyncError **error)
 {
+	unsigned int available_fields = 0;
+	const char *encoding = NULL;
+	const char *timezone = NULL;
+	const char *language = NULL;
+
 	osync_assert(message);
 	osync_assert(local);
 
@@ -1040,11 +1051,6 @@ osync_bool osync_marshal_pluginlocalization(OSyncMessage *message, OSyncPluginLo
 	 * timezone (string) (optional)
 	 * language (string) (optional)
 	 */
-
-	unsigned int available_fields = 0;
-	const char *encoding = NULL;
-	const char *timezone = NULL;
-	const char *language = NULL;
 
 	encoding = osync_plugin_localization_get_encoding(local);
 	timezone = osync_plugin_localization_get_timezone(local);
@@ -1075,13 +1081,13 @@ osync_bool osync_marshal_pluginlocalization(OSyncMessage *message, OSyncPluginLo
 
 osync_bool osync_demarshal_pluginlocalization(OSyncMessage *message, OSyncPluginLocalization **local, OSyncError **error)
 {
-	osync_assert(message);
-	osync_assert(local);
-
 	unsigned int available_fields = 0;
 	char *encoding = NULL;
 	char *timezone = NULL;
 	char *language = NULL;
+
+	osync_assert(message);
+	osync_assert(local);
 
 	*local = osync_plugin_localization_new(error);
 	if (!*local)
@@ -1119,6 +1125,11 @@ error:
 
 osync_bool osync_marshal_pluginauthentication(OSyncMessage *message, OSyncPluginAuthentication *auth, OSyncError **error)
 {
+	unsigned int available_fields = 0;
+	const char *username = NULL;
+	const char *password = NULL;
+	const char *reference = NULL;
+
 	osync_assert(message);
 	osync_assert(auth);
 
@@ -1132,11 +1143,6 @@ osync_bool osync_marshal_pluginauthentication(OSyncMessage *message, OSyncPlugin
 	 * reference (string) (optional)
 	 *
 	 */
-
-	unsigned int available_fields = 0;
-	const char *username = NULL;
-	const char *password = NULL;
-	const char *reference = NULL;
 
 	username = osync_plugin_authentication_get_username(auth);
 	password = osync_plugin_authentication_get_password(auth);
@@ -1165,6 +1171,11 @@ osync_bool osync_marshal_pluginauthentication(OSyncMessage *message, OSyncPlugin
 
 osync_bool osync_demarshal_pluginauthentication(OSyncMessage *message, OSyncPluginAuthentication **auth, OSyncError **error)
 {
+	unsigned int available_fields = 0;
+	char *username = NULL;
+	char *password = NULL;
+	char *reference = NULL;
+
 	osync_assert(message);
 
 	/*
@@ -1177,11 +1188,6 @@ osync_bool osync_demarshal_pluginauthentication(OSyncMessage *message, OSyncPlug
 	 * reference (string) (optional)
 	 *
 	 */
-
-	unsigned int available_fields = 0;
-	char *username = NULL;
-	char *password = NULL;
-	char *reference = NULL;
 
 	*auth = osync_plugin_authentication_new(error);
 	if (!*auth)
@@ -1219,6 +1225,17 @@ error:
 
 osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResource *res, OSyncError **error)
 {
+	unsigned int available_settings = 0;
+	const char *preferred_format = NULL;
+	const char *name = NULL;
+	const char *mime = NULL;
+	const char *objtype = NULL;
+	const char *path = NULL;
+	const char *url = NULL;
+	OSyncList *sinks = NULL;
+	unsigned int num_sinks = 0;
+	OSyncList *s = NULL;;
+
 	osync_assert(message);
 	osync_assert(res);
 
@@ -1237,15 +1254,12 @@ osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResour
 	 * path (string)
 	 * url (string)
 	 */
-
-	unsigned int available_settings = 0;
-
-	const char *preferred_format = osync_plugin_resource_get_preferred_format(res);
-	const char *name = osync_plugin_resource_get_name(res);
-	const char *mime = osync_plugin_resource_get_mime(res);
-	const char *objtype = osync_plugin_resource_get_objtype(res);
-	const char *path = osync_plugin_resource_get_path(res);
-	const char *url = osync_plugin_resource_get_url(res);
+	preferred_format = osync_plugin_resource_get_preferred_format(res);
+	name = osync_plugin_resource_get_name(res);
+	mime = osync_plugin_resource_get_mime(res);
+	objtype = osync_plugin_resource_get_objtype(res);
+	path = osync_plugin_resource_get_path(res);
+	url = osync_plugin_resource_get_url(res);
 
 	/* enabled */
 	osync_message_write_int(message, osync_plugin_resource_is_enabled(res));
@@ -1255,12 +1269,11 @@ osync_bool osync_marshal_pluginresource(OSyncMessage *message, OSyncPluginResour
 	osync_message_write_string(message, objtype);
 
 	/* num_sinks */
-	OSyncList *sinks = osync_plugin_resource_get_objformat_sinks(res);
-	unsigned int num_sinks = osync_list_length(sinks);
+	sinks = osync_plugin_resource_get_objformat_sinks(res);
+	num_sinks = osync_list_length(sinks);
 	osync_message_write_uint(message, num_sinks);
 
 	/* format sinks */
-	OSyncList *s;
 	for (s = osync_plugin_resource_get_objformat_sinks(res); s; s = s->next) {
 		OSyncObjFormatSink *sink = s->data;
 		if (!osync_marshal_objformatsink(message, sink, error))
@@ -1402,6 +1415,13 @@ error:
 
 osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *config, OSyncError **error)
 {
+	unsigned int available_subconfigs = 0;
+	OSyncPluginConnection *conn = NULL;
+	OSyncPluginAuthentication *auth = NULL;
+	OSyncPluginLocalization *local = NULL;
+        OSyncList *r = NULL;
+        OSyncList *aos = NULL;
+
 	osync_assert(message);
 	osync_assert(config);
 
@@ -1418,11 +1438,9 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 	 * $advancedoptions
 	 */
 
-	unsigned int available_subconfigs = 0;
-
-	OSyncPluginConnection *conn = osync_plugin_config_get_connection(config);
-	OSyncPluginAuthentication *auth = osync_plugin_config_get_authentication(config);
-	OSyncPluginLocalization *local = osync_plugin_config_get_localization(config);
+	conn = osync_plugin_config_get_connection(config);
+	auth = osync_plugin_config_get_authentication(config);
+	local = osync_plugin_config_get_localization(config);
 
 	if (conn)
 		available_subconfigs |= MARSHAL_PLUGINCONFIG_CONNECTION;
@@ -1444,7 +1462,7 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 	if (local && !osync_marshal_pluginlocalization(message, local, error))
 		goto error;
 
-	OSyncList *r = osync_plugin_config_get_resources(config);
+	r = osync_plugin_config_get_resources(config);
 	osync_message_write_uint(message, osync_list_length(r));
 
 	for (; r; r = r->next) {
@@ -1453,7 +1471,7 @@ osync_bool osync_marshal_pluginconfig(OSyncMessage *message, OSyncPluginConfig *
 			goto error;
 	}
 
-	OSyncList *aos = osync_plugin_config_get_advancedoptions(config);
+	aos = osync_plugin_config_get_advancedoptions(config);
 	osync_message_write_uint(message, osync_list_length(aos));
 
 	for (; aos; aos = aos->next) {

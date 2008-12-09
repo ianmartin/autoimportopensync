@@ -37,18 +37,20 @@
 
 static OSyncPluginAdvancedOptionParameter *_osync_plugin_config_parse_advancedoption_param(OSyncPluginAdvancedOption *option, xmlNode *cur, OSyncError **error)
 {
+        OSyncPluginAdvancedOptionParameter *param = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, option, cur, error);
 
-	OSyncPluginAdvancedOptionParameter *param = osync_plugin_advancedoption_param_new(error);
+	param = osync_plugin_advancedoption_param_new(error);
 	if (!param)
 		goto error;
 
 	for (; cur != NULL; cur = cur->next) {
+                char *str = NULL;
 
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -77,19 +79,21 @@ error:
 
 static OSyncPluginAdvancedOption *_osync_plugin_config_parse_advancedoption(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
+        OSyncPluginAdvancedOptionParameter *param = NULL;
+	OSyncPluginAdvancedOption *option = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
-	OSyncPluginAdvancedOptionParameter *param;
-	OSyncPluginAdvancedOption *option = osync_plugin_advancedoption_new(error);
+	option = osync_plugin_advancedoption_new(error);
 	if (!option)
 		goto error;
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -157,7 +161,7 @@ error:
 
 static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
-
+        OSyncPluginAuthentication *auth = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
 	if (cur == NULL) { // don't set auth if Authentication tag is empty
@@ -165,16 +169,16 @@ static osync_bool _osync_plugin_config_parse_authentication(OSyncPluginConfig *c
 		return TRUE;	
 	}
 	
-	OSyncPluginAuthentication *auth = osync_plugin_authentication_new(error);
+	auth = osync_plugin_authentication_new(error);
 	if (!auth)
 		goto error;
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -208,11 +212,11 @@ static osync_bool _osync_plugin_config_parse_connection_bluetooth(OSyncPluginCon
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -248,11 +252,11 @@ static osync_bool _osync_plugin_config_parse_connection_usb(OSyncPluginConnectio
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -288,11 +292,11 @@ static osync_bool _osync_plugin_config_parse_connection_irda(OSyncPluginConnecti
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -321,11 +325,11 @@ static osync_bool _osync_plugin_config_parse_connection_network(OSyncPluginConne
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -363,11 +367,11 @@ static osync_bool _osync_plugin_config_parse_connection_serial(OSyncPluginConnec
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, conn, cur, error);
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -422,12 +426,10 @@ static osync_bool _osync_plugin_config_parse_active_connection(OSyncPluginConnec
 
 static osync_bool _osync_plugin_config_parse_connection(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
+	osync_bool ret = TRUE;
+	OSyncPluginConnection *conn = NULL;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
-
-	osync_bool ret = TRUE;
-
-	OSyncPluginConnection *conn = NULL;
 
 	if (!(conn = osync_plugin_connection_new(error)))
 		goto error;
@@ -477,18 +479,19 @@ error:
 
 static osync_bool _osync_plugin_config_parse_localization(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
+        OSyncPluginLocalization *local = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
-	OSyncPluginLocalization *local = osync_plugin_localization_new(error);
+	local = osync_plugin_localization_new(error);
 	if (!local)
 		goto error;
 
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -519,21 +522,20 @@ error:
 
 static osync_bool _osync_plugin_config_parse_resource_format(OSyncPluginResource *res, xmlNode *cur, OSyncError **error)
 {
+	OSyncObjFormatSink *format_sink = NULL; 
+	const char *objformat = NULL, *config = NULL;
+
 	osync_assert(res);
 	osync_assert(cur);
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, res, cur, error);
 
-	OSyncObjFormatSink *format_sink = NULL; 
-
-	const char *objformat = NULL, *config = NULL;
-
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -573,19 +575,19 @@ error_free_config:
 
 static osync_bool _osync_plugin_config_parse_resource_formats(OSyncPluginResource *res, xmlNode *cur, OSyncError **error)
 {
+	const char *preferred_format = NULL;
+
 	osync_assert(res);
 	osync_assert(cur);
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, res, cur, error);
 
-	const char *preferred_format = NULL;
-
 	for (; cur != NULL; cur = cur->next) {
-
+                char *str = NULL;
 		if (cur->type != XML_ELEMENT_NODE)
 			continue;
 
-		char *str = (char*)xmlNodeGetContent(cur);
+		str = (char*)xmlNodeGetContent(cur);
 		if (!str)
 			continue;
 
@@ -615,12 +617,12 @@ error:
 
 static OSyncPluginResource *_osync_plugin_config_parse_resource(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
+	char *str = NULL;
+	OSyncPluginResource *res = NULL;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
-	char *str = NULL;
-
-	OSyncPluginResource *res = osync_plugin_resource_new(error);
+	res = osync_plugin_resource_new(error);
 	if (!res)
 		goto error;
 
@@ -668,10 +670,9 @@ error:
 
 static osync_bool _osync_plugin_config_parse_resources(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
-
+	OSyncPluginResource *res; 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
 
-	OSyncPluginResource *res; 
 	for (; cur != NULL; cur = cur->next) {
 
 		if (cur->type != XML_ELEMENT_NODE)
@@ -697,12 +698,11 @@ error:
 
 static osync_bool _osync_plugin_config_parse(OSyncPluginConfig *config, xmlNode *cur, OSyncError **error)
 {
+	osync_bool ret = TRUE;
 	osync_assert(config);
 	osync_assert(cur);
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, cur, error);
-
-	osync_bool ret = TRUE;
 
 	config->supported = 0;
 
@@ -745,12 +745,14 @@ error:
 
 osync_bool osync_plugin_config_file_load(OSyncPluginConfig *config, const char *path, const char *schemadir, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, config, __NULLSTR(path), __NULLSTR(schemadir), error);
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
-
 	char *schemafile = NULL;
-	const char *schemapath = schemadir ? schemadir : OPENSYNC_SCHEMASDIR;
+	const char *schemapath = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, config, __NULLSTR(path), __NULLSTR(schemadir), error);
+
+	schemapath = schemadir ? schemadir : OPENSYNC_SCHEMASDIR;
 
 	if (!osync_xml_open_file(&doc, &cur, path, "config", error))
 		goto error;
@@ -779,11 +781,11 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_authentication(xmlNode *cur, OSyncPluginAuthentication *auth, OSyncError **error)
 {
+	const char *username, *password, *ref;
+        xmlNode *node = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, auth, error);
 
-	const char *username, *password, *ref;
-
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Authentication", NULL);
+	node = xmlNewChild(cur, NULL, (xmlChar*)"Authentication", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -808,19 +810,22 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPluginConnection *conn, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, conn, error);
-
 	char *str;
 	const char *mac, *sdpuuid, *address, *protocol, *dnssd, *devicenode, *service, *vendorid, *productid;
-	unsigned int rfcomm_channel, interface, port, speed;
+	unsigned int rfcomm_channel, interf, port, speed;
+	xmlNode *typenode, *node = NULL;
+	OSyncPluginConnectionType conn_type;
+	const char *conn_str = NULL;
 
-	xmlNode *typenode, *node = xmlNewChild(cur, NULL, (xmlChar*)"Connection", NULL);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, conn, error);
+
+	node = xmlNewChild(cur, NULL, (xmlChar*)"Connection", NULL);
 	if (!node)
 		goto error_nomemory;
 
 	/* Active Connection */
-	OSyncPluginConnectionType conn_type = osync_plugin_connection_get_type(conn);
-	const char *conn_str = osync_plugin_connection_get_type_string(conn_type);
+	conn_type = osync_plugin_connection_get_type(conn);
+	conn_str = osync_plugin_connection_get_type_string(conn_type);
 	typenode = xmlNewChild(node, NULL, BAD_CAST "ActiveConnection", BAD_CAST conn_str);
 	if (!typenode)
 		goto error_nomemory;
@@ -867,9 +872,9 @@ static osync_bool _osync_plugin_config_assemble_connection(xmlNode *cur, OSyncPl
 			g_free(str);
 		}
 
-		interface = osync_plugin_connection_usb_get_interface(conn);
-		if (interface) {
-			str = g_strdup_printf("%u", interface);
+		interf = osync_plugin_connection_usb_get_interface(conn);
+		if (interf) {
+			str = g_strdup_printf("%u", interf);
 			xmlNewChild(typenode, NULL, (xmlChar*)"Interface", (xmlChar*)str);
 			g_free(str);
 		}
@@ -944,11 +949,12 @@ error_nomemory:
 
 static osync_bool _osync_plugin_config_assemble_localization(xmlNode *cur, OSyncPluginLocalization *local, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, local, error);
-
 	const char *encoding, *tz, *language;
+	xmlNode *node = NULL;
 
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Localization", NULL);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, local, error);
+	
+        node = xmlNewChild(cur, NULL, (xmlChar*)"Localization", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -974,10 +980,12 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_resource_format(xmlNode *cur, OSyncObjFormatSink *format_sink, OSyncError **error)
 {
+	const char *name, *config;
+	xmlNode *node = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, format_sink, error);
 
-	const char *name, *config;
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Format", NULL);
+	node = xmlNewChild(cur, NULL, (xmlChar*)"Format", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -999,18 +1007,20 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_resource(xmlNode *cur, OSyncPluginResource *res, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, res, error);
-
 	OSyncList *o;
 	const char *preferred_format, *name, *mime, *objtype, *path, *url;
+	xmlNode *next, *node = NULL;
+        osync_bool res_enabled;
 
-	xmlNode *next, *node = xmlNewChild(cur, NULL, (xmlChar*)"Resource", NULL);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, res, error);
+
+	node = xmlNewChild(cur, NULL, (xmlChar*)"Resource", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
 	}
 
-	osync_bool res_enabled = osync_plugin_resource_is_enabled(res);
+	res_enabled = osync_plugin_resource_is_enabled(res);
 	xmlNewChild(node, NULL, (xmlChar*)"Enabled", res_enabled ? (xmlChar*) "1" : (xmlChar*) "0");
 
 	next = xmlNewChild(node, NULL, (xmlChar*)"Formats", NULL);
@@ -1047,11 +1057,12 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_resources(xmlNode *cur, OSyncList *resources, OSyncError **error)
 {
+	OSyncList *res;
+	xmlNode *node = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, resources, error);
 
-	OSyncList *res;
-
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Resources", NULL);
+	node = xmlNewChild(cur, NULL, (xmlChar*)"Resources", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -1071,9 +1082,11 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_advancedoption_param(xmlNode *cur, OSyncPluginAdvancedOptionParameter *param, OSyncError **error)
 {
+        xmlNode *node = NULL;
+	OSyncList *v = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, param, error);
 
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"Parameter", NULL);
+	node = xmlNewChild(cur, NULL, (xmlChar*)"Parameter", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -1101,7 +1114,6 @@ static osync_bool _osync_plugin_config_assemble_advancedoption_param(xmlNode *cu
 	xmlNewChild(node, NULL, BAD_CAST "Type", BAD_CAST osync_plugin_advancedoption_param_get_type_string(param));
 
 	/* ValEnum */
-	OSyncList *v;
 	for (v = osync_plugin_advancedoption_param_get_valenums(param); v; v = v->next) {
 		char *valenum = v->data;
 		xmlNewChild(node, NULL, BAD_CAST "ValEnum", BAD_CAST valenum);
@@ -1125,9 +1137,12 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSyncPluginAdvancedOption *option, OSyncError **error)
 {
+        xmlNode *node = NULL;
+	OSyncList *p;
+	OSyncList *v;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, option, error);
 
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOption", NULL);
+	node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOption", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -1168,7 +1183,6 @@ static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSy
 	xmlNewChild(node, NULL, BAD_CAST "Name", BAD_CAST osync_plugin_advancedoption_get_name(option));
 
 	/* Parameters */
-	OSyncList *p;
 	for (p = osync_plugin_advancedoption_get_parameters(option); p; p = p->next) {
 		OSyncPluginAdvancedOptionParameter *param = p->data;
 		if (!_osync_plugin_config_assemble_advancedoption_param(node, param, error))
@@ -1184,7 +1198,6 @@ static osync_bool _osync_plugin_config_assemble_advancedoption(xmlNode *cur, OSy
 	xmlNewChild(node, NULL, BAD_CAST "Type", BAD_CAST osync_plugin_advancedoption_get_type_string(option));
 
 	/* ValEnum */
-	OSyncList *v;
 	for (v = osync_plugin_advancedoption_get_valenums(option); v; v = v->next) {
 		char *valenum = v->data;
 		xmlNewChild(node, NULL, BAD_CAST "ValEnum", BAD_CAST valenum);
@@ -1208,11 +1221,12 @@ error:
 
 static osync_bool _osync_plugin_config_assemble_advancedoptions(xmlNode *cur, OSyncList *options, OSyncError **error)
 {
+	OSyncList *o;
+	xmlNode *node = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, cur, options, error);
 
-	OSyncList *o;
-
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOptions", NULL);
+	node = xmlNewChild(cur, NULL, (xmlChar*)"AdvancedOptions", NULL);
 	if (!node) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left to assemble configuration.");
 		goto error;
@@ -1282,18 +1296,19 @@ OSyncPluginConfig *osync_plugin_config_ref(OSyncPluginConfig *config)
 
 osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *path, OSyncError **error)
 {
-	osync_assert(config);
-	osync_assert(path);
-
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, config, __NULLSTR(path));
-
 	xmlDocPtr doc = NULL;
 	OSyncPluginConnection *conn;
 	OSyncPluginAuthentication *auth;
 	OSyncPluginLocalization *local;
 	OSyncList *resources;
 	OSyncList *options;
-	
+        char *version_str = NULL;
+
+	osync_assert(config);
+	osync_assert(path);
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, config, __NULLSTR(path));
+
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't allocate memory to assemble configuration file."); 
@@ -1306,7 +1321,7 @@ osync_bool osync_plugin_config_file_save(OSyncPluginConfig *config, const char *
 	}
 
 	/* Set version for plugin configuration  */
-	char *version_str = g_strdup_printf("%u.%u", OSYNC_PLUGIN_MAJOR_VERSION, OSYNC_PLUGIN_MINOR_VERSION);
+	version_str = g_strdup_printf("%u.%u", OSYNC_PLUGIN_MAJOR_VERSION, OSYNC_PLUGIN_MINOR_VERSION);
 	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);
 	g_free(version_str);
 
@@ -1497,17 +1512,19 @@ void osync_plugin_config_flush_resources(OSyncPluginConfig *config)
 
 OSyncPluginResource *osync_plugin_config_find_active_resource(OSyncPluginConfig *config, const char *objtype)
 {
+	OSyncList *r;
+
 	osync_assert(config);
 	osync_assert(objtype);
 
-	OSyncList *r;
 	for (r = config->resources; r; r = r->next) {
 		OSyncPluginResource *res = r->data;
+                const char *res_objtype = NULL;
 
 		if (!osync_plugin_resource_is_enabled(res))
 			continue;
 
-		const char *res_objtype = osync_plugin_resource_get_objtype(res);
+		res_objtype = osync_plugin_resource_get_objtype(res);
 		if (!res_objtype)
 			continue;
 

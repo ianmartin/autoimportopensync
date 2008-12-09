@@ -282,11 +282,11 @@ OSyncGroup *osync_group_env_find_group(OSyncGroupEnv *env, const char *name)
  */
 osync_bool osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group, OSyncError **error)
 {
+        const char *group_name = NULL;
 	osync_assert(env);
 	osync_assert(group);
 
-	const char *group_name = osync_group_get_name(group);
-
+	group_name = osync_group_get_name(group);
 	/* Fail if no group name is already set. The Group name must be set in
 	   advanced to check if a group with the same name already exists. */
 	if (!group_name) {

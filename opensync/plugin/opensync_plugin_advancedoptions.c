@@ -276,11 +276,12 @@ OSyncList *osync_plugin_advancedoption_get_valenums(OSyncPluginAdvancedOption *o
 
 void osync_plugin_advancedoption_add_valenum(OSyncPluginAdvancedOption *option, const char *value)
 {
+        OSyncList *data = NULL;
 	osync_assert(option);
 	osync_assert(value);
 
 	/* Don't add duplicated values */
-	OSyncList *data = osync_list_find_custom(option->valenum, (void *) value, _list_string_compare);
+	data = osync_list_find_custom(option->valenum, (void *) value, _list_string_compare);
 	if (data)
 		return;
 
@@ -289,10 +290,11 @@ void osync_plugin_advancedoption_add_valenum(OSyncPluginAdvancedOption *option, 
 
 void osync_plugin_advancedoption_remove_valenum(OSyncPluginAdvancedOption *option, const char *value)
 {
+        OSyncList *data = NULL;
 	osync_assert(option);
 	osync_assert(value);
 
-	OSyncList *data = osync_list_find_custom(option->valenum, (void *) value, _list_string_compare);
+	data = osync_list_find_custom(option->valenum, (void *) value, _list_string_compare);
 	if (!data)
 		return;
 
@@ -417,11 +419,12 @@ OSyncList *osync_plugin_advancedoption_param_get_valenums(OSyncPluginAdvancedOpt
 
 void osync_plugin_advancedoption_param_add_valenum(OSyncPluginAdvancedOptionParameter *param, const char *value)
 {
+        OSyncList *data = NULL;
 	osync_assert(param);
 	osync_assert(value);
 
 	/* Don't add duplicated values */
-	OSyncList *data = osync_list_find_custom(param->valenum, (void *) value, _list_string_compare);
+	data = osync_list_find_custom(param->valenum, (void *) value, _list_string_compare);
 	if (data)
 		return;
 
@@ -430,10 +433,11 @@ void osync_plugin_advancedoption_param_add_valenum(OSyncPluginAdvancedOptionPara
 
 void osync_plugin_advancedoption_param_remove_valenum(OSyncPluginAdvancedOptionParameter *param, const char *value)
 {
+        OSyncList *data = NULL;
 	osync_assert(param);
 	osync_assert(value);
 
-	OSyncList *data = osync_list_find_custom(param->valenum, (void *) value, _list_string_compare);
+	data = osync_list_find_custom(param->valenum, (void *) value, _list_string_compare);
 	if (!data)
 		return;
 

@@ -42,9 +42,10 @@
  */
 OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error)
 {
+	OSyncObjFormat *format = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, name, objtype_name, error);
 	
-	OSyncObjFormat *format = osync_try_malloc0(sizeof(OSyncObjFormat), error);
+	format = osync_try_malloc0(sizeof(OSyncObjFormat), error);
 	if (!format)
 		return FALSE;
 	

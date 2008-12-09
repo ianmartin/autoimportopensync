@@ -35,11 +35,12 @@
 
 OSyncSinkEngine *osync_sink_engine_new(int position, OSyncClientProxy *proxy, OSyncObjEngine *objengine, OSyncError **error)
 {
+	OSyncSinkEngine *sinkengine = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %p)", __func__, position, proxy, objengine, error);
 	osync_assert(proxy);
 	osync_assert(objengine);
 	
-	OSyncSinkEngine *sinkengine = osync_try_malloc0(sizeof(OSyncSinkEngine), error);
+	sinkengine = osync_try_malloc0(sizeof(OSyncSinkEngine), error);
 	if (!sinkengine)
 		goto error;
 	sinkengine->ref_count = 1;
@@ -93,9 +94,10 @@ void osync_sink_engine_unref(OSyncSinkEngine *engine)
 
 osync_bool osync_sink_engine_is_connected(OSyncSinkEngine *engine)
 {
+	OSyncObjEngine *objengine = NULL;
 	osync_assert(engine);
 
-	OSyncObjEngine *objengine = engine->engine;
+	objengine = engine->engine;
 
 	if (!objengine)
 		return FALSE;

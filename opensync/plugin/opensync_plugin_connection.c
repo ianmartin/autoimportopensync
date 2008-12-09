@@ -243,11 +243,11 @@ unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *co
 	return connection->usb_interface;
 }
 
-void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interface)
+void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interf)
 {
 	osync_assert(connection);
 
-	connection->usb_interface = interface;
+	connection->usb_interface = interf;
 }
 
 const char *osync_plugin_connection_net_get_address(OSyncPluginConnection *connection)

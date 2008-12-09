@@ -89,13 +89,14 @@ void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat)
 
 const char *osync_data_get_objtype(OSyncData *data)
 {
+        OSyncObjFormat *format = NULL;
 	osync_assert(data);
 	if (data->objtype)
 		return data->objtype;
 	
 	/* If no object type is explicitly set, we will just
 	 * return the default objtype for this format */
-	OSyncObjFormat *format = data->objformat;
+	format = data->objformat;
 	if (format)
 		return osync_objformat_get_objtype(format);
 	
@@ -177,6 +178,7 @@ OSyncData *osync_data_clone(OSyncData *source, OSyncError **error)
 
 OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata)
 {
+        OSyncConvCmpResult ret = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
 	osync_assert(leftdata);
 	osync_assert(rightdata);
@@ -201,16 +203,17 @@ OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata)
 		return OSYNC_CONV_DATA_MISMATCH;
 	}
 	
-	OSyncConvCmpResult ret = osync_objformat_compare(leftdata->objformat, leftdata->data, leftdata->size, rightdata->data, rightdata->size);
+	ret = osync_objformat_compare(leftdata->objformat, leftdata->data, leftdata->size, rightdata->data, rightdata->size);
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
 }
 
 char *osync_data_get_printable(OSyncData *data)
 {
+        OSyncObjFormat *format = NULL;
 	osync_assert(data);
 		
-	OSyncObjFormat *format = data->objformat;
+	format = data->objformat;
 	osync_assert(format);
 	
 	return osync_objformat_print(format, data->data, data->size);
@@ -218,13 +221,15 @@ char *osync_data_get_printable(OSyncData *data)
 
 time_t osync_data_get_revision(OSyncData *data, OSyncError **error)
 {
+        OSyncObjFormat *format = NULL;
+        time_t time;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, data, error);
 	osync_assert(data);
 	
-	OSyncObjFormat *format = data->objformat;
+	format = data->objformat;
 	osync_assert(format);
 	
-	time_t time = osync_objformat_get_revision(format, data->data, data->size, error);
+	time = osync_objformat_get_revision(format, data->data, data->size, error);
 	if (time == -1) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return -1;

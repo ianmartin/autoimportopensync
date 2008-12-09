@@ -37,9 +37,10 @@
 
 OSyncMappingTable *osync_mapping_table_new(OSyncError **error)
 {
+        OSyncMappingTable *table = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncMappingTable *table = osync_try_malloc0(sizeof(OSyncMappingTable), error);
+	table = osync_try_malloc0(sizeof(OSyncMappingTable), error);
 	if (!table)
 		goto error;
 	table->ref_count = 1;
@@ -97,21 +98,20 @@ osync_bool osync_mapping_table_load(OSyncMappingTable *table, OSyncArchive *arch
 {
 	OSyncMappingEntry *entry = NULL;
 	OSyncMapping *mapping = NULL;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, table, archive, objtype, error);
-	
 	OSyncList *uids = NULL;
 	OSyncList *ids = NULL;
 	OSyncList *mappings = NULL;
 	OSyncList *memberids = NULL;
-
+	OSyncList *d = NULL, *u = NULL, *m = NULL, *i = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, table, archive, objtype, error);
+	
 	if (!osync_archive_load_changes(archive, objtype, &ids, &uids, &mappings, &memberids, error))
 		goto error;
 	
-	OSyncList *d = ids;
-	OSyncList *u = NULL;
-	OSyncList *m = mappings;
-	OSyncList *i = memberids;
+	d = ids;
+	m = mappings;
+	i = memberids;
 	
 	for (u = uids; u; u = u->next) {
 		long long int id = (long long int)GPOINTER_TO_INT(d->data);

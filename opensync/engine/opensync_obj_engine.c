@@ -51,13 +51,14 @@ OSyncMappingEngine *_osync_obj_engine_create_mapping_engine(OSyncObjEngine *engi
 {
 	/* If there is none, create one */
 	OSyncMapping *mapping = osync_mapping_new(error);
+        GList *s = NULL;
+        OSyncMappingEngine *mapping_engine = NULL;
 	if (!mapping)
 		goto error;
 	
 	osync_mapping_set_id(mapping, osync_mapping_table_get_next_id(engine->mapping_table));
 	osync_mapping_table_add_mapping(engine->mapping_table, mapping);
 	
-	GList *s = NULL;
 	for (s = engine->sink_engines; s; s = s->next) {
 		OSyncSinkEngine *sink_engine = s->data;
 		
@@ -69,7 +70,7 @@ OSyncMappingEngine *_osync_obj_engine_create_mapping_engine(OSyncObjEngine *engi
 		osync_mapping_entry_unref(mapping_entry);
 	}
 	
-	OSyncMappingEngine *mapping_engine = osync_mapping_engine_new(engine, mapping, error);
+	mapping_engine = osync_mapping_engine_new(engine, mapping, error);
 	if (!mapping_engine)
 		goto error_free_mapping;
 	osync_mapping_unref(mapping);
@@ -120,9 +121,8 @@ static void _osync_obj_engine_connect_callback(OSyncClientProxy *proxy, void *us
 
 static void _osync_obj_engine_generate_event_disconnected(OSyncObjEngine *engine, OSyncError *error)
 {
+        OSyncError *locerror = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-
-	OSyncError *locerror = NULL;
 
 	if (osync_bitcount(engine->sink_errors | engine->sink_disconnects) == g_list_length(engine->sink_engines)) {
 		if (osync_bitcount(engine->sink_disconnects) < osync_bitcount(engine->sink_connects)) {
@@ -181,13 +181,14 @@ static OSyncConvCmpResult _osync_obj_engine_mapping_find(OSyncObjEngine *engine,
 		 * return MISMATCH */
 		for (e = (*mapping_engine)->entries; e; e = e->next) {
 			OSyncMappingEntryEngine *entry_engine = e->data;
+                        OSyncChange *mapping_change = NULL;
 			/* if the mapping already has a entry on our side, its not worth looking */
 			if (entry_engine->sink_engine == sinkengine) {
 				*mapping_engine = NULL;
 				break;
 			}
 			
-			OSyncChange *mapping_change = osync_entry_engine_get_change(entry_engine);
+			mapping_change = osync_entry_engine_get_change(entry_engine);
 			if (!mapping_change)
 				continue;
 			
@@ -211,13 +212,11 @@ static OSyncConvCmpResult _osync_obj_engine_mapping_find(OSyncObjEngine *engine,
 osync_bool osync_obj_engine_map_changes(OSyncObjEngine *engine, OSyncError **error)
 {
 	OSyncMappingEngine *mapping_engine = NULL;
+	GList *new_mappings = NULL, *v = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	//osync_trace_disable();
-	
-	GList *new_mappings = NULL;
-	
-	GList *v = NULL;
+
 	/* Go through all sink engines that are available */
 	for (v = engine->sink_engines; v; v = v->next) {
 		OSyncSinkEngine *sinkengine = v->data;
@@ -230,12 +229,13 @@ osync_bool osync_obj_engine_map_changes(OSyncObjEngine *engine, OSyncError **err
 		/* For each sinkengine, go through all unmapped changes */
 		while (sinkengine->unmapped) {
 			OSyncChange *change = sinkengine->unmapped->data;
+                        OSyncConvCmpResult result = 0;
+                        OSyncMappingEntryEngine *entry_engine = NULL;
 			
 			osync_trace(TRACE_INTERNAL, "Looking for mapping for change %s, changetype %i from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
 	
-			
 			/* See if there is an exisiting mapping, which fits the unmapped change */
-			OSyncConvCmpResult result = _osync_obj_engine_mapping_find(engine, change, sinkengine, &mapping_engine);
+			result = _osync_obj_engine_mapping_find(engine, change, sinkengine, &mapping_engine);
 			if (result == OSYNC_CONV_DATA_MISMATCH) {
 				/* If there is none, create one */
 				mapping_engine = _osync_obj_engine_create_mapping_engine(engine, error);
@@ -249,7 +249,7 @@ osync_bool osync_obj_engine_map_changes(OSyncObjEngine *engine, OSyncError **err
 				mapping_engine->conflict = TRUE;
 			}
 			/* Update the entry which belongs to our sinkengine with the the change */
-			OSyncMappingEntryEngine *entry_engine = osync_mapping_engine_get_entry(mapping_engine, sinkengine);
+			entry_engine = osync_mapping_engine_get_entry(mapping_engine, sinkengine);
 			osync_assert(entry_engine);
 			
 			osync_entry_engine_update(entry_engine, change);
@@ -325,13 +325,13 @@ static void _osync_obj_engine_read_callback(OSyncClientProxy *proxy, void *userd
 osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClientProxy *proxy, OSyncChange *change, OSyncError **error)
 {
 	OSyncSinkEngine *sinkengine = NULL;
+	GList *s = NULL, *e = NULL;
 	
 	osync_assert(objengine);
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, objengine, proxy, change, error);
 	
 	/* Find the sinkengine for the proxy */
-	GList *s = NULL;
 	for (s = objengine->sink_engines; s; s = s->next) {
 		sinkengine = s->data;
 		if (sinkengine->proxy == proxy)
@@ -346,7 +346,6 @@ osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClien
 	}
 	
 	/* We now have to see if the change matches one of the already existing mappings */
-	GList *e;
 	for (e = sinkengine->entries; e; e = e->next) {
 		OSyncMappingEntryEngine *mapping_engine = e->data;
 		
@@ -384,19 +383,22 @@ osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClien
  */
 static void _osync_obj_engine_generate_written_event(OSyncObjEngine *engine, OSyncError *error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
-	/* We need to make sure that all entries are written ... */
 	osync_bool dirty = FALSE;
 	GList *p = NULL;
 	GList *e = NULL;
 	OSyncSinkEngine *sinkengine = NULL;
 	OSyncError *locerror = NULL;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	/* We need to make sure that all entries are written ... */
 	
 	for (p = engine->sink_engines; p; p = p->next) {
-		sinkengine = p->data;
+                OSyncMember *member = NULL;
+		OSyncObjTypeSink *objtype_sink = NULL;
 
-		OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
-		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+		sinkengine = p->data;
+		member = osync_client_proxy_get_member(sinkengine->proxy);
+		objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
 
 		/* If the sink engine isn't able/allowed to write we don't care if everything got written ("how dirty is it!?") */ 
 		if (!objtype_sink || !osync_objtype_sink_get_write(objtype_sink)) 
@@ -441,16 +443,22 @@ static void _osync_obj_engine_commit_change_callback(OSyncClientProxy *proxy, vo
 	OSyncObjEngine *engine = entry_engine->objengine;
 	OSyncSinkEngine *sinkengine = entry_engine->sink_engine;
 	OSyncError *locerror = NULL;
+	OSyncMapping *mapping = NULL;
+	OSyncMember *member = NULL;
+	OSyncMappingEntry *entry = NULL;
+	const char *objtype = NULL;
+	long long int id = 0;
+
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, proxy, userdata, uid, error);
 	
 	osync_entry_engine_set_dirty(entry_engine, FALSE);
 	
-	OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
-	OSyncMember *member = osync_client_proxy_get_member(proxy);
-	OSyncMappingEntry *entry = entry_engine->entry;
-	const char *objtype = osync_change_get_objtype(entry_engine->change);
-	long long int id = osync_mapping_entry_get_id(entry);
+	mapping = entry_engine->mapping_engine->mapping;
+	member = osync_client_proxy_get_member(proxy);
+	entry = entry_engine->entry;
+	objtype = osync_change_get_objtype(entry_engine->change);
+	id = osync_mapping_entry_get_id(entry);
 	
 	if (error) {
 		/* Error handling (tests: single_commit_error, ...) */
@@ -543,9 +551,9 @@ static void _osync_obj_engine_sync_done_callback(OSyncClientProxy *proxy, void *
 
 static osync_bool _create_mapping_engines(OSyncObjEngine *engine, OSyncError **error)
 {
+	int i = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	
-	int i = 0;
 	for (i = 0; i < osync_mapping_table_num_mappings(engine->mapping_table); i++) {
 		OSyncMapping *mapping = osync_mapping_table_nth_mapping(engine->mapping_table, i);
 		
@@ -565,6 +573,9 @@ error:
 }
 
 static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, OSyncError **error) {
+	OSyncList *ids = NULL;
+	OSyncList *changetypes = NULL;
+	OSyncList *j = NULL, *t = NULL;
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
@@ -572,16 +583,12 @@ static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, OSyncError *
 	osync_assert(engine->archive);
 	osync_assert(engine->objtype);
 	
-	OSyncList *ids = NULL;
-	OSyncList *changetypes = NULL;
-
 	if (!osync_archive_load_ignored_conflicts(engine->archive, engine->objtype, &ids, &changetypes, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 
-	OSyncList *j;
-	OSyncList *t = changetypes;
+	t = changetypes;
 	for (j = ids; j; j = j->next) {
 		long long int id = (long long int)GPOINTER_TO_INT(j->data);
 
@@ -595,15 +602,16 @@ static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, OSyncError *
 				GList *m;
 				for (m = mapping_engine->entries; m; m = m->next) {
 					OSyncMappingEntryEngine *entry = m->data;
-
 					OSyncChangeType changetype = (OSyncChangeType) t->data;
-
 					OSyncChange *ignored_change = osync_change_new(error);
+                                        OSyncObjFormat *dummyformat = NULL;
+					OSyncData *data = NULL;
+
 					osync_change_set_changetype(ignored_change, changetype); 
 					osync_entry_engine_update(entry, ignored_change);
 
-					OSyncObjFormat *dummyformat = osync_objformat_new("plain", engine->objtype, NULL);
-					OSyncData *data = osync_data_new(NULL, 0, dummyformat, NULL);
+					dummyformat = osync_objformat_new("plain", engine->objtype, NULL);
+					data = osync_data_new(NULL, 0, dummyformat, NULL);
 					osync_change_set_data(ignored_change, data);
 					osync_objformat_unref(dummyformat);
 
@@ -628,12 +636,13 @@ static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, OSyncError *
 
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error)
 {
+        OSyncObjEngine *engine = NULL;
 	osync_assert(parent);
 	osync_assert(objtype);
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, parent, objtype, formatenv, error);
 	
-	OSyncObjEngine *engine = osync_try_malloc0(sizeof(OSyncObjEngine), error);
+	engine = osync_try_malloc0(sizeof(OSyncObjEngine), error);
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
@@ -705,11 +714,11 @@ void osync_obj_engine_unref(OSyncObjEngine *engine)
 }
 
 static int _osync_obj_engine_num_write_sinks(OSyncObjEngine *objengine) {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, objengine);
-
 	int num = 0;
 	GList *p = NULL;
 	OSyncSinkEngine *sink;
+
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, objengine);
 
 	for (p = objengine->sink_engines; p; p = p->next) {
 		sink = p->data;
@@ -723,17 +732,21 @@ static int _osync_obj_engine_num_write_sinks(OSyncObjEngine *objengine) {
 
 osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **error)
 {
+        const char *objtype = NULL;
+	int num = 0;
+	int i = 0;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 
 	osync_trace(TRACE_INTERNAL, "Loaded %i mappings", osync_mapping_table_num_mappings(engine->mapping_table));
 
-	const char *objtype = osync_obj_engine_get_objtype(engine);
+	objtype = osync_obj_engine_get_objtype(engine);
 	
-	int num = osync_engine_num_proxies(engine->parent);
-	int i = 0;
+	num = osync_engine_num_proxies(engine->parent);
 	for (i = 0; i < num; i++) {
 		OSyncClientProxy *proxy = osync_engine_nth_proxy(engine->parent, i);
-		OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype); 
+		OSyncObjTypeSink *sink = osync_client_proxy_find_objtype_sink(proxy, objtype);
+		OSyncSinkEngine *sinkengine = NULL; 
 		if (!sink) {
 			/* "data" sink engine counts also as valid. */
 			sink = osync_client_proxy_find_objtype_sink(proxy, "data"); 
@@ -741,7 +754,7 @@ osync_bool osync_obj_engine_initialize(OSyncObjEngine *engine, OSyncError **erro
 				continue;
 		}
 		
-		OSyncSinkEngine *sinkengine = osync_sink_engine_new(i, proxy, engine, error);
+		sinkengine = osync_sink_engine_new(i, proxy, engine, error);
 		if (!sinkengine)
 			goto error;
 		
@@ -779,9 +792,8 @@ error:
 
 void osync_obj_engine_finalize(OSyncObjEngine *engine)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-
 	OSyncMappingEngine *mapping_engine;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
 	engine->slowsync = FALSE;
 	engine->written = FALSE;
@@ -850,6 +862,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 	osync_assert(engine);
 	
 	switch (cmd) {
+		int write_sinks = 0;
+                osync_bool proxy_disconnect = FALSE;
 		case OSYNC_ENGINE_COMMAND_CONNECT:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
@@ -879,15 +893,17 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					goto error;
 			}
 
-			int write_sinks = _osync_obj_engine_num_write_sinks(engine);
+			write_sinks = _osync_obj_engine_num_write_sinks(engine);
 
 			/* Get change entries since last sync. (get_changes) */
 			for (p = engine->sink_engines; p; p = p->next) {
+                                OSyncMember *member = NULL;
+                                OSyncObjTypeSink *objtype_sink = NULL;
+
 				sinkengine = p->data;
 
-
-				OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
-				OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+				member = osync_client_proxy_get_member(sinkengine->proxy);
+				objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
 
 				/* Is there at least one other writeable sink? */
 				if (objtype_sink && osync_objtype_sink_get_write(objtype_sink) && write_sinks) {
@@ -924,18 +940,21 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 			
 			osync_trace(TRACE_INTERNAL, "Starting to write");
 			for (p = engine->sink_engines; p; p = p->next) {
-				sinkengine = p->data;
-				
-				OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
-				long long int memberid = osync_member_get_id(member);
+				OSyncMember *member = NULL;
+				long long int memberid = 0;
+				OSyncObjTypeSink *objtype_sink = NULL;
+                                OSyncFormatConverterPath *path = NULL;
 
-				OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+				sinkengine = p->data;
+				member = osync_client_proxy_get_member(sinkengine->proxy);
+				memberid = osync_member_get_id(member);
+				objtype_sink = osync_member_find_objtype_sink(member, engine->objtype);
+				
 				/* If sink could not be found use "data" sink if available */
 				if (!objtype_sink)
 					objtype_sink = osync_member_find_objtype_sink(member, "data");
 				/* TODO: Review if objtype_sink = NULL is valid at all. */
 
-				OSyncFormatConverterPath *path = NULL;
 				for (e = sinkengine->entries; e; e = e->next) {
 					OSyncMappingEntryEngine *entry_engine = e->data;
 					osync_assert(entry_engine);
@@ -948,14 +967,18 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
 						!strncmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-", 10) )
 					{
-						osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_change_get_uid(entry_engine->change), memberid, osync_entry_engine_is_dirty(entry_engine));
-
-						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
 						char *buffer = NULL;
 						unsigned int xmlformat_size = 0, size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
-						const char *objtype = osync_change_get_objtype(entry_engine->change);
-						OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
+						const char *objtype = NULL;
+						OSyncMapping *mapping = NULL;
+                                                OSyncMerger *merger = NULL; 
+
+						osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_change_get_uid(entry_engine->change), memberid, osync_entry_engine_is_dirty(entry_engine));
+
+						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
+						objtype = osync_change_get_objtype(entry_engine->change);
+						mapping = entry_engine->mapping_engine->mapping;
 						
 						osync_data_get_data(osync_change_get_data(entry_engine->change), (char **) &xmlformat, &xmlformat_size);
 						osync_assert(xmlformat_size == osync_xmlformat_size());
@@ -971,7 +994,6 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						}
 						g_free(buffer);
 						
-						OSyncMerger *merger = NULL; 
 						merger = osync_member_get_merger(osync_client_proxy_get_member(sinkengine->proxy));
 						if(merger)
 							osync_merger_demerge(merger, xmlformat);
@@ -980,21 +1002,25 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 					/* Only commit change if the objtype sink is able/allowed to write. */
 					if (objtype_sink && osync_objtype_sink_get_write(objtype_sink) && osync_entry_engine_is_dirty(entry_engine)) {
+                                                OSyncChange *change = entry_engine->change;
 						osync_assert(entry_engine->change);
-						OSyncChange *change = entry_engine->change;
 
 						/* Convert to requested target format if the changetype is not DELETED */
 						if (osync_group_get_converter_enabled(osync_engine_get_group(engine->parent)) && (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED)) {
 
-							
+                                                        char *objtype = NULL;
+							OSyncList *format_sinks = NULL;
+                                                        unsigned int length = 0;
+							OSyncFormatConverter *converter = NULL;
+
 							osync_trace(TRACE_INTERNAL, "Starting to convert from objtype %s and format %s", osync_change_get_objtype(entry_engine->change), osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
 							/* We have to save the objtype of the change so that it does not get
 							 * overwritten by the conversion */
-							char *objtype = g_strdup(osync_change_get_objtype(change));
+							objtype = g_strdup(osync_change_get_objtype(change));
 							
 							/* Now we have to convert to one of the formats
 							 * that the client can understand */
-							OSyncList *format_sinks = osync_objtype_sink_get_objformat_sinks(objtype_sink);
+							format_sinks = osync_objtype_sink_get_objformat_sinks(objtype_sink);
 							if (!format_sinks) {
 								osync_error_set(error, OSYNC_ERROR_GENERIC, "There are no available format sinks.");
 								goto error;
@@ -1007,8 +1033,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							if (!path)
 								goto error;
 
-							unsigned int length = osync_converter_path_num_edges(path);
-							OSyncFormatConverter *converter = osync_converter_path_nth_edge(path, length - 1);
+							length = osync_converter_path_num_edges(path);
+							converter = osync_converter_path_nth_edge(path, length - 1);
 							if (converter) {
 								OSyncObjFormat *format = osync_converter_get_targetformat(converter);
 								OSyncObjFormatSink *formatsink = osync_objtype_sink_find_objformat_sink(objtype_sink, format);
@@ -1068,9 +1094,6 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 			}
 			break;
 		case OSYNC_ENGINE_COMMAND_DISCONNECT:;
-
-			osync_bool proxy_disconnect = FALSE;
-
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
 

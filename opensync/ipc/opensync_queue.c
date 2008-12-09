@@ -93,12 +93,13 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 	GList *p;
 	OSyncPendingMessage *pending;
 	OSyncTimeoutInfo *toinfo;
+        OSyncQueue *queue = NULL;
+	GTimeVal current_time;
 
 	osync_trace(TRACE_INTERNAL, "%s(%p)", __func__, user_data);
 
-	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
+	queue = *((OSyncQueue **)(source + 1));
 
-	GTimeVal current_time;
 	g_source_get_current_time (source, &current_time);
 
 	/* Search for the pending reply. We have to lock the
@@ -116,13 +117,14 @@ gboolean _timeout_dispatch(GSource *source, GSourceFunc callback, gpointer user_
 		if (current_time.tv_sec == toinfo->expiration.tv_sec ||
 			(current_time.tv_sec >= toinfo->expiration.tv_sec 
 			&& current_time.tv_usec >= toinfo->expiration.tv_usec)) {
+			OSyncError *error = NULL;
+			OSyncError *timeouterr = NULL;
+			OSyncMessage *errormsg = NULL;
 
 			/* Call the callback of the pending message */
 			osync_assert(pending->callback);
-			OSyncError *error = NULL;
-			OSyncError *timeouterr = NULL;
 			osync_error_set(&timeouterr, OSYNC_ERROR_IO_ERROR, "Timeout.");
-			OSyncMessage *errormsg = osync_message_new_errorreply(NULL, timeouterr, &error);
+			errormsg = osync_message_new_errorreply(NULL, timeouterr, &error);
 			osync_error_unref(&timeouterr);
 
 			/* Remove first the pending message!
@@ -272,6 +274,10 @@ gboolean _queue_check(GSource *source)
 
 static int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSyncError **error)
 {
+#ifdef _WIN32
+	return FALSE;
+#else //_WIN32
+
 	ssize_t nwritten = 0;
 
 	while (n > 0) {
@@ -288,6 +294,7 @@ static int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n
 		vptr += nwritten;
 	}
 	return (nwritten);
+#endif //_WIN32
 }
 
 static osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message, OSyncError **error)
@@ -317,6 +324,9 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 	OSyncMessage *message = NULL;
 	
 	while ((message = g_async_queue_try_pop(queue->outgoing))) {
+		char *data = NULL;
+		unsigned int length = 0;
+
 		/* Check if the queue is connected */
 		if (!queue->connected) {
 			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Trying to send to a queue thats not connected");
@@ -335,8 +345,6 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 		if (!_osync_queue_write_long_long_int(queue, osync_message_get_id(message), &error))
 			goto error;
 		
-		char *data = NULL;
-		unsigned int length = 0;
 		osync_message_get_buffer(message, &data, &length);
 		
 		if (length) {
@@ -379,6 +387,9 @@ gboolean _source_prepare(GSource *source, gint *timeout_)
 static
 int _osync_queue_read_data(OSyncQueue *queue, void *vptr, size_t n, OSyncError **error)
 {
+#ifdef _WIN32
+        return 0;
+#else //_WIN32
 	size_t nleft;
 	ssize_t nread = 0;
 
@@ -398,6 +409,7 @@ int _osync_queue_read_data(OSyncQueue *queue, void *vptr, size_t n, OSyncError *
 		vptr += nread;
 	}
 	return (n - nleft);  /* return >= 0 */
+#endif //_WIN32
 }
 
 static
@@ -444,9 +456,9 @@ gboolean _source_check(GSource *source)
 		 * receive any data on the pipe, therefore, any pending replies will never
 		 * be answered. So we return error messages for all of them. */
 		if (queue->pendingReplies) {
+			GList *p = NULL;
 			g_mutex_lock(queue->pendingLock);
 			osync_error_set(&error, OSYNC_ERROR_IO_ERROR, "Broken Pipe");
-			GList *p = NULL;
 			for (p = queue->pendingReplies; p; p = p->next) {
 				OSyncPendingMessage *pending = p->data;
 				
@@ -511,6 +523,7 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 		int size = 0;
 		int cmd = 0;
 		long long int id = 0;
+		char *buffer = NULL;
 		
 		/* The size of the buffer */
 		if (!_osync_queue_read_int(queue, &size, &error))
@@ -532,7 +545,6 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 		
 		/* We now get the buffer from the message which will already
 		 * have the correct size for the read */
-		char *buffer = NULL;
 		osync_message_get_buffer(message, &buffer, NULL);
 		if (size) {
 			unsigned int read = 0;
@@ -586,11 +598,11 @@ error:
 
 static void _osync_queue_flush_messages(GAsyncQueue *queue)
 {
+	OSyncMessage *message;
 	osync_assert(queue);
 
 	g_async_queue_lock(queue);
 
-	OSyncMessage *message;
 	while ((message = g_async_queue_try_pop_unlocked(queue)))
 		osync_message_unref(message);
 
@@ -605,9 +617,10 @@ static void _osync_queue_flush_messages(GAsyncQueue *queue)
 
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 {
+        OSyncQueue *queue = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, name, error);
 	
-	OSyncQueue *queue = osync_try_malloc0(sizeof(OSyncQueue), error);
+	queue = osync_try_malloc0(sizeof(OSyncQueue), error);
 	if (!queue)
 		goto error;
 	
@@ -642,9 +655,10 @@ error:
  */
 OSyncQueue *osync_queue_new_from_fd(int fd, OSyncError **error)
 {
+        OSyncQueue *queue = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, fd, error);
 	
-	OSyncQueue *queue = osync_queue_new(NULL, error);
+	queue = osync_queue_new(NULL, error);
 	if (!queue)
 		goto error;
 	
@@ -677,9 +691,11 @@ error:
  *  */
 osync_bool osync_queue_new_pipes(OSyncQueue **read_queue, OSyncQueue **write_queue, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, read_queue, write_queue, error);
-	
+#ifdef _WIN32
+        return FALSE;
+#else
 	int filedes[2];
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, read_queue, write_queue, error);
 	
 	if (pipe(filedes) < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create pipes");
@@ -705,12 +721,13 @@ error_close_pipes:
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
+#endif
 }
 
 void osync_queue_free(OSyncQueue *queue)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	OSyncPendingMessage *pending = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
 	g_mutex_free(queue->pendingLock);
 	
@@ -756,7 +773,6 @@ osync_bool osync_queue_exists(OSyncQueue *queue)
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 {
 #ifdef _WIN32
-#warning "osync_queue_create(OSyncQueue *queue, OSyncError **error) will not work"
 	return FALSE;
 #else //_WIN32
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
@@ -776,6 +792,9 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 
 osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 {
+#ifdef _WIN32
+        return FALSE;
+#else //_WIN32
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
 
 	if (queue->name && unlink(queue->name) != 0) {
@@ -786,18 +805,18 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+#endif
 }
 
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error)
 {
 #ifdef _WIN32
-#warning "osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error) will not work"
 	return FALSE;
 #else //_WIN32
+	OSyncQueue **queueptr = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, queue, type, error);
 	osync_assert(queue);
 	osync_assert(queue->connected == FALSE);
-	OSyncQueue **queueptr = NULL;
 	
 	queue->type = type;
 	
@@ -968,6 +987,7 @@ void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler hand
  */
 void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 {
+        OSyncQueue **queueptr = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, context);
 	
 	queue->incoming_functions = g_malloc0(sizeof(GSourceFuncs));
@@ -977,7 +997,7 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 	queue->incoming_functions->finalize = NULL;
 
 	queue->incoming_source = g_source_new(queue->incoming_functions, sizeof(GSource) + sizeof(OSyncQueue *));
-	OSyncQueue **queueptr = (OSyncQueue **)(queue->incoming_source + 1);
+	queueptr = (OSyncQueue **)(queue->incoming_source + 1);
 	*queueptr = queue;
 	g_source_set_callback(queue->incoming_source, NULL, queue, NULL);
 	g_source_attach(queue->incoming_source, context);
@@ -1002,7 +1022,6 @@ osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error)
 OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 {
 #ifdef _WIN32
-#warning "OSyncQueueEvent osync_queue_poll(OSyncQueue *queue) will not work"
 	return OSYNC_QUEUE_EVENT_ERROR;
 #else //_WIN32
 	struct pollfd pfd;
@@ -1069,17 +1088,18 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %u, %p)", __func__, queue, replyqueue, message, timeout, error);
 
 	if (osync_message_get_handler(message)) {
+                OSyncPendingMessage *pending = NULL;
+                GTimeVal current_time;
+                long long int id = 0;
 		osync_assert(replyqueue);
-		OSyncPendingMessage *pending = osync_try_malloc0(sizeof(OSyncPendingMessage), error);
+		pending = osync_try_malloc0(sizeof(OSyncPendingMessage), error);
 		if (!pending)
 			goto error;
-		
-		GTimeVal current_time;
 
 		/* g_sourcet_get_current_time used cached time ... hopefully faster then g_get_.._time() */
 		g_source_get_current_time(queue->timeout_source, &current_time);
 
-		long long int id = gen_id(&current_time);
+		id = gen_id(&current_time);
 		osync_message_set_id(message, id);
 		pending->id = id;
 		osync_trace(TRACE_INTERNAL, "Setting id %lli for pending reply", id);
@@ -1120,6 +1140,7 @@ error:
 
 osync_bool osync_queue_is_alive(OSyncQueue *queue)
 {
+        OSyncMessage *message = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
 	// FIXME
@@ -1128,7 +1149,7 @@ osync_bool osync_queue_is_alive(OSyncQueue *queue)
 		return FALSE;
 	}*/
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NOOP, 0, NULL);
+	message = osync_message_new(OSYNC_MESSAGE_NOOP, 0, NULL);
 	if (!message) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create new message", __func__);
 		return FALSE;

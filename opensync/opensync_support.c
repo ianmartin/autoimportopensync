@@ -88,11 +88,13 @@ void osync_trace_enable(void)
  */
 static void _osync_trace_init()
 {
+        const char *noprivacy;
+        const char *error;
 	trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
 		return;
 	
-	const char *noprivacy = g_getenv("OSYNC_NOPRIVACY");
+	noprivacy = g_getenv("OSYNC_NOPRIVACY");
 	if (!trace_sensitive)
 		trace_sensitive = g_private_new(NULL);
 
@@ -101,7 +103,7 @@ static void _osync_trace_init()
 	else
 		g_private_set(trace_sensitive, GINT_TO_POINTER(0));
 
-	const char *error = g_getenv("OSYNC_PRINTERROR");
+	error = g_getenv("OSYNC_PRINTERROR");
 	if (!print_stderr)
 		print_stderr = g_private_new(NULL);
 
@@ -571,12 +573,13 @@ void osync_thread_free(OSyncThread *thread)
  */
 OSyncThread *osync_thread_create(GThreadFunc func, void *userdata, OSyncError **error)
 {
+        GError *gerror;
+        OSyncThread *thread;
+
 	osync_assert(func);
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, func, userdata, error);
 
-	GError *gerror;
-	
-	OSyncThread *thread = osync_try_malloc0(sizeof(OSyncThread), error);
+	thread = osync_try_malloc0(sizeof(OSyncThread), error);
 	if (!thread)
 		goto error;
 
@@ -678,12 +681,14 @@ void osync_thread_exit(OSyncThread *thread, int retval)
  */
 char *osync_strreplace(const char *input, const char *delimiter, const char *replacement)
 {
+        gchar **array;
+        gchar *ret;
 	osync_return_val_if_fail(input != NULL, NULL);
 	osync_return_val_if_fail(delimiter != NULL, NULL);
 	osync_return_val_if_fail(replacement != NULL, NULL);
 
-	gchar **array = g_strsplit(input, delimiter, 0);
-	gchar *ret = g_strjoinv(replacement, array);
+	array = g_strsplit(input, delimiter, 0);
+	ret = g_strjoinv(replacement, array);
 	g_strfreev(array);
 
 	return ret;

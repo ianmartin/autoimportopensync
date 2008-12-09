@@ -35,22 +35,23 @@ static void dump_map_objtype(OSyncGroupEnv *env, const char *objtype, const char
 	
 	char *path = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
 	OSyncArchive *archive = osync_archive_new(path, &error);
-	if (!archive)
-		goto error;
-	g_free(path);
-	
 	OSyncList *ids = NULL;
 	OSyncList *uids = NULL;
 	OSyncList *mappingids = NULL;
 	OSyncList *memberids = NULL;
+	OSyncList *d , *u, *m, *i;
+
+	if (!archive)
+		goto error;
+	g_free(path);
 	
 	if (!osync_archive_load_changes(archive, objtype, &ids, &uids, &mappingids, &memberids, &error))
 		goto error;
 	
-	OSyncList *d = ids;
-	OSyncList *u = uids;
-	OSyncList *m = mappingids;
-	OSyncList *i = memberids;
+	d = ids;
+	u = uids;
+	m = mappingids;
+	i = memberids;
 	
 	for (; u; u = u->next) {
 		long long int id = (long long int)GPOINTER_TO_INT(d->data);
@@ -82,13 +83,14 @@ static void dump_map(OSyncGroupEnv *env, const char *groupname)
 {
 
 	OSyncGroup *group = osync_group_env_find_group(env, groupname);
+        int i, num_objtypes;
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
 		return;
 	}
 
-        int i, num_objtypes = osync_group_num_objtypes(group); 
+        num_objtypes = osync_group_num_objtypes(group); 
         if (num_objtypes == 0) { 
 		printf("Group has no objtypes. Have the objtypes already been discovered?\n"); 
 		return;
@@ -111,21 +113,26 @@ static void dump_hash(OSyncGroupEnv *env, const char *objtype, const char *group
 {
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_env_find_group(env, groupname);
+	long long int id = 0;
+	OSyncMember *member = NULL;
+	char *path = NULL;
+	OSyncHashTable *table = NULL;
+
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
 		return;
 	}
 	
-	long long int id = atoi(memberid);
-	OSyncMember *member = osync_group_find_member(group, id);
+	id = atoi(memberid);
+	member = osync_group_find_member(group, id);
 	if (!member) {
 		printf("Unable to find member with id %s\n", memberid);
 		return;
 	}
 	
-	char *path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
-	OSyncHashTable *table = osync_hashtable_new(path, objtype, &error);
+	path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
+	table = osync_hashtable_new(path, objtype, &error);
 	if (!table)
 		goto error;
 	g_free(path);
@@ -161,6 +168,8 @@ int main (int argc, char *argv[])
 	ToolAction action = DUMPMAPS;
 	char *configdir = NULL;
 	char *objtype = NULL;
+	OSyncError *error = NULL;
+	OSyncGroupEnv *env = NULL;
 	
 	if (argc == 1)
 		usage (argv[0], 1);
@@ -199,9 +208,7 @@ int main (int argc, char *argv[])
 		}
 	}
 	
-	OSyncError *error = NULL;
-	
-	OSyncGroupEnv *env = osync_group_env_new(&error);
+	env = osync_group_env_new(&error);
 	if (!env)
 		goto error;
 	

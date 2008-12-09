@@ -97,7 +97,7 @@ OSYNC_EXPORT const char *osync_plugin_connection_usb_get_productid(OSyncPluginCo
 OSYNC_EXPORT void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, const char *productid);
 
 OSYNC_EXPORT unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *connection);
-OSYNC_EXPORT void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interface);
+OSYNC_EXPORT void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interf);
 
 /* Network */
 OSYNC_EXPORT const char *osync_plugin_connection_net_get_address(OSyncPluginConnection *connection);

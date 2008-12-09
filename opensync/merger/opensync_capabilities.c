@@ -50,10 +50,11 @@
  */
 OSyncCapabilitiesObjType *osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error)
 {
+        OSyncCapabilitiesObjType *objtype = NULL;
 	osync_assert(capabilities);
 	osync_assert(node);
 	
-	OSyncCapabilitiesObjType *objtype = osync_try_malloc0(sizeof(OSyncCapabilitiesObjType), error);
+	objtype = osync_try_malloc0(sizeof(OSyncCapabilitiesObjType), error);
 	if(!objtype) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -82,10 +83,11 @@ OSyncCapabilitiesObjType *osync_capabilitiesobjtype_new(OSyncCapabilities *capab
  */
 OSyncCapabilitiesObjType *osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype)
 {
+        OSyncCapabilitiesObjType *tmp = NULL;
 	osync_assert(capabilities);
 	osync_assert(objtype);
 	
-	OSyncCapabilitiesObjType *tmp = capabilities->first_objtype;
+	tmp = capabilities->first_objtype;
 	for(; tmp != NULL; tmp = tmp->next) {
 		if(!strcmp((const char *)tmp->node->name, objtype))
 			break;
@@ -110,9 +112,10 @@ OSyncCapabilitiesObjType *osync_capabilitiesobjtype_get(OSyncCapabilities *capab
  */
 OSyncCapabilities *osync_capabilities_new(OSyncError **error)
 {
+        OSyncCapabilities *capabilities = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
+	capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
 	if(!capabilities) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -138,10 +141,12 @@ OSyncCapabilities *osync_capabilities_new(OSyncError **error)
  */
 OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int size, OSyncError **error)
 {
+        OSyncCapabilities *capabilities = NULL;
+        xmlNodePtr cur = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %u, %p)", __func__, buffer, size, error);
 	osync_assert(buffer);
 	
-	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
+	capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
 	if(!capabilities) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -159,24 +164,26 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	}
 	capabilities->doc->_private = capabilities;
 	
-	xmlNodePtr cur = xmlDocGetRootElement(capabilities->doc);
+	cur = xmlDocGetRootElement(capabilities->doc);
 	cur = cur->children;
 	for(; cur != NULL; cur = cur->next) {
 		OSyncCapabilitiesObjType *capabilitiesobjtype = osync_capabilitiesobjtype_new(capabilities, cur, error);
+                xmlNodePtr tmp =NULL;
 		if(!capabilitiesobjtype) {
 			osync_capabilities_unref(capabilities);
 			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 			return NULL;
 		}
 		
-		xmlNodePtr tmp = cur->children;
+		tmp = cur->children;
 		for(; tmp != NULL; tmp = tmp->next) {
+                        OSyncCapability *capability = NULL;
 			/* TODO: its to slow to check the name */
 			/* Skip nodes which are comments to keep the capabilities sorted. */
 			if (!strcmp((const char *) tmp->name, "comment"))
 				continue;
 
-			OSyncCapability *capability = osync_capability_new_node(capabilitiesobjtype, tmp, error);
+			capability = osync_capability_new_node(capabilitiesobjtype, tmp, error);
 			if(!capability) {
 				osync_capabilities_unref(capabilities);
 				osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
@@ -242,11 +249,12 @@ void osync_capabilities_unref(OSyncCapabilities *capabilities)
  */
 OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, const char *objtype)
 {
+        OSyncCapability *res = NULL;
+	OSyncCapabilitiesObjType *tmp = NULL;
 	osync_assert(capabilities);
 	osync_assert(objtype);
 	
-	OSyncCapability *res = NULL;
-	OSyncCapabilitiesObjType *tmp = osync_capabilitiesobjtype_get(capabilities, objtype);
+	tmp = osync_capabilitiesobjtype_get(capabilities, objtype);
 	if(tmp)
 		res = tmp->first_child;
 	return res;
@@ -284,10 +292,11 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
 	objtype = capabilities->first_objtype;
 	for(; objtype != NULL; objtype = objtype->next)
 	{
+                void **list = NULL;
 		if(objtype->child_count <= 1)
 			continue;
 	
-		void **list = g_malloc0(sizeof(OSyncCapability *) * objtype->child_count);
+		list = g_malloc0(sizeof(OSyncCapability *) * objtype->child_count);
 	
 		index = 0;
 		for(cur = objtype->first_child; cur != NULL; cur = osync_capability_get_next(cur)) {
@@ -329,16 +338,17 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
  */
 OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, file, error);
-	osync_assert(file);
-	
 	unsigned int size;
 	char *buffer, *filename;
 	OSyncCapabilities *capabilities;
+        osync_bool b;
+
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, file, error);
+	osync_assert(file);
 	
 	filename = g_strdup_printf("%s%c%s", OPENSYNC_CAPABILITIESDIR, G_DIR_SEPARATOR, file);
 	
-	osync_bool b = osync_file_read(filename, &buffer, &size, error);
+	b = osync_file_read(filename, &buffer, &size, error);
 	g_free(filename);
 	if(!b) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
@@ -363,11 +373,14 @@ OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
  */
 osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member)
 {
+        char *filename = NULL;
+	gboolean res = FALSE;
+
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	osync_assert(member);
 	
-	char *filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
-	gboolean res = g_file_test(filename, G_FILE_TEST_IS_REGULAR);
+        filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+	res = g_file_test(filename, G_FILE_TEST_IS_REGULAR);
 	g_free(filename);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
@@ -386,15 +399,16 @@ osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member)
  */
 OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *member, OSyncError** error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-	osync_assert(member);
-	
 	unsigned int size;
 	char* buffer, *filename;
 	OSyncCapabilities *capabilities;
+        osync_bool res;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+	osync_assert(member);
 	
 	filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
-	osync_bool res = osync_file_read(filename, &buffer, &size, error);
+	res = osync_file_read(filename, &buffer, &size, error);
 	g_free(filename);
 	
 	if(!res) {
@@ -429,13 +443,13 @@ OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *membe
  */
 osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSyncCapabilities* capabilities, OSyncError** error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, capabilities, error);
-	osync_assert(member);
-	osync_assert(capabilities);
-	
 	int size;
 	char* buffer, *filename;
 	osync_bool res;
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, capabilities, error);
+	osync_assert(member);
+	osync_assert(capabilities);
 	
 	osync_capabilities_assemble(capabilities, &buffer, &size);
 	filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);

@@ -129,6 +129,7 @@ void osync_context_report_success(OSyncContext *context)
 
 void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 {
+        OSyncData *data;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, context, change);
 	osync_assert(context);
 	osync_assert(change);
@@ -136,7 +137,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	osync_assert_msg(osync_change_get_uid(change), "You forgot to set a uid on the change you reported!");
 	osync_assert_msg(osync_change_get_data(change) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED, "You need to report some data unless you report CHANGE_DELETED");
 	
-	OSyncData *data = osync_change_get_data(change);
+	data = osync_change_get_data(change);
 	
 	osync_assert_msg(((data && osync_data_get_objformat(data) != NULL) ||  osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED), "The reported change did not have a format set");
 	osync_assert_msg(((data && osync_data_get_objtype(data) != NULL) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED), "The reported change did not have a objtype set");
