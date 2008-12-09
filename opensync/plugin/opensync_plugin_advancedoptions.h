@@ -121,18 +121,18 @@ OSYNC_EXPORT void osync_plugin_advancedoption_remove_parameter(OSyncPluginAdvanc
 /*! @brief Get the maximum value/length of an option
  * 
  * @param option Pointer to the OSyncPluginAdvancedOption object
- * @returns the maximum size of the option
+ * @returns the maximum value/length of the option
  * 
  */
-OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_maxsize(OSyncPluginAdvancedOption *option);
+OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_max(OSyncPluginAdvancedOption *option);
 
 /*! @brief Set the maximum value/length of an option
  * 
  * @param option Pointer to the OSyncPluginAdvancedOption object
- * @param maxsize the maximum size to set
+ * @param max the maximum value/length to set
  * 
  */
-OSYNC_EXPORT void osync_plugin_advancedoption_set_maxsize(OSyncPluginAdvancedOption *option, unsigned int maxsize);
+OSYNC_EXPORT void osync_plugin_advancedoption_set_max(OSyncPluginAdvancedOption *option, unsigned int max);
 
 
 /*! @brief Get the minimum value/length of an option
@@ -141,15 +141,15 @@ OSYNC_EXPORT void osync_plugin_advancedoption_set_maxsize(OSyncPluginAdvancedOpt
  * @returns the minimum value/length of the option
  * 
  */
-OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_minsize(OSyncPluginAdvancedOption *option);
+OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_min(OSyncPluginAdvancedOption *option);
 
 /*! @brief Set the minimum value/length of an option
  * 
  * @param option Pointer to the OSyncPluginAdvancedOption object
- * @param minsize the minimum value/length to set
+ * @param min the minimum value/length to set
  * 
  */
-OSYNC_EXPORT void osync_plugin_advancedoption_set_minsize(OSyncPluginAdvancedOption *option, unsigned int minsize);
+OSYNC_EXPORT void osync_plugin_advancedoption_set_min(OSyncPluginAdvancedOption *option, unsigned int min);
 
 
 OSYNC_EXPORT unsigned int osync_plugin_advancedoption_get_maxoccurs(OSyncPluginAdvancedOption *option);

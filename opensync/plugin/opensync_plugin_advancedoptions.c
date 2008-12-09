@@ -111,8 +111,8 @@ OSyncPluginAdvancedOption *osync_plugin_advancedoption_new(OSyncError **error)
     return NULL;
 
   option->ref_count = 1;
-  option->minsize = 0;
-  option->maxsize = UINT_MAX;
+  option->min = 0;
+  option->max = UINT_MAX;
   option->maxoccurs = UINT_MAX;
 
   return option;
@@ -210,28 +210,28 @@ void osync_plugin_advancedoption_set_maxoccurs(OSyncPluginAdvancedOption *option
   option->maxoccurs = maxoccurs;
 }
 
-unsigned int osync_plugin_advancedoption_get_maxsize(OSyncPluginAdvancedOption *option)
+unsigned int osync_plugin_advancedoption_get_max(OSyncPluginAdvancedOption *option)
 {
   osync_assert(option);
-  return option->maxsize;
+  return option->max;
 }
 
-void osync_plugin_advancedoption_set_maxsize(OSyncPluginAdvancedOption *option, unsigned int maxsize)
+void osync_plugin_advancedoption_set_max(OSyncPluginAdvancedOption *option, unsigned int max)
 {
   osync_assert(option);
-  option->maxsize = maxsize;
+  option->max = max;
 }
 
-unsigned int osync_plugin_advancedoption_get_minsize(OSyncPluginAdvancedOption *option)
+unsigned int osync_plugin_advancedoption_get_min(OSyncPluginAdvancedOption *option)
 {
   osync_assert(option);
-  return option->minsize;
+  return option->min;
 }
 
-void osync_plugin_advancedoption_set_minsize(OSyncPluginAdvancedOption *option, unsigned int minsize)
+void osync_plugin_advancedoption_set_min(OSyncPluginAdvancedOption *option, unsigned int min)
 {
   osync_assert(option);
-  option->minsize = minsize;
+  option->min = min;
 }
 
 const char *osync_plugin_advancedoption_get_name(OSyncPluginAdvancedOption *option)

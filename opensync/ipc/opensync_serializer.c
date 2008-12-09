@@ -845,7 +845,7 @@ osync_bool osync_marshal_pluginadvancedoption(OSyncMessage *message, OSyncPlugin
   if (maxoccurs)
     available_subconfigs |= MARSHAL_PLUGINADVANCEDOPTION_MAXOCCURS;
 
-  maxsize = osync_plugin_advancedoption_get_maxsize(opt);
+  maxsize = osync_plugin_advancedoption_get_max(opt);
   if (maxsize)
     available_subconfigs |= MARSHAL_PLUGINADVANCEDOPTION_MAXSIZE;
 
@@ -989,7 +989,7 @@ osync_bool osync_demarshal_pluginadvancedoption(OSyncMessage *message, OSyncPlug
 
   if (available_subconfigs & MARSHAL_PLUGINADVANCEDOPTION_MAXSIZE) {
     osync_message_read_uint(message, &maxsize);
-    osync_plugin_advancedoption_set_maxsize(*opt, maxsize);
+    osync_plugin_advancedoption_set_max(*opt, maxsize);
   }
 
   osync_message_read_string(message, &name);

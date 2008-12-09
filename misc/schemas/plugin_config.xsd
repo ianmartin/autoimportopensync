@@ -24,8 +24,8 @@
     <xsd:sequence>
       <xsd:element maxOccurs="1" minOccurs="0" name="DisplayName" type="xsd:string" />
       <xsd:element maxOccurs="1" minOccurs="0" name="MaxOccurs" type="xsd:integer" />
-      <xsd:element maxOccurs="1" minOccurs="0" name="MaxSize" type="xsd:integer" />
-      <xsd:element maxOccurs="1" minOccurs="0" name="MinSize" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Max" type="xsd:integer" />
+      <xsd:element maxOccurs="1" minOccurs="0" name="Min" type="xsd:integer" />
       <xsd:element maxOccurs="1" minOccurs="1" name="Name" type="xsd:string" />
       <xsd:element maxOccurs="unbounded" minOccurs="0" name="Parameter" type="AdvancedParameter" />
       <xsd:element maxOccurs="1" minOccurs="0" name="Type" type="AdvancedType" />

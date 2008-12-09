@@ -276,10 +276,10 @@ static osync_bool _compare_pluginconfig_advancedoption(const void *a, const void
 	if (!_compare_string(value1, value2))
 		return FALSE;
 
-	unsigned int maxsize1 = osync_plugin_advancedoption_get_maxsize(opt1);
-	unsigned int maxsize2 = osync_plugin_advancedoption_get_maxsize(opt2);
+	unsigned int max1 = osync_plugin_advancedoption_get_max(opt1);
+	unsigned int max2 = osync_plugin_advancedoption_get_max(opt2);
 
-	if (maxsize1 != maxsize2)
+	if (max1 != max2)
 		return FALSE;
 
 	unsigned int maxoccurs1 = osync_plugin_advancedoption_get_maxoccurs(opt1);
