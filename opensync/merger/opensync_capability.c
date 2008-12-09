@@ -48,29 +48,29 @@
  */
 OSyncCapability *osync_capability_new_node(OSyncCapabilitiesObjType *capabilitiesobjtype, xmlNodePtr node, OSyncError **error)
 {
-        OSyncCapability *capability = NULL;
-	osync_assert(capabilitiesobjtype);
-	osync_assert(node);
+  OSyncCapability *capability = NULL;
+  osync_assert(capabilitiesobjtype);
+  osync_assert(node);
 	
-	capability = osync_try_malloc0(sizeof(OSyncCapability), error);
-	if(!capability) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}	
+  capability = osync_try_malloc0(sizeof(OSyncCapability), error);
+  if(!capability) {
+    osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+    return NULL;
+  }	
 	
-	capability->next = NULL;
-	capability->node = node;
-	capability->prev = capabilitiesobjtype->last_child;
-	node->_private = capability;
+  capability->next = NULL;
+  capability->node = node;
+  capability->prev = capabilitiesobjtype->last_child;
+  node->_private = capability;
 	
-	if(!capabilitiesobjtype->first_child)
-		capabilitiesobjtype->first_child = capability;
-	if(capabilitiesobjtype->last_child)
-		capabilitiesobjtype->last_child->next = capability;
-	capabilitiesobjtype->last_child = capability;
-	capabilitiesobjtype->child_count++;
+  if(!capabilitiesobjtype->first_child)
+    capabilitiesobjtype->first_child = capability;
+  if(capabilitiesobjtype->last_child)
+    capabilitiesobjtype->last_child->next = capability;
+  capabilitiesobjtype->last_child = capability;
+  capabilitiesobjtype->child_count++;
 	
-	return capability;
+  return capability;
 }
 
 /**
@@ -79,9 +79,9 @@ OSyncCapability *osync_capability_new_node(OSyncCapabilitiesObjType *capabilitie
  */
 void osync_capability_free(OSyncCapability *capability)
 {
-	osync_assert(capability);
+  osync_assert(capability);
 	
-	g_free(capability);
+  g_free(capability);
 }
 
 /**
@@ -91,7 +91,7 @@ void osync_capability_free(OSyncCapability *capability)
  */
 int osync_capability_compare_stdlib(const void *capability1, const void *capability2)
 {
-	return strcmp(osync_capability_get_name(*(OSyncCapability **)capability1), osync_capability_get_name(*(OSyncCapability **)capability2));
+  return strcmp(osync_capability_get_name(*(OSyncCapability **)capability1), osync_capability_get_name(*(OSyncCapability **)capability2));
 }
 
 /*@}*/
@@ -115,37 +115,37 @@ int osync_capability_compare_stdlib(const void *capability1, const void *capabil
  */
 OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const char *objtype, const char *name, OSyncError **error)
 {
-        OSyncCapabilitiesObjType *capabilitiesobjtype = NULL;
-        xmlNodePtr node = NULL;
-	OSyncCapability *capability = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, capabilities, objtype, name, error);
-	osync_assert(capabilities);
-	osync_assert(objtype);
-	osync_assert(name);
+  OSyncCapabilitiesObjType *capabilitiesobjtype = NULL;
+  xmlNodePtr node = NULL;
+  OSyncCapability *capability = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, capabilities, objtype, name, error);
+  osync_assert(capabilities);
+  osync_assert(objtype);
+  osync_assert(name);
 	
-	capabilitiesobjtype = osync_capabilitiesobjtype_get(capabilities, objtype);
-	if(!capabilitiesobjtype) {
-		xmlNodePtr node = xmlNewTextChild(xmlDocGetRootElement(capabilities->doc), NULL, BAD_CAST objtype, NULL);
-		capabilitiesobjtype = osync_capabilitiesobjtype_new(capabilities, node, error);
-		if(!capabilitiesobjtype) {
-			xmlUnlinkNode(node);
-			xmlFreeNode(node);
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-			return NULL;
-		}
-	}
+  capabilitiesobjtype = osync_capabilitiesobjtype_get(capabilities, objtype);
+  if(!capabilitiesobjtype) {
+    xmlNodePtr node = xmlNewTextChild(xmlDocGetRootElement(capabilities->doc), NULL, BAD_CAST objtype, NULL);
+    capabilitiesobjtype = osync_capabilitiesobjtype_new(capabilities, node, error);
+    if(!capabilitiesobjtype) {
+      xmlUnlinkNode(node);
+      xmlFreeNode(node);
+      osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+      return NULL;
+    }
+  }
 	
-	node = xmlNewTextChild(capabilitiesobjtype->node, NULL, (xmlChar *)name, NULL);
-	capability = osync_capability_new_node(capabilitiesobjtype, node, error);
-	if(!capability) {
-		xmlUnlinkNode(node);
-		xmlFreeNode(node);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
+  node = xmlNewTextChild(capabilitiesobjtype->node, NULL, (xmlChar *)name, NULL);
+  capability = osync_capability_new_node(capabilitiesobjtype, node, error);
+  if(!capability) {
+    xmlUnlinkNode(node);
+    xmlFreeNode(node);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+    return NULL;
+  }
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, capability);
-	return capability;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, capability);
+  return capability;
 }
 
 /**
@@ -155,9 +155,9 @@ OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const cha
  */
 const char *osync_capability_get_name(OSyncCapability *capability)
 {
-	osync_assert(capability);
+  osync_assert(capability);
 	
-	return (const char *) capability->node->name;
+  return (const char *) capability->node->name;
 }
 
 /**
@@ -167,9 +167,9 @@ const char *osync_capability_get_name(OSyncCapability *capability)
  */
 OSyncCapability *osync_capability_get_next(OSyncCapability *capability)
 {
-	osync_assert(capability);
+  osync_assert(capability);
 	
-	return capability->next;
+  return capability->next;
 }
 
 /**
@@ -179,12 +179,12 @@ OSyncCapability *osync_capability_get_next(OSyncCapability *capability)
  */
 osync_bool osync_capability_has_key(OSyncCapability *capability)
 {
-	osync_assert(capability);
+  osync_assert(capability);
 
-	if(capability->node->children)
-		return TRUE;
-	else
-		return FALSE;	
+  if(capability->node->children)
+    return TRUE;
+  else
+    return FALSE;	
 }
 
 /**
@@ -194,17 +194,17 @@ osync_bool osync_capability_has_key(OSyncCapability *capability)
  */
 int osync_capability_get_key_count(OSyncCapability *capability)
 {
-	int count;
-	xmlNodePtr child = NULL;
+  int count;
+  xmlNodePtr child = NULL;
 
-	osync_assert(capability);
+  osync_assert(capability);
 	
-	child = capability->node->xmlChildrenNode;
+  child = capability->node->xmlChildrenNode;
 	
-	for(count=0 ; child != NULL; child = child->next)
-		count++;
+  for(count=0 ; child != NULL; child = child->next)
+    count++;
 	
-	return count;
+  return count;
 }
 
 /**
@@ -215,20 +215,20 @@ int osync_capability_get_key_count(OSyncCapability *capability)
  */
 const char *osync_capability_get_nth_key(OSyncCapability *capability, int nth)
 {
-	int count = 0;
-	xmlNodePtr child = NULL;
+  int count = 0;
+  xmlNodePtr child = NULL;
 
-	osync_assert(capability);
+  osync_assert(capability);
 	
-	child = capability->node->xmlChildrenNode;
+  child = capability->node->xmlChildrenNode;
 	
-	for(count=0; child != NULL; child = child->next) {
-		if(count == nth)
-			return (const char *)child->name;
-		count++;
-	}
+  for(count=0; child != NULL; child = child->next) {
+    if(count == nth)
+      return (const char *)child->name;
+    count++;
+  }
 	
-	return NULL;
+  return NULL;
 }
 
 /**
@@ -238,10 +238,10 @@ const char *osync_capability_get_nth_key(OSyncCapability *capability, int nth)
  */
 void osync_capability_add_key(OSyncCapability *capability, const char *name)
 {
-	osync_assert(capability);
-	osync_assert(name);
+  osync_assert(capability);
+  osync_assert(name);
 	
-	xmlNewTextChild(capability->node, NULL, (xmlChar*)name, NULL);
+  xmlNewTextChild(capability->node, NULL, (xmlChar*)name, NULL);
 }
 
 /*@}*/

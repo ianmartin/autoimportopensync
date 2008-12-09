@@ -29,17 +29,17 @@ typedef osync_bool (* fkt_b_fmtenv_error)(OSyncFormatEnv *env, OSyncError **erro
 
 OSyncModule *osync_module_new(OSyncError **error)
 {
-	OSyncModule *module = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+  OSyncModule *module = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	module = osync_try_malloc0(sizeof(OSyncModule), error);
-	if (!module) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return NULL;
-	}
+  module = osync_try_malloc0(sizeof(OSyncModule), error);
+  if (!module) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return NULL;
+  }
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, module);
-	return module;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, module);
+  return module;
 }
 
 /*! @brief Used to free a module
@@ -51,16 +51,16 @@ OSyncModule *osync_module_new(OSyncError **error)
  */
 void osync_module_free(OSyncModule *module)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
-	if (module->module)
-		osync_module_unload(module);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
+  if (module->module)
+    osync_module_unload(module);
 		
-	if (module->path)
-		g_free(module->path);
+  if (module->path)
+    g_free(module->path);
 	
-	g_free(module);
+  g_free(module);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Used to look up a symbol on the plugin
@@ -75,138 +75,138 @@ void osync_module_free(OSyncModule *module)
  */
 void *osync_module_get_function(OSyncModule *module, const char *name, OSyncError **error)
 {
-	void *function = NULL;
-	osync_assert(module);
-	osync_assert(name);
+  void *function = NULL;
+  osync_assert(module);
+  osync_assert(name);
 	
-	if (!module->module) {
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You need to load the module before getting a function");
-		return NULL;
-	}
+  if (!module->module) {
+    osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You need to load the module before getting a function");
+    return NULL;
+  }
 	
-	if (!g_module_symbol(module->module, name, &function)) {
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to locate symbol %s: %s", __NULLSTR(name), g_module_error());
-		return NULL;
-	}
+  if (!g_module_symbol(module->module, name, &function)) {
+    osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to locate symbol %s: %s", __NULLSTR(name), g_module_error());
+    return NULL;
+  }
 	
-	return function;
+  return function;
 }
 
 osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, OSyncError **error)
 {
- 	fkt_b_plugenv_error fct_info = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
+  fkt_b_plugenv_error fct_info = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
-	/* Load the get_sync_info symbol */
-	fct_info = (fkt_b_plugenv_error) osync_module_get_function(module, "get_sync_info", error);
-	if (!fct_info) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Not get_sync_info function", __func__);
-		return FALSE;
-	}
+  /* Load the get_sync_info symbol */
+  fct_info = (fkt_b_plugenv_error) osync_module_get_function(module, "get_sync_info", error);
+  if (!fct_info) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: Not get_sync_info function", __func__);
+    return FALSE;
+  }
 	
-	/* Call the get_info function */
-	if (!fct_info(env, error))
-		goto error;
+  /* Call the get_info function */
+  if (!fct_info(env, error))
+    goto error;
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env, OSyncError **error)
 {
- 	fkt_b_fmtenv_error fct_info = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
+  fkt_b_fmtenv_error fct_info = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
-	/* Load the get_info symbol */
-	fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_format_info", NULL);
-	if (!fct_info) {
-		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
-		return FALSE;
-	}
+  /* Load the get_info symbol */
+  fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_format_info", NULL);
+  if (!fct_info) {
+    osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
+    return FALSE;
+  }
 	
-	/* Call the get_info function */
-	if (!fct_info(env, error))
-		goto error;
+  /* Call the get_info function */
+  if (!fct_info(env, error))
+    goto error;
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 osync_bool osync_module_get_conversion_info(OSyncModule *module, OSyncFormatEnv *env, OSyncError **error)
 {
- 	fkt_b_fmtenv_error fct_info = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
+  fkt_b_fmtenv_error fct_info = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
-	/* Load the get_info symbol */
-	fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_conversion_info", NULL);
-	if (!fct_info) {
-		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
-		return FALSE;
-	}
+  /* Load the get_info symbol */
+  fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_conversion_info", NULL);
+  if (!fct_info) {
+    osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
+    return FALSE;
+  }
 	
-	/* Call the get_info function */
-	if (!fct_info(env, error))
-		goto error;
+  /* Call the get_info function */
+  if (!fct_info(env, error))
+    goto error;
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 int osync_module_get_version(OSyncModule *module)
 {
-	void *function = NULL;
-	int (* fct_version)(void) = NULL;
-	int version = 0;
+  void *function = NULL;
+  int (* fct_version)(void) = NULL;
+  int version = 0;
 
-	osync_assert(module);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
+  osync_assert(module);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
 	
-	/* Load the get_info symbol */
-	if (!g_module_symbol(module->module, "get_version", &function) || !function) {
-		osync_trace(TRACE_EXIT, "%s: get_version not found. Not a library?", __func__);
-		return 0;
-	}
+  /* Load the get_info symbol */
+  if (!g_module_symbol(module->module, "get_version", &function) || !function) {
+    osync_trace(TRACE_EXIT, "%s: get_version not found. Not a library?", __func__);
+    return 0;
+  }
 	
-	fct_version = (int (* )(void)) function;
-	/* Call the get_info function */
-	version = fct_version();
+  fct_version = (int (* )(void)) function;
+  /* Call the get_info function */
+  version = fct_version();
 	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, version);
-	return version;
+  osync_trace(TRACE_EXIT, "%s: %i", __func__, version);
+  return version;
 }
 
 osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
 {
-	int version = 0;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, module, error);
+  int version = 0;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, module, error);
 	
-	version = osync_module_get_version(module);
-	if (!version) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not load plugin \"%s\". Not a opensync library?", __NULLSTR(module->path));
-		osync_trace(TRACE_EXIT_ERROR, "%s: No version", __func__);
-		return FALSE;
-	}
+  version = osync_module_get_version(module);
+  if (!version) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not load plugin \"%s\". Not a opensync library?", __NULLSTR(module->path));
+    osync_trace(TRACE_EXIT_ERROR, "%s: No version", __func__);
+    return FALSE;
+  }
 	
-	if (version != OPENSYNC_PLUGINVERSION) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin API version mismatch. Is: %i. Should %i", version, OPENSYNC_PLUGINVERSION);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
+  if (version != OPENSYNC_PLUGINVERSION) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin API version mismatch. Is: %i. Should %i", version, OPENSYNC_PLUGINVERSION);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return FALSE;
+  }
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 }
 
 /*! @brief dlopen()s a format plugin
@@ -221,30 +221,30 @@ osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
  */
 osync_bool osync_module_load(OSyncModule *module, const char *path, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, module, path, error);
-	osync_assert(module);
-	osync_assert(!module->module);
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, module, path, error);
+  osync_assert(module);
+  osync_assert(!module->module);
 	
-	if (!g_module_supported()) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
-		goto error;
-	}
+  if (!g_module_supported()) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
+    goto error;
+  }
 
-	/* Try to open the module or fail if an error occurs */
-	module->module = g_module_open(path, 0);
-	if (!module->module) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open module %s: %s", path, g_module_error());
-		goto error;
-	}
+  /* Try to open the module or fail if an error occurs */
+  module->module = g_module_open(path, 0);
+  if (!module->module) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open module %s: %s", path, g_module_error());
+    goto error;
+  }
 	
-	module->path = g_strdup(path);
+  module->path = g_strdup(path);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 /*! @brief Closes a module
@@ -255,19 +255,19 @@ error:
  */
 void osync_module_unload(OSyncModule *module)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
-	osync_assert(module);
-	osync_assert(module->module);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
+  osync_assert(module);
+  osync_assert(module->module);
 	
-	if (!osync_module_get_function(module, "dont_free", NULL))
+  if (!osync_module_get_function(module, "dont_free", NULL))
 #ifndef OPENSYNC_DEBUG_MODULES
-		g_module_close(module->module);
+    g_module_close(module->module);
 #else	
-		osync_trace(TRACE_INTERNAL, "Unloading modules got disabled in this build. debug_modules=1");
+  osync_trace(TRACE_INTERNAL, "Unloading modules got disabled in this build. debug_modules=1");
 #endif	
-	module->module = NULL;
+  module->module = NULL;
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*@}*/

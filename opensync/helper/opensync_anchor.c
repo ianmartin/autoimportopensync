@@ -33,21 +33,21 @@
  */
 static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
 {
-        char *query = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
+  char *query = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
 
-	query = g_strdup("CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)");
+  query = g_strdup("CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)");
 
-	if (!osync_db_query(db, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_free(query);
-		return FALSE;
-	}
+  if (!osync_db_query(db, query, error)) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    g_free(query);
+    return FALSE;
+  }
 
-	g_free(query);
+  g_free(query);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 }	
 
 /*! @brief Create an anchor database
@@ -59,40 +59,40 @@ static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
  */
 static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 {
-        OSyncDB *db = NULL;
-        int ret = 0;
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
+  OSyncDB *db = NULL;
+  int ret = 0;
+  osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
 	
-	db = osync_db_new(error); 
-	if (!db)
-		goto error;
+  db = osync_db_new(error); 
+  if (!db)
+    goto error;
 	
-	if (!osync_db_open(db, filename, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		goto error_free_db;
-	}
+  if (!osync_db_open(db, filename, error)) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    goto error_free_db;
+  }
 	
-	ret = osync_db_table_exists(db, "tbl_anchor", error);
-	if (ret > 0) {
-		osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
-		return db;
-	/* error if ret == -1 */	
-	} else if (ret < 0) {
-		goto error_free_db;
-	}	
-	/* ret equal 0 means table does not exist yet. continue and create one. */
+  ret = osync_db_table_exists(db, "tbl_anchor", error);
+  if (ret > 0) {
+    osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
+    return db;
+    /* error if ret == -1 */	
+  } else if (ret < 0) {
+    goto error_free_db;
+  }	
+  /* ret equal 0 means table does not exist yet. continue and create one. */
 
-	if (!_osync_anchor_db_create(db, error))
-		goto error_free_db;
+  if (!_osync_anchor_db_create(db, error))
+    goto error_free_db;
 
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
-	return db;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
+  return db;
 
-error_free_db:
-	g_free(db);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
+ error_free_db:
+  g_free(db);
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
 /*! @brief Close and free an anchor database handle
@@ -102,12 +102,12 @@ error:
  */
 static void _osync_anchor_db_free(OSyncDB *db)
 {
-	osync_assert(db);
+  osync_assert(db);
 
-	if (!osync_db_close(db, NULL))
-		osync_trace(TRACE_INTERNAL, "Can't close database");
+  if (!osync_db_close(db, NULL))
+    osync_trace(TRACE_INTERNAL, "Can't close database");
 
-	g_free(db);
+  g_free(db);
 }
 
 /*! @brief Retrieves the value of an anchor
@@ -119,21 +119,21 @@ static void _osync_anchor_db_free(OSyncDB *db)
  */
 static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 {
-        char *retanchor = NULL;
-        char *escaped_key = NULL;
-	char *query = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key);
-	osync_assert(db);
-	osync_assert(key);
+  char *retanchor = NULL;
+  char *escaped_key = NULL;
+  char *query = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key);
+  osync_assert(db);
+  osync_assert(key);
 
-	escaped_key = osync_db_sql_escape(key);
-	query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", escaped_key);
-	retanchor = osync_db_query_single_string(db, query, NULL); 
-	g_free(query);
-	g_free(escaped_key);
+  escaped_key = osync_db_sql_escape(key);
+  query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", escaped_key);
+  retanchor = osync_db_query_single_string(db, query, NULL); 
+  g_free(query);
+  g_free(escaped_key);
 	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, retanchor);
-	return retanchor;
+  osync_trace(TRACE_EXIT, "%s: %s", __func__, retanchor);
+  return retanchor;
 }
 
 /*! @brief Updates the value of an anchor
@@ -145,26 +145,26 @@ static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
  */
 static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *anchor)
 {
-        char *escaped_key = NULL;
-	char *escaped_anchor = NULL;
-	char *query = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
-	osync_assert(db);
-	osync_assert(key);
+  char *escaped_key = NULL;
+  char *escaped_anchor = NULL;
+  char *query = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
+  osync_assert(db);
+  osync_assert(key);
 
-	escaped_key = osync_db_sql_escape(key);
-	escaped_anchor = osync_db_sql_escape(anchor);
-	query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", escaped_key, escaped_anchor);
-	g_free(escaped_key);
-	g_free(escaped_anchor);
+  escaped_key = osync_db_sql_escape(key);
+  escaped_anchor = osync_db_sql_escape(anchor);
+  query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", escaped_key, escaped_anchor);
+  g_free(escaped_key);
+  g_free(escaped_anchor);
 
-	/* TODO: Add Error handling in this funciton for osync_db_query() */
-	if (!osync_db_query(db, query, NULL)) {
-		osync_trace(TRACE_INTERNAL, "Unable put anchor!");
-	}
-	g_free(query);
+  /* TODO: Add Error handling in this funciton for osync_db_query() */
+  if (!osync_db_query(db, query, NULL)) {
+    osync_trace(TRACE_INTERNAL, "Unable put anchor!");
+  }
+  g_free(query);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
@@ -185,31 +185,31 @@ static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *an
  */
 osync_bool osync_anchor_compare(const char *anchordb, const char *key, const char *new_anchor)
 {
-        OSyncDB *db = NULL;
-	char *old_anchor = NULL;
-	osync_bool retval = FALSE;
+  OSyncDB *db = NULL;
+  char *old_anchor = NULL;
+  osync_bool retval = FALSE;
 
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
-	osync_assert(anchordb);
+  osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
+  osync_assert(anchordb);
 	
-	db = _osync_anchor_db_new(anchordb, NULL);
-	if (!db)
-		return FALSE;
+  db = _osync_anchor_db_new(anchordb, NULL);
+  if (!db)
+    return FALSE;
 	
-	old_anchor = _osync_anchor_db_retrieve(db, key);
-	if (old_anchor) {
-		if (!strcmp(old_anchor, new_anchor)) {
-			retval = TRUE;
-		} else {
-			retval = FALSE;
-		}
-		g_free(old_anchor);
-	}
+  old_anchor = _osync_anchor_db_retrieve(db, key);
+  if (old_anchor) {
+    if (!strcmp(old_anchor, new_anchor)) {
+      retval = TRUE;
+    } else {
+      retval = FALSE;
+    }
+    g_free(old_anchor);
+  }
 	
-	_osync_anchor_db_free(db);
+  _osync_anchor_db_free(db);
 	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, retval);
-	return retval;
+  osync_trace(TRACE_EXIT, "%s: %i", __func__, retval);
+  return retval;
 }
 
 /*! @brief Updates the value of an anchor
@@ -221,20 +221,20 @@ osync_bool osync_anchor_compare(const char *anchordb, const char *key, const cha
  */
 void osync_anchor_update(const char *anchordb, const char *key, const char *new_anchor)
 {
-        OSyncDB *db = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
-	osync_assert(anchordb);
+  OSyncDB *db = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
+  osync_assert(anchordb);
 	
-	db = _osync_anchor_db_new(anchordb, NULL);
-	if (!db)
-		return;
+  db = _osync_anchor_db_new(anchordb, NULL);
+  if (!db)
+    return;
 	
-	_osync_anchor_db_update(db, key, new_anchor);
+  _osync_anchor_db_update(db, key, new_anchor);
 	
-	_osync_anchor_db_free(db);
+  _osync_anchor_db_free(db);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return;
 }
 
 /*! @brief Retrieves the value of an anchor
@@ -246,22 +246,22 @@ void osync_anchor_update(const char *anchordb, const char *key, const char *new_
  */
 char *osync_anchor_retrieve(const char *anchordb, const char *key)
 {
-        OSyncDB *db = NULL;
-        char *retval = NULL;
+  OSyncDB *db = NULL;
+  char *retval = NULL;
 
-	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb, key);
-	osync_assert(anchordb);
+  osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb, key);
+  osync_assert(anchordb);
 	
-	db = _osync_anchor_db_new(anchordb, NULL);
-	if (!db)
-		return NULL;
+  db = _osync_anchor_db_new(anchordb, NULL);
+  if (!db)
+    return NULL;
 	
-	retval = _osync_anchor_db_retrieve(db, key);
+  retval = _osync_anchor_db_retrieve(db, key);
 	
-	_osync_anchor_db_free(db);
+  _osync_anchor_db_free(db);
 	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval);
-	return retval;
+  osync_trace(TRACE_EXIT, "%s: %s", __func__, retval);
+  return retval;
 }
 
 /*@}*/

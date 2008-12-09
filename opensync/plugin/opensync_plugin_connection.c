@@ -26,346 +26,346 @@
 #include "opensync_plugin_connection_internals.h"
 
 OSyncPluginConnectionTypeString conn_str[] = {
-	{ OSYNC_PLUGIN_CONNECTION_BLUETOOTH, "Bluetooth" },
-	{ OSYNC_PLUGIN_CONNECTION_USB, "USB" },
-	{ OSYNC_PLUGIN_CONNECTION_NETWORK, "Network" },
-	{ OSYNC_PLUGIN_CONNECTION_SERIAL, "Serial" },
-	{ OSYNC_PLUGIN_CONNECTION_IRDA, "IrDA" },
-	/* Unknown is latest */
-	{ OSYNC_PLUGIN_CONNECTION_UNKNOWN, NULL },
+  { OSYNC_PLUGIN_CONNECTION_BLUETOOTH, "Bluetooth" },
+  { OSYNC_PLUGIN_CONNECTION_USB, "USB" },
+  { OSYNC_PLUGIN_CONNECTION_NETWORK, "Network" },
+  { OSYNC_PLUGIN_CONNECTION_SERIAL, "Serial" },
+  { OSYNC_PLUGIN_CONNECTION_IRDA, "IrDA" },
+  /* Unknown is latest */
+  { OSYNC_PLUGIN_CONNECTION_UNKNOWN, NULL },
 };
 
 OSyncPluginConnection *osync_plugin_connection_new(OSyncError **error)
 {
-	OSyncPluginConnection *connection = osync_try_malloc0(sizeof(OSyncPluginConnection), error);
-	if (!connection)
-		return NULL;
+  OSyncPluginConnection *connection = osync_try_malloc0(sizeof(OSyncPluginConnection), error);
+  if (!connection)
+    return NULL;
 
-	connection->ref_count = 1;
-	connection->type = OSYNC_PLUGIN_CONNECTION_UNKNOWN;
+  connection->ref_count = 1;
+  connection->type = OSYNC_PLUGIN_CONNECTION_UNKNOWN;
 
-	return connection;
+  return connection;
 }
 
 OSyncPluginConnection *osync_plugin_connection_ref(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 	
-	g_atomic_int_inc(&(connection->ref_count));
+  g_atomic_int_inc(&(connection->ref_count));
 
-	return connection;
+  return connection;
 }
 
 void osync_plugin_connection_unref(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 	
-	if (g_atomic_int_dec_and_test(&(connection->ref_count))) {
-		if (connection->bt_address)
-			g_free(connection->bt_address);
+  if (g_atomic_int_dec_and_test(&(connection->ref_count))) {
+    if (connection->bt_address)
+      g_free(connection->bt_address);
 
-		if (connection->bt_sdpuuid)
-			g_free(connection->bt_sdpuuid);
+    if (connection->bt_sdpuuid)
+      g_free(connection->bt_sdpuuid);
 
-		if (connection->usb_vendorid)
-			g_free(connection->usb_vendorid);
+    if (connection->usb_vendorid)
+      g_free(connection->usb_vendorid);
 
-		if (connection->usb_productid)
-			g_free(connection->usb_productid);
+    if (connection->usb_productid)
+      g_free(connection->usb_productid);
 
-		if (connection->net_address)
-			g_free(connection->net_address);
+    if (connection->net_address)
+      g_free(connection->net_address);
 
-		if (connection->net_protocol)
-			g_free(connection->net_protocol);
+    if (connection->net_protocol)
+      g_free(connection->net_protocol);
 
-		if (connection->net_dnssd)
-			g_free(connection->net_dnssd);
+    if (connection->net_dnssd)
+      g_free(connection->net_dnssd);
 
-		if (connection->serial_devicenode)
-			g_free(connection->serial_devicenode);
+    if (connection->serial_devicenode)
+      g_free(connection->serial_devicenode);
 
-		if (connection->irda_service)
-			g_free(connection->irda_service);
+    if (connection->irda_service)
+      g_free(connection->irda_service);
 
-		g_free(connection);
-	}
+    g_free(connection);
+  }
 }
 
 OSyncPluginConnectionType osync_plugin_connection_get_type(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->type;
+  return connection->type;
 }
 
 void osync_plugin_connection_set_type(OSyncPluginConnection *connection, OSyncPluginConnectionType type)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	connection->type = type;
+  connection->type = type;
 }
 
 const char *osync_plugin_connection_get_type_string(OSyncPluginConnectionType conn_type)
 {
-	unsigned int i;
+  unsigned int i;
 
-	if (conn_type == OSYNC_PLUGIN_CONNECTION_UNKNOWN)
-		return NULL;
+  if (conn_type == OSYNC_PLUGIN_CONNECTION_UNKNOWN)
+    return NULL;
 
-	for (i=0; conn_str[i].string; i++) {
-		if (conn_str[i].type == conn_type)
-			return conn_str[i].string;
-	}
+  for (i=0; conn_str[i].string; i++) {
+    if (conn_str[i].type == conn_type)
+      return conn_str[i].string;
+  }
 
-	return NULL;
+  return NULL;
 }
 
 osync_bool osync_plugin_connection_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlag flag)
 {
-	osync_assert(connection);
-	if (connection->supported & flag)
-		return TRUE;
+  osync_assert(connection);
+  if (connection->supported & flag)
+    return TRUE;
 
-	return FALSE;
+  return FALSE;
 }
 
 void osync_plugin_connection_set_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlags flags)
 {
-	osync_assert(connection);
-	connection->supported = flags;
+  osync_assert(connection);
+  connection->supported = flags;
 }
 
 osync_bool osync_plugin_connection_option_is_supported(OSyncPluginConnection *connection, OSyncPluginConnectionOptionSupportedFlag flag)
 {
-	osync_assert(connection);
-	if (connection->supported_options & flag)
-		return TRUE;
+  osync_assert(connection);
+  if (connection->supported_options & flag)
+    return TRUE;
 
-	return FALSE;
+  return FALSE;
 }
 
 void osync_plugin_connection_option_set_supported(OSyncPluginConnection *connection, OSyncPluginConnectionSupportedFlags flags)
 {
-	osync_assert(connection);
-	connection->supported_options = flags;
+  osync_assert(connection);
+  connection->supported_options = flags;
 }
 
 
 const char *osync_plugin_connection_bt_get_addr(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->bt_address;
+  return connection->bt_address;
 }
 
 void osync_plugin_connection_bt_set_addr(OSyncPluginConnection *connection, const char *address)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 	
-	if (connection->bt_address)
-		g_free(connection->bt_address);
+  if (connection->bt_address)
+    g_free(connection->bt_address);
 
-	connection->bt_address = g_strdup(address);
+  connection->bt_address = g_strdup(address);
 }
 
 
 unsigned int osync_plugin_connection_bt_get_channel(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->bt_channel;
+  return connection->bt_channel;
 }
 
 void osync_plugin_connection_bt_set_channel(OSyncPluginConnection *connection, unsigned int channel)
 {
-	osync_assert(connection);
-	connection->bt_channel = channel;
+  osync_assert(connection);
+  connection->bt_channel = channel;
 }
 
 
 const char *osync_plugin_connection_bt_get_sdpuuid(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 	
-	return connection->bt_sdpuuid;
+  return connection->bt_sdpuuid;
 }
 
 void osync_plugin_connection_bt_set_sdpuuid(OSyncPluginConnection *connection, const char *sdpuuid)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->bt_sdpuuid)
-		g_free(connection->bt_sdpuuid);
+  if (connection->bt_sdpuuid)
+    g_free(connection->bt_sdpuuid);
 
-	connection->bt_sdpuuid = g_strdup(sdpuuid);
+  connection->bt_sdpuuid = g_strdup(sdpuuid);
 }
 
 
 const char *osync_plugin_connection_usb_get_vendorid(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->usb_vendorid;
+  return connection->usb_vendorid;
 }
 
 void osync_plugin_connection_usb_set_vendorid(OSyncPluginConnection *connection, const char *vendorid)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->usb_vendorid)
-		g_free(connection->usb_vendorid);
+  if (connection->usb_vendorid)
+    g_free(connection->usb_vendorid);
 
-	connection->usb_vendorid = g_strdup(vendorid);
+  connection->usb_vendorid = g_strdup(vendorid);
 }
 
 const char *osync_plugin_connection_usb_get_productid(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->usb_productid;
+  return connection->usb_productid;
 }
 
 void osync_plugin_connection_usb_set_productid(OSyncPluginConnection *connection, const char *productid)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->usb_productid)
-		g_free(connection->usb_productid);
+  if (connection->usb_productid)
+    g_free(connection->usb_productid);
 
-	connection->usb_productid = g_strdup(productid);
+  connection->usb_productid = g_strdup(productid);
 }
 
 unsigned int osync_plugin_connection_usb_get_interface(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->usb_interface;
+  return connection->usb_interface;
 }
 
 void osync_plugin_connection_usb_set_interface(OSyncPluginConnection *connection, unsigned int interf)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	connection->usb_interface = interf;
+  connection->usb_interface = interf;
 }
 
 const char *osync_plugin_connection_net_get_address(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->net_address;
+  return connection->net_address;
 }
 
 void osync_plugin_connection_net_set_address(OSyncPluginConnection *connection, const char *address)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->net_address)
-		g_free(connection->net_address);
+  if (connection->net_address)
+    g_free(connection->net_address);
 
-	connection->net_address = g_strdup(address);
+  connection->net_address = g_strdup(address);
 }
 
 
 unsigned int osync_plugin_connection_net_get_port(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->net_port;
+  return connection->net_port;
 }
 
 void osync_plugin_connection_net_set_port(OSyncPluginConnection *connection, unsigned int port)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	connection->net_port = port;
+  connection->net_port = port;
 }
 
 
 const char *osync_plugin_connection_net_get_protocol(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->net_protocol;
+  return connection->net_protocol;
 }
 
 void osync_plugin_connection_net_set_protocol(OSyncPluginConnection *connection, const char *protocol)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->net_protocol)
-		g_free(connection->net_protocol);
+  if (connection->net_protocol)
+    g_free(connection->net_protocol);
 
-	connection->net_protocol = g_strdup(protocol);
+  connection->net_protocol = g_strdup(protocol);
 }
 
 
 const char *osync_plugin_connection_net_get_dnssd(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->net_dnssd;
+  return connection->net_dnssd;
 }
 
 void osync_plugin_connection_net_set_dnssd(OSyncPluginConnection *connection, const char *dnssd)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->net_dnssd)
-		g_free(connection->net_dnssd);
+  if (connection->net_dnssd)
+    g_free(connection->net_dnssd);
 
-	connection->net_dnssd = g_strdup(dnssd);
+  connection->net_dnssd = g_strdup(dnssd);
 }
 
 
 unsigned int osync_plugin_connection_serial_get_speed(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->serial_speed;
+  return connection->serial_speed;
 }
 
 void osync_plugin_connection_serial_set_speed(OSyncPluginConnection *connection, unsigned int speed)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	connection->serial_speed = speed;
+  connection->serial_speed = speed;
 }
 
 
 const char *osync_plugin_connection_serial_get_devicenode(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->serial_devicenode;
+  return connection->serial_devicenode;
 }
 
 void osync_plugin_connection_serial_set_devicenode(OSyncPluginConnection *connection, const char *devicenode)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->serial_devicenode)
-		g_free(connection->serial_devicenode);
+  if (connection->serial_devicenode)
+    g_free(connection->serial_devicenode);
 
-	connection->serial_devicenode = g_strdup(devicenode);
+  connection->serial_devicenode = g_strdup(devicenode);
 }
 
 
 const char *osync_plugin_connection_irda_get_service(OSyncPluginConnection *connection)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	return connection->irda_service;
+  return connection->irda_service;
 }
 
 void osync_plugin_connection_irda_set_service(OSyncPluginConnection *connection, const char *irdaservice)
 {
-	osync_assert(connection);
+  osync_assert(connection);
 
-	if (connection->irda_service)
-		g_free(connection->irda_service);
+  if (connection->irda_service)
+    g_free(connection->irda_service);
 
-	connection->irda_service = g_strdup(irdaservice);
+  connection->irda_service = g_strdup(irdaservice);
 }
 

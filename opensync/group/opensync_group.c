@@ -44,28 +44,28 @@
 
 static int flock(int fd, int operation)
 {
-       struct flock flock;
+  struct flock flock;
 
-       switch (operation & ~LOCK_NB) {
-       case LOCK_SH:
-               flock.l_type = F_RDLCK;
-               break;
-       case LOCK_EX:
-               flock.l_type = F_WRLCK;
-               break;
-       case LOCK_UN:
-               flock.l_type = F_UNLCK;
-               break;
-       default:
-               errno = EINVAL;
-               return -1;
-       }
+  switch (operation & ~LOCK_NB) {
+  case LOCK_SH:
+    flock.l_type = F_RDLCK;
+    break;
+  case LOCK_EX:
+    flock.l_type = F_WRLCK;
+    break;
+  case LOCK_UN:
+    flock.l_type = F_UNLCK;
+    break;
+  default:
+    errno = EINVAL;
+    return -1;
+  }
 
-       flock.l_whence = 0;
-       flock.l_start = 0;
-       flock.l_len = 0;
+  flock.l_whence = 0;
+  flock.l_start = 0;
+  flock.l_len = 0;
 
-       return fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &flock);
+  return fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &flock);
 }
 #endif //NOT_HAVE_FLOCK
 #else  //not defined _WIN32
@@ -90,18 +90,18 @@ static int flock(int fd, int operation)
  */
 static long long int _osync_group_create_member_id(OSyncGroup *group)
 {
-	char *filename = NULL;
-	long long int i = 0;
+  char *filename = NULL;
+  long long int i = 0;
 	
-	do {
-		i++;
-		if (filename)
-			g_free(filename);
-		filename = g_strdup_printf("%s%c%lli", group->configdir, G_DIR_SEPARATOR, i);
-	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
+  do {
+    i++;
+    if (filename)
+      g_free(filename);
+    filename = g_strdup_printf("%s%c%lli", group->configdir, G_DIR_SEPARATOR, i);
+  } while (g_file_test(filename, G_FILE_TEST_EXISTS));
 	
-	g_free(filename);
-	return i;
+  g_free(filename);
+  return i;
 }
 
 /*! @brief Loads all members of a group
@@ -116,77 +116,77 @@ static long long int _osync_group_create_member_id(OSyncGroup *group)
  */
 static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path, OSyncError **error)
 {	
-	GDir *dir = NULL;
-	GError *gerror = NULL;
-	char *member_path = NULL;
-	char *filename = NULL;
-	OSyncMember *member = NULL;
-	const gchar *de = NULL;
+  GDir *dir = NULL;
+  GError *gerror = NULL;
+  char *member_path = NULL;
+  char *filename = NULL;
+  OSyncMember *member = NULL;
+  const gchar *de = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 
-	dir = g_dir_open(path, 0, &gerror);
-	if (!dir) {
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open group configdir %s", gerror->message);
-		g_error_free (gerror);
-		goto error;
-	}
+  dir = g_dir_open(path, 0, &gerror);
+  if (!dir) {
+    osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open group configdir %s", gerror->message);
+    g_error_free (gerror);
+    goto error;
+  }
 
-	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s%c%s%csyncmember.conf", osync_group_get_configdir(group), G_DIR_SEPARATOR, de, G_DIR_SEPARATOR);
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-			g_free(filename);
-			continue;
-		}
-		g_free(filename);
+  while ((de = g_dir_read_name(dir))) {
+    filename = g_strdup_printf ("%s%c%s%csyncmember.conf", osync_group_get_configdir(group), G_DIR_SEPARATOR, de, G_DIR_SEPARATOR);
+    if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+      g_free(filename);
+      continue;
+    }
+    g_free(filename);
 		
-		member = osync_member_new(error);
-		if (!member)
-			goto error_close;
+    member = osync_member_new(error);
+    if (!member)
+      goto error_close;
 
 #ifdef OPENSYNC_UNITTESTS
-		if (group->schemadir)
-			osync_member_set_schemadir(member, group->schemadir);
+    if (group->schemadir)
+      osync_member_set_schemadir(member, group->schemadir);
 #endif /* OPENSYNC_UNITTESTS */
 		
-		member_path = g_strdup_printf ("%s%c%s", osync_group_get_configdir(group), G_DIR_SEPARATOR, de);
-		if (!osync_member_load(member, member_path, error)) {
-			g_free(member_path);
-			goto error_free_member;
-		}
-		g_free(member_path);
+    member_path = g_strdup_printf ("%s%c%s", osync_group_get_configdir(group), G_DIR_SEPARATOR, de);
+    if (!osync_member_load(member, member_path, error)) {
+      g_free(member_path);
+      goto error_free_member;
+    }
+    g_free(member_path);
 		
-		osync_group_add_member(group, member);
-		osync_member_unref(member);
-	}
-	g_dir_close(dir);
+    osync_group_add_member(group, member);
+    osync_member_unref(member);
+  }
+  g_dir_close(dir);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error_free_member:
-	osync_member_unref(member);
-error_close:
-	g_dir_close(dir);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
-	return FALSE;
+ error_free_member:
+  osync_member_unref(member);
+ error_close:
+  g_dir_close(dir);
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 static void _build_list(gpointer key, gpointer value, gpointer user_data)
 {
-	if (GPOINTER_TO_INT(value) >= 2) {
-		GList **l = user_data;
-		*l = g_list_append(*l, key);
-	}
+  if (GPOINTER_TO_INT(value) >= 2) {
+    GList **l = user_data;
+    *l = g_list_append(*l, key);
+  }
 }
 
 static void _add_one(gpointer key, gpointer value, gpointer user_data)
 {
-	GHashTable *table = user_data;
+  GHashTable *table = user_data;
 	
-	int num = GPOINTER_TO_INT(value);
-	g_hash_table_replace(table, key, GINT_TO_POINTER(num + 1));
+  int num = GPOINTER_TO_INT(value);
+  g_hash_table_replace(table, key, GINT_TO_POINTER(num + 1));
 }
 
 /*! @brief Get list of supported object types of the group 
@@ -197,43 +197,43 @@ static void _add_one(gpointer key, gpointer value, gpointer user_data)
  */
 static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 {
-	GList *m = NULL;
-	GList *ret = NULL;
-	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+  GList *m = NULL;
+  GList *ret = NULL;
+  GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
     
-	int num_data = 0;
-	int i;
+  int num_data = 0;
+  int i;
     
-	/* Loop over all members... */
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
-		int num_member = osync_member_num_objtypes(member);
-		/* ... and get the objtype from each of the members. */
-		for (i = 0; i < num_member; i++) {
-			const char *objtype = osync_member_nth_objtype(member, i);
-			if (objtype != NULL) {
-                                int num = 0;
-				/* For each objtype, add 1 to the hashtable. If the objtype is
-			 	* the special objtype "data", add 1 to all objtypes */
-				if(!strcmp(objtype, "data"))
-					num_data++;
-				num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
-				g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
-			}
-		}
-	}
+  /* Loop over all members... */
+  for (m = group->members; m; m = m->next) {
+    OSyncMember *member = m->data;
+    int num_member = osync_member_num_objtypes(member);
+    /* ... and get the objtype from each of the members. */
+    for (i = 0; i < num_member; i++) {
+      const char *objtype = osync_member_nth_objtype(member, i);
+      if (objtype != NULL) {
+        int num = 0;
+        /* For each objtype, add 1 to the hashtable. If the objtype is
+         * the special objtype "data", add 1 to all objtypes */
+        if(!strcmp(objtype, "data"))
+          num_data++;
+        num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
+        g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
+      }
+    }
+  }
 	
-	for (i = 0; i < num_data; i++)
-		g_hash_table_foreach(table, _add_one, table);
+  for (i = 0; i < num_data; i++)
+    g_hash_table_foreach(table, _add_one, table);
 	
-	if (g_hash_table_size(table) == 0 && num_data >= 2) {
-		osync_trace(TRACE_INTERNAL, "No objtype found yet, but data available");
-		g_hash_table_replace(table, "data", GINT_TO_POINTER(num_data));
-	}
+  if (g_hash_table_size(table) == 0 && num_data >= 2) {
+    osync_trace(TRACE_INTERNAL, "No objtype found yet, but data available");
+    g_hash_table_replace(table, "data", GINT_TO_POINTER(num_data));
+  }
 	
-	g_hash_table_foreach(table, _build_list, &ret);
-	g_hash_table_destroy(table);
-	return ret;
+  g_hash_table_foreach(table, _build_list, &ret);
+  g_hash_table_destroy(table);
+  return ret;
 }
 
 #ifdef OPENSYNC_UNITTESTS
@@ -247,13 +247,13 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
  */
 void osync_group_set_schemadir(OSyncGroup *group, const char *schemadir)
 {
-	osync_assert(group);
-	osync_assert(schemadir);
+  osync_assert(group);
+  osync_assert(schemadir);
 
-	if (group->schemadir)
-		g_free(group->schemadir);
+  if (group->schemadir)
+    g_free(group->schemadir);
 
-	group->schemadir = g_strdup(schemadir); 
+  group->schemadir = g_strdup(schemadir); 
 }
 #endif /* OPENSYNC_UNITTESTS */
 
@@ -277,26 +277,26 @@ void osync_group_set_schemadir(OSyncGroup *group, const char *schemadir)
  */
 OSyncGroup *osync_group_new(OSyncError **error)
 {
-	OSyncGroup *group = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+  OSyncGroup *group = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	group = osync_try_malloc0(sizeof(OSyncGroup), error);
-	if (!group)
-		goto error;
-	group->ref_count = 1;
+  group = osync_try_malloc0(sizeof(OSyncGroup), error);
+  if (!group)
+    goto error;
+  group->ref_count = 1;
 
-	/* By default Merger is enabled */
-	group->merger_enabled = TRUE;
+  /* By default Merger is enabled */
+  group->merger_enabled = TRUE;
 
-	/* By default Converter is enabled */
-	group->converter_enabled = TRUE;
+  /* By default Converter is enabled */
+  group->converter_enabled = TRUE;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
-	return group;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
+  return group;
 	
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
-	return NULL;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
+  return NULL;
 }
 
 
@@ -308,11 +308,11 @@ error:
  */
 OSyncGroup *osync_group_ref(OSyncGroup *group)
 {
-	osync_assert(group);
+  osync_assert(group);
 	
-	g_atomic_int_inc(&(group->ref_count));
+  g_atomic_int_inc(&(group->ref_count));
 
-	return group;
+  return group;
 }
 
 /** @brief Decrease the reference count of the group
@@ -322,26 +322,26 @@ OSyncGroup *osync_group_ref(OSyncGroup *group)
  */
 void osync_group_unref(OSyncGroup *group)
 {
-	osync_assert(group);
+  osync_assert(group);
 		
-	if (g_atomic_int_dec_and_test(&(group->ref_count))) {
+  if (g_atomic_int_dec_and_test(&(group->ref_count))) {
 		
-		while (group->members)
-			osync_group_remove_member(group, group->members->data);
+    while (group->members)
+      osync_group_remove_member(group, group->members->data);
 		
-		if (group->name)
-			g_free(group->name);
+    if (group->name)
+      g_free(group->name);
 		
-		if (group->configdir)
-			g_free(group->configdir);
+    if (group->configdir)
+      g_free(group->configdir);
 			
 #ifdef OPENSYNC_UNITTESTS
-		if (group->schemadir)
-			g_free(group->schemadir);
+    if (group->schemadir)
+      g_free(group->schemadir);
 #endif /* OPENSYNC_UNITTESTS */
 
-		g_free(group);
-	}
+    g_free(group);
+  }
 }
 
 /*! @brief Locks a group
@@ -364,82 +364,82 @@ void osync_group_unref(OSyncGroup *group)
  */
 OSyncLockState osync_group_lock(OSyncGroup *group)
 {
-	char *lockfile = NULL;
-	osync_bool exists = FALSE;
-	osync_bool locked = FALSE;
+  char *lockfile = NULL;
+  osync_bool exists = FALSE;
+  osync_bool locked = FALSE;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
-	osync_assert(group);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+  osync_assert(group);
 	
-	if (!group->configdir) {
-		osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_OK: No configdir", __func__);
-		return OSYNC_LOCK_OK;
-	}
+  if (!group->configdir) {
+    osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_OK: No configdir", __func__);
+    return OSYNC_LOCK_OK;
+  }
 	
-	if (group->lock_fd) {
-		osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED, lock_fd existed", __func__);
-		return OSYNC_LOCKED;
-	}
+  if (group->lock_fd) {
+    osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED, lock_fd existed", __func__);
+    return OSYNC_LOCKED;
+  }
 	
-	lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
+  lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
 
-	if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
-		osync_trace(TRACE_INTERNAL, "locking group: file exists");
-		exists = TRUE;
-	}
+  if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
+    osync_trace(TRACE_INTERNAL, "locking group: file exists");
+    exists = TRUE;
+  }
 
-	if ((group->lock_fd = g_open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
-		group->lock_fd = 0;
-		g_free(lockfile);
-		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, g_strerror(errno));
-		return OSYNC_LOCK_STALE;
-	} else {
+  if ((group->lock_fd = g_open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
+    group->lock_fd = 0;
+    g_free(lockfile);
+    osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, g_strerror(errno));
+    return OSYNC_LOCK_STALE;
+  } else {
 #ifndef _WIN32
-		/* Set FD_CLOEXEC flags for the lock file descriptor. We don't want the
-		 * subprocesses created by plugins or the engine to keep holding the lock
-		 */
-		int oldflags = fcntl(group->lock_fd, F_GETFD);
-		if (oldflags == -1) {
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to get fd flags");
-			return OSYNC_LOCK_STALE;
-		}
+    /* Set FD_CLOEXEC flags for the lock file descriptor. We don't want the
+     * subprocesses created by plugins or the engine to keep holding the lock
+     */
+    int oldflags = fcntl(group->lock_fd, F_GETFD);
+    if (oldflags == -1) {
+      osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to get fd flags");
+      return OSYNC_LOCK_STALE;
+    }
 
-		if (fcntl(group->lock_fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to set fd flags");
-			return OSYNC_LOCK_STALE;
-		}
+    if (fcntl(group->lock_fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
+      osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to set fd flags");
+      return OSYNC_LOCK_STALE;
+    }
 
-		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
-			if (errno == EWOULDBLOCK) {
-				osync_trace(TRACE_INTERNAL, "locking group: is locked2");
-				locked = TRUE;
-				close(group->lock_fd);
-				group->lock_fd = 0;
-			} else
-				osync_trace(TRACE_INTERNAL, "error setting lock: %s", g_strerror(errno));
-		} else
+    if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
+      if (errno == EWOULDBLOCK) {
+        osync_trace(TRACE_INTERNAL, "locking group: is locked2");
+        locked = TRUE;
+        close(group->lock_fd);
+        group->lock_fd = 0;
+      } else
+        osync_trace(TRACE_INTERNAL, "error setting lock: %s", g_strerror(errno));
+    } else
 #else /* _WIN32 */
-                /* Windows cannot delete files which are open. When doing the backup, the lock file */
-                /* would be open */
-                close(group->lock_fd); 
+      /* Windows cannot delete files which are open. When doing the backup, the lock file */
+      /* would be open */
+      close(group->lock_fd); 
 #endif
-		osync_trace(TRACE_INTERNAL, "Successfully locked");
-	} /* g_open */
+    osync_trace(TRACE_INTERNAL, "Successfully locked");
+  } /* g_open */
 	
-	g_free(lockfile);
+  g_free(lockfile);
 	
-	if (exists) {
-		if (locked) {
-			osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED", __func__);
-			return OSYNC_LOCKED;
-		} else {
-			osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_STALE", __func__);
-			return OSYNC_LOCK_STALE;
-		}
-	}
+  if (exists) {
+    if (locked) {
+      osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED", __func__);
+      return OSYNC_LOCKED;
+    } else {
+      osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_STALE", __func__);
+      return OSYNC_LOCK_STALE;
+    }
+  }
 	
-	osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_OK", __func__);
-	return OSYNC_LOCK_OK;
+  osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_OK", __func__);
+  return OSYNC_LOCK_OK;
 }
 
 /*! @brief Unlocks a group
@@ -449,32 +449,32 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
  */
 void osync_group_unlock(OSyncGroup *group)
 {
-	char *lockfile = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
-	osync_assert(group);
+  char *lockfile = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+  osync_assert(group);
 	
-	if (!group->configdir) {
-		osync_trace(TRACE_EXIT, "%s: No configdir", __func__);
-		return;
-	}
+  if (!group->configdir) {
+    osync_trace(TRACE_EXIT, "%s: No configdir", __func__);
+    return;
+  }
 	
-	if (!group->lock_fd) {
-		osync_trace(TRACE_EXIT, "%s: You have to lock the group before unlocking", __func__);
-		return;
-	}
+  if (!group->lock_fd) {
+    osync_trace(TRACE_EXIT, "%s: You have to lock the group before unlocking", __func__);
+    return;
+  }
     
 #ifndef _WIN32
-	flock(group->lock_fd, LOCK_UN);
-        close(group->lock_fd);	
+  flock(group->lock_fd, LOCK_UN);
+  close(group->lock_fd);	
 #endif
-	group->lock_fd = 0;
+  group->lock_fd = 0;
 	
-	lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
+  lockfile = g_strdup_printf("%s%clock", group->configdir, G_DIR_SEPARATOR);
 	
-	g_unlink(lockfile);
-	g_free(lockfile);
+  g_unlink(lockfile);
+  g_free(lockfile);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Sets the name for the group
@@ -487,10 +487,10 @@ void osync_group_unlock(OSyncGroup *group)
  */
 void osync_group_set_name(OSyncGroup *group, const char *name)
 {
-	g_assert(group);
-	if (group->name)
-		g_free(group->name);
-	group->name = g_strdup(name);
+  g_assert(group);
+  if (group->name)
+    g_free(group->name);
+  group->name = g_strdup(name);
 }
 
 /*! @brief Returns the name of a group
@@ -503,8 +503,8 @@ void osync_group_set_name(OSyncGroup *group, const char *name)
  */
 const char *osync_group_get_name(OSyncGroup *group)
 {
-	g_assert(group);
-	return group->name;
+  g_assert(group);
+  return group->name;
 }
 
 /*! @brief Saves the group to disc
@@ -518,96 +518,96 @@ const char *osync_group_get_name(OSyncGroup *group)
  */
 osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 {
-	char *filename = NULL;
-	int i;
-	xmlDocPtr doc;
-	char *tmstr = NULL;
-        char *version_str = NULL;
+  char *filename = NULL;
+  int i;
+  xmlDocPtr doc;
+  char *tmstr = NULL;
+  char *version_str = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
-	osync_assert(group);
-	osync_assert(group->configdir);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
+  osync_assert(group);
+  osync_assert(group->configdir);
 	
-	osync_trace(TRACE_INTERNAL, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
+  osync_trace(TRACE_INTERNAL, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
 	
-	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir);
-		if (g_mkdir(group->configdir, 0700)) {
-			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
-			goto error;
-		}
-	}
+  if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
+    osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir);
+    if (g_mkdir(group->configdir, 0700)) {
+      osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
+      goto error;
+    }
+  }
 	
-	filename = g_strdup_printf ("%s%csyncgroup.conf", group->configdir, G_DIR_SEPARATOR);
-	osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename);
+  filename = g_strdup_printf ("%s%csyncgroup.conf", group->configdir, G_DIR_SEPARATOR);
+  osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename);
 	
-	doc = xmlNewDoc((xmlChar*)"1.0");
-	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
+  doc = xmlNewDoc((xmlChar*)"1.0");
+  doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 
-	version_str = g_strdup_printf("%u.%u", OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION);
-	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
-	g_free(version_str);
+  version_str = g_strdup_printf("%u.%u", OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION);
+  xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
+  g_free(version_str);
 	
-	// TODO: reimplement the filter!
-	//The filters
-	/*GList *f;
-	for (f = group->filters; f; f = f->next) {
-		OSyncFilter *filter = f->data;
-		xmlNodePtr child = xmlNewChild(doc->children, NULL, (xmlChar*)"filter", NULL);
+  // TODO: reimplement the filter!
+  //The filters
+  /*GList *f;
+    for (f = group->filters; f; f = f->next) {
+    OSyncFilter *filter = f->data;
+    xmlNodePtr child = xmlNewChild(doc->children, NULL, (xmlChar*)"filter", NULL);
 		
-		if (filter->sourcememberid) {
-			char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
-			xmlNewChild(child, NULL, (xmlChar*)"sourcemember", (xmlChar*)sourcememberid);
-			g_free(sourcememberid);
-		}
-		if (filter->destmemberid) {
-			char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
-			xmlNewChild(child, NULL, (xmlChar*)"destmember", (xmlChar*)destmemberid);
-			g_free(destmemberid);
-		}
-		if (filter->sourceobjtype)
-			xmlNewChild(child, NULL, (xmlChar*)"sourceobjtype", (xmlChar*)filter->sourceobjtype);
-		if (filter->destobjtype)
-			xmlNewChild(child, NULL, (xmlChar*)"destobjtype", (xmlChar*)filter->destobjtype);
-		if (filter->detectobjtype)
-			xmlNewChild(child, NULL, (xmlChar*)"detectobjtype", (xmlChar*)filter->detectobjtype);
-		if (filter->action) {
-			char *action = g_strdup_printf("%i", filter->action);
-			xmlNewChild(child, NULL, (xmlChar*)"action", (xmlChar*)action);
-			g_free(action);
-		}
-		if (filter->function_name)
-			xmlNewChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
-		if (filter->config)
-			xmlNewChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
-	}*/
+    if (filter->sourcememberid) {
+    char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
+    xmlNewChild(child, NULL, (xmlChar*)"sourcemember", (xmlChar*)sourcememberid);
+    g_free(sourcememberid);
+    }
+    if (filter->destmemberid) {
+    char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
+    xmlNewChild(child, NULL, (xmlChar*)"destmember", (xmlChar*)destmemberid);
+    g_free(destmemberid);
+    }
+    if (filter->sourceobjtype)
+    xmlNewChild(child, NULL, (xmlChar*)"sourceobjtype", (xmlChar*)filter->sourceobjtype);
+    if (filter->destobjtype)
+    xmlNewChild(child, NULL, (xmlChar*)"destobjtype", (xmlChar*)filter->destobjtype);
+    if (filter->detectobjtype)
+    xmlNewChild(child, NULL, (xmlChar*)"detectobjtype", (xmlChar*)filter->detectobjtype);
+    if (filter->action) {
+    char *action = g_strdup_printf("%i", filter->action);
+    xmlNewChild(child, NULL, (xmlChar*)"action", (xmlChar*)action);
+    g_free(action);
+    }
+    if (filter->function_name)
+    xmlNewChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
+    if (filter->config)
+    xmlNewChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
+    }*/
 
-	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
+  xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
-	tmstr = g_strdup_printf("%i", (int)group->last_sync);
-	xmlNewChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
-	g_free(tmstr);
+  tmstr = g_strdup_printf("%i", (int)group->last_sync);
+  xmlNewChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
+  g_free(tmstr);
 
-	xmlNewChild(doc->children, NULL, (xmlChar*)"merger_enabled", (xmlChar*) (group->merger_enabled ? "true" : "false"));
-	xmlNewChild(doc->children, NULL, (xmlChar*)"converter_enabled", (xmlChar*) (group->converter_enabled ? "true" : "false"));
+  xmlNewChild(doc->children, NULL, (xmlChar*)"merger_enabled", (xmlChar*) (group->merger_enabled ? "true" : "false"));
+  xmlNewChild(doc->children, NULL, (xmlChar*)"converter_enabled", (xmlChar*) (group->converter_enabled ? "true" : "false"));
 
 
-	xmlSaveFormatFile(filename, doc, 1);
-	osync_xml_free_doc(doc);
-	g_free(filename);
+  xmlSaveFormatFile(filename, doc, 1);
+  osync_xml_free_doc(doc);
+  g_free(filename);
 
-	for (i = 0; i < osync_group_num_members(group); i++) {
-		OSyncMember *member = osync_group_nth_member(group, i);
-		if (!osync_member_save(member, error))
-			goto error;
-	}
+  for (i = 0; i < osync_group_num_members(group); i++) {
+    OSyncMember *member = osync_group_nth_member(group, i);
+    if (!osync_member_save(member, error))
+      goto error;
+  }
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 /*! @brief Deletes a group from disc
@@ -621,21 +621,21 @@ error:
  */
 osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 {
-	char *delcmd = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
-	osync_assert(group);
+  char *delcmd = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
+  osync_assert(group);
 	
-	delcmd = g_strdup_printf("rm -rf %s", group->configdir);
-	if (system(delcmd)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete group. command %s failed", delcmd);
-		g_free(delcmd);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	g_free(delcmd);
+  delcmd = g_strdup_printf("rm -rf %s", group->configdir);
+  if (system(delcmd)) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete group. command %s failed", delcmd);
+    g_free(delcmd);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return FALSE;
+  }
+  g_free(delcmd);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 }
 
 /*! @brief Reset all databases of a group (anchor, hashtable and archive) 
@@ -647,62 +647,62 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
  */
 osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 {
-	OSyncDB *db = NULL;
-	GList *m = NULL;
-	char *path = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
+  OSyncDB *db = NULL;
+  GList *m = NULL;
+  char *path = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 
-	osync_assert(group);
+  osync_assert(group);
 
-	/* Loop over all members... */
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
+  /* Loop over all members... */
+  for (m = group->members; m; m = m->next) {
+    OSyncMember *member = m->data;
 
-		/* flush hashtable */
-		path = g_strdup_printf("%s%chashtable.db", osync_member_get_configdir(member), G_DIR_SEPARATOR);
-		if (!(db = osync_db_new(error)))
-			goto error_and_free;
+    /* flush hashtable */
+    path = g_strdup_printf("%s%chashtable.db", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+    if (!(db = osync_db_new(error)))
+      goto error_and_free;
 
-		if (!osync_db_open(db, path, error))
-			goto error_and_free;
+    if (!osync_db_open(db, path, error))
+      goto error_and_free;
 
-		osync_db_reset_full(db, error);
+    osync_db_reset_full(db, error);
 
-		g_free(path);
+    g_free(path);
 
-		/* flush anchor db */ 
-		path = g_strdup_printf("%s%canchor.db", osync_member_get_configdir(member), G_DIR_SEPARATOR);
-		if (!(db = osync_db_new(error)))
-			goto error_and_free;
+    /* flush anchor db */ 
+    path = g_strdup_printf("%s%canchor.db", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+    if (!(db = osync_db_new(error)))
+      goto error_and_free;
 
-		if (!osync_db_open(db, path, error))
-			goto error_and_free;
+    if (!osync_db_open(db, path, error))
+      goto error_and_free;
 
-		osync_db_reset_full(db, error);
+    osync_db_reset_full(db, error);
 
-		g_free(path);
+    g_free(path);
 
-	}
+  }
 
-	path = g_strdup_printf("%s%carchive.db", osync_group_get_configdir(group), G_DIR_SEPARATOR);
-	if (!(db = osync_db_new(error)))
-		goto error_and_free;
+  path = g_strdup_printf("%s%carchive.db", osync_group_get_configdir(group), G_DIR_SEPARATOR);
+  if (!(db = osync_db_new(error)))
+    goto error_and_free;
 
-	if (!osync_db_open(db, path, error))
-		goto error_and_free;
+  if (!osync_db_open(db, path, error))
+    goto error_and_free;
 
-	osync_db_reset_full(db, error);
+  osync_db_reset_full(db, error);
 
-	g_free(path);
+  g_free(path);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error_and_free:
-	g_free(path);	
-//error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error_and_free:
+  g_free(path);	
+  //error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 /*! @brief Loads a group from a directory
@@ -717,140 +717,140 @@ error_and_free:
  */
 osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **error)
 {
-	char *filename = NULL;
-	char *real_path = NULL;
-	xmlDocPtr doc;
-	xmlNodePtr cur;
-	//xmlNodePtr filternode;
+  char *filename = NULL;
+  char *real_path = NULL;
+  xmlDocPtr doc;
+  xmlNodePtr cur;
+  //xmlNodePtr filternode;
 	
-	osync_assert(group);
-	osync_assert(path);
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
+  osync_assert(group);
+  osync_assert(path);
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	
-	if (!g_path_is_absolute(path)) {
-		char *curdir = g_get_current_dir();
-		real_path = g_strdup_printf("%s%c%s", curdir, G_DIR_SEPARATOR, path);
-		g_free(curdir);
-	} else {
-		real_path = g_strdup(path);
-	}
+  if (!g_path_is_absolute(path)) {
+    char *curdir = g_get_current_dir();
+    real_path = g_strdup_printf("%s%c%s", curdir, G_DIR_SEPARATOR, path);
+    g_free(curdir);
+  } else {
+    real_path = g_strdup(path);
+  }
 	
-	osync_group_set_configdir(group, real_path);
-	filename = g_strdup_printf("%s%csyncgroup.conf", real_path, G_DIR_SEPARATOR);
-	g_free(real_path);
+  osync_group_set_configdir(group, real_path);
+  filename = g_strdup_printf("%s%csyncgroup.conf", real_path, G_DIR_SEPARATOR);
+  g_free(real_path);
 	
-	if (!osync_xml_open_file(&doc, &cur, filename, "syncgroup", error)) {
-		g_free(filename);
-		goto error;
-	}
-	g_free(filename);
+  if (!osync_xml_open_file(&doc, &cur, filename, "syncgroup", error)) {
+    g_free(filename);
+    goto error;
+  }
+  g_free(filename);
 	
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
-				osync_group_set_name(group, str);
+  while (cur != NULL) {
+    char *str = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+    if (str) {
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
+        osync_group_set_name(group, str);
 	
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
-				group->last_sync = (time_t)atoi(str);
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
+        group->last_sync = (time_t)atoi(str);
 			
-			//TODO: remove the next 2 lines later
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"enable_merger"))
-				group->merger_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
-			//TODO: remove the next 2 lines later
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"enable_converter"))
-				group->converter_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
+      //TODO: remove the next 2 lines later
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"enable_merger"))
+        group->merger_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
+      //TODO: remove the next 2 lines later
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"enable_converter"))
+        group->converter_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
 
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"merger_enabled"))
-				group->merger_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"merger_enabled"))
+        group->merger_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
 
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"converter_enabled"))
-				group->converter_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"converter_enabled"))
+        group->converter_enabled = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
 
-			// TODO: reimplement the filter!
-			/*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
-				filternode = cur->xmlChildrenNode;
-				OSyncFilter *filter = osync_filter_new();
-				filter->group = group;
+      // TODO: reimplement the filter!
+      /*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
+        filternode = cur->xmlChildrenNode;
+        OSyncFilter *filter = osync_filter_new();
+        filter->group = group;
 				
-				while (filternode != NULL) {
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
-						filter->sourceobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        while (filternode != NULL) {
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
+        filter->sourceobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
-						filter->destobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
+        filter->destobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
-						filter->detectobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
+        filter->detectobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
-						filter->config = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
+        filter->config = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
-						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-						if (!str) {
-							filternode = filternode->next;
-							continue;
-						}
-						osync_filter_update_hook(filter, group, str);
-						osync_xml_free(str);
-					}
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
+        char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!str) {
+        filternode = filternode->next;
+        continue;
+        }
+        osync_filter_update_hook(filter, group, str);
+        osync_xml_free(str);
+        }
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
-						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-						if (!str) {
-							filternode = filternode->next;
-							continue;
-						}
-						filter->sourcememberid = atoll(str);
-						osync_xml_free(str);
-					}
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
+        char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!str) {
+        filternode = filternode->next;
+        continue;
+        }
+        filter->sourcememberid = atoll(str);
+        osync_xml_free(str);
+        }
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
-						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-						if (!str) {
-							filternode = filternode->next;
-							continue;
-						}
-						filter->destmemberid = atoll(str);
-						osync_xml_free(str);
-					}
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
+        char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!str) {
+        filternode = filternode->next;
+        continue;
+        }
+        filter->destmemberid = atoll(str);
+        osync_xml_free(str);
+        }
 					
-					if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
-						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-						if (!str) {
-							filternode = filternode->next;
-							continue;
-						}
-						filter->action = atoi(str);
-						osync_xml_free(str);
-					}
-					filternode = filternode->next;
-				}
-				osync_filter_register(group, filter);
-			}*/
+        if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
+        char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+        if (!str) {
+        filternode = filternode->next;
+        continue;
+        }
+        filter->action = atoi(str);
+        osync_xml_free(str);
+        }
+        filternode = filternode->next;
+        }
+        osync_filter_register(group, filter);
+        }*/
 		
-			osync_xml_free(str);
-		}
-		cur = cur->next;
-	}
-	osync_xml_free_doc(doc);
+      osync_xml_free(str);
+    }
+    cur = cur->next;
+  }
+  osync_xml_free_doc(doc);
 	
-	/* Check for sanity */
-	if (!group->name) {
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Loaded a group without a name");
-		goto error;
-	}
+  /* Check for sanity */
+  if (!group->name) {
+    osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Loaded a group without a name");
+    goto error;
+  }
 	
-	if (!_osync_group_load_members(group, group->configdir, error))
-		goto error;
+  if (!_osync_group_load_members(group, group->configdir, error))
+    goto error;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 /*! @brief Appends a member to the group
@@ -863,16 +863,16 @@ error:
  */
 void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
 {
-	g_assert(group);
+  g_assert(group);
 	
-	if (!osync_member_get_configdir(member)) {
-		char *configdir = g_strdup_printf("%s%c%lli", group->configdir, G_DIR_SEPARATOR, _osync_group_create_member_id(group));
-		osync_member_set_configdir(member, configdir);
-		g_free(configdir);
-	}
+  if (!osync_member_get_configdir(member)) {
+    char *configdir = g_strdup_printf("%s%c%lli", group->configdir, G_DIR_SEPARATOR, _osync_group_create_member_id(group));
+    osync_member_set_configdir(member, configdir);
+    g_free(configdir);
+  }
 	
-	group->members = g_list_append(group->members, member);
-	osync_member_ref(member);
+  group->members = g_list_append(group->members, member);
+  osync_member_ref(member);
 }
 
 /*! @brief Removes a member from the group
@@ -883,9 +883,9 @@ void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
  */
 void osync_group_remove_member(OSyncGroup *group, OSyncMember *member)
 {
-	osync_assert(group);
-	group->members = g_list_remove(group->members, member);
-	osync_member_unref(member);
+  osync_assert(group);
+  group->members = g_list_remove(group->members, member);
+  osync_member_unref(member);
 }
 
 /** @brief Searches for a member by its id
@@ -897,13 +897,13 @@ void osync_group_remove_member(OSyncGroup *group, OSyncMember *member)
  */
 OSyncMember *osync_group_find_member(OSyncGroup *group, int id)
 {
-	GList *m = NULL;
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
-		if (osync_member_get_id(member) == id)
-			return member;
-	}
-	return NULL;
+  GList *m = NULL;
+  for (m = group->members; m; m = m->next) {
+    OSyncMember *member = m->data;
+    if (osync_member_get_id(member) == id)
+      return member;
+  }
+  return NULL;
 }
 
 /*! @brief Returns the nth member of the group
@@ -917,8 +917,8 @@ OSyncMember *osync_group_find_member(OSyncGroup *group, int id)
  */
 OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth)
 {
-	osync_assert(group);
-	return (OSyncMember *)g_list_nth_data(group->members, nth);
+  osync_assert(group);
+  return (OSyncMember *)g_list_nth_data(group->members, nth);
 }
 
 /*! @brief Counts the members of the group
@@ -931,8 +931,8 @@ OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth)
  */
 int osync_group_num_members(OSyncGroup *group)
 {
-	osync_assert(group);
-	return g_list_length(group->members);
+  osync_assert(group);
+  return g_list_length(group->members);
 }
 
 /*! @brief Returns the configdir for the group
@@ -945,8 +945,8 @@ int osync_group_num_members(OSyncGroup *group)
  */
 const char *osync_group_get_configdir(OSyncGroup *group)
 {
-	osync_assert(group);
-	return group->configdir;
+  osync_assert(group);
+  return group->configdir;
 }
 
 /*! @brief Sets the configdir of the group
@@ -958,10 +958,10 @@ const char *osync_group_get_configdir(OSyncGroup *group)
  */
 void osync_group_set_configdir(OSyncGroup *group, const char *directory)
 {
-	osync_assert(group);
-	if (group->configdir)
-		g_free(group->configdir);
-	group->configdir = g_strdup(directory);
+  osync_assert(group);
+  if (group->configdir)
+    g_free(group->configdir);
+  group->configdir = g_strdup(directory);
 }
 
 /*! @brief The number of object types of the group
@@ -972,13 +972,13 @@ void osync_group_set_configdir(OSyncGroup *group, const char *directory)
  */
 int osync_group_num_objtypes(OSyncGroup *group)
 {
-	GList *objs = NULL;
-	int len = 0;
-	osync_assert(group);
-	objs = _osync_group_get_supported_objtypes(group);
-	len = g_list_length(objs);
-	g_list_free(objs);
-	return len;
+  GList *objs = NULL;
+  int len = 0;
+  osync_assert(group);
+  objs = _osync_group_get_supported_objtypes(group);
+  len = g_list_length(objs);
+  g_list_free(objs);
+  return len;
 }
 
 /*! @brief The nth object type of the group
@@ -990,13 +990,13 @@ int osync_group_num_objtypes(OSyncGroup *group)
  */
 const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
 {
-	GList *objs = NULL;
-	const char *objtype = NULL;
-	osync_assert(group);
-	objs = _osync_group_get_supported_objtypes(group);
-	objtype = g_list_nth_data(objs, nth);
-	g_list_free(objs);
-	return objtype;
+  GList *objs = NULL;
+  const char *objtype = NULL;
+  osync_assert(group);
+  objs = _osync_group_get_supported_objtypes(group);
+  objtype = g_list_nth_data(objs, nth);
+  g_list_free(objs);
+  return objtype;
 	
 }
 
@@ -1009,13 +1009,13 @@ const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
  */
 void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled)
 {
-	GList *m = NULL;
-	osync_assert(group);
-	/* Loop over all members... */
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
-		osync_member_set_objtype_enabled(member, objtype, enabled);
-	}
+  GList *m = NULL;
+  osync_assert(group);
+  /* Loop over all members... */
+  for (m = group->members; m; m = m->next) {
+    OSyncMember *member = m->data;
+    osync_member_set_objtype_enabled(member, objtype, enabled);
+  }
 }
 
 /*! @brief Get the status of an object type in the group 
@@ -1027,46 +1027,46 @@ void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osy
  */
 int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
 {
-	GList *m = NULL;
-	int enabled = -1;
+  GList *m = NULL;
+  int enabled = -1;
 	
-	osync_assert(group);
+  osync_assert(group);
 	
-	/* What do to:
-	 * 
-	 * g -> enabled variable
-	 * m = value from member
-	 * 
-	 *   g  -1 0 1 2
-	 * m
-	 * -1   -1 0 1 2
-	 * 0     0 0 1 1
-	 * 1     2 1 1 2
-	 * 
-	 */
+  /* What do to:
+   * 
+   * g -> enabled variable
+   * m = value from member
+   * 
+   *   g  -1 0 1 2
+   * m
+   * -1   -1 0 1 2
+   * 0     0 0 1 1
+   * 1     2 1 1 2
+   * 
+   */
 	
-	/* Loop over all members... */
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
-		switch (osync_member_objtype_enabled(member, objtype)) {
-			case -1:
-				//Do nothing;
-				break;
-			case 0:
-				if (enabled == -1)
-					enabled = 0;
-				else if (enabled == 2)
-					enabled = 1;
-				break;
-			case 1:
-				if (enabled == -1)
-					enabled = 2;
-				else if (enabled == 0)
-					enabled = 1;
-				break;
-		}
-	}
-	return enabled;
+  /* Loop over all members... */
+  for (m = group->members; m; m = m->next) {
+    OSyncMember *member = m->data;
+    switch (osync_member_objtype_enabled(member, objtype)) {
+    case -1:
+      //Do nothing;
+      break;
+    case 0:
+      if (enabled == -1)
+        enabled = 0;
+      else if (enabled == 2)
+        enabled = 1;
+      break;
+    case 1:
+      if (enabled == -1)
+        enabled = 2;
+      else if (enabled == 0)
+        enabled = 1;
+      break;
+    }
+  }
+  return enabled;
 }
 
 /*! @brief Add filter to the group 
@@ -1077,9 +1077,9 @@ int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
  */
 void osync_group_add_filter(OSyncGroup *group, OSyncFilter *filter)
 {
-	osync_assert(group);
-	group->filters = g_list_append(group->filters, filter);
-	osync_filter_ref(filter);
+  osync_assert(group);
+  group->filters = g_list_append(group->filters, filter);
+  osync_filter_ref(filter);
 }
 
 /*! @brief Remove filter from the group 
@@ -1090,9 +1090,9 @@ void osync_group_add_filter(OSyncGroup *group, OSyncFilter *filter)
  */
 void osync_group_remove_filter(OSyncGroup *group, OSyncFilter *filter)
 {
-	osync_assert(group);
-	group->filters = g_list_remove(group->filters, filter);
-	osync_filter_unref(filter);
+  osync_assert(group);
+  group->filters = g_list_remove(group->filters, filter);
+  osync_filter_unref(filter);
 }
 
 /*! @brief Returns the number of filters registered in a group
@@ -1103,8 +1103,8 @@ void osync_group_remove_filter(OSyncGroup *group, OSyncFilter *filter)
  */
 int osync_group_num_filters(OSyncGroup *group)
 {
-	osync_assert(group);
-	return g_list_length(group->filters);
+  osync_assert(group);
+  return g_list_length(group->filters);
 }
 
 /*! @brief Gets the nth filter of a group
@@ -1119,8 +1119,8 @@ int osync_group_num_filters(OSyncGroup *group)
  */
 OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
 {
-	osync_assert(group);
-	return g_list_nth_data(group->filters, nth);
+  osync_assert(group);
+  return g_list_nth_data(group->filters, nth);
 }
 
 /*! @brief Sets the last synchronization date of this group
@@ -1132,12 +1132,12 @@ OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
  */
 void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, group, last_sync);
-	osync_assert(group);
+  osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, group, last_sync);
+  osync_assert(group);
 	
-	group->last_sync = last_sync;
+  group->last_sync = last_sync;
                
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Gets the last synchronization date from this group
@@ -1149,8 +1149,8 @@ void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
  */
 time_t osync_group_get_last_synchronization(OSyncGroup *group)
 {
-	osync_assert(group);
-	return group->last_sync;
+  osync_assert(group);
+  return group->last_sync;
 }
 
 /*! @brief Set fixed conflict resolution for the group for all appearing conflicts 
@@ -1162,9 +1162,9 @@ time_t osync_group_get_last_synchronization(OSyncGroup *group)
  */
 void osync_group_set_conflict_resolution(OSyncGroup *group, OSyncConflictResolution res, int num)
 {
-	osync_assert(group);
-	group->conflict_resolution = res;
-	group->conflict_winner = num;
+  osync_assert(group);
+  group->conflict_resolution = res;
+  group->conflict_winner = num;
 }
 
 /*! @brief Get fixed conflict resolution for the group for all appearing conflicts 
@@ -1176,12 +1176,12 @@ void osync_group_set_conflict_resolution(OSyncGroup *group, OSyncConflictResolut
  */
 void osync_group_get_conflict_resolution(OSyncGroup *group, OSyncConflictResolution *res, int *num)
 {
-	osync_assert(group);
-	osync_assert(res);
-	osync_assert(num);
+  osync_assert(group);
+  osync_assert(res);
+  osync_assert(num);
 	
-	*res = group->conflict_resolution;
-	*num = group->conflict_winner;
+  *res = group->conflict_resolution;
+  *num = group->conflict_winner;
 }
 
 /*! @brief Get group configured status of merger use. 
@@ -1191,9 +1191,9 @@ void osync_group_get_conflict_resolution(OSyncGroup *group, OSyncConflictResolut
  */
 osync_bool osync_group_get_merger_enabled(OSyncGroup *group)
 {
-	osync_assert(group);
+  osync_assert(group);
 	
-	return group->merger_enabled;
+  return group->merger_enabled;
 }
 
 /*! @brief Configure status of merger use. 
@@ -1203,9 +1203,9 @@ osync_bool osync_group_get_merger_enabled(OSyncGroup *group)
  */
 void osync_group_set_merger_enabled(OSyncGroup *group, osync_bool merger_enabled)
 {
-	osync_assert(group);
+  osync_assert(group);
 	
-	group->merger_enabled = merger_enabled;
+  group->merger_enabled = merger_enabled;
 }
 
 /*! @brief Get group configured status of converter use. 
@@ -1215,9 +1215,9 @@ void osync_group_set_merger_enabled(OSyncGroup *group, osync_bool merger_enabled
  */
 osync_bool osync_group_get_converter_enabled(OSyncGroup *group)
 {
-	osync_assert(group);
+  osync_assert(group);
 
-	return group->converter_enabled;
+  return group->converter_enabled;
 }
 
 /*! @brief Configure status of converter use. 
@@ -1227,9 +1227,9 @@ osync_bool osync_group_get_converter_enabled(OSyncGroup *group)
  */
 void osync_group_set_converter_enabled(OSyncGroup *group, osync_bool converter_enabled)
 {
-	osync_assert(group);
+  osync_assert(group);
 
-	group->converter_enabled = converter_enabled;
+  group->converter_enabled = converter_enabled;
 }
 
 /*! @brief Check if group configuration is up to date. 
@@ -1239,61 +1239,61 @@ void osync_group_set_converter_enabled(OSyncGroup *group, osync_bool converter_e
  */
 osync_bool osync_group_is_uptodate(OSyncGroup *group)
 {
-	xmlDocPtr doc = NULL;
-	xmlNodePtr cur = NULL;
-	OSyncError *error = NULL;
-	unsigned int version_major;
-	unsigned int version_minor;
-	xmlChar *version_str = NULL;
-	osync_bool uptodate = FALSE;
-        char *config = NULL; 
-        const char *configdir = NULL;
+  xmlDocPtr doc = NULL;
+  xmlNodePtr cur = NULL;
+  OSyncError *error = NULL;
+  unsigned int version_major;
+  unsigned int version_minor;
+  xmlChar *version_str = NULL;
+  osync_bool uptodate = FALSE;
+  char *config = NULL; 
+  const char *configdir = NULL;
 
-	osync_assert(group);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+  osync_assert(group);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
         
-        configdir = osync_group_get_configdir(group);
-        if (!configdir){
-          osync_trace(TRACE_EXIT, "%s(%p) - No configdir set", __func__, group);
-          return FALSE;
-        }
+  configdir = osync_group_get_configdir(group);
+  if (!configdir){
+    osync_trace(TRACE_EXIT, "%s(%p) - No configdir set", __func__, group);
+    return FALSE;
+  }
 
-	config = g_strdup_printf("%s%c%s",
-			configdir,
-			G_DIR_SEPARATOR, "syncgroup.conf");
+  config = g_strdup_printf("%s%c%s",
+                           configdir,
+                           G_DIR_SEPARATOR, "syncgroup.conf");
 	
-	/* If syncgroup isn't present, we assume that update is required. */
-	if (!osync_xml_open_file(&doc, &cur, config, "syncgroup", &error)) {
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
-		osync_error_unref(&error);
-		goto end;
-	}
+  /* If syncgroup isn't present, we assume that update is required. */
+  if (!osync_xml_open_file(&doc, &cur, config, "syncgroup", &error)) {
+    osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+    osync_error_unref(&error);
+    goto end;
+  }
 
-	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
+  version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
 
-	/* No version node, means very outdated version. */
-	if (!version_str)
-		goto end;
+  /* No version node, means very outdated version. */
+  if (!version_str)
+    goto end;
 
-      	sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
+  sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
 
-	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
-			version_str, version_major, version_minor, 
-			OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION ); 
+  osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
+              version_str, version_major, version_minor, 
+              OSYNC_GROUP_MAJOR_VERSION, OSYNC_GROUP_MINOR_VERSION ); 
 
-	if (OSYNC_GROUP_MAJOR_VERSION == version_major 
-			&& OSYNC_GROUP_MINOR_VERSION == version_minor)
-		uptodate = TRUE;
+  if (OSYNC_GROUP_MAJOR_VERSION == version_major 
+      && OSYNC_GROUP_MINOR_VERSION == version_minor)
+    uptodate = TRUE;
 
-	osync_xml_free(version_str);
-end:
-	g_free(config);
+  osync_xml_free(version_str);
+ end:
+  g_free(config);
 
-	if (doc)
-		osync_xml_free_doc(doc);
+  if (doc)
+    osync_xml_free_doc(doc);
 
-	osync_trace(TRACE_EXIT, "%s(%p)", __func__, group);
-	return uptodate;
+  osync_trace(TRACE_EXIT, "%s(%p)", __func__, group);
+  return uptodate;
 }
 
 /*@}*/

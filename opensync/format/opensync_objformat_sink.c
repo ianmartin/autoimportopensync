@@ -40,20 +40,20 @@
  */
 OSyncObjFormatSink *osync_objformat_sink_new(const char *objformat, OSyncError **error)
 {
-	OSyncObjFormatSink *formatsink = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%s %p, %p)", __func__, __NULLSTR(objformat), objformat, error);
+  OSyncObjFormatSink *formatsink = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%s %p, %p)", __func__, __NULLSTR(objformat), objformat, error);
 	
-	formatsink = osync_try_malloc0(sizeof(OSyncObjFormatSink), error);
-	if (!formatsink)
-		return NULL;
+  formatsink = osync_try_malloc0(sizeof(OSyncObjFormatSink), error);
+  if (!formatsink)
+    return NULL;
 	
-	/*formatsink->objformat = osync_objformat_ref(objformat);*/
-	formatsink->objformat = g_strdup(objformat);
-	formatsink->config = NULL;
-	formatsink->ref_count = 1;
+  /*formatsink->objformat = osync_objformat_ref(objformat);*/
+  formatsink->objformat = g_strdup(objformat);
+  formatsink->config = NULL;
+  formatsink->ref_count = 1;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, formatsink);
-	return formatsink;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, formatsink);
+  return formatsink;
 }
 
 /*! @brief Increase the reference count on an object format
@@ -63,11 +63,11 @@ OSyncObjFormatSink *osync_objformat_sink_new(const char *objformat, OSyncError *
  */
 OSyncObjFormatSink *osync_objformat_sink_ref(OSyncObjFormatSink *sink)
 {
-	osync_assert(sink);
+  osync_assert(sink);
 	
-	g_atomic_int_inc(&(sink->ref_count));
+  g_atomic_int_inc(&(sink->ref_count));
 
-	return sink;
+  return sink;
 }
 
 /*! @brief Decrease the reference count on an object format
@@ -77,18 +77,18 @@ OSyncObjFormatSink *osync_objformat_sink_ref(OSyncObjFormatSink *sink)
  */
 void osync_objformat_sink_unref(OSyncObjFormatSink *sink)
 {
-	osync_assert(sink);
+  osync_assert(sink);
 	
-	if (g_atomic_int_dec_and_test(&(sink->ref_count))) {
+  if (g_atomic_int_dec_and_test(&(sink->ref_count))) {
 
-		if (sink->objformat)
-			g_free(sink->objformat);
+    if (sink->objformat)
+      g_free(sink->objformat);
 			
-		if (sink->config)
-			g_free(sink->config);
+    if (sink->config)
+      g_free(sink->config);
 		
-		g_free(sink);
-	}
+    g_free(sink);
+  }
 }
 
 /**
@@ -98,8 +98,8 @@ void osync_objformat_sink_unref(OSyncObjFormatSink *sink)
  */
 const char *osync_objformat_sink_get_objformat(OSyncObjFormatSink *sink)
 {
-	osync_assert(sink);
-	return sink->objformat;
+  osync_assert(sink);
+  return sink->objformat;
 }
 
 /**
@@ -109,8 +109,8 @@ const char *osync_objformat_sink_get_objformat(OSyncObjFormatSink *sink)
  */
 const char *osync_objformat_sink_get_config(OSyncObjFormatSink *sink)
 {
-	osync_assert(sink);
-	return sink->config;
+  osync_assert(sink);
+  return sink->config;
 }
 
 /**
@@ -121,12 +121,12 @@ const char *osync_objformat_sink_get_config(OSyncObjFormatSink *sink)
  */
 void osync_objformat_sink_set_config(OSyncObjFormatSink *sink, const char *config)
 {
-	osync_assert(sink);
+  osync_assert(sink);
 
-	if (sink->config)
-		g_free(sink->config);
+  if (sink->config)
+    g_free(sink->config);
 
-	sink->config = g_strdup(config);
+  sink->config = g_strdup(config);
 }
 
 /*@}*/

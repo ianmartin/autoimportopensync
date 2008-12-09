@@ -34,11 +34,11 @@ static GList *schemas = NULL;
 static GStaticMutex schema_mutex = G_STATIC_MUTEX_INIT;
 
 static void _osync_xmlformat_schema_lock_mutex() {
-	g_static_mutex_lock(&schema_mutex);
+  g_static_mutex_lock(&schema_mutex);
 }
 
 static void _osync_xmlformat_schema_unlock_mutex() {
-	g_static_mutex_unlock(&schema_mutex);
+  g_static_mutex_unlock(&schema_mutex);
 }
 
 
@@ -58,57 +58,57 @@ static void _osync_xmlformat_schema_unlock_mutex() {
  * @return new OSyncXMLFormatSchema or NULL in case of an error
  */
 OSyncXMLFormatSchema * osync_xmlformat_schema_new(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error) {
-	OSyncXMLFormatSchema * osyncschema = NULL;
-	char *schemafilepath = NULL;
- 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
+  OSyncXMLFormatSchema * osyncschema = NULL;
+  char *schemafilepath = NULL;
+  xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, xmlformat, path, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, xmlformat, path, error);
 	
-	osync_assert(xmlformat);
+  osync_assert(xmlformat);
 	
-	osyncschema = osync_try_malloc0(sizeof(OSyncXMLFormatSchema), error);
-	if(!osyncschema) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		// release mutex
-		return NULL;
-	}
-	osyncschema->objtype = g_strdup(osync_xmlformat_get_objtype(xmlformat));
+  osyncschema = osync_try_malloc0(sizeof(OSyncXMLFormatSchema), error);
+  if(!osyncschema) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+    // release mutex
+    return NULL;
+  }
+  osyncschema->objtype = g_strdup(osync_xmlformat_get_objtype(xmlformat));
 
-	schemafilepath = g_strdup_printf("%s%c%s%s%s",
-		path ? path : OPENSYNC_SCHEMASDIR,
-		G_DIR_SEPARATOR,
-		"xmlformat-",
-		osyncschema->objtype,
-		".xsd");
+  schemafilepath = g_strdup_printf("%s%c%s%s%s",
+                                   path ? path : OPENSYNC_SCHEMASDIR,
+                                   G_DIR_SEPARATOR,
+                                   "xmlformat-",
+                                   osyncschema->objtype,
+                                   ".xsd");
 
-	osyncschema->ref_count = 1;
+  osyncschema->ref_count = 1;
 
- 	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
-	g_free(schemafilepath);
-	if ( xmlSchemaParserCtxt == NULL ) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema parser context.");
-		goto error;
-	}
- 	osyncschema->schema = xmlSchemaParse(xmlSchemaParserCtxt);
- 	xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt);
-	if ( osyncschema->schema == NULL ) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not read schema file.");
-		goto error;
-	}
+  xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
+  g_free(schemafilepath);
+  if ( xmlSchemaParserCtxt == NULL ) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema parser context.");
+    goto error;
+  }
+  osyncschema->schema = xmlSchemaParse(xmlSchemaParserCtxt);
+  xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt);
+  if ( osyncschema->schema == NULL ) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not read schema file.");
+    goto error;
+  }
 
- 	osyncschema->context = xmlSchemaNewValidCtxt(osyncschema->schema);
- 	if (osyncschema->context == NULL) {
- 		xmlSchemaFree(osyncschema->schema);
- 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema validation context.");
-		goto error;
- 	}
-	osync_trace(TRACE_EXIT, "%s", __func__ );
- 	return osyncschema;
-error:
- 	g_free(osyncschema->objtype);
- 	g_free(osyncschema);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
+  osyncschema->context = xmlSchemaNewValidCtxt(osyncschema->schema);
+  if (osyncschema->context == NULL) {
+    xmlSchemaFree(osyncschema->schema);
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Creation of new XMLFormatSchema failed. Could not create schema validation context.");
+    goto error;
+  }
+  osync_trace(TRACE_EXIT, "%s", __func__ );
+  return osyncschema;
+ error:
+  g_free(osyncschema->objtype);
+  g_free(osyncschema);
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
 /**
@@ -124,84 +124,84 @@ error:
  */
 
 OSyncXMLFormatSchema *osync_xmlformat_schema_get_instance_with_path(OSyncXMLFormat *xmlformat, const char *schemadir, OSyncError **error) {
-	OSyncXMLFormatSchema *osyncschema = NULL;
-	GList * entry;
-	const char *objtype;
+  OSyncXMLFormatSchema *osyncschema = NULL;
+  GList * entry;
+  const char *objtype;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, xmlformat, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, xmlformat, error);
 	
-	osync_assert(xmlformat);
+  osync_assert(xmlformat);
 	
-	objtype = osync_xmlformat_get_objtype(xmlformat);
+  objtype = osync_xmlformat_get_objtype(xmlformat);
 
-	// get mutex
-	_osync_xmlformat_schema_lock_mutex();
-	// find schema for objtype
-	for ( entry = g_list_first(schemas); entry != NULL; entry = g_list_next(entry)) { // should be fast enough for only a few objtypes
-		osyncschema = (OSyncXMLFormatSchema *) entry->data;
-		osync_assert(osyncschema->objtype);
-		if (!strcmp(osyncschema->objtype, objtype) ) {
-			osync_xmlformat_schema_ref(osyncschema);
-			goto exit;
-		}
-		osyncschema = NULL;
-	}
-	if ( osyncschema == NULL ) {
-		osyncschema = osync_xmlformat_schema_new(xmlformat, schemadir, error);
-		if ( osyncschema != NULL ) {
-			schemas = g_list_append(schemas, osyncschema);
-		}
-	}
-exit:
-	// release mutex
-	_osync_xmlformat_schema_unlock_mutex();
-	osync_trace(TRACE_EXIT, "%s, (%p)", __func__, osyncschema );
-	return osyncschema;	
+  // get mutex
+  _osync_xmlformat_schema_lock_mutex();
+  // find schema for objtype
+  for ( entry = g_list_first(schemas); entry != NULL; entry = g_list_next(entry)) { // should be fast enough for only a few objtypes
+    osyncschema = (OSyncXMLFormatSchema *) entry->data;
+    osync_assert(osyncschema->objtype);
+    if (!strcmp(osyncschema->objtype, objtype) ) {
+      osync_xmlformat_schema_ref(osyncschema);
+      goto exit;
+    }
+    osyncschema = NULL;
+  }
+  if ( osyncschema == NULL ) {
+    osyncschema = osync_xmlformat_schema_new(xmlformat, schemadir, error);
+    if ( osyncschema != NULL ) {
+      schemas = g_list_append(schemas, osyncschema);
+    }
+  }
+ exit:
+  // release mutex
+  _osync_xmlformat_schema_unlock_mutex();
+  osync_trace(TRACE_EXIT, "%s, (%p)", __func__, osyncschema );
+  return osyncschema;	
 }
 
 /*@}*/
 
 OSyncXMLFormatSchema * osync_xmlformat_schema_get_instance(OSyncXMLFormat *xmlformat, OSyncError **error) {
-	return osync_xmlformat_schema_get_instance_with_path(xmlformat, NULL, error);	
+  return osync_xmlformat_schema_get_instance_with_path(xmlformat, NULL, error);	
 }
 
 osync_bool osync_xmlformat_schema_validate(OSyncXMLFormatSchema *schema, OSyncXMLFormat *xmlformat, OSyncError **error)
 {
-	int rc = 0;
-	osync_assert(xmlformat);
-	osync_assert(schema);
+  int rc = 0;
+  osync_assert(xmlformat);
+  osync_assert(schema);
 	
-	/* Validate the document */
-	rc = xmlSchemaValidateDoc(schema->context, xmlformat->doc);
+  /* Validate the document */
+  rc = xmlSchemaValidateDoc(schema->context, xmlformat->doc);
 
-	if(rc != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "XMLFormat validation failed.");
- 		return FALSE;
-	}
-	return TRUE;
+  if(rc != 0) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "XMLFormat validation failed.");
+    return FALSE;
+  }
+  return TRUE;
 }
 
 void osync_xmlformat_schema_unref(OSyncXMLFormatSchema *osyncschema) {
 
-	osync_assert(osyncschema);
+  osync_assert(osyncschema);
 
-	if (g_atomic_int_dec_and_test(&(osyncschema->ref_count))) {
-		_osync_xmlformat_schema_lock_mutex();
-		schemas = g_list_remove(schemas, osyncschema);
-		_osync_xmlformat_schema_unlock_mutex();
-		xmlSchemaFreeValidCtxt(osyncschema->context);
-		xmlSchemaFree(osyncschema->schema);
-		g_free(osyncschema->objtype);
-		g_free(osyncschema);
-	}
+  if (g_atomic_int_dec_and_test(&(osyncschema->ref_count))) {
+    _osync_xmlformat_schema_lock_mutex();
+    schemas = g_list_remove(schemas, osyncschema);
+    _osync_xmlformat_schema_unlock_mutex();
+    xmlSchemaFreeValidCtxt(osyncschema->context);
+    xmlSchemaFree(osyncschema->schema);
+    g_free(osyncschema->objtype);
+    g_free(osyncschema);
+  }
 	
 }
 
 OSyncXMLFormatSchema *osync_xmlformat_schema_ref(OSyncXMLFormatSchema *osyncschema)
 {
-	osync_assert(osyncschema);
+  osync_assert(osyncschema);
 	
-	g_atomic_int_inc(&(osyncschema->ref_count));
+  g_atomic_int_inc(&(osyncschema->ref_count));
 
-	return osyncschema;
+  return osyncschema;
 }

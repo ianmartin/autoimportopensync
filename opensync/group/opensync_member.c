@@ -48,13 +48,13 @@
  */
 static void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
 {
-	osync_assert(member);
+  osync_assert(member);
 	
-	if (member->merger)
-		osync_merger_unref(member->merger);
-	member->merger = merger;
-	if(merger)
-		osync_merger_ref(member->merger);
+  if (member->merger)
+    osync_merger_unref(member->merger);
+  member->merger = merger;
+  if(merger)
+    osync_merger_ref(member->merger);
 }
 
 
@@ -66,34 +66,34 @@ static void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
  */
 void _osync_member_parse_timeout(xmlNode *cur, OSyncObjTypeSink *sink)
 {
-	osync_assert(sink);
+  osync_assert(sink);
 
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"connect")) {
-				osync_objtype_sink_set_connect_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"disconnect")) {
-				osync_objtype_sink_set_disconnect_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"get_changes")) {
-				osync_objtype_sink_set_getchanges_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"commit")) {
-				osync_objtype_sink_set_commit_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"batch_commit")) {
-				osync_objtype_sink_set_batchcommit_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"committed_all")) {
-				osync_objtype_sink_set_committedall_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"sync_done")) {
-				osync_objtype_sink_set_syncdone_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
-				osync_objtype_sink_set_write_timeout(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
-				osync_objtype_sink_set_read_timeout(sink, atoi(str));
-			}
-			osync_xml_free(str);
-		}
-		cur = cur->next;
-	}
+  while (cur != NULL) {
+    char *str = (char*)xmlNodeGetContent(cur);
+    if (str) {
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"connect")) {
+        osync_objtype_sink_set_connect_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"disconnect")) {
+        osync_objtype_sink_set_disconnect_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"get_changes")) {
+        osync_objtype_sink_set_getchanges_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"commit")) {
+        osync_objtype_sink_set_commit_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"batch_commit")) {
+        osync_objtype_sink_set_batchcommit_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"committed_all")) {
+        osync_objtype_sink_set_committedall_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"sync_done")) {
+        osync_objtype_sink_set_syncdone_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
+        osync_objtype_sink_set_write_timeout(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
+        osync_objtype_sink_set_read_timeout(sink, atoi(str));
+      }
+      osync_xml_free(str);
+    }
+    cur = cur->next;
+  }
 }
 
 /** @brief Parser for the "objtype" node in  the member configuration
@@ -105,53 +105,53 @@ void _osync_member_parse_timeout(xmlNode *cur, OSyncObjTypeSink *sink)
  */
 static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **error)
 {
-        OSyncObjTypeSink *sink = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
+  OSyncObjTypeSink *sink = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
 
-	sink = osync_objtype_sink_new(NULL, error);
-	if (!sink) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return NULL;
-	}
+  sink = osync_objtype_sink_new(NULL, error);
+  if (!sink) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return NULL;
+  }
 	
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
-				osync_objtype_sink_set_name(sink, str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"preferred_format")) {
-				osync_objtype_sink_set_preferred_format(sink, str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
-				osync_objtype_sink_set_enabled(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
-				osync_objtype_sink_set_read(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"getchanges")) {
-				osync_objtype_sink_set_getchanges(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
-				osync_objtype_sink_set_write(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				xmlChar *str_name = osync_xml_find_node(cur, "name");
-				xmlChar *str_config = osync_xml_find_node(cur, "config");
-				OSyncObjFormatSink *format_sink = osync_objformat_sink_new((char *)str_name, error);
-				if (!format_sink)
-					return NULL;
+  while (cur != NULL) {
+    char *str = (char*)xmlNodeGetContent(cur);
+    if (str) {
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
+        osync_objtype_sink_set_name(sink, str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"preferred_format")) {
+        osync_objtype_sink_set_preferred_format(sink, str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
+        osync_objtype_sink_set_enabled(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
+        osync_objtype_sink_set_read(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"getchanges")) {
+        osync_objtype_sink_set_getchanges(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
+        osync_objtype_sink_set_write(sink, atoi(str));
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
+        xmlChar *str_name = osync_xml_find_node(cur, "name");
+        xmlChar *str_config = osync_xml_find_node(cur, "config");
+        OSyncObjFormatSink *format_sink = osync_objformat_sink_new((char *)str_name, error);
+        if (!format_sink)
+          return NULL;
 
-				osync_objformat_sink_set_config(format_sink, (char *)str_config);
-				osync_objtype_sink_add_objformat_sink(sink, format_sink);
-				osync_objformat_sink_unref(format_sink);
+        osync_objformat_sink_set_config(format_sink, (char *)str_config);
+        osync_objtype_sink_add_objformat_sink(sink, format_sink);
+        osync_objformat_sink_unref(format_sink);
 
-				osync_xml_free(str_name);
-				osync_xml_free(str_config);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
-				_osync_member_parse_timeout(cur->xmlChildrenNode, sink);
-			}
-			osync_xml_free(str);
-		}
-		cur = cur->next;
-	}
+        osync_xml_free(str_name);
+        osync_xml_free(str_config);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
+        _osync_member_parse_timeout(cur->xmlChildrenNode, sink);
+      }
+      osync_xml_free(str);
+    }
+    cur = cur->next;
+  }
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, sink);
-	return sink;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, sink);
+  return sink;
 }
 
 #ifdef OPENSYNC_UNITTESTS
@@ -165,13 +165,13 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
  */
 void osync_member_set_schemadir(OSyncMember *member, const char *schemadir)
 {
-	osync_assert(member);
-	osync_assert(schemadir);
+  osync_assert(member);
+  osync_assert(schemadir);
 
-	if (member->schemadir)
-		g_free(member->schemadir);
+  if (member->schemadir)
+    g_free(member->schemadir);
 
-	member->schemadir = g_strdup(schemadir); 
+  member->schemadir = g_strdup(schemadir); 
 }
 #endif /* OPENSYNC_UNITTESTS */
 
@@ -193,21 +193,21 @@ void osync_member_set_schemadir(OSyncMember *member, const char *schemadir)
  */
 OSyncMember *osync_member_new(OSyncError **error)
 {
-	OSyncMember *member = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+  OSyncMember *member = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	member = osync_try_malloc0(sizeof(OSyncMember), error);
-	if (!member)
-		goto error;
+  member = osync_try_malloc0(sizeof(OSyncMember), error);
+  if (!member)
+    goto error;
 
-	member->ref_count = 1;
+  member->ref_count = 1;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, member);
-	return member;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, member);
+  return member;
 	
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
-	return NULL;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
+  return NULL;
 }
 
 /** @brief Increase the reference count of the member
@@ -217,11 +217,11 @@ error:
  */
 OSyncMember *osync_member_ref(OSyncMember *member)
 {
-	osync_assert(member);
+  osync_assert(member);
 	
-	g_atomic_int_inc(&(member->ref_count));
+  g_atomic_int_inc(&(member->ref_count));
 
-	return member;
+  return member;
 }
 
 /** @brief Decrease the reference count of the member
@@ -231,38 +231,38 @@ OSyncMember *osync_member_ref(OSyncMember *member)
  */
 void osync_member_unref(OSyncMember *member)
 {
-	osync_assert(member);
+  osync_assert(member);
 		
-	if (g_atomic_int_dec_and_test(&(member->ref_count))) {
+  if (g_atomic_int_dec_and_test(&(member->ref_count))) {
 
-		if (member->pluginname)
-			g_free(member->pluginname);
+    if (member->pluginname)
+      g_free(member->pluginname);
 
-		if (member->name)
-			g_free(member->name);
+    if (member->name)
+      g_free(member->name);
 
-		if (member->configdir)
-			g_free(member->configdir);
+    if (member->configdir)
+      g_free(member->configdir);
 		
-		if (member->config)
-			osync_plugin_config_unref(member->config);
+    if (member->config)
+      osync_plugin_config_unref(member->config);
 			
-		if (osync_member_get_capabilities(member))
-			osync_capabilities_unref(osync_member_get_capabilities(member));
+    if (osync_member_get_capabilities(member))
+      osync_capabilities_unref(osync_member_get_capabilities(member));
 			
-		if (osync_member_get_merger(member))
-			osync_merger_unref(osync_member_get_merger(member));
+    if (osync_member_get_merger(member))
+      osync_merger_unref(osync_member_get_merger(member));
 		
-		osync_member_flush_objtypes(member);
+    osync_member_flush_objtypes(member);
 
 #ifdef OPENSYNC_UNITTESTS
-		if (member->schemadir)
-			g_free(member->schemadir);
+    if (member->schemadir)
+      g_free(member->schemadir);
 #endif /* OPENSYNC_UNITTESTS */
 
 
-		g_free(member);
-	}
+    g_free(member);
+  }
 }
 
 /** @brief Returns the name of the default plugin of the member
@@ -273,8 +273,8 @@ void osync_member_unref(OSyncMember *member)
  */
 const char *osync_member_get_pluginname(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->pluginname;
+  osync_assert(member);
+  return member->pluginname;
 }
 
 /** @brief Sets the name of the default plugin of a member
@@ -285,10 +285,10 @@ const char *osync_member_get_pluginname(OSyncMember *member)
  */
 void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
 {
-	osync_assert(member);
-	if (member->pluginname)
-		g_free(member->pluginname);
-	member->pluginname = g_strdup(pluginname);
+  osync_assert(member);
+  if (member->pluginname)
+    g_free(member->pluginname);
+  member->pluginname = g_strdup(pluginname);
 }
 
 /** @brief Returns the inidividual name of the member
@@ -299,8 +299,8 @@ void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
  */
 const char *osync_member_get_name(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->name;
+  osync_assert(member);
+  return member->name;
 }
 
 /** @brief Sets an individual name of the member
@@ -311,10 +311,10 @@ const char *osync_member_get_name(OSyncMember *member)
  */
 void osync_member_set_name(OSyncMember *member, const char *name)
 {
-	osync_assert(member);
-	if (member->name)
-		g_free(member->name);
-	member->name = g_strdup(name);
+  osync_assert(member);
+  if (member->name)
+    g_free(member->name);
+  member->name = g_strdup(name);
 }
 
 /** @brief Returns the configuration directory where this member is stored
@@ -325,8 +325,8 @@ void osync_member_set_name(OSyncMember *member, const char *name)
  */
 const char *osync_member_get_configdir(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->configdir;
+  osync_assert(member);
+  return member->configdir;
 }
 
 /** @brief Sets the directory where a member is supposed to be stored
@@ -337,10 +337,10 @@ const char *osync_member_get_configdir(OSyncMember *member)
  */
 void osync_member_set_configdir(OSyncMember *member, const char *configdir)
 {
-	osync_assert(member);
-	if (member->configdir)
-		g_free(member->configdir);
-	member->configdir = g_strdup(configdir);
+  osync_assert(member);
+  if (member->configdir)
+    g_free(member->configdir);
+  member->configdir = g_strdup(configdir);
 }
 
 /** @brief Gets the configuration data of this member
@@ -360,52 +360,52 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
  */
 OSyncPluginConfig *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error)
 {
-	char *filename = NULL;
-	OSyncPluginConfig *config = NULL;
-	const char *schemadir = NULL;
+  char *filename = NULL;
+  OSyncPluginConfig *config = NULL;
+  const char *schemadir = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-	g_assert(member);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+  g_assert(member);
 
-	if (member->config) {
-		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
-		return member->config;
-	}
+  if (member->config) {
+    osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
+    return member->config;
+  }
 
-	filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
+  filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
 
-	config = osync_plugin_config_new(error);
-	if (!config)
-		goto error;
+  config = osync_plugin_config_new(error);
+  if (!config)
+    goto error;
 	
-	osync_trace(TRACE_INTERNAL, "Reading %s", filename);
-	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		g_free(filename);
-		filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
-		osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
-	}
+  osync_trace(TRACE_INTERNAL, "Reading %s", filename);
+  if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+    g_free(filename);
+    filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
+    osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
+  }
 
 #ifdef OPENSYNC_UNITTESTS
-	if (member->schemadir)
-		schemadir = member->schemadir;
+  if (member->schemadir)
+    schemadir = member->schemadir;
 #endif
 
-	if (!osync_plugin_config_file_load(config, filename, schemadir, error))
-		goto error_free_config;
+  if (!osync_plugin_config_file_load(config, filename, schemadir, error))
+    goto error_free_config;
 		
-	osync_member_set_config(member, config);
+  osync_member_set_config(member, config);
 
-	g_free(filename);
+  g_free(filename);
 
-	osync_trace(TRACE_EXIT, "%s: Read default config", __func__);
-	return config;
+  osync_trace(TRACE_EXIT, "%s: Read default config", __func__);
+  return config;
 
-error_free_config:
-	osync_plugin_config_unref(config);
-error:
-	g_free(filename);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
+ error_free_config:
+  osync_plugin_config_unref(config);
+ error:
+  g_free(filename);
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
 /** @brief Checks if Member has configuration
@@ -415,8 +415,8 @@ error:
  */
 osync_bool osync_member_has_config(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->config ? TRUE : FALSE;
+  osync_assert(member);
+  return member->config ? TRUE : FALSE;
 }
 
 /** @brief Gets the configuration data of this member
@@ -437,52 +437,52 @@ osync_bool osync_member_has_config(OSyncMember *member)
  */
 OSyncPluginConfig *osync_member_get_config(OSyncMember *member, OSyncError **error)
 {
-	char *filename = NULL;
-	const char *schemadir = NULL;
-        OSyncPluginConfig *config = NULL;
+  char *filename = NULL;
+  const char *schemadir = NULL;
+  OSyncPluginConfig *config = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-	osync_assert(member);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+  osync_assert(member);
 
-	if (member->config) {
-		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
-		return member->config;
-	}
+  if (member->config) {
+    osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
+    return member->config;
+  }
 	
-	filename = g_strdup_printf("%s%c%s.conf", member->configdir, G_DIR_SEPARATOR, member->pluginname);
-	osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename);
+  filename = g_strdup_printf("%s%c%s.conf", member->configdir, G_DIR_SEPARATOR, member->pluginname);
+  osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename);
 	
-	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin is not configured");
-		goto error;
-	}
+  if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin is not configured");
+    goto error;
+  }
 
-	config = osync_plugin_config_new(error);
-	if (!config)
-		goto error;
+  config = osync_plugin_config_new(error);
+  if (!config)
+    goto error;
 
 #ifdef OPENSYNC_UNITTESTS
-	if (member->schemadir)
-		schemadir = member->schemadir;
+  if (member->schemadir)
+    schemadir = member->schemadir;
 #endif
 
-	if (!osync_plugin_config_file_load(config, filename, schemadir, error))
-		goto error_free_config;
+  if (!osync_plugin_config_file_load(config, filename, schemadir, error))
+    goto error_free_config;
 
-	g_free(filename);
+  g_free(filename);
 
-	osync_member_set_config(member, config);
-	osync_plugin_config_unref(config);
+  osync_member_set_config(member, config);
+  osync_plugin_config_unref(config);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return config;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return config;
 
-error_free_config:
-	osync_plugin_config_unref(config);
-error:
-	g_free(filename);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
+ error_free_config:
+  osync_plugin_config_unref(config);
+ error:
+  g_free(filename);
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
 /** @brief Sets the config data for a member
@@ -495,15 +495,15 @@ error:
  */
 void osync_member_set_config(OSyncMember *member, OSyncPluginConfig *config)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, config);
-	g_assert(member);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, config);
+  g_assert(member);
 	
-	if (member->config)
-		osync_plugin_config_unref(member->config);
+  if (member->config)
+    osync_plugin_config_unref(member->config);
 
-	member->config = osync_plugin_config_ref(config);
+  member->config = osync_plugin_config_ref(config);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /** @brief Loads a member from a directory where it has been saved
@@ -516,148 +516,148 @@ void osync_member_set_config(OSyncMember *member, OSyncPluginConfig *config)
  */
 osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error)
 {	xmlDocPtr doc;
-	xmlNodePtr cur;
-	char *filename = NULL;
-	char *basename = NULL;
+  xmlNodePtr cur;
+  char *filename = NULL;
+  char *basename = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path, error);
 
-	filename = g_strdup_printf ("%s%csyncmember.conf", path, G_DIR_SEPARATOR);
+  filename = g_strdup_printf ("%s%csyncmember.conf", path, G_DIR_SEPARATOR);
 	
-	basename = g_path_get_basename(path);
-	member->id = atoi(basename);
-	g_free(basename);
-	osync_member_set_configdir(member, path);
+  basename = g_path_get_basename(path);
+  member->id = atoi(basename);
+  g_free(basename);
+  osync_member_set_configdir(member, path);
 	
-	if (!osync_xml_open_file(&doc, &cur, filename, "syncmember", error)) {
-		g_free(filename);
-		goto error;
-	}
-	g_free(filename);
+  if (!osync_xml_open_file(&doc, &cur, filename, "syncmember", error)) {
+    g_free(filename);
+    goto error;
+  }
+  g_free(filename);
 
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
-				member->pluginname = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
-				OSyncObjTypeSink *sink = _osync_member_parse_objtype(cur->xmlChildrenNode, error);
-				if (!sink)
-					goto error_free_doc;
+  while (cur != NULL) {
+    char *str = (char*)xmlNodeGetContent(cur);
+    if (str) {
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
+        member->pluginname = g_strdup(str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
+        OSyncObjTypeSink *sink = _osync_member_parse_objtype(cur->xmlChildrenNode, error);
+        if (!sink)
+          goto error_free_doc;
 
-				member->objtypes = g_list_append(member->objtypes, sink);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
-				/* Sink Function Timeout settings for main sink */
-				if (!member->main_sink)
-					member->main_sink = osync_objtype_main_sink_new(error);
+        member->objtypes = g_list_append(member->objtypes, sink);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
+        /* Sink Function Timeout settings for main sink */
+        if (!member->main_sink)
+          member->main_sink = osync_objtype_main_sink_new(error);
 
-				if (!member->main_sink) {
-					osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-					goto error_free_doc;
-				}
+        if (!member->main_sink) {
+          osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+          goto error_free_doc;
+        }
 
-				_osync_member_parse_timeout(cur->xmlChildrenNode, member->main_sink);
-			}
+        _osync_member_parse_timeout(cur->xmlChildrenNode, member->main_sink);
+      }
 
-			osync_xml_free(str);
-		}
-		cur = cur->next;
-	}
-	osync_xml_free_doc(doc);
+      osync_xml_free(str);
+    }
+    cur = cur->next;
+  }
+  osync_xml_free_doc(doc);
 
-	if(osync_capabilities_member_has_capabilities(member))
-	{
-		OSyncCapabilities* capabilities = osync_capabilities_member_get_capabilities(member, error);
-		if(!capabilities)
-			goto error;
-		if(!osync_member_set_capabilities(member, capabilities, error))
-			goto error;
-		osync_capabilities_unref(capabilities);
-	}
+  if(osync_capabilities_member_has_capabilities(member))
+    {
+      OSyncCapabilities* capabilities = osync_capabilities_member_get_capabilities(member, error);
+      if(!capabilities)
+        goto error;
+      if(!osync_member_set_capabilities(member, capabilities, error))
+        goto error;
+      osync_capabilities_unref(capabilities);
+    }
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 	
-error_free_doc:
-	osync_xml_free_doc(doc);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error_free_doc:
+  osync_xml_free_doc(doc);
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 static osync_bool _osync_member_save_sink_add_timeout(xmlNode *cur, const char *timeoutname, unsigned int timeout, OSyncError **error)
 {
-        char *str = NULL;
-	/* Skip if no custom timeout got set */
-	if (!timeout)
-		return TRUE;
+  char *str = NULL;
+  /* Skip if no custom timeout got set */
+  if (!timeout)
+    return TRUE;
 
-	str = g_strdup_printf("%u", timeout);
-	xmlNewChild(cur, NULL, (xmlChar*)timeoutname, BAD_CAST str);
-	g_free(str);
+  str = g_strdup_printf("%u", timeout);
+  xmlNewChild(cur, NULL, (xmlChar*)timeoutname, BAD_CAST str);
+  g_free(str);
 
-	return TRUE;
+  return TRUE;
 }
 
 static osync_bool _osync_member_save_sink_timeout(xmlNode *cur, OSyncObjTypeSink *sink, OSyncError **error)
 {
-	xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"timeout", NULL);
+  xmlNode *node = xmlNewChild(cur, NULL, (xmlChar*)"timeout", NULL);
 
-	_osync_member_save_sink_add_timeout(node, "connect", osync_objtype_sink_get_connect_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "disconnect", osync_objtype_sink_get_disconnect_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "get_changes", osync_objtype_sink_get_getchanges_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "commit", osync_objtype_sink_get_commit_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "batch_commit", osync_objtype_sink_get_batchcommit_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "committed_all", osync_objtype_sink_get_committedall_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "sync_done", osync_objtype_sink_get_syncdone_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "write", osync_objtype_sink_get_write_timeout(sink), error);
-	_osync_member_save_sink_add_timeout(node, "read", osync_objtype_sink_get_read_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "connect", osync_objtype_sink_get_connect_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "disconnect", osync_objtype_sink_get_disconnect_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "get_changes", osync_objtype_sink_get_getchanges_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "commit", osync_objtype_sink_get_commit_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "batch_commit", osync_objtype_sink_get_batchcommit_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "committed_all", osync_objtype_sink_get_committedall_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "sync_done", osync_objtype_sink_get_syncdone_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "write", osync_objtype_sink_get_write_timeout(sink), error);
+  _osync_member_save_sink_add_timeout(node, "read", osync_objtype_sink_get_read_timeout(sink), error);
 
-	if (!node->children) { 
-		xmlUnlinkNode(node);
-		xmlFreeNode(node);
-	}
+  if (!node->children) { 
+    xmlUnlinkNode(node);
+    xmlFreeNode(node);
+  }
 
 
-	return TRUE;
+  return TRUE;
 }
 
 static osync_bool _osync_member_save_sink(xmlDoc *doc, OSyncObjTypeSink *sink, OSyncError **error)
 {
-	int i = 0;
-	xmlNode *node = NULL;
+  int i = 0;
+  xmlNode *node = NULL;
 
-	/* Write main sink stuff in main node. */
-	if (sink && !osync_objtype_sink_get_name(sink)) {
-		node = doc->children;
-	} else {
-		node = xmlNewChild(doc->children, NULL, (xmlChar*)"objtype", NULL);
-	}
+  /* Write main sink stuff in main node. */
+  if (sink && !osync_objtype_sink_get_name(sink)) {
+    node = doc->children;
+  } else {
+    node = xmlNewChild(doc->children, NULL, (xmlChar*)"objtype", NULL);
+  }
 
-	xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-	xmlNewChild(node, NULL, (xmlChar*)"read", osync_objtype_sink_get_read(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-	xmlNewChild(node, NULL, (xmlChar*)"getchanges", osync_objtype_sink_get_getchanges(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
-	xmlNewChild(node, NULL, (xmlChar*)"write", osync_objtype_sink_get_write(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+  xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+  xmlNewChild(node, NULL, (xmlChar*)"read", osync_objtype_sink_get_read(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+  xmlNewChild(node, NULL, (xmlChar*)"getchanges", osync_objtype_sink_get_getchanges(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+  xmlNewChild(node, NULL, (xmlChar*)"write", osync_objtype_sink_get_write(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
 
-	/* Check if sink is a Main Sink, if so skip objtype specific stuff */
-	if (sink && !osync_objtype_sink_get_name(sink))
-		return TRUE;
+  /* Check if sink is a Main Sink, if so skip objtype specific stuff */
+  if (sink && !osync_objtype_sink_get_name(sink))
+    return TRUE;
 
-	/* Objtype specific settings */
-	xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
+  /* Objtype specific settings */
+  xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
 
-	xmlNewChild(node, NULL, (xmlChar*)"preferred_format", (xmlChar*)osync_objtype_sink_get_preferred_format(sink));
+  xmlNewChild(node, NULL, (xmlChar*)"preferred_format", (xmlChar*)osync_objtype_sink_get_preferred_format(sink));
 
-	for (i = 0; i < osync_objtype_sink_num_objformat_sinks(sink); i++) {
-		OSyncObjFormatSink *format_sink = osync_objtype_sink_nth_objformat_sink(sink, i);
-		const char *format = osync_objformat_sink_get_objformat(format_sink);
-		const char *format_config = osync_objformat_sink_get_config(format_sink);
-		xmlNode *objformat_node = xmlNewChild(node, NULL, (xmlChar*)"objformat", NULL);
-		xmlNewChild(objformat_node, NULL, (xmlChar*)"name", (xmlChar*)format);
-		xmlNewChild(objformat_node, NULL, (xmlChar*)"config", (xmlChar*)format_config);
-	}
+  for (i = 0; i < osync_objtype_sink_num_objformat_sinks(sink); i++) {
+    OSyncObjFormatSink *format_sink = osync_objtype_sink_nth_objformat_sink(sink, i);
+    const char *format = osync_objformat_sink_get_objformat(format_sink);
+    const char *format_config = osync_objformat_sink_get_config(format_sink);
+    xmlNode *objformat_node = xmlNewChild(node, NULL, (xmlChar*)"objformat", NULL);
+    xmlNewChild(objformat_node, NULL, (xmlChar*)"name", (xmlChar*)format);
+    xmlNewChild(objformat_node, NULL, (xmlChar*)"config", (xmlChar*)format_config);
+  }
 
-	return _osync_member_save_sink_timeout(node, sink, error);
+  return _osync_member_save_sink_timeout(node, sink, error);
 }
 
 
@@ -670,82 +670,82 @@ static osync_bool _osync_member_save_sink(xmlDoc *doc, OSyncObjTypeSink *sink, O
  */
 osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
-	char *filename = NULL;
-	xmlDocPtr doc = NULL;
-        char *version_str = NULL;
-        GList *o = NULL;
-        OSyncCapabilities* capabilities = NULL;
+  char *filename = NULL;
+  xmlDocPtr doc = NULL;
+  char *version_str = NULL;
+  GList *o = NULL;
+  OSyncCapabilities* capabilities = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-	osync_assert(member);
-	osync_assert(member->configdir);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+  osync_assert(member);
+  osync_assert(member->configdir);
 	
-	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
-		if (g_mkdir(member->configdir, 0700)) {
-			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
-			goto error;
-		}
-	}
+  if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
+    if (g_mkdir(member->configdir, 0700)) {
+      osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
+      goto error;
+    }
+  }
 	
-	doc = xmlNewDoc((xmlChar*)"1.0");
-	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
+  doc = xmlNewDoc((xmlChar*)"1.0");
+  doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 
-	version_str = g_strdup_printf("%u.%u", OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION);
-	xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
-	g_free(version_str);
+  version_str = g_strdup_printf("%u.%u", OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION);
+  xmlSetProp(doc->children, (const xmlChar*)"version", (const xmlChar *)version_str);	
+  g_free(version_str);
 
-	//The plugin name
-	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
+  //The plugin name
+  xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
 
-	//The main sink
-	if (member->main_sink && !_osync_member_save_sink(doc, member->main_sink, error)) {
-		osync_xml_free_doc(doc);
-		goto error;
-	}
+  //The main sink
+  if (member->main_sink && !_osync_member_save_sink(doc, member->main_sink, error)) {
+    osync_xml_free_doc(doc);
+    goto error;
+  }
 	
-	//The objtypes
-	for (o = member->objtypes; o; o = o->next) {
-		OSyncObjTypeSink *sink = o->data;
+  //The objtypes
+  for (o = member->objtypes; o; o = o->next) {
+    OSyncObjTypeSink *sink = o->data;
 
-		if (!_osync_member_save_sink(doc, sink, error)) {
-			osync_xml_free_doc(doc);
-			goto error;
-		}
-	}
+    if (!_osync_member_save_sink(doc, sink, error)) {
+      osync_xml_free_doc(doc);
+      goto error;
+    }
+  }
 	
-	/* TODO Validate file before storing! */
+  /* TODO Validate file before storing! */
 
-	//Saving the syncmember.conf
-	filename = g_strdup_printf ("%s%csyncmember.conf", member->configdir, G_DIR_SEPARATOR);
-	xmlSaveFormatFile(filename, doc, 1);
-	g_free(filename);
+  //Saving the syncmember.conf
+  filename = g_strdup_printf ("%s%csyncmember.conf", member->configdir, G_DIR_SEPARATOR);
+  xmlSaveFormatFile(filename, doc, 1);
+  g_free(filename);
 
-	osync_xml_free_doc(doc);
+  osync_xml_free_doc(doc);
 	
-	//Saving the config if it exists
-	if (member->config) {
-		filename = g_strdup_printf("%s%c%s.conf", member->configdir, G_DIR_SEPARATOR, member->pluginname);
-		if (!osync_plugin_config_file_save(member->config, filename, error)) {
-			g_free(filename);
-			goto error;
-		}
+  //Saving the config if it exists
+  if (member->config) {
+    filename = g_strdup_printf("%s%c%s.conf", member->configdir, G_DIR_SEPARATOR, member->pluginname);
+    if (!osync_plugin_config_file_save(member->config, filename, error)) {
+      g_free(filename);
+      goto error;
+    }
 		
-		g_free(filename);
-	}
+    g_free(filename);
+  }
 	
-	capabilities = osync_member_get_capabilities(member);
-	if(capabilities) {
-		if(!osync_capabilities_member_set_capabilities(member, capabilities, error)) {
-			goto error;
-		}
-	}
+  capabilities = osync_member_get_capabilities(member);
+  if(capabilities) {
+    if(!osync_capabilities_member_set_capabilities(member, capabilities, error)) {
+      goto error;
+    }
+  }
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
 /** @brief Delete a member
@@ -757,21 +757,21 @@ error:
  */
 osync_bool osync_member_delete(OSyncMember *member, OSyncError **error)
 {
-	char *delcmd = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-	osync_assert(member);
+  char *delcmd = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+  osync_assert(member);
 	
-	delcmd = g_strdup_printf("rm -rf %s", member->configdir);
-	if (system(delcmd)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete member. command %s failed", delcmd);
-		g_free(delcmd);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	g_free(delcmd);
+  delcmd = g_strdup_printf("rm -rf %s", member->configdir);
+  if (system(delcmd)) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete member. command %s failed", delcmd);
+    g_free(delcmd);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return FALSE;
+  }
+  g_free(delcmd);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
 }
 
 /** @brief Gets the unique id of a member
@@ -782,8 +782,8 @@ osync_bool osync_member_delete(OSyncMember *member, OSyncError **error)
  */
 long long int osync_member_get_id(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->id;
+  osync_assert(member);
+  return member->id;
 }
 
 /** @brief Find the object type sink (OSyncObjTypeSink) for the given object type of
@@ -796,17 +796,17 @@ long long int osync_member_get_id(OSyncMember *member)
  */
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtype)
 {
-	GList *o;
+  GList *o;
 
-	osync_assert(member);
+  osync_assert(member);
 
-	for (o = member->objtypes; o; o = o->next) {
-		OSyncObjTypeSink *sink = o->data;
-		if (!strcmp(osync_objtype_sink_get_name(sink), objtype)) {
-			return sink;
-		}
-	}
-	return NULL;
+  for (o = member->objtypes; o; o = o->next) {
+    OSyncObjTypeSink *sink = o->data;
+    if (!strcmp(osync_objtype_sink_get_name(sink), objtype)) {
+      return sink;
+    }
+  }
+  return NULL;
 }
 
 /** @brief Add a specifc Object Format to member 
@@ -818,15 +818,15 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
  */
 void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format)
 {
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
-        OSyncObjFormatSink *format_sink = NULL;
-	if (!sink)
-		return;
+  OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+  OSyncObjFormatSink *format_sink = NULL;
+  if (!sink)
+    return;
 	
-	/* TODO: handle error */
-	format_sink = osync_objformat_sink_new(format, NULL);
-	osync_objtype_sink_add_objformat_sink(sink, format_sink);
-	osync_objformat_sink_unref(format_sink);
+  /* TODO: handle error */
+  format_sink = osync_objformat_sink_new(format, NULL);
+  osync_objtype_sink_add_objformat_sink(sink, format_sink);
+  osync_objformat_sink_unref(format_sink);
 }
 
 /** @brief Add a specifc Object Format with a conversion path config to member 
@@ -839,15 +839,15 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
  */
 void osync_member_add_objformat_with_config(OSyncMember *member, const char *objtype, const char *format, const char *format_config)
 {
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
-        OSyncObjFormatSink *format_sink = NULL;
-	if (!sink)
-		return;
+  OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+  OSyncObjFormatSink *format_sink = NULL;
+  if (!sink)
+    return;
 	
-	format_sink = osync_objformat_sink_new(format, NULL);
-	osync_objformat_sink_set_config(format_sink, format_config);
-	osync_objtype_sink_add_objformat_sink(sink, format_sink);
-	osync_objformat_sink_unref(format_sink);
+  format_sink = osync_objformat_sink_new(format, NULL);
+  osync_objformat_sink_set_config(format_sink, format_config);
+  osync_objtype_sink_add_objformat_sink(sink, format_sink);
+  osync_objformat_sink_unref(format_sink);
 }
 
 /** @brief List of all available object formats for a specifc object type of this member 
@@ -860,20 +860,20 @@ void osync_member_add_objformat_with_config(OSyncMember *member, const char *obj
  */
 const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error)
 {
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
-	if (!sink) {
-		/* FIXME: Nonsnse?!
-		sink = osync_member_find_objtype_sink(member, "data");
-		if (!sink) {
-		*/
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
-			return NULL;
-		/*
-		}
-		*/
-	}
+  OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+  if (!sink) {
+    /* FIXME: Nonsnse?!
+       sink = osync_member_find_objtype_sink(member, "data");
+       if (!sink) {
+    */
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
+    return NULL;
+    /*
+      }
+    */
+  }
 	
-	return osync_objtype_sink_get_objformat_sinks(sink);
+  return osync_objtype_sink_get_objformat_sinks(sink);
 }
 
 /** @brief Add an OSyncObjTypeSink object to the member list of supported object types of this member
@@ -884,11 +884,11 @@ const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *ob
  */
 void osync_member_add_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sink)
 {
-	osync_assert(member);
-	osync_assert(sink);
+  osync_assert(member);
+  osync_assert(sink);
 
-	member->objtypes = g_list_append(member->objtypes, sink);
-	osync_objtype_sink_ref(sink);
+  member->objtypes = g_list_append(member->objtypes, sink);
+  osync_objtype_sink_ref(sink);
 }
 
 /** @brief Remove an OSyncObjTypeSink object to the member list of supported object types of this member
@@ -899,11 +899,11 @@ void osync_member_add_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sink)
  */
 void osync_member_remove_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sink)
 {
-	osync_assert(member);
-	osync_assert(sink);
+  osync_assert(member);
+  osync_assert(sink);
 
-	member->objtypes = g_list_remove(member->objtypes, sink);
-	osync_objtype_sink_unref(sink);
+  member->objtypes = g_list_remove(member->objtypes, sink);
+  osync_objtype_sink_unref(sink);
 }
 
 /** @brief The number of supported object types of this member
@@ -914,8 +914,8 @@ void osync_member_remove_objtype_sink(OSyncMember *member, OSyncObjTypeSink *sin
  */
 int osync_member_num_objtypes(OSyncMember *member)
 {
-	osync_assert(member);
-	return g_list_length(member->objtypes);
+  osync_assert(member);
+  return g_list_length(member->objtypes);
 }
 
 /** @brief The name of the nth supported object type of this member
@@ -927,10 +927,10 @@ int osync_member_num_objtypes(OSyncMember *member)
  */
 const char *osync_member_nth_objtype(OSyncMember *member, int nth)
 {
-	OSyncObjTypeSink *sink = NULL;
-	osync_assert(member);
-	sink = g_list_nth_data(member->objtypes, nth);
-	return osync_objtype_sink_get_name(sink);
+  OSyncObjTypeSink *sink = NULL;
+  osync_assert(member);
+  sink = g_list_nth_data(member->objtypes, nth);
+  return osync_objtype_sink_get_name(sink);
 }
 
 /** @brief Returns if a certain object type is enabled on this member
@@ -942,12 +942,12 @@ const char *osync_member_nth_objtype(OSyncMember *member, int nth)
  */
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype)
 {
-	OSyncObjTypeSink *sink = NULL;
-	osync_assert(member);
-	sink = osync_member_find_objtype_sink(member, objtype);
-	if (!sink)
-		return FALSE;
-	return osync_objtype_sink_is_enabled(sink);
+  OSyncObjTypeSink *sink = NULL;
+  osync_assert(member);
+  sink = osync_member_find_objtype_sink(member, objtype);
+  if (!sink)
+    return FALSE;
+  return osync_objtype_sink_is_enabled(sink);
 }
 
 /** @brief Enables or disables a object type on a member
@@ -964,18 +964,18 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
  */
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled)
 {
-	OSyncObjTypeSink *sink = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtype, enabled);
-	osync_assert(member);
+  OSyncObjTypeSink *sink = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtype, enabled);
+  osync_assert(member);
 	
-	sink = osync_member_find_objtype_sink(member, objtype);
-	if (!sink) {
-		osync_trace(TRACE_EXIT, "%s: Unable to find objtype", __func__);
-		return;
-	}
+  sink = osync_member_find_objtype_sink(member, objtype);
+  if (!sink) {
+    osync_trace(TRACE_EXIT, "%s: Unable to find objtype", __func__);
+    return;
+  }
 		
-	osync_objtype_sink_set_enabled(sink, enabled);
-	osync_trace(TRACE_EXIT, "%s", __func__);
+  osync_objtype_sink_set_enabled(sink, enabled);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /** @brief Get the capabilities of the member 
@@ -985,8 +985,8 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, 
  */
 OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->capabilities;
+  osync_assert(member);
+  return member->capabilities;
 }
 
 /** @brief Set the capabilities of the member 
@@ -998,21 +998,21 @@ OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member)
  */
 osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities, OSyncError **error)
 {
-	osync_assert(member);
+  osync_assert(member);
 	
-	if (member->capabilities)
-		osync_capabilities_unref(member->capabilities);
-	member->capabilities = capabilities;
-	if(capabilities) {
-                OSyncMerger* merger = NULL;
-		osync_capabilities_ref(member->capabilities);
-		merger = osync_merger_new(member->capabilities, error);
-		if(!merger)
-			return FALSE;
-		_osync_member_set_merger(member, merger);
-		osync_merger_unref(merger);
-	}
-	return TRUE;
+  if (member->capabilities)
+    osync_capabilities_unref(member->capabilities);
+  member->capabilities = capabilities;
+  if(capabilities) {
+    OSyncMerger* merger = NULL;
+    osync_capabilities_ref(member->capabilities);
+    merger = osync_merger_new(member->capabilities, error);
+    if(!merger)
+      return FALSE;
+    _osync_member_set_merger(member, merger);
+    osync_merger_unref(merger);
+  }
+  return TRUE;
 }
 
 /** @brief Get pointer of the Merger 
@@ -1022,8 +1022,8 @@ osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities 
  */
 OSyncMerger *osync_member_get_merger(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->merger;
+  osync_assert(member);
+  return member->merger;
 }
 
 /** @brief Remove all object types from member. 
@@ -1036,18 +1036,18 @@ OSyncMerger *osync_member_get_merger(OSyncMember *member)
  */
 void osync_member_flush_objtypes(OSyncMember *member)
 {
-	osync_assert(member);
+  osync_assert(member);
 
-        while (member->objtypes) {
-                OSyncObjTypeSink *sink = member->objtypes->data;
-                osync_objtype_sink_unref(sink);
-                member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
-        }
+  while (member->objtypes) {
+    OSyncObjTypeSink *sink = member->objtypes->data;
+    osync_objtype_sink_unref(sink);
+    member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
+  }
 
-	if (member->main_sink) {
-		osync_objtype_sink_unref(member->main_sink);
-		member->main_sink = NULL;
-	}
+  if (member->main_sink) {
+    osync_objtype_sink_unref(member->main_sink);
+    member->main_sink = NULL;
+  }
 }
 
 /** @brief Get the main sink of member. 
@@ -1058,8 +1058,8 @@ void osync_member_flush_objtypes(OSyncMember *member)
  */
 OSyncObjTypeSink *osync_member_get_main_sink(OSyncMember *member)
 {
-	osync_assert(member);
-	return member->main_sink;
+  osync_assert(member);
+  return member->main_sink;
 }
 
 /** @brief Checks if the member configuration is up to date. 
@@ -1070,49 +1070,49 @@ OSyncObjTypeSink *osync_member_get_main_sink(OSyncMember *member)
  */
 osync_bool osync_member_config_is_uptodate(OSyncMember *member)
 {
-	xmlDocPtr doc;
-	xmlNodePtr cur;
-	OSyncError *error = NULL;
-	unsigned int version_major;
-	unsigned int version_minor;
-	xmlChar *version_str = NULL;
-	osync_bool uptodate = FALSE;
-        char *config = NULL;
+  xmlDocPtr doc;
+  xmlNodePtr cur;
+  OSyncError *error = NULL;
+  unsigned int version_major;
+  unsigned int version_minor;
+  xmlChar *version_str = NULL;
+  osync_bool uptodate = FALSE;
+  char *config = NULL;
 
-	osync_assert(member);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+  osync_assert(member);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 
-	config = g_strdup_printf("%s%c%s",
-			osync_member_get_configdir(member),
-			G_DIR_SEPARATOR, "syncmember.conf");
+  config = g_strdup_printf("%s%c%s",
+                           osync_member_get_configdir(member),
+                           G_DIR_SEPARATOR, "syncmember.conf");
 	
-	/* If syncmember isn't present, we assume that update is required. */
-	if (!osync_xml_open_file(&doc, &cur, config, "syncmember", &error))
-		goto end;
+  /* If syncmember isn't present, we assume that update is required. */
+  if (!osync_xml_open_file(&doc, &cur, config, "syncmember", &error))
+    goto end;
 
-	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
+  version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
 
-	/* No version node, means very outdated version. */
-	if (!version_str)
-		goto end;
+  /* No version node, means very outdated version. */
+  if (!version_str)
+    goto end;
 
-      	sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
+  sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
 
-	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
-			version_str, version_major, version_minor, 
-			OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION );
+  osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
+              version_str, version_major, version_minor, 
+              OSYNC_MEMBER_MAJOR_VERSION, OSYNC_MEMBER_MINOR_VERSION );
 
-	if (OSYNC_MEMBER_MAJOR_VERSION == version_major 
-			&& OSYNC_MEMBER_MINOR_VERSION == version_minor)
-		uptodate = TRUE;
+  if (OSYNC_MEMBER_MAJOR_VERSION == version_major 
+      && OSYNC_MEMBER_MINOR_VERSION == version_minor)
+    uptodate = TRUE;
 
-	osync_xml_free(version_str);
+  osync_xml_free(version_str);
 
-end:
-	g_free(config);
+ end:
+  g_free(config);
 
-	osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
-	return uptodate;
+  osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
+  return uptodate;
 }
 
 /** @brief Checks if the plugin configuration is up to date. 
@@ -1123,52 +1123,52 @@ end:
  */
 osync_bool osync_member_plugin_is_uptodate(OSyncMember *member)
 {
-	xmlDocPtr doc = NULL;
-	xmlNodePtr cur = NULL;
-	OSyncError *error = NULL;
-	unsigned int version_major;
-	unsigned int version_minor;
-	xmlChar *version_str = NULL;
-	osync_bool uptodate = FALSE;
-        char *config = NULL;
+  xmlDocPtr doc = NULL;
+  xmlNodePtr cur = NULL;
+  OSyncError *error = NULL;
+  unsigned int version_major;
+  unsigned int version_minor;
+  xmlChar *version_str = NULL;
+  osync_bool uptodate = FALSE;
+  char *config = NULL;
 
-	osync_assert(member);
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+  osync_assert(member);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 
-	config = g_strdup_printf("%s%c%s",
-			osync_member_get_configdir(member),
-			G_DIR_SEPARATOR, osync_member_get_pluginname(member));
+  config = g_strdup_printf("%s%c%s",
+                           osync_member_get_configdir(member),
+                           G_DIR_SEPARATOR, osync_member_get_pluginname(member));
 	
-	/* If syncmember isn't present, we assume that update is required. */
-	if (!osync_xml_open_file(&doc, &cur, config, "plugin", &error))
-		goto end;
+  /* If syncmember isn't present, we assume that update is required. */
+  if (!osync_xml_open_file(&doc, &cur, config, "plugin", &error))
+    goto end;
 
-	version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
+  version_str = xmlGetProp(cur->parent, (const xmlChar *)"version");
 
-	/* No version node, means very outdated version. */
-	if (!version_str)
-		goto end;
+  /* No version node, means very outdated version. */
+  if (!version_str)
+    goto end;
 
-      	sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
+  sscanf((const char *) version_str, "%u.%u", &version_major, &version_minor);
 
-	osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
-			version_str, version_major, version_minor, 
-			OSYNC_PLUGIN_MAJOR_VERSION, OSYNC_PLUGIN_MINOR_VERSION ); 
+  osync_trace(TRACE_INTERNAL, "Version: %s (current %u.%u required %u.%u)",
+              version_str, version_major, version_minor, 
+              OSYNC_PLUGIN_MAJOR_VERSION, OSYNC_PLUGIN_MINOR_VERSION ); 
 
-	if (OSYNC_PLUGIN_MAJOR_VERSION == version_major 
-			&& OSYNC_PLUGIN_MINOR_VERSION == version_minor)
-		uptodate = TRUE;
+  if (OSYNC_PLUGIN_MAJOR_VERSION == version_major 
+      && OSYNC_PLUGIN_MINOR_VERSION == version_minor)
+    uptodate = TRUE;
 
-	osync_xml_free(version_str);
+  osync_xml_free(version_str);
 
-end:
-	g_free(config);
+ end:
+  g_free(config);
 
-	if (doc)
-		osync_xml_free_doc(doc);
+  if (doc)
+    osync_xml_free_doc(doc);
 
-	osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
-	return uptodate;
+  osync_trace(TRACE_EXIT, "%s(%p)", __func__, member);
+  return uptodate;
 }
 
 /*@}*/

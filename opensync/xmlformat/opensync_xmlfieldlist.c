@@ -30,56 +30,56 @@
 
 OSyncXMLFieldList *osync_xmlfieldlist_new(OSyncError **error)
 {
-        OSyncXMLFieldList *xmlfieldlist = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+  OSyncXMLFieldList *xmlfieldlist = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	xmlfieldlist = osync_try_malloc0(sizeof(OSyncXMLFieldList), error);
-	if(!xmlfieldlist) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	xmlfieldlist->array = g_ptr_array_new();
+  xmlfieldlist = osync_try_malloc0(sizeof(OSyncXMLFieldList), error);
+  if(!xmlfieldlist) {
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+    return NULL;
+  }
+  xmlfieldlist->array = g_ptr_array_new();
 	
-	osync_trace(TRACE_EXIT, "%s(%p)", __func__, xmlfieldlist);
-	return  xmlfieldlist;
+  osync_trace(TRACE_EXIT, "%s(%p)", __func__, xmlfieldlist);
+  return  xmlfieldlist;
 }
 
 void osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfieldlist);
-	osync_assert(xmlfield);
+  osync_assert(xmlfieldlist);
+  osync_assert(xmlfield);
 	
-	g_ptr_array_add(xmlfieldlist->array, xmlfield);
+  g_ptr_array_add(xmlfieldlist->array, xmlfield);
 }
 
 void osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index)
 {
-	osync_assert(xmlfieldlist);
+  osync_assert(xmlfieldlist);
 	
-	if(index >= xmlfieldlist->array->len)
-		return;
-	g_ptr_array_remove_index(xmlfieldlist->array, index);
+  if(index >= xmlfieldlist->array->len)
+    return;
+  g_ptr_array_remove_index(xmlfieldlist->array, index);
 }
 
 void osync_xmlfieldlist_free(OSyncXMLFieldList *xmlfieldlist)
 {
-	osync_assert(xmlfieldlist);
-	g_ptr_array_free(xmlfieldlist->array, TRUE);
-	g_free(xmlfieldlist);
+  osync_assert(xmlfieldlist);
+  g_ptr_array_free(xmlfieldlist->array, TRUE);
+  g_free(xmlfieldlist);
 }
 
 int osync_xmlfieldlist_get_length(OSyncXMLFieldList *xmlfieldlist)
 {
-	osync_assert(xmlfieldlist);
+  osync_assert(xmlfieldlist);
 	
-	return xmlfieldlist->array->len;
+  return xmlfieldlist->array->len;
 }
 
 OSyncXMLField *osync_xmlfieldlist_item(OSyncXMLFieldList *xmlfieldlist, int index)
 {
-	osync_assert(xmlfieldlist);
+  osync_assert(xmlfieldlist);
 	
-	if(index >= xmlfieldlist->array->len)
-		return NULL;
-	return g_ptr_array_index(xmlfieldlist->array, index);
+  if(index >= xmlfieldlist->array->len)
+    return NULL;
+  return g_ptr_array_index(xmlfieldlist->array, index);
 }

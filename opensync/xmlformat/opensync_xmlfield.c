@@ -30,408 +30,408 @@
 #include "opensync_xmlfield_private.h"
 #include "opensync_xmlfield_internals.h"
 
- OSyncXMLField *osync_xmlfield_new_node(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error)
+OSyncXMLField *osync_xmlfield_new_node(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error)
 {
-	OSyncXMLField *xmlfield = osync_try_malloc0(sizeof(OSyncXMLField), error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
+  OSyncXMLField *xmlfield = osync_try_malloc0(sizeof(OSyncXMLField), error);
+  if(!xmlfield) {
+    osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+    return NULL;
+  }
 	
-	xmlfield->next = NULL;
-	xmlfield->node = node;
-	xmlfield->prev = xmlformat->last_child;
-	node->_private = xmlfield;
+  xmlfield->next = NULL;
+  xmlfield->node = node;
+  xmlfield->prev = xmlformat->last_child;
+  node->_private = xmlfield;
 	
-	if(!xmlformat->first_child)
-		xmlformat->first_child = xmlfield;
-	if(xmlformat->last_child)
-		xmlformat->last_child->next = xmlfield;
-	xmlformat->last_child = xmlfield;
-	xmlformat->child_count++;
+  if(!xmlformat->first_child)
+    xmlformat->first_child = xmlfield;
+  if(xmlformat->last_child)
+    xmlformat->last_child->next = xmlfield;
+  xmlformat->last_child = xmlfield;
+  xmlformat->child_count++;
 
-	// We don't know if the parsed xmlformat got sorted xmlfield -> unsorted
-	xmlfield->sorted = FALSE;
+  // We don't know if the parsed xmlformat got sorted xmlfield -> unsorted
+  xmlfield->sorted = FALSE;
 	
-	return xmlfield;
+  return xmlfield;
 }
 
 void osync_xmlfield_free(OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	xmlFreeNode(xmlfield->node);
-	g_free(xmlfield);
+  xmlFreeNode(xmlfield->node);
+  g_free(xmlfield);
 }
 
 void osync_xmlfield_unlink(OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	xmlUnlinkNode(xmlfield->node);
-	if(!xmlfield->prev)
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = xmlfield->next;
-	if(xmlfield->prev)
-		xmlfield->prev->next = xmlfield->next;
-	if(xmlfield->next)
-		xmlfield->next->prev = xmlfield->prev;
-	xmlfield->next = NULL;
-	xmlfield->prev = NULL;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count--;
+  xmlUnlinkNode(xmlfield->node);
+  if(!xmlfield->prev)
+    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = xmlfield->next;
+  if(xmlfield->prev)
+    xmlfield->prev->next = xmlfield->next;
+  if(xmlfield->next)
+    xmlfield->next->prev = xmlfield->prev;
+  xmlfield->next = NULL;
+  xmlfield->prev = NULL;
+  ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count--;
 }
 
 int osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 {
-	return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
+  return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
 }
 
 int osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
 {
-	return strcmp((const char*) (*(xmlNodePtr *) key1)->name, (const char*) (*(xmlNodePtr *) key2)->name);
+  return strcmp((const char*) (*(xmlNodePtr *) key1)->name, (const char*) (*(xmlNodePtr *) key2)->name);
 }
 
 void osync_xmlfield_delete(OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 
-	osync_xmlfield_unlink(xmlfield);
-	osync_xmlfield_free(xmlfield);  
+  osync_xmlfield_unlink(xmlfield);
+  osync_xmlfield_free(xmlfield);  
 }
 
 void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
 {
-	osync_assert(xmlfield);
-	osync_assert(to_link);
+  osync_assert(xmlfield);
+  osync_assert(to_link);
 
-	osync_xmlfield_unlink(to_link);
+  osync_xmlfield_unlink(to_link);
 
-	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-	xmlAddPrevSibling(xmlfield->node, to_link->node);
+  xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+  xmlAddPrevSibling(xmlfield->node, to_link->node);
 
-	to_link->next = xmlfield;
-	to_link->prev = xmlfield->prev;
+  to_link->next = xmlfield;
+  to_link->prev = xmlfield->prev;
 
-	if(xmlfield->prev)
-		xmlfield->prev->next = to_link;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
-	xmlfield->prev = to_link;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+  if(xmlfield->prev)
+    xmlfield->prev->next = to_link;
+  else
+    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
+  xmlfield->prev = to_link;
+  ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
 void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
 {
-	osync_assert(xmlfield);
-	osync_assert(to_link);
+  osync_assert(xmlfield);
+  osync_assert(to_link);
 
-	osync_xmlfield_unlink(to_link);
+  osync_xmlfield_unlink(to_link);
 
-	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-	xmlAddNextSibling(xmlfield->node, to_link->node);
+  xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+  xmlAddNextSibling(xmlfield->node, to_link->node);
 
-	to_link->next = xmlfield->next;
-	to_link->prev = xmlfield;
+  to_link->next = xmlfield->next;
+  to_link->prev = xmlfield;
 
-	if(xmlfield->next)
-		xmlfield->next->prev = to_link;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
-	xmlfield->next = to_link;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+  if(xmlfield->next)
+    xmlfield->next->prev = to_link;
+  else
+    ((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
+  xmlfield->next = to_link;
+  ((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
 OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error)
 {
-        xmlNodePtr node = NULL;
-        OSyncXMLField *xmlfield = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, xmlformat, name, error);
-	osync_assert(xmlformat);
-	osync_assert(name);
+  xmlNodePtr node = NULL;
+  OSyncXMLField *xmlfield = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, xmlformat, name, error);
+  osync_assert(xmlformat);
+  osync_assert(name);
 	
-	node = xmlNewTextChild(xmlDocGetRootElement(xmlformat->doc), NULL, BAD_CAST name, NULL);
+  node = xmlNewTextChild(xmlDocGetRootElement(xmlformat->doc), NULL, BAD_CAST name, NULL);
 	
-	xmlfield = osync_xmlfield_new_node(xmlformat, node, error);
-	if(!xmlfield) {
-		xmlUnlinkNode(node);
-		xmlFreeNode(node);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
+  xmlfield = osync_xmlfield_new_node(xmlformat, node, error);
+  if(!xmlfield) {
+    xmlUnlinkNode(node);
+    xmlFreeNode(node);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+    return NULL;
+  }
 
-	/* XMLFormat entry got added - not sure if it is still sorted */
-	osync_xmlformat_set_unsorted(xmlformat);
+  /* XMLFormat entry got added - not sure if it is still sorted */
+  osync_xmlformat_set_unsorted(xmlformat);
 
-	/* This XMLField has no keys, so it's for sure it's sorted */
-	xmlfield->sorted = TRUE;
+  /* This XMLField has no keys, so it's for sure it's sorted */
+  xmlfield->sorted = TRUE;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfield);
-	return xmlfield;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfield);
+  return xmlfield;
 }
 
 const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	return (const char *)xmlfield->node->name;
+  return (const char *)xmlfield->node->name;
 }
 
 void osync_xmlfield_set_name(OSyncXMLField *xmlfield, const char *name)
 {
-	osync_assert(xmlfield);
-	osync_assert(name);
+  osync_assert(xmlfield);
+  osync_assert(name);
 
-	xmlNodeSetName(xmlfield->node, BAD_CAST name);	
+  xmlNodeSetName(xmlfield->node, BAD_CAST name);	
 }
 
 OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield)
 {
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	return xmlfield->next;
+  return xmlfield->next;
 }
 
 const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
 {
-	xmlAttrPtr prop;
+  xmlAttrPtr prop;
 
-	osync_assert(xmlfield);
-	osync_assert(attr);
+  osync_assert(xmlfield);
+  osync_assert(attr);
 	
-	prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
-	if(prop == NULL)
-		return NULL;
-	return (const char *)osync_xml_attr_get_content(prop);
-//	return (const char *)prop->children->content;
-//	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
+  prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
+  if(prop == NULL)
+    return NULL;
+  return (const char *)osync_xml_attr_get_content(prop);
+  //	return (const char *)prop->children->content;
+  //	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
 }
 
 void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const char *value)
 {
-	osync_assert(xmlfield);
-	osync_assert(attr);
-	osync_assert(value);
+  osync_assert(xmlfield);
+  osync_assert(attr);
+  osync_assert(value);
 	
-	xmlSetProp(xmlfield->node, BAD_CAST attr, BAD_CAST value);
+  xmlSetProp(xmlfield->node, BAD_CAST attr, BAD_CAST value);
 }
 
 int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield)
 {
-	int count;
-	xmlAttrPtr attr = NULL;
+  int count;
+  xmlAttrPtr attr = NULL;
 
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 
-	attr = xmlfield->node->properties;
+  attr = xmlfield->node->properties;
 	
-	for(count=0; attr != NULL; count++)
-		attr = attr->next;
-	return count;
+  for(count=0; attr != NULL; count++)
+    attr = attr->next;
+  return count;
 }
 
 const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
 {
-	int count;
-	xmlAttrPtr attr = NULL;
+  int count;
+  xmlAttrPtr attr = NULL;
 
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	attr = xmlfield->node->properties;
+  attr = xmlfield->node->properties;
 	
-	for(count=0; attr != NULL; count++) {
-		if(count == nth)
-			return (const char *)attr->name;
-		attr = attr->next;
-	}
-	return NULL;
+  for(count=0; attr != NULL; count++) {
+    if(count == nth)
+      return (const char *)attr->name;
+    attr = attr->next;
+  }
+  return NULL;
 }
 
 const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 {
-	int count;
-	xmlAttrPtr attr = NULL;
+  int count;
+  xmlAttrPtr attr = NULL;
 
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	attr = xmlfield->node->properties;
+  attr = xmlfield->node->properties;
 	
-	for(count=0; attr != NULL; count++) {
-		if(count == nth)
-			return (const char *)osync_xml_attr_get_content(attr);
-//			return (const char *)attr->children->content;
-//			return (const char *)xmlNodeGetContent((xmlNodePtr)attr);
-		attr = attr->next;
-	}
-	return NULL;
+  for(count=0; attr != NULL; count++) {
+    if(count == nth)
+      return (const char *)osync_xml_attr_get_content(attr);
+    //			return (const char *)attr->children->content;
+    //			return (const char *)xmlNodeGetContent((xmlNodePtr)attr);
+    attr = attr->next;
+  }
+  return NULL;
 }
 
 const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *key)
 {
-        xmlNodePtr cur = NULL;
-	osync_assert(xmlfield);
-	osync_assert(key);
+  xmlNodePtr cur = NULL;
+  osync_assert(xmlfield);
+  osync_assert(key);
 	
-	cur = xmlfield->node->children;
-	for(; cur != NULL; cur = cur->next) {
-		if(!xmlStrcmp(cur->name, BAD_CAST key))
-				return (const char *)osync_xml_node_get_content(cur);
-//				return (const char *)cur->children->content;
-//				return (const char *)xmlNodeGetContent(cur);
-	}
-	return NULL;
+  cur = xmlfield->node->children;
+  for(; cur != NULL; cur = cur->next) {
+    if(!xmlStrcmp(cur->name, BAD_CAST key))
+      return (const char *)osync_xml_node_get_content(cur);
+    //				return (const char *)cur->children->content;
+    //				return (const char *)xmlNodeGetContent(cur);
+  }
+  return NULL;
 }
 
 void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, const char *value)
 {
-        xmlNodePtr cur = NULL;
-	osync_assert(xmlfield);
-	osync_assert(key);
+  xmlNodePtr cur = NULL;
+  osync_assert(xmlfield);
+  osync_assert(key);
 
-	// If value is null or empty we don't add it to a xmlfield
-	if (!value || strlen(value) == 0)
-		return;
+  // If value is null or empty we don't add it to a xmlfield
+  if (!value || strlen(value) == 0)
+    return;
 
-	cur = xmlfield->node->children;
-	for(; cur != NULL; cur = cur->next) {
-		if(!xmlStrcmp(cur->name, BAD_CAST key)) {
-			xmlNodeSetContent(xmlfield->node, BAD_CAST value);
-			break;
-		}
-	}
-	if(cur == NULL)
-		xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
+  cur = xmlfield->node->children;
+  for(; cur != NULL; cur = cur->next) {
+    if(!xmlStrcmp(cur->name, BAD_CAST key)) {
+      xmlNodeSetContent(xmlfield->node, BAD_CAST value);
+      break;
+    }
+  }
+  if(cur == NULL)
+    xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
 
-	xmlfield->sorted = FALSE;
+  xmlfield->sorted = FALSE;
 }
 
 void osync_xmlfield_add_key_value(OSyncXMLField *xmlfield, const char *key, const char *value)
 {
-	osync_assert(xmlfield);
-	osync_assert(key);
-	osync_assert(value);
+  osync_assert(xmlfield);
+  osync_assert(key);
+  osync_assert(value);
 
-	xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
+  xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
 
-	xmlfield->sorted = FALSE;
+  xmlfield->sorted = FALSE;
 }
 
 int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 {
-	int count;
-	xmlNodePtr child = NULL;
+  int count;
+  xmlNodePtr child = NULL;
 
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	child = xmlfield->node->children;
+  child = xmlfield->node->children;
 	
-	for(count=0; child != NULL; count++) {
-		child = child->next;
-	}
-	return count;
+  for(count=0; child != NULL; count++) {
+    child = child->next;
+  }
+  return count;
 }
 
 const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
 {
-	int count;
-	xmlNodePtr child = NULL;
+  int count;
+  xmlNodePtr child = NULL;
 
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	child = xmlfield->node->children;
+  child = xmlfield->node->children;
 	
-	for(count=0; child != NULL; count++) {
-		if(count == nth)
-			return (const char *)child->name;
-		child = child->next;
-	}
-	return NULL;
+  for(count=0; child != NULL; count++) {
+    if(count == nth)
+      return (const char *)child->name;
+    child = child->next;
+  }
+  return NULL;
 }
 
 const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 {
-	int count;
-	xmlNodePtr child = NULL;
+  int count;
+  xmlNodePtr child = NULL;
 
-	osync_assert(xmlfield);
+  osync_assert(xmlfield);
 	
-	child = xmlfield->node->children;
+  child = xmlfield->node->children;
 	
-	for(count=0; child != NULL; count++) {
-		if(count == nth)
-			return (const char *)osync_xml_node_get_content(child);
-//			return (const char *)child->children->content;
-//			return (const char *)xmlNodeGetContent(child);
-		child = child->next;
-	}
-	return NULL;
+  for(count=0; child != NULL; count++) {
+    if(count == nth)
+      return (const char *)osync_xml_node_get_content(child);
+    //			return (const char *)child->children->content;
+    //			return (const char *)xmlNodeGetContent(child);
+    child = child->next;
+  }
+  return NULL;
 }
 
 void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const char *value)
 {
-	int count;
-	xmlNodePtr cur = NULL;
+  int count;
+  xmlNodePtr cur = NULL;
 
-	osync_assert(xmlfield);
-	osync_assert(value);
+  osync_assert(xmlfield);
+  osync_assert(value);
 	
-	cur = xmlfield->node->children;
+  cur = xmlfield->node->children;
 	
-	for(count = 0; cur != NULL ; count++) {
-		if(count == nth)
-			xmlNodeSetContent(cur, BAD_CAST value);		
-		cur = cur->next;
-	}
+  for(count = 0; cur != NULL ; count++) {
+    if(count == nth)
+      xmlNodeSetContent(cur, BAD_CAST value);		
+    cur = cur->next;
+  }
 }
 
 void osync_xmlfield_sort(OSyncXMLField *xmlfield)
 {
-	int index, count;
-	void **list = NULL;
-	xmlNodePtr cur = NULL;
+  int index, count;
+  void **list = NULL;
+  xmlNodePtr cur = NULL;
 
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
-	osync_assert(xmlfield);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
+  osync_assert(xmlfield);
 	
-	if (xmlfield->sorted) {
-		osync_trace(TRACE_INTERNAL, "already sorted");
-		goto end;
-	}
+  if (xmlfield->sorted) {
+    osync_trace(TRACE_INTERNAL, "already sorted");
+    goto end;
+  }
 
-	count = osync_xmlfield_get_key_count(xmlfield);
-	if( count <= 1 ) {
-		osync_trace(TRACE_INTERNAL, "attribute count <= 1 - no need to sort");
-		goto end;
-	}
+  count = osync_xmlfield_get_key_count(xmlfield);
+  if( count <= 1 ) {
+    osync_trace(TRACE_INTERNAL, "attribute count <= 1 - no need to sort");
+    goto end;
+  }
 	
-	list = g_malloc0(sizeof(xmlNodePtr) * count);
+  list = g_malloc0(sizeof(xmlNodePtr) * count);
 	
-	cur = xmlfield->node->children;
-	for (index=0; cur != NULL; index++) {
-		xmlNodePtr tmp = cur;
-		list[index] = cur;
-		cur = cur->next;
-		xmlUnlinkNode(tmp);
-	}
+  cur = xmlfield->node->children;
+  for (index=0; cur != NULL; index++) {
+    xmlNodePtr tmp = cur;
+    list[index] = cur;
+    cur = cur->next;
+    xmlUnlinkNode(tmp);
+  }
 	
-	qsort(list, count, sizeof(xmlNodePtr), osync_xmlfield_key_compare_stdlib);
+  qsort(list, count, sizeof(xmlNodePtr), osync_xmlfield_key_compare_stdlib);
 	
-	for(index = 0; index < count; index++) {
-		cur = (xmlNodePtr)list[index];
-		xmlAddChild(xmlfield->node, cur);
+  for(index = 0; index < count; index++) {
+    cur = (xmlNodePtr)list[index];
+    xmlAddChild(xmlfield->node, cur);
 			
-		if(index < count-1)
-			cur->next = (xmlNodePtr)list[index+1];
-		else
-			cur->next = NULL;
+    if(index < count-1)
+      cur->next = (xmlNodePtr)list[index+1];
+    else
+      cur->next = NULL;
 		
-		if(index)
-			cur->prev = (xmlNodePtr)list[index-1];
-		else
-			cur->prev = NULL;
-	}
-	g_free(list);
+    if(index)
+      cur->prev = (xmlNodePtr)list[index-1];
+    else
+      cur->prev = NULL;
+  }
+  g_free(list);
 
-end:	
-	xmlfield->sorted = TRUE;
-	osync_trace(TRACE_EXIT, "%s", __func__);
+ end:	
+  xmlfield->sorted = TRUE;
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

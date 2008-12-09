@@ -29,121 +29,121 @@
 
 OSyncMappingEntry *osync_mapping_entry_new(OSyncError **error)
 {
-        OSyncMappingEntry *entry = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+  OSyncMappingEntry *entry = NULL;
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	entry = osync_try_malloc0(sizeof(OSyncMappingEntry), error);
-	if (!entry)
-		goto error;
-	entry->ref_count = 1;
+  entry = osync_try_malloc0(sizeof(OSyncMappingEntry), error);
+  if (!entry)
+    goto error;
+  entry->ref_count = 1;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
-	return entry;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
+  return entry;
 
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
+ error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
 OSyncMappingEntry *osync_mapping_entry_ref(OSyncMappingEntry *entry)
 {
-	osync_assert(entry);
+  osync_assert(entry);
 	
-	g_atomic_int_inc(&(entry->ref_count));
+  g_atomic_int_inc(&(entry->ref_count));
 
-	return entry;
+  return entry;
 }
 
 void osync_mapping_entry_unref(OSyncMappingEntry *entry)
 {
-	osync_assert(entry);
+  osync_assert(entry);
 		
-	if (g_atomic_int_dec_and_test(&(entry->ref_count))) {
+  if (g_atomic_int_dec_and_test(&(entry->ref_count))) {
 		
-		if (entry->uid)
-			g_free(entry->uid);
+    if (entry->uid)
+      g_free(entry->uid);
 		
-		g_free(entry);
-	}
+    g_free(entry);
+  }
 }
 
 osync_bool osync_mapping_entry_matches(OSyncMappingEntry *entry, OSyncChange *change)
 {
-	osync_assert(entry);
-	osync_assert(change);
+  osync_assert(entry);
+  osync_assert(change);
 	
-	if (!strcmp(entry->uid, osync_change_get_uid(change)))
-		return TRUE;
+  if (!strcmp(entry->uid, osync_change_get_uid(change)))
+    return TRUE;
 	
-	return FALSE;
+  return FALSE;
 }
 
 /*void osync_mapping_entry_update(OSyncMappingEntry *entry, OSyncChange *change)
-{
-	osync_assert(entry);
-	osync_assert(change);
+  {
+  osync_assert(entry);
+  osync_assert(change);
 	
-	if (entry->change)
-		osync_change_unref(entry->change);
+  if (entry->change)
+  osync_change_unref(entry->change);
 	
-	entry->change = change;
-	osync_change_ref(change);
-}
+  entry->change = change;
+  osync_change_ref(change);
+  }
 
-OSyncChange *osync_mapping_entry_get_change(OSyncMappingEntry *entry)
-{
-	osync_assert(entry);
-	return entry->change;
-}
+  OSyncChange *osync_mapping_entry_get_change(OSyncMappingEntry *entry)
+  {
+  osync_assert(entry);
+  return entry->change;
+  }
 
-osync_bool osync_mapping_entry_is_dirty(OSyncMappingEntry *entry)
-{
-	osync_assert(entry);
-	return entry->dirty;
-}
+  osync_bool osync_mapping_entry_is_dirty(OSyncMappingEntry *entry)
+  {
+  osync_assert(entry);
+  return entry->dirty;
+  }
 
-void osync_mapping_entry_set_dirty(OSyncMappingEntry *entry, osync_bool dirty)
-{
-	osync_assert(entry);
-	entry->dirty = dirty;
-}*/
+  void osync_mapping_entry_set_dirty(OSyncMappingEntry *entry, osync_bool dirty)
+  {
+  osync_assert(entry);
+  entry->dirty = dirty;
+  }*/
 
 void osync_mapping_entry_set_uid(OSyncMappingEntry *entry, const char *uid)
 {
-	osync_assert(entry);
-	osync_assert(uid);
+  osync_assert(entry);
+  osync_assert(uid);
 
-	if (entry->uid)
-		g_free(entry->uid);
-	entry->uid = g_strdup(uid);
+  if (entry->uid)
+    g_free(entry->uid);
+  entry->uid = g_strdup(uid);
 }
 
 const char *osync_mapping_entry_get_uid(OSyncMappingEntry *entry)
 {
-	osync_assert(entry);
-	return entry->uid;
+  osync_assert(entry);
+  return entry->uid;
 }
 
 long long int osync_mapping_entry_get_member_id(OSyncMappingEntry *entry)
 {
-	osync_assert(entry);
-	return entry->member_id;
+  osync_assert(entry);
+  return entry->member_id;
 }
 
 void osync_mapping_entry_set_member_id(OSyncMappingEntry *entry, long long int id)
 {
-	osync_assert(entry);
-	entry->member_id = id;
+  osync_assert(entry);
+  entry->member_id = id;
 }
 
 long long int osync_mapping_entry_get_id(OSyncMappingEntry *entry)
 {
-	osync_assert(entry);
-	return entry->id;
+  osync_assert(entry);
+  return entry->id;
 }
 
 void osync_mapping_entry_set_id(OSyncMappingEntry *entry, long long int id)
 {
-	osync_assert(entry);
-	entry->id = id;
+  osync_assert(entry);
+  entry->id = id;
 }

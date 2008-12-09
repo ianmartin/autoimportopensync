@@ -52,84 +52,84 @@ static void usage (int ecode)
  * listen there until the engine tells us its locations in the init message */
 int main(int argc, char **argv)
 {
-	osync_bool usePipes = FALSE;
-	OSyncError *error = NULL;
-	char *pipe_path = NULL;
-	int read_fd = 0;
-	int write_fd = 0;
-	OSyncQueue *incoming = NULL;
-	OSyncQueue *outgoing = NULL;
-	OSyncClient *client = NULL;
+  osync_bool usePipes = FALSE;
+  OSyncError *error = NULL;
+  char *pipe_path = NULL;
+  int read_fd = 0;
+  int write_fd = 0;
+  OSyncQueue *incoming = NULL;
+  OSyncQueue *outgoing = NULL;
+  OSyncClient *client = NULL;
 
-	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
+  osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
 	
-	if (argc != 2 && argc != 4)
-		usage(0);
-	client = osync_client_new(&error);
-	if (!client)
-		goto error;
+  if (argc != 2 && argc != 4)
+    usage(0);
+  client = osync_client_new(&error);
+  if (!client)
+    goto error;
 	
-	if (!strcmp (argv[1], "-f")) {
-		usePipes = TRUE;
-		/* We cannot preserve the knowledge about the fds through the execve call.
-		 * Therefore, we pass the fd numbers through the args */
-		read_fd = atoi(argv[2]);
-		write_fd = atoi(argv[3]);
-	} else
-		pipe_path = argv[1];
+  if (!strcmp (argv[1], "-f")) {
+    usePipes = TRUE;
+    /* We cannot preserve the knowledge about the fds through the execve call.
+     * Therefore, we pass the fd numbers through the args */
+    read_fd = atoi(argv[2]);
+    write_fd = atoi(argv[3]);
+  } else
+    pipe_path = argv[1];
 	
-	if (usePipes) {
-		/* We are using anonymous pipes. */
-		incoming = osync_queue_new_from_fd(read_fd, &error);
-		if (!incoming)
-			goto error;
+  if (usePipes) {
+    /* We are using anonymous pipes. */
+    incoming = osync_queue_new_from_fd(read_fd, &error);
+    if (!incoming)
+      goto error;
 		
-		outgoing = osync_queue_new_from_fd(write_fd, &error);
-		if (!outgoing)
-			goto error;
+    outgoing = osync_queue_new_from_fd(write_fd, &error);
+    if (!outgoing)
+      goto error;
 		
-		/* We now connect to our incoming queue */
-		if (!osync_queue_connect(incoming, OSYNC_QUEUE_RECEIVER, &error))
-			goto error;
+    /* We now connect to our incoming queue */
+    if (!osync_queue_connect(incoming, OSYNC_QUEUE_RECEIVER, &error))
+      goto error;
 		
-		/* and the to the outgoing queue */
-		if (!osync_queue_connect(outgoing, OSYNC_QUEUE_SENDER, &error))
-			goto error;
+    /* and the to the outgoing queue */
+    if (!osync_queue_connect(outgoing, OSYNC_QUEUE_SENDER, &error))
+      goto error;
 		
-		osync_client_set_incoming_queue(client, incoming);
-		osync_client_set_outgoing_queue(client, outgoing);
-	} else {
-		/* Create connection pipes **/
-		incoming = osync_queue_new(pipe_path, &error);
-		if (!incoming)
-			goto error;
+    osync_client_set_incoming_queue(client, incoming);
+    osync_client_set_outgoing_queue(client, outgoing);
+  } else {
+    /* Create connection pipes **/
+    incoming = osync_queue_new(pipe_path, &error);
+    if (!incoming)
+      goto error;
 		
-		if (!osync_queue_create(incoming, &error))
-			goto error;
+    if (!osync_queue_create(incoming, &error))
+      goto error;
 		
-		/* We now connect to our incoming queue */
-		if (!osync_queue_connect(incoming, OSYNC_QUEUE_RECEIVER, &error))
-			goto error;
+    /* We now connect to our incoming queue */
+    if (!osync_queue_connect(incoming, OSYNC_QUEUE_RECEIVER, &error))
+      goto error;
 		
-		osync_client_set_incoming_queue(client, incoming);
-	}
+    osync_client_set_incoming_queue(client, incoming);
+  }
 
-	osync_client_run_and_block(client);
+  osync_client_run_and_block(client);
 	
-	osync_client_unref(client);
+  osync_client_unref(client);
 
-	//queues are already freed with the client
-	//osync_queue_free(incoming);
-	//osync_queue_free(outgoing);
+  //queues are already freed with the client
+  //osync_queue_free(incoming);
+  //osync_queue_free(outgoing);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return 0;
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return 0;
 
-error:
-	osync_client_unref(client);
+ error:
+  osync_client_unref(client);
 	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
-	osync_error_unref(&error);
-	return 1;
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+  fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
+  osync_error_unref(&error);
+  return 1;
 }

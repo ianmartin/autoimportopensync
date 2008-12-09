@@ -36,15 +36,15 @@ extern int errno;
 #endif
 
 
-#define osync_return_if_fail(condition) do {                                            \
-  if (!(condition)) {                                                                   \
-    return;                                                                             \
-  } } while (0)
+#define osync_return_if_fail(condition) do {    \
+    if (!(condition)) {                         \
+      return;                                   \
+    } } while (0)
 
-#define osync_return_val_if_fail(condition, val) do {                                   \
-  if (!(condition)) {                                                                   \
-    return (val);                                                                       \
-  } } while (0)
+#define osync_return_val_if_fail(condition, val) do {   \
+    if (!(condition)) {                                 \
+      return (val);                                     \
+    } } while (0)
 
 #include "opensync_support_internals.h"
 

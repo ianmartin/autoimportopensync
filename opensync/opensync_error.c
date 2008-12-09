@@ -41,24 +41,24 @@
  */
 static const char *osync_error_name_from_type(OSyncErrorType type)
 {
-	switch (type) {
-		case OSYNC_NO_ERROR:
-			return "NoError";
-		case OSYNC_ERROR_GENERIC:
-			return "UnknownError";
-		case OSYNC_ERROR_IO_ERROR:
-			return "IOError";
-		case OSYNC_ERROR_NOT_SUPPORTED:
-			return "NotSupported";
-		case OSYNC_ERROR_TIMEOUT:
-			return "Timeout";
-		case OSYNC_ERROR_DISCONNECTED:
-			return "Disconnected";
-		case OSYNC_ERROR_FILE_NOT_FOUND:
-			return "FileNotFound";
-		default:
-			return "UnspecifiedError";
-	}
+  switch (type) {
+  case OSYNC_NO_ERROR:
+    return "NoError";
+  case OSYNC_ERROR_GENERIC:
+    return "UnknownError";
+  case OSYNC_ERROR_IO_ERROR:
+    return "IOError";
+  case OSYNC_ERROR_NOT_SUPPORTED:
+    return "NotSupported";
+  case OSYNC_ERROR_TIMEOUT:
+    return "Timeout";
+  case OSYNC_ERROR_DISCONNECTED:
+    return "Disconnected";
+  case OSYNC_ERROR_FILE_NOT_FOUND:
+    return "FileNotFound";
+  default:
+    return "UnspecifiedError";
+  }
 }
 
 /*! @brief Sets a error from a va_list
@@ -71,18 +71,18 @@ static const char *osync_error_name_from_type(OSyncErrorType type)
  */
 void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
-	osync_return_if_fail(error);
-	osync_return_if_fail(osync_error_is_set(error) == FALSE);
-	osync_return_if_fail(format);
+  osync_return_if_fail(error);
+  osync_return_if_fail(osync_error_is_set(error) == FALSE);
+  osync_return_if_fail(format);
 
-	*error = g_malloc0(sizeof(OSyncError));
-	(*error)->message = g_strdup_vprintf(format, args);
-	(*error)->type = type;
-	(*error)->ref_count = 1;
+  *error = g_malloc0(sizeof(OSyncError));
+  (*error)->message = g_strdup_vprintf(format, args);
+  (*error)->type = type;
+  (*error)->ref_count = 1;
 
-	osync_trace(TRACE_ERROR, "%s", (*error)->message);
+  osync_trace(TRACE_ERROR, "%s", (*error)->message);
 	
-	return;
+  return;
 }
 
 /*@}*/
@@ -104,10 +104,10 @@ void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *
  */
 const char *osync_error_get_name(OSyncError **error)
 {
-	osync_return_val_if_fail(error != NULL, NULL);
-	if (!*error)
-		return osync_error_name_from_type(OSYNC_NO_ERROR);
-	return osync_error_name_from_type((*error)->type);
+  osync_return_val_if_fail(error != NULL, NULL);
+  if (!*error)
+    return osync_error_name_from_type(OSYNC_NO_ERROR);
+  return osync_error_name_from_type((*error)->type);
 }
 
 /** @brief Increase the reference count of the error object 
@@ -118,12 +118,12 @@ const char *osync_error_get_name(OSyncError **error)
  */
 OSyncError **osync_error_ref(OSyncError **error)
 {
-	if (!osync_error_is_set(error))
-		return error;
+  if (!osync_error_is_set(error))
+    return error;
 	
-	g_atomic_int_inc(&(*error)->ref_count);
+  g_atomic_int_inc(&(*error)->ref_count);
 
-	return error;
+  return error;
 }
 
 /** @brief Decrease the reference count of the error object
@@ -133,20 +133,20 @@ OSyncError **osync_error_ref(OSyncError **error)
  */
 void osync_error_unref(OSyncError **error)
 {
-	if (!osync_error_is_set(error))
-		return;
+  if (!osync_error_is_set(error))
+    return;
 		
-	if (g_atomic_int_dec_and_test(&(*error)->ref_count)) {
-		if ((*error)->message)
-			g_free ((*error)->message);
+  if (g_atomic_int_dec_and_test(&(*error)->ref_count)) {
+    if ((*error)->message)
+      g_free ((*error)->message);
 		
-		if ((*error)->child)
-			osync_error_unref(&((*error)->child));
+    if ((*error)->child)
+      osync_error_unref(&((*error)->child));
 		
-		g_free(*error);
-	}
+    g_free(*error);
+  }
 	
-	*error = NULL;
+  *error = NULL;
 }
 
 /*! @brief Checks if the error is set
@@ -157,16 +157,16 @@ void osync_error_unref(OSyncError **error)
  */
 osync_bool osync_error_is_set (OSyncError **error)
 {
-	if (!error)
-		return FALSE;
+  if (!error)
+    return FALSE;
 		
-	if (*error == NULL)
-		return FALSE;
+  if (*error == NULL)
+    return FALSE;
 	
-	if ((*error)->type)
-		return TRUE;
+  if ((*error)->type)
+    return TRUE;
 		
-	return FALSE;
+  return FALSE;
 }
 
 /*! @brief Returns the type of the error
@@ -177,9 +177,9 @@ osync_bool osync_error_is_set (OSyncError **error)
  */
 OSyncErrorType osync_error_get_type(OSyncError **error)
 {
-	if (!osync_error_is_set(error))
-		return OSYNC_NO_ERROR;
-	return (*error)->type;
+  if (!osync_error_is_set(error))
+    return OSYNC_NO_ERROR;
+  return (*error)->type;
 }
 
 /*! @brief Returns the message of the error
@@ -190,9 +190,9 @@ OSyncErrorType osync_error_get_type(OSyncError **error)
  */
 const char *osync_error_print(OSyncError **error)
 {
-	if (!osync_error_is_set(error))
-		return NULL;
-	return (*error)->message;
+  if (!osync_error_is_set(error))
+    return NULL;
+  return (*error)->message;
 }
 
 
@@ -204,21 +204,21 @@ const char *osync_error_print(OSyncError **error)
  */
 char *osync_error_print_stack(OSyncError **error)
 {
-        char *submessage = NULL;
-        char *message = NULL;
-	if (!osync_error_is_set(error))
-		return NULL;
+  char *submessage = NULL;
+  char *message = NULL;
+  if (!osync_error_is_set(error))
+    return NULL;
 		
-	if ((*error)->child)
-		submessage = osync_error_print_stack(&((*error)->child));
+  if ((*error)->child)
+    submessage = osync_error_print_stack(&((*error)->child));
 	
-	if (submessage) {
-		message = g_strdup_printf("NEXT ERROR: \"%s\"; %s", (*error)->message, submessage);
-		g_free(submessage);
-	} else
-		message = g_strdup_printf("ROOT CAUSE: \"%s\"", (*error)->message);
+  if (submessage) {
+    message = g_strdup_printf("NEXT ERROR: \"%s\"; %s", (*error)->message, submessage);
+    g_free(submessage);
+  } else
+    message = g_strdup_printf("ROOT CAUSE: \"%s\"", (*error)->message);
 	
-	return message;
+  return message;
 }
 
 /*! @brief Duplicates the error into the target
@@ -230,16 +230,16 @@ char *osync_error_print_stack(OSyncError **error)
  */
 void osync_error_set_from_error(OSyncError **target, OSyncError **source)
 {
-	if (!target || osync_error_is_set(target))
-		return;
+  if (!target || osync_error_is_set(target))
+    return;
 	
-	if (!osync_error_is_set(source)) {
-		*target = NULL;
-		return;
-	}
+  if (!osync_error_is_set(source)) {
+    *target = NULL;
+    return;
+  }
 	
-	*target = *source;
-	osync_error_ref(target);
+  *target = *source;
+  osync_error_ref(target);
 }
 
 /*! @brief Sets the error
@@ -253,10 +253,10 @@ void osync_error_set_from_error(OSyncError **target, OSyncError **source)
  */
 void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	osync_error_set_vargs(error, type, format, args);
-	va_end (args);
+  va_list args;
+  va_start(args, format);
+  osync_error_set_vargs(error, type, format, args);
+  va_end (args);
 }
 
 /*! @brief Stack error on another error object 
@@ -269,21 +269,21 @@ void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format
  */
 void osync_error_stack(OSyncError **parent, OSyncError **child)
 {
-	if (!parent || !*parent)
-		return;
+  if (!parent || !*parent)
+    return;
 	
-	if (!child || !*child)
-		return;
+  if (!child || !*child)
+    return;
 
-	/* Avoid infinite recursion. */
-	if (*parent == *child)
-		return;
+  /* Avoid infinite recursion. */
+  if (*parent == *child)
+    return;
 	
-	if ((*parent)->child)
-		osync_error_unref(&((*parent)->child));
+  if ((*parent)->child)
+    osync_error_unref(&((*parent)->child));
 	
-	(*parent)->child = *child;
-	osync_error_ref(child);
+  (*parent)->child = *child;
+  osync_error_ref(child);
 }
 
 /*! @brief Get stacked child of an error object 
@@ -295,10 +295,10 @@ void osync_error_stack(OSyncError **parent, OSyncError **child)
  */
 OSyncError *osync_error_get_child(OSyncError **parent)
 {
-	if (!parent || !*parent)
-		return NULL;
+  if (!parent || !*parent)
+    return NULL;
 	
-	return (*parent)->child;
+  return (*parent)->child;
 }
 
 /*! @brief Sets the type of an error
@@ -309,11 +309,11 @@ OSyncError *osync_error_get_child(OSyncError **parent)
  */
 void osync_error_set_type(OSyncError **error, OSyncErrorType type)
 {
-	if (!error)
-		return;
+  if (!error)
+    return;
 	
-	(*error)->type = type;
-	return;
+  (*error)->type = type;
+  return;
 }
 
 /*@}*/
