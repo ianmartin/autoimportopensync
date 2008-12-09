@@ -157,17 +157,47 @@ caption { font-weight: bold }
 	background-color: #FAFAFA;
 	font-size: 80%;
 }
+
+/* Style for detailed member documentation */
+.memitem {
+}
+
 .memdoc { 
 	border: 1px solid #000000;
 	background-color: #D5E1E8;
 	padding-left: 10px;
+	-moz-border-radius-bottomright: 8px;
+	-moz-border-radius-bottomleft: 8px;
 }
+
 .memproto { 
 	border: 1px solid #000000;
 	background-color: #D5E1FF;
 	padding-left: 10px;
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-topright:8px
+	-moz-border-radius-topright: 8px;
+	-moz-border-radius-topleft: 8px;
+}
+
+td.memname {
+	white-space: nowrap;
+	font-weight: bold;
+}
+
+.memlist {
+	background-color: #f0f0f0; 
+}
+
+.paramkey {
+	text-align: right;
+}
+
+.paramtype {
+	white-space: nowrap;
+	font: bold;
+}
+.paramname {
+	color: #602020;
+	font-style: italic;
 }
 
 .search { 
@@ -207,15 +237,7 @@ div.qindex {
 	padding: 2px;
 	line-height: 140%;
 }
-div.nav {
-	width: 100%;
-	background-color: #eeeeff;
-	border: 1px solid #b0b0b0;
-	text-align: center;
-	margin: 2px;
-	padding: 2px;
-	line-height: 140%;
-}
+
 th.dirtab { background: #eeeeff;
 	font-weight: bold;
 }
@@ -264,9 +286,6 @@ td.indexvalue {
 	margin-top     : 2px;
 	margin-bottom  : 2px;
 	border: 1px solid #CCCCCC;
-}
-tr.memlist {
-	background-color: #f0f0f0; 
 }
 p.formulaDsp { text-align: center; }
 img.formulaDsp { }
