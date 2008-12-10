@@ -5,13 +5,17 @@
 #include <opensync/opensync-context.h>
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-version.h>
+#include <opensync/opensync_list.h>
 
-#include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <glib.h>
 
-#include "plugin.h"
+typedef struct {
+        OSyncList *sink_envs;
+} plugin_environment;
+
+typedef struct {
+        OSyncObjTypeSink *sink;
+} sink_environment;
 
 static void free_env(plugin_environment *env)
 {
@@ -21,10 +25,10 @@ static void free_env(plugin_environment *env)
 		if (sinkenv->sink)
 			osync_objtype_sink_unref(sinkenv->sink);
 
-		env->sink_envs = g_list_remove(env->sink_envs, sinkenv);
+		env->sink_envs = osync_list_remove(env->sink_envs, sinkenv);
 	}
 
-	g_free(env);
+	osync_free(env);
 }
 
 static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -59,12 +63,12 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	//or some parameter change here. Check the docs to see how it works
 	char *lanchor = NULL;
 	//Now you get the last stored anchor from the device
-	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	char *anchorpath = osync_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 
 	if (!osync_anchor_compare(anchorpath, "lanchor", lanchor))
 		osync_objtype_sink_set_slowsync(sink, TRUE);
 
-	g_free(anchorpath);
+	osync_free(anchorpath);
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -97,7 +101,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	 */
 
 	do {
-		char *uid = g_strdup("<some uid>");
+		char *uid = osync_strdup("<some uid>");
 
 		//Now get the data of this change
 		char *data = NULL;
@@ -120,12 +124,12 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 		osync_change_set_changetype(change, changetype);
 		
 		if (changetype == OSYNC_CHANGE_TYPE_UNMODIFIED) {
-			g_free(uid);
+			osync_free(uid);
 			osync_change_unref(change);
 			continue;
 		}
 
-		g_free(uid);
+		osync_free(uid);
 
 		OSyncObjFormat *format = osync_format_env_find_objformat(formatenv, "<objformat>");
 		
@@ -148,7 +152,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 		osync_change_unref(change);
 
-		g_free(uid);
+		osync_free(uid);
 	} while(0);
 
 	//Now we need to answer the call
@@ -200,9 +204,9 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	//If we use anchors we have to update it now.
 	//Now you get/calculate the current anchor of the device
 	char *lanchor = NULL;
-	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	char *anchorpath = osync_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	osync_anchor_update(anchorpath, "lanchor", lanchor);
-	g_free(anchorpath);
+	osync_free(anchorpath);
 	
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -313,7 +317,7 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		 * again once the functions are called */
 		osync_objtype_sink_set_functions(sinkenv->sink, functions, sinkenv);
 		
-		env->sink_envs = g_list_append(env->sink_envs, sinkenv);
+		env->sink_envs = osync_list_append(env->sink_envs, sinkenv);
 	}
 	
 	//Now your return your struct.
