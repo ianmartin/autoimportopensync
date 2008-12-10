@@ -12,7 +12,3 @@ typedef struct sink_environment {
 	//More stuff you need goes here
 } sink_environment;
 
-typedef struct format_data {
-	char *data;
-} format_data;
-

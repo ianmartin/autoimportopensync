@@ -9,7 +9,10 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync-format.h>
 
-#include "plugin.h"
+typedef struct format_data {
+	char *data;
+} format_data;
+
 
 static OSyncConvCmpResult compare_format1(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
@@ -166,9 +169,9 @@ void finalize(void *userdata)
 	/*
 	 * Here you can free all your converter specific data.
 	 */
-	format_data *formatdata =(format_data*)userdata;
-	g_free(formatdata->data);
-	g_free(formatdata);
+	format_data *formatdata = (format_data*)userdata;
+	osync_free(formatdata->data);
+	osync_free(formatdata);
 }
 
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
