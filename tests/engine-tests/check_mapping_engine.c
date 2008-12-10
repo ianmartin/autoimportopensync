@@ -51,7 +51,7 @@ START_TEST (mapping_engine_same_similar_conflict)
 
 	osync_testing_system_abort("cp entryA.txt data2/");
 
-	setenv("MOCK_FORMAT_PATH_COMPARE_NO", "1", TRUE);
+	g_setenv("MOCK_FORMAT_PATH_COMPARE_NO", "1", TRUE);
 
 	
 	OSyncError *error = NULL;

@@ -849,7 +849,7 @@ START_TEST (one_of_two_connect_error)
 	if (system("cp testdata data1/testdata"))
 		abort();
 	
-	setenv("CONNECT_ERROR", "1", TRUE);
+	g_setenv("CONNECT_ERROR", "1", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -902,7 +902,7 @@ START_TEST (two_of_three_connect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_ERROR", "5", TRUE);
+	g_setenv("CONNECT_ERROR", "5", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -956,7 +956,7 @@ START_TEST (two_of_three_connect_error2)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_ERROR", "6", TRUE);
+	g_setenv("CONNECT_ERROR", "6", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1009,7 +1009,7 @@ START_TEST (three_of_three_connect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_ERROR", "7", TRUE);
+	g_setenv("CONNECT_ERROR", "7", TRUE);
 	
 	
 	OSyncError *error = NULL;
@@ -1062,7 +1062,7 @@ START_TEST (one_of_three_connect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_ERROR", "2", TRUE);
+	g_setenv("CONNECT_ERROR", "2", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1115,7 +1115,7 @@ START_TEST (no_connect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_ERROR", "0", TRUE);
+	g_setenv("CONNECT_ERROR", "0", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1173,7 +1173,7 @@ START_TEST (single_connect_timeout)
 	if (system("cp testdata data1/testdata"))
 		abort();
 	
-	setenv("CONNECT_TIMEOUT", "2", TRUE);
+	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1232,7 +1232,7 @@ START_TEST (dual_connect_timeout)
 	if (system("cp testdata data1/testdata"))
 		abort();
 	
-	setenv("CONNECT_TIMEOUT", "3", TRUE);
+	g_setenv("CONNECT_TIMEOUT", "3", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1288,7 +1288,7 @@ START_TEST (one_of_three_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_TIMEOUT", "2", TRUE);
+	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1344,8 +1344,8 @@ START_TEST (timeout_and_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("CONNECT_TIMEOUT", "2", TRUE);
-	setenv("CONNECT_ERROR", "4", TRUE);
+	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
+	g_setenv("CONNECT_ERROR", "4", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1401,8 +1401,8 @@ START_TEST (single_get_changes_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("GET_CHANGES_ERROR", "2", TRUE);
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "2", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1459,8 +1459,8 @@ START_TEST (dual_get_changes_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
-	setenv("GET_CHANGES_ERROR", "3", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "3", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1519,8 +1519,8 @@ START_TEST (two_of_three_get_changes_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("GET_CHANGES_ERROR", "5", TRUE);
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "5", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1577,8 +1577,8 @@ START_TEST (one_of_three_get_changes_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("GET_CHANGES_ERROR", "1", TRUE);
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "1", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1635,8 +1635,8 @@ START_TEST (one_of_three_get_changes_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1696,9 +1696,9 @@ START_TEST (get_changes_timeout_and_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
-	setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
-	setenv("GET_CHANGES_ERROR", "4", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "4", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1760,8 +1760,8 @@ START_TEST (get_changes_timeout_sleep)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1825,7 +1825,7 @@ START_TEST (single_commit_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMIT_ERROR", "4", TRUE);
+	g_setenv("COMMIT_ERROR", "4", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1890,7 +1890,7 @@ START_TEST (dual_commit_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMIT_ERROR", "6", TRUE);
+	g_setenv("COMMIT_ERROR", "6", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -1951,7 +1951,7 @@ START_TEST (single_commit_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMIT_TIMEOUT", "4", TRUE);
+	g_setenv("COMMIT_TIMEOUT", "4", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2014,7 +2014,7 @@ START_TEST (dual_commit_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMIT_TIMEOUT", "6", TRUE);
+	g_setenv("COMMIT_TIMEOUT", "6", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2077,8 +2077,8 @@ START_TEST (commit_timeout_and_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMIT_TIMEOUT", "4", TRUE);
-	setenv("COMMIT_ERROR", "2", TRUE);
+	g_setenv("COMMIT_TIMEOUT", "4", TRUE);
+	g_setenv("COMMIT_ERROR", "2", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2141,8 +2141,8 @@ START_TEST (commit_timeout_and_error2)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMIT_TIMEOUT", "2", TRUE);
-	setenv("COMMIT_ERROR", "4", TRUE);
+	g_setenv("COMMIT_TIMEOUT", "2", TRUE);
+	g_setenv("COMMIT_ERROR", "4", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2235,9 +2235,9 @@ START_TEST (commit_error_modify)
 	fail_unless(error == NULL, NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	setenv("COMMIT_TIMEOUT", "2", TRUE);
-	setenv("COMMIT_ERROR", "4", TRUE);
-	
+	g_setenv("COMMIT_TIMEOUT", "2", TRUE);
+	g_setenv("COMMIT_ERROR", "4", TRUE);
+
 	sleep(2);
 	
 	if (system("cp newdata2 data1/testdata"))
@@ -2309,9 +2309,9 @@ START_TEST (commit_error_delete)
 	fail_unless(error == NULL, NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	setenv("COMMIT_TIMEOUT", "2", TRUE);
-	setenv("COMMIT_ERROR", "4", TRUE);
-	
+	g_setenv("COMMIT_TIMEOUT", "2", TRUE);
+	g_setenv("COMMIT_ERROR", "4", TRUE);
+
 	sleep(2);
 	
 	if (system("rm -f data1/testdata"))
@@ -2353,7 +2353,7 @@ START_TEST (committed_all_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
+	g_setenv("COMMITTED_ALL_ERROR", "3", TRUE);
 
 	OSyncError *error = NULL;
 
@@ -2414,8 +2414,8 @@ START_TEST (committed_all_batch_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("BATCH_COMMIT", "7", TRUE);
-	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	g_setenv("COMMITTED_ALL_ERROR", "3", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2476,7 +2476,7 @@ START_TEST (single_sync_done_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("SYNC_DONE_ERROR", "4", TRUE);
+	g_setenv("SYNC_DONE_ERROR", "4", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2537,7 +2537,7 @@ START_TEST (dual_sync_done_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("SYNC_DONE_ERROR", "6", TRUE);
+	g_setenv("SYNC_DONE_ERROR", "6", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2598,7 +2598,7 @@ START_TEST (triple_sync_done_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("SYNC_DONE_ERROR", "7", TRUE);
+	g_setenv("SYNC_DONE_ERROR", "7", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2659,7 +2659,7 @@ START_TEST (single_sync_done_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("SYNC_DONE_TIMEOUT", "4", TRUE);
+	g_setenv("SYNC_DONE_TIMEOUT", "4", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2722,7 +2722,7 @@ START_TEST (dual_sync_done_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("SYNC_DONE_TIMEOUT", "6", TRUE);
+	g_setenv("SYNC_DONE_TIMEOUT", "6", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2785,8 +2785,8 @@ START_TEST (sync_done_timeout_and_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("SYNC_DONE_TIMEOUT", "5", TRUE);
-	setenv("SYNC_DONE_ERROR", "2", TRUE);
+	g_setenv("SYNC_DONE_TIMEOUT", "5", TRUE);
+	g_setenv("SYNC_DONE_ERROR", "2", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2849,7 +2849,7 @@ START_TEST (single_disconnect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_ERROR", "4", TRUE);
+	g_setenv("DISCONNECT_ERROR", "4", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2910,7 +2910,7 @@ START_TEST (dual_disconnect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_ERROR", "6", TRUE);
+	g_setenv("DISCONNECT_ERROR", "6", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -2971,7 +2971,7 @@ START_TEST (triple_disconnect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_ERROR", "7", TRUE);
+	g_setenv("DISCONNECT_ERROR", "7", TRUE);
 
 	OSyncError *error = NULL;
 
@@ -3032,7 +3032,7 @@ START_TEST (single_disconnect_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_TIMEOUT", "4", TRUE);
+	g_setenv("DISCONNECT_TIMEOUT", "4", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -3095,7 +3095,7 @@ START_TEST (dual_disconnect_timeout)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_TIMEOUT", "6", TRUE);
+	g_setenv("DISCONNECT_TIMEOUT", "6", TRUE);
 	
 	OSyncError *error = NULL;
 
@@ -3158,8 +3158,8 @@ START_TEST (disconnect_timeout_and_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_TIMEOUT", "5", TRUE);
-	setenv("DISCONNECT_ERROR", "2", TRUE);
+	g_setenv("DISCONNECT_TIMEOUT", "5", TRUE);
+	g_setenv("DISCONNECT_ERROR", "2", TRUE);
 
 	OSyncError *error = NULL;
 
@@ -3222,10 +3222,10 @@ START_TEST (get_changes_disconnect_error)
 	char *formatdir = g_strdup_printf("%s/formats", testbed);
 	char *plugindir = g_strdup_printf("%s/plugins", testbed);
 	
-	setenv("DISCONNECT_TIMEOUT", "1", TRUE);
-	setenv("DISCONNECT_ERROR", "2", TRUE);
-	setenv("GET_CHANGES_TIMEOUT", "6", TRUE);
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("DISCONNECT_TIMEOUT", "1", TRUE);
+	g_setenv("DISCONNECT_ERROR", "2", TRUE);
+	g_setenv("GET_CHANGES_TIMEOUT", "6", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncError *error = NULL;
 

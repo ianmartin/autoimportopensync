@@ -42,7 +42,7 @@ START_TEST (plugin_config_new_nomemory)
 {
 	char *testbed = setup_testbed(NULL);
 
-	setenv("OSYNC_NOMEMORY", "1", TRUE);
+	g_setenv("OSYNC_NOMEMORY", "1", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncPluginConfig *config = osync_plugin_config_new(&error);
@@ -135,7 +135,7 @@ START_TEST (plugin_config_subcomponents_nomemory)
 	fail_unless(error == NULL, NULL);
 	fail_unless(config != NULL, NULL);
 
-	setenv("OSYNC_NOMEMORY", "1", TRUE);
+	g_setenv("OSYNC_NOMEMORY", "1", TRUE);
 
 	/* Adding Subcomponents (without memory -> booooooom!): */
 	/* Connection */

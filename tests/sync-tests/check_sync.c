@@ -767,7 +767,7 @@ START_TEST (sync_easy_conflict_abort)
 	osync_testing_system_abort("cp testdata data1/testdata");
 	osync_testing_system_abort("cp new_data1 data2/testdata");
 	
-	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -2996,7 +2996,7 @@ START_TEST (sync_slowsync_mainsink_connect)
 	
 	osync_testing_system_abort("cp testdata data1/testdata");
 
-	setenv("MAINSINK_CONNECT", "1", TRUE);
+	g_setenv("MAINSINK_CONNECT", "1", TRUE);
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -3093,7 +3093,7 @@ START_TEST (sync_slowsync_mainsink_connect)
 
 	/* 2nd Sync trigger a SlowSync within the MAINSINK connect function. */
 	reset_counters();
-	setenv("CONNECT_SLOWSYNC", "1", TRUE);
+	g_setenv("CONNECT_SLOWSYNC", "1", TRUE);
 	osync_testing_system_abort("rm data2/testdata");
 	
 	group = osync_group_new(&error);

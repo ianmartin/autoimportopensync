@@ -9,29 +9,29 @@ char *olddir = NULL;
 
 static void reset_env(void)
 {
-	unsetenv("CONNECT_ERROR");
-	unsetenv("CONNECT_TIMEOUT");
-	unsetenv("CONNECT_SLOWSYNC");
-	unsetenv("INIT_NULL");
-	unsetenv("GET_CHANGES_ERROR");
-	unsetenv("GET_CHANGES_TIMEOUT");
-	unsetenv("GET_CHANGES_TIMEOUT2");
-	unsetenv("COMMIT_ERROR");
-	unsetenv("COMMIT_TIMEOUT");
-	unsetenv("SYNC_DONE_ERROR");
-	unsetenv("SYNC_DONE_TIMEOUT");
-	unsetenv("DISCONNECT_ERROR");
-	unsetenv("DISCONNECT_TIMEOUT");
-	unsetenv("BATCH_COMMIT");
-	unsetenv("COMMITTED_ALL_ERROR");
-	unsetenv("NO_COMMITTED_ALL_CHECK");
-	unsetenv("MAINSINK_CONNECT");
+	g_unsetenv("CONNECT_ERROR");
+	g_unsetenv("CONNECT_TIMEOUT");
+	g_unsetenv("CONNECT_SLOWSYNC");
+	g_unsetenv("INIT_NULL");
+	g_unsetenv("GET_CHANGES_ERROR");
+	g_unsetenv("GET_CHANGES_TIMEOUT");
+	g_unsetenv("GET_CHANGES_TIMEOUT2");
+	g_unsetenv("COMMIT_ERROR");
+	g_unsetenv("COMMIT_TIMEOUT");
+	g_unsetenv("SYNC_DONE_ERROR");
+	g_unsetenv("SYNC_DONE_TIMEOUT");
+	g_unsetenv("DISCONNECT_ERROR");
+	g_unsetenv("DISCONNECT_TIMEOUT");
+	g_unsetenv("BATCH_COMMIT");
+	g_unsetenv("COMMITTED_ALL_ERROR");
+	g_unsetenv("NO_COMMITTED_ALL_CHECK");
+	g_unsetenv("MAINSINK_CONNECT");
 
-	unsetenv("OSYNC_NOMEMORY");
-	unsetenv("MOCK_SYNC_EXPECT_COMMIT_ALWAYS_ADDED");
-	unsetenv("MOCK_SYNC_ALWAYS_CHANGETYPE_MODIFIED");
+	g_unsetenv("OSYNC_NOMEMORY");
+	g_unsetenv("MOCK_SYNC_EXPECT_COMMIT_ALWAYS_ADDED");
+	g_unsetenv("MOCK_SYNC_ALWAYS_CHANGETYPE_MODIFIED");
 
-	unsetenv("MOCK_FORMAT_PATH_COMPARE_NO");
+	g_unsetenv("MOCK_FORMAT_PATH_COMPARE_NO");
 }
 
 
@@ -113,14 +113,16 @@ char *setup_testbed(const char *fkt_name)
 	if (system(command))
 		abort();
 	g_free(command);
-	
-	command = g_strdup_printf("chmod -R 700 %s", testbed);
+
+#ifndef _WIN32	/* chmod is useless on windows system */
+        command = g_strdup_printf("chmod -R 700 %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
+#endif
 		
 	olddir = g_get_current_dir();
-	if (chdir(testbed))
+	if (g_chdir(testbed) < 0)
 		abort();
 	
 	reset_counters();
@@ -136,7 +138,7 @@ void destroy_testbed(char *path)
 {
 	char *command = g_strdup_printf("rm -rf %s", path);
 	if (olddir) {
-		if (chdir(olddir) == -1)
+		if (g_chdir(olddir) < 0)
 			abort();
 		g_free(olddir);
 	}
