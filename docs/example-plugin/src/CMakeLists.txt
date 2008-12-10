@@ -8,7 +8,7 @@ OPENSYNC_PLUGIN_INSTALL( example_simple_plugin )
 
 ### Advanced Synchronization Plugin ######
 OPENSYNC_PLUGIN_ADD( example_plugin plugin.c )
-TARGET_LINK_LIBRARIES( example_plugin ${OPENSYNC_LIBRARIES} ${GLIB2_LIBRARIES} )
+TARGET_LINK_LIBRARIES( example_plugin ${OPENSYNC_LIBRARIES} )
 OPENSYNC_PLUGIN_INSTALL( example_plugin )
 
 ### Format Plugin ########################

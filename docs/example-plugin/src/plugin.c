@@ -6,10 +6,7 @@
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-version.h>
 
-#include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <glib.h>
 
 #include "plugin.h"
 
@@ -21,10 +18,10 @@ static void free_env(plugin_environment *env)
 		if (sinkenv->sink)
 			osync_objtype_sink_unref(sinkenv->sink);
 
-		env->sink_envs = g_list_remove(env->sink_envs, sinkenv);
+		env->sink_envs = osync_list_remove(env->sink_envs, sinkenv);
 	}
 
-	g_free(env);
+	osync_free(env);
 }
 
 static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -57,9 +54,9 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 
 
 	//If you need a hashtable you make it here
-	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+	char *tablepath = osync_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
 	sinkenv->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
-	g_free(tablepath);
+	osync_free(tablepath);
 
 	if (!sinkenv->hashtable)
 		goto error;
@@ -68,12 +65,12 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	//or some parameter change here. Check the docs to see how it works
 	char *lanchor = NULL;
 	//Now you get the last stored anchor from the device
-	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	char *anchorpath = osync_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 
 	if (!osync_anchor_compare(anchorpath, "lanchor", lanchor))
 		osync_objtype_sink_set_slowsync(sink, TRUE);
 
-	g_free(anchorpath);
+	osync_free(anchorpath);
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -119,8 +116,8 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	 */
 
 	do {
-		char *hash = g_strdup("<the calculated hash of the object>");
-		char *uid = g_strdup("<some uid>");
+		char *hash = osync_strdup("<the calculated hash of the object>");
+		char *uid = osync_strdup("<some uid>");
 
 		//Now get the data of this change
 		char *data = NULL;
@@ -145,14 +142,14 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 		osync_hashtable_update_change(sinkenv->hashtable, change);
 		
 		if (changetype == OSYNC_CHANGE_TYPE_UNMODIFIED) {
-			g_free(hash);
-			g_free(uid);
+			osync_free(hash);
+			osync_free(uid);
 			osync_change_unref(change);
 			continue;
 		}
 
-		g_free(hash);
-		g_free(uid);
+		osync_free(hash);
+		osync_free(uid);
 
 		OSyncObjFormat *format = osync_format_env_find_objformat(formatenv, "<objformat>");
 		
@@ -175,7 +172,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 		osync_change_unref(change);
 
-		g_free(uid);
+		osync_free(uid);
 	} while(0);
 
 	//When you are done looping and if you are using hashtables
@@ -269,9 +266,9 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	//If we use anchors we have to update it now.
 	//Now you get/calculate the current anchor of the device
 	char *lanchor = NULL;
-	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	char *anchorpath = osync_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 	osync_anchor_update(anchorpath, "lanchor", lanchor);
-	g_free(anchorpath);
+	osync_free(anchorpath);
 	//Save hashtable to database
 	if (!osync_hashtable_save(sinkenv->hashtable, &error))
 		goto error;
@@ -390,10 +387,10 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		osync_objtype_sink_set_functions(sinkenv->sink, functions, sinkenv);
 		
 		osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
-		char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+		char *tablepath = osync_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
 		sinkenv->hashtable = osync_hashtable_new(tablepath, objtype, error);
-		g_free(tablepath);
-		env->sink_envs = g_list_append(env->sink_envs, sinkenv);
+		osync_free(tablepath);
+		env->sink_envs = osync_list_append(env->sink_envs, sinkenv);
 	}
 	
 	//Now your return your struct.

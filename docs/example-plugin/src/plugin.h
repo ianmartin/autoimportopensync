@@ -1,8 +1,8 @@
-#include <glib.h>
+#include <opensync/opensync_list.h>
 
 //Specify any structs etc here.
 typedef struct plugin_environment {
-	GList *sink_envs; // sink_environment
+	OSyncList *sink_envs; // sink_environment
 } plugin_environment;
 
 typedef struct sink_environment {
