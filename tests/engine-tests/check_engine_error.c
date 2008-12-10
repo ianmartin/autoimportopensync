@@ -33,7 +33,7 @@ int num_connect = 0;
 int num_disconnect = 0;
 int num_get_changes = 0;
 
-static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+static void connect1(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	
@@ -104,7 +104,7 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
-	functions.connect = connect;
+	functions.connect = connect1;
 	functions.disconnect = disconnect;
 	functions.get_changes = get_changes;
 	

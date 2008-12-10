@@ -1,4 +1,7 @@
 #include "support.h"
+#ifndef _WIN32
+#include <sys/wait.h> /* For WEXITSTATUS */
+#endif
 
 #include "opensync/engine/opensync_engine_internals.h"
 
@@ -45,21 +48,31 @@ void check_env(void) {
 
 char *setup_testbed(const char *fkt_name)
 {
-	
+#ifndef _WIN32	
 	setuid(65534);
+#endif
 	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
+	char *command = NULL, *dirname = NULL;
+#ifdef _WIN32
+        if(g_file_test(testbed, G_FILE_TEST_IS_DIR))
+          destroy_testbed(g_strdup(testbed));
+
+        if(g_mkdir(testbed,0777) < 0){
+          osync_trace(TRACE_INTERNAL, "%s: Cannot create testbed directory %s", __func__, testbed);
+          abort();
+        }
+#else /* WIN32 */
 	if (!mkdtemp(testbed))
 		abort();
+#endif /* WIN32 */
 	
-	char *command = NULL;
 	if (fkt_name) {
-		char *dirname = g_strdup_printf(OPENSYNC_TESTDATA"/%s", fkt_name);
+		dirname = g_strdup_printf(OPENSYNC_TESTDATA"/%s", fkt_name);
 		if (!g_file_test(dirname, G_FILE_TEST_IS_DIR)) {
 			osync_trace(TRACE_INTERNAL, "%s: Path %s not exist.", __func__, dirname);
 			abort();
 		}
 		command = g_strdup_printf("cp -R %s/* %s", dirname, testbed);
-		osync_trace(TRACE_INTERNAL, "tb_cmd: %s", command);
 		if (system(command))
 			abort();
 		g_free(command);
@@ -155,14 +168,17 @@ void create_case_timeout(Suite *s, const char *name, TFun function, int timeout)
 
 OSyncMappingTable *mappingtable_load(const char *path, const char *objtype, int num_mappings)
 {
+	OSyncError *error = NULL;
+	OSyncMappingTable *table = NULL;
+        OSyncArchive *archive = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %i)", __func__, path, objtype, num_mappings);
 	
-	OSyncError *error = NULL;
-	OSyncMappingTable *table = osync_mapping_table_new(&error);
+	table = osync_mapping_table_new(&error);
 	fail_unless(table != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncArchive *archive = osync_archive_new(path, &error);
+	archive = osync_archive_new(path, &error);
 	fail_unless(archive != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -179,15 +195,15 @@ OSyncMappingTable *mappingtable_load(const char *path, const char *objtype, int 
 
 void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int numentries, const char *uid)
 {
+	int i = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %i, %i, %s)", __func__, maptable, memberid, mappingid, numentries, uid);
 	
-	int i = 0;
 	for (i = 0; i < osync_mapping_table_num_mappings(maptable); i++) {
 		OSyncMapping *mapping = osync_mapping_table_nth_mapping(maptable, i);
 		OSyncMappingEntry *testentry = osync_mapping_find_entry_by_member_id(mapping, memberid);
 		if ((mappingid != -1 && osync_mapping_get_id(mapping) == mappingid) || (mappingid == -1 && !strcmp(osync_mapping_entry_get_uid(testentry), uid))) {
+                        int n = 0;
 			fail_unless(osync_mapping_num_entries(mapping) == numentries);
-			int n = 0;
 			for (n = 0; n < osync_mapping_num_entries(mapping); n++) {
 				OSyncMappingEntry *entry = osync_mapping_nth_entry(mapping, n);
 				if (osync_mapping_entry_get_member_id(entry) == memberid) {
@@ -392,14 +408,16 @@ void mapping_status(OSyncMappingUpdate *status, void *user_data)
 
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
 {
+        OSyncChange *change = NULL;
+	OSyncError *error = NULL;
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
 	
 	num_mapping_conflicts++;
 	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 
-	OSyncChange *change = osync_mapping_engine_member_change(mapping, 1);
-	OSyncError *error = NULL;
+	change = osync_mapping_engine_member_change(mapping, 1);
 	osync_assert(osync_engine_mapping_solve(engine, mapping, change, &error));
 	osync_assert(error == NULL);
 	
@@ -409,13 +427,13 @@ void conflict_handler_choose_first(OSyncEngine *engine, OSyncMappingEngine *mapp
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
 {
 	OSyncError *error = NULL;
+	int i;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
 	
 	num_mapping_conflicts++;
 	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 
-	int i;
 	for (i = 0; i < osync_mapping_engine_num_changes(mapping); i++) {
 		OSyncChange *change = osync_mapping_engine_nth_change(mapping, i);
 		if (osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED) {
@@ -431,15 +449,14 @@ void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMappingEngine *ma
 
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
 {
+	OSyncError *error = NULL;
+	int i;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
 
-	OSyncError *error = NULL;
-	
 	num_mapping_conflicts++;
 	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 
-	int i;
 	for (i = 0; i < osync_mapping_engine_num_changes(mapping); i++) {
 		OSyncChange *change = osync_mapping_engine_nth_change(mapping, i);
 		if (osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_MODIFIED) {
@@ -454,25 +471,25 @@ void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMappingEngine *m
 
 void conflict_handler_ignore(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
 {
+	OSyncError *error = NULL;
 	num_mapping_conflicts++;
 	if (user_data)
 		fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
-	OSyncError *error = NULL;
 	osync_engine_mapping_ignore_conflict(engine, mapping, &error);
 	fail_unless(error == NULL, NULL);
 }
 
 void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
 {
+	OSyncError *error = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
 	
 	num_mapping_conflicts++;
 	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
-	OSyncError *error = NULL;
 	fail_unless(osync_engine_mapping_duplicate(engine, mapping, &error), NULL);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -480,12 +497,12 @@ void conflict_handler_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping
 
 void conflict_handler_abort(OSyncEngine *engine, OSyncMappingEngine *mapping, void *user_data)
 {
+	OSyncError *error = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
 	
 	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
-	OSyncError *error = NULL;
 	fail_unless(osync_engine_abort(engine, &error), NULL);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -495,10 +512,12 @@ OSyncEngine *gengine = NULL;
 
 void solve_conflict(OSyncMappingEngine *mapping)
 {
+        OSyncChange *change = NULL;
+	OSyncError *error = NULL;
+
 	sleep(5);
 	
-	OSyncChange *change = osync_mapping_engine_nth_change(mapping, 0);
-	OSyncError *error = NULL;
+	change = osync_mapping_engine_nth_change(mapping, 0);
 	osync_assert(osync_engine_mapping_solve(gengine, mapping, change, &error));
 	osync_assert(error == NULL);
 }
@@ -641,8 +660,11 @@ osync_bool osync_testing_file_copy(const char *source, const char *dest)
                            &exitstatus,	        /* exit status */
                            NULL		        /* error function */
                         );
-
+#ifndef _WIN32
         return ret && WEXITSTATUS(exitstatus) == 0;
+#else
+        return ret;
+#endif
 }
 
 /*! @brief Find differences between two files
@@ -678,11 +700,11 @@ osync_bool osync_testing_diff(const char *file1, const char *file2)
  * 
  */
 OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *path, const char *objtype, const char *objformat, const char *format_config) {
-
+	OSyncError *error = NULL;
+	OSyncObjFormatSink *format_sink = NULL;
+        OSyncPluginResource *res = NULL;
 	osync_assert(objtype);
 	osync_assert(objformat);
-
-	OSyncError *error = NULL;
 
 	if (!config)
 		config = osync_plugin_config_new(&error);
@@ -690,11 +712,11 @@ OSyncPluginConfig *simple_plugin_config(OSyncPluginConfig *config, const char *p
 	fail_unless(config != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
-	OSyncObjFormatSink *format_sink = osync_objformat_sink_new(objformat, &error);
+	format_sink = osync_objformat_sink_new(objformat, &error);
 	if (format_config)
 		osync_objformat_sink_set_config(format_sink, format_config);
 
-	OSyncPluginResource *res = osync_plugin_resource_new(&error);
+	res = osync_plugin_resource_new(&error);
 	osync_plugin_resource_set_objtype(res, objtype);
 	osync_plugin_resource_set_path(res, path); 
 	osync_plugin_resource_enable(res, TRUE);
@@ -717,8 +739,9 @@ OSyncEngine *osync_testing_create_engine_dummy(unsigned int member_size)
 {
 	unsigned int u;
 	OSyncError *error = NULL;
-
+	OSyncEngine *engine = NULL;
 	OSyncGroup *group = osync_group_new(&error);
+
 	fail_unless(group != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
@@ -730,7 +753,7 @@ OSyncEngine *osync_testing_create_engine_dummy(unsigned int member_size)
 		osync_group_add_member(group, member);
 	}
 
-	OSyncEngine *engine = osync_engine_new(group, &error);
+	engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 

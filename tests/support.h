@@ -1,5 +1,4 @@
 #include <check.h>
-#include <sys/wait.h>
 
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>

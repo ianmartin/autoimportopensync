@@ -1,5 +1,4 @@
 #include "support.h"
-#include <sys/wait.h>
 
 #include <opensync/opensync-client.h>
 #include <opensync/opensync-ipc.h>

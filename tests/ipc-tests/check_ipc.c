@@ -1,8 +1,12 @@
 #include "support.h"
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 
 #include <opensync/opensync-ipc.h>
 #include "opensync/ipc/opensync_queue_internals.h"
+
+#ifndef _WIN32
 
 START_TEST (ipc_new)
 {
@@ -2270,9 +2274,10 @@ Suite *ipc_suite(void)
 	
 	return s;
 }
-
+#endif /* _WIN32*/
 int main(void)
 {
+#ifndef _WIN32
 	int nf;
 
 	Suite *s = ipc_suite();
@@ -2283,4 +2288,7 @@ int main(void)
 	nf = srunner_ntests_failed(sr);
 	srunner_free(sr);
 	return (nf == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+#else
+        return EXIT_FAILURE;
+#endif
 }
