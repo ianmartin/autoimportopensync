@@ -25,7 +25,7 @@
 
 /**
  * @defgroup OSyncTimeAPI OpenSync Time
- * @ingroup OSyncPublic
+ * @ingroup OSyncFormat
  * @brief The public part of the OSyncTimeAPI
  * 
  */

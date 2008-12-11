@@ -22,13 +22,12 @@
 #define _OPENSYNC_OBJFORMAT_PRIVATE_H_
 
 /**
- * @defgroup OSyncConvPrivate OpenSync Conversion Internals
- * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
+ * @defgroup OSyncObjFormatPrivateAPI OpenSync Object Format Private
+ * @ingroup OSyncFormatPrivate
+ * @brief The private part of the OSyncObjFormat API
  * 
  */
+
 /*@{*/
 
 /*! @brief Represent a format for a object type
