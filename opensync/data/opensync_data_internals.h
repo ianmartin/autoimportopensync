@@ -22,10 +22,8 @@
 #define _OPENSYNC_DATA_INTERNALS_H_
 
 /**
- * @defgroup OSyncDataInternal OpenSync Data Module Internals
- * @ingroup OSyncPrivate
- * @defgroup OSyncDataInternalAPI OpenSync Data
- * @ingroup OSyncDataInternal
+ * @defgroup OSyncDataInternalAPI OpenSync Data Internals
+ * @ingroup OSyncDataPrivate
  * @brief The internal part of the OSyncData API
  */
 /*@{*/

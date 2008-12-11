@@ -21,8 +21,11 @@
 #ifndef _OPENSYNC_CHANGE_PRIVATE_H_
 #define _OPENSYNC_CHANGE_PRIVATE_H_
 
-/*! @ingroup OSyncDataPrivate 
- * @brief A change object */
+/**
+ * @defgroup OSyncChangePrivateAPI OpenSync Change Private 
+ * @ingroup OSyncDataPrivate 
+ */
+/** @brief A change object */
 struct OSyncChange {
 	/** The uid of this change */
 	char *uid;

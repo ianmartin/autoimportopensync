@@ -28,10 +28,8 @@
 #include <opensync/opensync_list.h>
   
 /**
- * @defgroup OSyncArchiveInternal OpenSync Archive Module Internals
- * @ingroup OSyncPrivate
  * @defgroup OSyncArchiveInternalAPI OpenSync Archive Internals
- * @ingroup OSyncArchiveInternal
+ * @ingroup OSyncArchivePrivate
  * @brief The internal part of the OSyncArchive API
  * 
  */

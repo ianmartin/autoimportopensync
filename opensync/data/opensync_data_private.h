@@ -21,8 +21,17 @@
 #ifndef _OPENSYNC_DATA_PRIVATE_H_
 #define _OPENSYNC_DATA_PRIVATE_H_
 
-/*! @ingroup OSyncDataPrivate 
- * @brief A data object */
+/**
+ * @defgroup OSyncDataPrivate OpenSync Data Module Private API
+ * @ingroup OSyncPrivate
+ * @defgroup OSyncDataPrivateAPI OpenSync Data Private
+ * @ingroup OSyncDataPrivate
+ * @brief The private part of the OSyncData API
+ * 
+ */
+/*@{*/
+
+/** @brief A data object */
 struct OSyncData {
 	/** The data reported from the plugin */
 	char *data;
@@ -34,5 +43,7 @@ struct OSyncData {
 	OSyncObjFormat *objformat;
 	int ref_count;
 };
+
+/*@}*/
 
 #endif /* _OPENSYNC_DATA_PRIVATE_H_ */

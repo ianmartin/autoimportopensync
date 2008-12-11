@@ -26,10 +26,18 @@
 #ifndef OPENSYNC_ARCHIVE_PRIVATE_H_
 #define OPENSYNC_ARCHIVE_PRIVATE_H_
 
+/**
+ * @defgroup OSyncArchivePrivate OpenSync Archive Module Private API
+ * @ingroup OSyncPrivate
+ * @defgroup OSyncArchivePrivateAPI OpenSync Archive Private
+ * @ingroup OSyncArchivePrivate
+ * @brief The private part of the OSyncArchive API
+ * 
+ */
+/*@{*/
 
 /**
  * @brief Represent a Archive object
- * @ingroup OSyncArchivePrivateAPI
  */
 struct OSyncArchive {
 	/** The reference counter for this object */

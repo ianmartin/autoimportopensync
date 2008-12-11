@@ -22,8 +22,8 @@
 #define _OPENSYNC_CHANGE_INTERNALS_H_
 
 /**
- * @defgroup OSyncChangeInternalAPI OpenSync Change
- * @ingroup OSyncDataInternal
+ * @defgroup OSyncChangeInternalAPI OpenSync Change Internals
+ * @ingroup OSyncDataPrivate
  */
 
 /*@{*/
