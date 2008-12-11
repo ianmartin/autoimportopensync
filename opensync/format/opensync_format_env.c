@@ -766,14 +766,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 }
 
 /**
- * @defgroup PublicAPI Public APIs
- * @brief Available public APIs
- * 
- */
-
-/**
  * @defgroup OSyncPublic OpenSync Public API
- * @ingroup PublicAPI
  * @brief The public API of opensync
  * 
  * This gives you an insight in the public API of opensync.

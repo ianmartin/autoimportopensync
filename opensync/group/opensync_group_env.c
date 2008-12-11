@@ -25,14 +25,7 @@
 #include "opensync_group_env_internals.h"
 
 /**
- * @defgroup PrivateAPI Private APIs
- * @brief Available private APIs
- * 
- */
-
-/**
  * @defgroup OSyncPrivate OpenSync Private API
- * @ingroup PrivateAPI
  * @brief The private API of opensync
  * 
  * This gives you an insight in the private API of opensync.
@@ -71,15 +64,9 @@ static long long int _osync_group_env_create_group_id(OSyncGroupEnv *env)
 
 /*@}*/
 
-/**
- * @defgroup PublicAPI Public APIs
- * @brief Available public APIs
- * 
- */
 
 /**
  * @defgroup OSyncPublic OpenSync Public API
- * @ingroup PublicAPI
  * @brief The public API of opensync
  * 
  * This gives you an insight in the public API of opensync.
